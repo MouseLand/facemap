@@ -18,33 +18,33 @@ for j = 1:length(handles.files)
     proc.files = handles.files;
     proc.folders = handles.folders;
     proc.filename  = handles.files{j};
-    proc.rX = handles.rX;
-    proc.rY = handles.rY;
-    proc.nX = handles.nX;
-    proc.nY = handles.nY;
-    proc.ROI = handles.ROI;
-    proc.plotROIs = handles.plotROIs;
-    proc.colors   = handles.colors;
     proc.fitellipse = handles.fitellipse;
-    proc.saturation = handles.saturation;
-    proc.whichROIs  = handles.whichROIs;
-    proc.svdmat     = handles.svdmat;
-    if isfield(handles,'motionMask')
-        proc.motionMask = handles.motionMask;
-    end
-    if isfield(handles,'movieMask')
-        proc.movieMask = handles.movieMask;
-    end
     
-    if isfield(handles,'proc')     
+    if isfield(handles,'proc')
         % save processed data
         proc.data = handles.proc(j);
         proc.avgframe = handles.avgframe{j};
         savefile   = sprintf('%s_proc.mat',savefile0);
         savepath   = fullfile(savefolder,savefile);
-      
+        
         save(savepath,'proc');
     else
+        proc.rX = handles.rX;
+        proc.rY = handles.rY;
+        proc.nX = handles.nX;
+        proc.nY = handles.nY;
+        proc.ROI = handles.ROI;
+        proc.plotROIs = handles.plotROIs;
+        proc.colors   = handles.colors;
+        proc.saturation = handles.saturation;
+        proc.whichROIs  = handles.whichROIs;
+        proc.svdmat     = handles.svdmat;
+        if isfield(handles,'motionMask')
+            proc.motionMask = handles.motionMask;
+        end
+        if isfield(handles,'movieMask')
+            proc.movieMask = handles.movieMask;
+        end
         % save settings
         savefile   = sprintf('%s_settings.mat',savefile0);
         savepath   = fullfile(savefolder,savefile);

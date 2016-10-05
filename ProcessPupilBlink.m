@@ -7,8 +7,10 @@ for j = wroi
     roif(j).fmap = roif(j).fr < roif(j).sats;
 end
 
-pup(nframes) = struct();
-blink(nframes) = struct();
+pup.com    = [];
+pup.center = [];
+pup.area   = [];
+blink.area = [];
 
 handles.lastROI = false(6,1);
 handles.lastROI(wroi(1)) = 1;
@@ -26,26 +28,11 @@ for k = 1:nframes
         if j==1
             [params] = FindEllipseandContour(roif(j),k);
             %pup2(k).area = params0.ra^2*pi;
-            pup(k).isgood = params.isgood;
-            pup(k).ra = params.ra;
-            pup(k).rb = params.rb;
-            pup(k).ang = params.ang;
-            pup(k).center = [params.xc params.yc];
-            pup(k).com = params.com;
-            pup(k).area = pi*params.ra*params.rb;
-            pup(k).x = params.xc;
-            pup(k).y = params.yc;
+            pup.center = [pup.center; params.xc params.yc];
+            pup.com = [pup.com; params.com];
+            pup.area = [pup.area; pi*params.ra*params.rb];
         else
-            %    blink2(k).area = params0.ra*params0.rb*pi;
-            %             blink(k).isgood = params.isgood;
-            %             blink(k).ra = params.ra;
-            %             blink(k).rb = params.rb;
-            %             blink(k).ang = params.ang;
-            %             blink(k).center = [params.xc params.yc];
-            %             blink(k).com = params.com;
-            %             blink(k).area = pi*params.ra*params.rb;
-            blink(k).area = sum(sum(roif(j).fmap(:,:,k),1),2);
-            
+            blink.area = [blink.area; sum(sum(roif(j).fmap(:,:,k),1),2)];
         end
           
     end

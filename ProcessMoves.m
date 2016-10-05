@@ -18,7 +18,7 @@ if handles.svdmat(j-2,1)
     
     % detect movements as change in pixels which are greater than a
     % user-specified threshold
-    sats = (1-handles.saturation(j))*255;
+    sats = (1-handles.saturation(j))*5;
     dfr   = squeeze(sum(fr>=sats,1));
 end
 motSVD = [];

@@ -137,6 +137,9 @@ else
     % processing ROIS!
     fprintf('computing pupil/blink and motion and SVD projections...\n');
     % initialize data structure
+    proc(length(handles.files)) = struct();
+    proc(1).pupil = [];
+    proc(1).blink = [];
     for jf = 1:length(handles.files)
         for j = find(handles.svdmat(:,1))'
             switch j           
@@ -226,7 +229,6 @@ else
             % whisker ROI computation
             if sum(handles.svdmat(1,:))>0
                 whisk = ProcessMoves(fdata,handles,3);
-                max(whisk{1}(:))
                 proc(jf).whisker.motion = cat(1, proc(jf).whisker.motion,whisk{1});
                 proc(jf).whisker.motionSVD = cat(1, proc(jf).whisker.motionSVD,whisk{2});
                 proc(jf).whisker.movieSVD = cat(1, proc(jf).whisker.movieSVD,whisk{3});
@@ -260,61 +262,60 @@ else
             
         end
     end
-     
+    handles.proc = proc;
+    
+      
     % assign ROI's to proc
     % if ROI was processed
+    keyboard;
     isproc = [wroi (2+find((sum(handles.svdmat,2)>0))')];
-    isproc
     rX = handles.rX;
     rY = handles.rY;
-    for jf = 1:length(handles.files)
-        for j = isproc
-            switch j
-                case 1
-                    proc(jf).pupil.ROI = handles.ROI{j};
-                    proc(jf).pupil.saturation = handles.saturation(j);
-                    proc(jf).pupil.ROIX = rX{j};
-                    proc(jf).pupil.ROIY = rY{j};
-                    proc(jf).pupil.nX   = length(rX{j});
-                    proc(jf).pupil.nY   = length(rY{j});
-                case 2
-                    proc(jf).blink.ROI = handles.ROI{j};
-                    proc(jf).blink.saturation = handles.saturation(j);
-                    proc(jf).blink.ROIX = rX{j};
-                    proc(jf).blink.ROIY = rY{j};
-                    proc(jf).blink.nX   = length(rX{j});
-                    proc(jf).blink.nY   = length(rY{j});
-                case 3
-                    proc(jf).whisker.ROI = handles.ROI{j};
-                    proc(jf).whisker.saturation = handles.saturation(j);
-                    proc(jf).whisker.ROIX = rX{j};
-                    proc(jf).whisker.ROIY = rY{j};
-                    proc(jf).whisker.nX   = length(rX{j});
-                    proc(jf).whisker.nY   = length(rY{j});
-                case 4
-                    proc(jf).groom.ROI = handles.ROI{j};
-                    proc(jf).groom.saturation = handles.saturation(j);
-                    proc(jf).groom.ROIX = rX{j};
-                    proc(jf).groom.ROIY = rY{j};
-                    proc(jf).groom.nX   = length(rX{j});
-                    proc(jf).groom.nY   = length(rY{j});
-                case 5
-                    proc(jf).snout.ROI = handles.ROI{j};
-                    proc(jf).snout.saturation = handles.saturation(j);
-                    proc(jf).snout.ROIX = rX{j};
-                    proc(jf).snout.ROIY = rY{j};
-                    proc(jf).snout.nX   = length(rX{j});
-                    proc(jf).snout.nY   = length(rY{j});
-                case 6
-                    proc(jf).face.ROI = handles.ROI{j};
-                    proc(jf).face.saturation = handles.saturation(j);
-                    proc(jf).face.ROIX = rX{j};
-                    proc(jf).face.ROIY = rY{j};
-                    proc(jf).face.nX   = length(rX{j});
-                    proc(jf).face.nY   = length(rY{j});
-            end
+    for j = isproc
+        switch j
+            case 1
+                proc(jf).pupil.ROI = handles.ROI{j};
+                proc(jf).pupil.saturation = handles.saturation(j);
+                proc(jf).pupil.ROIX = rX{j};
+                proc(jf).pupil.ROIY = rY{j};
+                proc(jf).pupil.nX   = length(rX{j});
+                proc(jf).pupil.nY   = length(rY{j});
+            case 2
+                proc(jf).blink.ROI = handles.ROI{j};
+                proc(jf).blink.saturation = handles.saturation(j);
+                proc(jf).blink.ROIX = rX{j};
+                proc(jf).blink.ROIY = rY{j};
+                proc(jf).blink.nX   = length(rX{j});
+                proc(jf).blink.nY   = length(rY{j});
+            case 3
+                proc(jf).whisker.ROI = handles.ROI{j};
+                proc(jf).whisker.saturation = handles.saturation(j);
+                proc(jf).whisker.ROIX = rX{j};
+                proc(jf).whisker.ROIY = rY{j};
+                proc(jf).whisker.nX   = length(rX{j});
+                proc(jf).whisker.nY   = length(rY{j});
+            case 4
+                proc(jf).groom.ROI = handles.ROI{j};
+                proc(jf).groom.saturation = handles.saturation(j);
+                proc(jf).groom.ROIX = rX{j};
+                proc(jf).groom.ROIY = rY{j};
+                proc(jf).groom.nX   = length(rX{j});
+                proc(jf).groom.nY   = length(rY{j});
+            case 5
+                proc(jf).snout.ROI = handles.ROI{j};
+                proc(jf).snout.saturation = handles.saturation(j);
+                proc(jf).snout.ROIX = rX{j};
+                proc(jf).snout.ROIY = rY{j};
+                proc(jf).snout.nX   = length(rX{j});
+                proc(jf).snout.nY   = length(rY{j});
+            case 6
+                proc(jf).face.ROI = handles.ROI{j};
+                proc(jf).face.saturation = handles.saturation(j);
+                proc(jf).face.ROIX = rX{j};
+                proc(jf).face.ROIY = rY{j};
+                proc(jf).face.nX   = length(rX{j});
+                proc(jf).face.nY   = length(rY{j});
         end
     end
-     handles.proc = proc;
-
+    
 end

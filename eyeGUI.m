@@ -156,8 +156,9 @@ else
     end
     handles.folder_name = folder_name;
     handles.cframe = 1;
-    PlotEye(handles);
     handles.nframes = handles.vr.Duration*handles.vr.FrameRate-1;
+    PlotEye(handles);
+    
 end
 guidata(hObject,handles);
 

@@ -6,6 +6,13 @@ axes(handles.axes1);
 cla;
 colormap('gray');
 frame = read(handles.vr,handles.cframe);
+jl = 1;
+for j = 1:11
+    if handles.cframe+j-6 > 0 && handles.cframe+j-6<=handles.nframes
+        frames(:,:,jl) = read(handles.vr,handles.cframe+j-6);
+        jl=jl+1;
+    end
+end
 imagesc(frame)
 title(sprintf('frame %d',handles.cframe),'fontsize',10);
 axis tight;
@@ -46,8 +53,9 @@ if ~isempty(indROI)
     
     % show difference between frames for movement areas
     if indROI > 2
-        frame2 = read(handles.vr,handles.cframe+1);
-        tdiff = abs(single(frame2) - single(frame));
+        sat    = max(0,(1-handles.saturation(indROI))*5);
+        fr     = my_conv2(single(frames),[2 2 3],[1 2 3]);
+        tdiff = abs(fr(:,:,6)-fr(:,:,5));
         tdiff = tdiff(handles.rX{indROI},handles.rY{indROI});
         imagesc(tdiff,[0 sat]);
     end
