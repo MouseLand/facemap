@@ -3,7 +3,7 @@ matlab GUI for processing eye camera data from rodents
 ![Alt text](/GUIscreenshot.PNG?raw=true "gui screenshot")
 
 # folder loading structure
-Choose a folder (say M012/2016-09-23) and it will add all video files in that folder and 1 folder down (e.g. M012/2016-09-23/1/mov.mkv, M012/2016-09-23/2/mov.mkv, M012/2016-09-23/3/mov.mkv). You'll see them in the drop down menu labelled as 1,2,3. You can switch between them and inspect how well the ROI works for each of the movies.
+Choose a folder (say M012/2016-09-23) and it will assemble a list of all video files in that folder and 1 folder down (e.g. M012/2016-09-23/1/mov.mkv, M012/2016-09-23/2/mov.mkv, M012/2016-09-23/3/mov.mkv). You can choose which of these you want to process. You'll then see the ones that you chose in the drop down menu labelled by their folder names (1,2,3). You can switch between them and inspect how well the ROI works for each of the movies.
 
 Or if M012/2016-09-23 has 3 movie files (e.g. M012/2016-09-23/mov1.mkv, M012/2016-09-23/mov2.mkv, M012/2016-09-23/mov3.mkv), then they show up in the drop down menu as mov1.mkv, mov2.mkv, mov3.mkv.
 
