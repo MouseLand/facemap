@@ -1,5 +1,6 @@
 # eyeGUI
 matlab GUI for processing eye camera data from rodents
+![Alt text](GUIscreenshot.png?raw=true "gui screenshot")
 
 # folder loading structure
 Choose a folder (say M012/2016-09-23) and it will add all video files in that folder and 1 folder down (e.g. M012/2016-09-23/1/mov.mkv, M012/2016-09-23/2/mov.mkv, M012/2016-09-23/3/mov.mkv) 
@@ -12,8 +13,11 @@ then they show up in the drop down menu as mov1.mkv, mov2.mkv, mov3.mkv
 
 When you choose ROIs these will be used to process ALL the folders that you see in the drop down menu when you click "Process ROIs".
 
-# processing multiple days of recordings (each day with different ROIs)
-after choosing ROIs for a set of movies (seen in drop-down), click "save ROI and processing settings". load the next set of files and repeat. Then choose "Batch Process ROIs"
+# processing
+you can choose which ROIs to process with the checkboxes on the right (if you've drawn the ROIs!)
+
+# processing multiple days of recordings
+after choosing ROIs for a set of movies (seen in drop-down), click "save ROI and processing settings". load the next set of files and save settings. Then choose "Batch Process ROIs"
 
 # different statistics of movement
 motion: absolute value of the difference of two frames and sum over pixels greater than the threshold set by the GUI 
@@ -33,14 +37,15 @@ movieSVD: take the svd of the frames:
 	proc.xx.movieMask = u;
 	movieSVD = v(:,1:100);
                   
-# output of GUI
-creates a separate mat file for each video
+# output of processing
+creates a separate mat file for each video (saved in folder with video), mat file has name "videofile_proc.mat"
+
 proc:
 	
 	suffix: '.mj2'     
         files: {1x3 cell} <--- all the files you processed together 
        folders: {3x1 cell}
-      filename: '\\zserver.ioo.uc…' <--- file name of movie
+      filename: '\\zserver.ioo.uc…' <--- filename of movie
     fitellipse: [0 1]          
           data: [1x1 struct]
       avgframe: [480x640 uint16]
