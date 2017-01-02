@@ -26,66 +26,72 @@ motion = sum(motpix>=saturation); % this is time by 1
 
 motion SVD: take the svd of the motpix: [u s v] = svd(motpix)
 
-use u (proc.xx.motionMask) and take 100 components of it
+	use u (proc.xx.motionMask) and take 100 components of it
 
-use 100 components of v: motionSVD = v(:,1:100);
+	use 100 components of v: motionSVD = v(:,1:100);
 
 movieSVD: take the svd of the frames: [u s v] = svd(frames);
 
-u (proc.xx.movieMask)
+	u (proc.xx.movieMask)
 
-use 100 components of v: movieSVD = v(:,1:100);
+	use 100 components of v: movieSVD = v(:,1:100);
                   
 # output of GUI
 creates a separate mat file for each video
 proc:
         suffix: '.mj2'
+        
          files: {1x3 cell} <--- all the files you processed together
+         
        folders: {3x1 cell}
+       
       filename: '\\zserver.ioo.uc…' <--- file name of movie
+      
     fitellipse: [0 1]          
+    
           data: [1x1 struct]
+          
       avgframe: [480x640 uint16]
 
 proc.data structure
 
 for all ROIs:
 
-proc.data.pupil.ROI = [x y Lx Ly]
+    proc.data.pupil.ROI = [x y Lx Ly]
 
-proc.data.pupil.saturation = saturation value set by user
+	proc.data.pupil.saturation = saturation value set by user
 
-proc.data.pupil.ROIX = x-1 + [1:Lx];
+	proc.data.pupil.ROIX = x-1 + [1:Lx];
 
-proc.data.pupil.ROIY = y-1 + [1:Ly];
+	proc.data.pupil.ROIY = y-1 + [1:Ly];
 
-proc.data.pupil.nX   = Lx;
+	proc.data.pupil.nX   = Lx;
 
-proc.data.pupil.nY   = Ly;
+	proc.data.pupil.nY   = Ly;
 
 for pupil ROI:
 
-proc.data.pupil.area   = area of fit ellipse
+	proc.data.pupil.area   = area of fit ellipse
 
-proc.data.pupil.center = center of fit ellipse
+	proc.data.pupil.center = center of fit ellipse
 
-proc.data.pupil.com    = center of mass of ellipse (using pixel values)
+	proc.data.pupil.com    = center of mass of ellipse (using pixel values)
 
 for blink ROI:
 
-proc.data.blink.area   = sum of pixels greater than threshold set
+	proc.data.blink.area   = sum of pixels greater than threshold set
 
 for whisker, face, etc:
 
-proc.data.whisker.motion
+	proc.data.whisker.motion
 
-proc.data.whisker.motionSVD
+	proc.data.whisker.motionSVD
 
-proc.data.whisker.movieSVD
+	proc.data.whisker.movieSVD
 
-proc.data.whisker.motionMask
+	proc.data.whisker.motionMask
 
-proc.data.whisker.movieMask
+	proc.data.whisker.movieMask
 
 
    (see above for description)
