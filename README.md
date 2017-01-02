@@ -37,44 +37,55 @@ u (proc.xx.movieMask)
 use 100 components of v: movieSVD = v(:,1:100);
                   
 # output of GUI
-creates structure where each is a different movie file (jf is the file index)
+creates a separate mat file for each video
+proc:
+        suffix: '.mj2'
+         files: {1x3 cell} <--- all the files you processed together
+       folders: {3x1 cell}
+      filename: '\\zserver.ioo.uc…' <--- file name of movie
+    fitellipse: [0 1]          
+          data: [1x1 struct]
+      avgframe: [480x640 uint16]
+
+proc.data structure
+
 for all ROIs:
 
-proc(jf).pupil.ROI = [x y Lx Ly]
+proc.data.pupil.ROI = [x y Lx Ly]
 
-proc(jf).pupil.saturation = saturation value set by user
+proc.data.pupil.saturation = saturation value set by user
 
-proc(jf).pupil.ROIX = x-1 + [1:Lx];
+proc.data.pupil.ROIX = x-1 + [1:Lx];
 
-proc(jf).pupil.ROIY = y-1 + [1:Ly];
+proc.data.pupil.ROIY = y-1 + [1:Ly];
 
-proc(jf).pupil.nX   = Lx;
+proc.data.pupil.nX   = Lx;
 
-proc(jf).pupil.nY   = Ly;
+proc.data.pupil.nY   = Ly;
 
 for pupil ROI:
 
-proc(jf).pupil.area   = area of fit ellipse
+proc.data.pupil.area   = area of fit ellipse
 
-proc(jf).pupil.center = center of fit ellipse
+proc.data.pupil.center = center of fit ellipse
 
-proc(jf).pupil.com    = center of mass of ellipse (using pixel values)
+proc.data.pupil.com    = center of mass of ellipse (using pixel values)
 
 for blink ROI:
 
-proc(jf).blink.area   = sum of pixels greater than threshold set
+proc.data.blink.area   = sum of pixels greater than threshold set
 
 for whisker, face, etc:
 
-proc(jf).whisker.motion
+proc.data.whisker.motion
 
-proc(jf).whisker.motionSVD
+proc.data.whisker.motionSVD
 
-proc(jf).whisker.movieSVD
+proc.data.whisker.movieSVD
 
-proc(jf).whisker.motionMask
+proc.data.whisker.motionMask
 
-proc(jf).whisker.movieMask
+proc.data.whisker.movieMask
 
 
    (see above for description)
