@@ -30,7 +30,7 @@ for i = 1:length(idims)
     % NN = size(S1,1);
     % NT = size(S1,2);
     
-    dt = -4*sig:1:4*sig;
+    dt = round(-4*sig):1:round(4*sig);
     gaus = exp( - dt.^2/(2*sig^2));
     gaus = gaus'/sum(gaus);
     
@@ -40,9 +40,9 @@ for i = 1:length(idims)
     %    Smooth(n,:) = (conv(S1(n,:)', gaus, 'same')./Norms)';
     % end
     
-    cNorm = filter(gaus, 1, cat(1, ones(dsnew2(1), 1), zeros(4*sig,1)));
+    cNorm = filter(gaus, 1, cat(1, ones(dsnew2(1), 1), zeros(ceil(4*sig),1)));
     cNorm = cNorm(1+4*sig:end, :);
-    S1 = filter(gaus, 1, cat(1, S1, zeros([4*sig, dsnew2(2)])));
+    S1 = filter(gaus, 1, cat(1, S1, zeros([ceil(4*sig), dsnew2(2)])));
     S1(1:4*sig, :) = [];
     S1 = reshape(S1, dsnew);
     

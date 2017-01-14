@@ -61,6 +61,7 @@ else
                     if sum(handles.svdmat(j,2))>0
                         % compute motion diff
                         fr   = abs(diff(fr,1,2));
+                        fr2 = bsxfun(@minus,fr,mean(fr,2));
                         [u s v] = svd(fr'*fr);
                         % pixels x components
                         nc = 20;
