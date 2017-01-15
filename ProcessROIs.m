@@ -62,11 +62,12 @@ else
                         % compute motion diff
                         fr   = abs(diff(fr,1,2));
                         fr2 = bsxfun(@minus,fr,mean(fr,2));
-                        [u s v] = svd(fr'*fr);
+                        [u s v] = svd(fr2'*fr2);
                         % pixels x components
                         nc = 20;
                         uMot{j}    = cat(2,uMot{j},normc(fr*u(:,1:nc)));
                     end
+                    clear fr2;
                 end
                 fprintf('file %d frameset %d/%d  time %3.2fs\n',jf,nf,ceil(nframes/1000),toc);
             end
