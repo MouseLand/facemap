@@ -24,14 +24,16 @@ end
 motSVD = [];
 if handles.svdmat(j-2,2)
     motMask = handles.motionMask{j-2};
-    motSVD=fr'*motMask;
-    motSVD = [motSVD(1,:); motSVD];
+    fr2     = bsxfun(@minus,fr,mean(fr,2));
+    motSVD  = fr2'*motMask;
+    motSVD  = [motSVD(1,:); motSVD];
 end
 movSVD = [];
 if handles.svdmat(j-2,3)
-    fr = reshape(frames,[],size(frames,3));
+    fr      = reshape(frames,[],size(frames,3));
+    fr2     = bsxfun(@minus,fr,mean(fr,2));
     movMask = handles.movieMask{j-2};
-    movSVD=fr'*movMask;
+    movSVD  =fr2'*movMask;
 end
     
 movs{1} = [dfr(1);dfr(:)];
@@ -39,7 +41,7 @@ movs{2} = motSVD;
 movs{3} = movSVD;
 
 if 0
-for k = 1:10:1000
+for k = 1:100:1000
     clf
     subplot(2,1,1),
     imagesc(frames(:,:,k))
@@ -49,6 +51,6 @@ for k = 1:10:1000
     hold all;
     plot(k,mt(k,:),'k*');
 drawnow;
-pause;
+%pause;
 end
 end

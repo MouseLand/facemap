@@ -7,9 +7,10 @@ cla;
 colormap('gray');
 frame = read(handles.vr,handles.cframe);
 jl = 1;
+frames = [];
 for j = 1:11
     if handles.cframe+j-6 > 0 && handles.cframe+j-6<=handles.nframes
-        frames(:,:,jl) = read(handles.vr,handles.cframe+j-6);
+        frames(:,:,jl) = sum(read(handles.vr,handles.cframe+j-6),3);
         jl=jl+1;
     end
 end

@@ -16,7 +16,16 @@ if fs(1).isdir==1
                 fm = dir(fullfile(folder_name,fs(j).name));
                 fm = fm(3:end);
                 for k = 1:length(fm)
-                    if strcmp(fm(k).name(end-3:end),handles.suffix)
+                    [~,~,ext] = fileparts(fm(k).name);
+                    ismov = 0;
+                    for ie = 1:length(handles.suffix)
+                        if strcmp(ext, handles.suffix{ie})
+                            ismov = 1;
+                        end
+                        ext
+                        handles.suffix{ie}
+                    end
+                    if ismov
                         fname = fullfile(folder_name,fs(j).name,fm(k).name);
                         filename{ik} = fname;
                         idate   = [idate; fm(k).datenum];
@@ -48,19 +57,27 @@ if fs(1).isdir==1
                 end
             end
     end
+end
     % sort files by date
 % otherwise, find all .mj2s in current folder
-else
-    fm = fs;
-    ik = 1;
-    for k = 1:length(fm)
-        if strcmp(fm(k).name(end-3:end),handles.suffix)
-            fname = fullfile(folder_name,fm(k).name);
-            filename{ik} = fname;
-            ik = ik+1;
-            idate   = [idate; fm(k).datenum];
-            folders = cat(1,folders,fm(k).name);
+fm = fs;
+ik = 1;
+for k = 1:length(fm)
+    [~,~,ext] = fileparts(fm(k).name);
+    ismov = 0;
+    for ie = 1:length(handles.suffix)
+        if strcmp(ext, handles.suffix{ie})
+            ismov = 1;
         end
+        ext
+        handles.suffix{ie}
+    end
+    if ismov
+        fname = fullfile(folder_name,fm(k).name);
+        filename{ik} = fname;
+        ik = ik+1;
+        idate   = [idate; fm(k).datenum];
+        folders = cat(1,folders,fm(k).name);
     end
 end
 

@@ -57,7 +57,7 @@ handles.output = hObject;
 
 % default filepath for eye camera
 handles.filepath = '\\zserver.ioo.ucl.ac.uk\Data\EyeCamera\';
-handles.suffix   = '.mj2'; % suffix of eye camera file!
+handles.suffix   = {'.mj2','.mp4'}; % suffix of eye camera file!
 handles.nX       = 640;
 handles.nY       = 480;
 for j = 1:6
@@ -140,20 +140,25 @@ else
     set(handles.popupmenu6,'Value',handles.whichfile);
     handles.vr = VideoReader(filename{handles.whichfile});
     fprintf('displaying \n%s\n',filename{handles.whichfile});
-    if strcmp(folder_name(1:length(handles.filepath)),handles.filepath)
-        foldname = folder_name(length(handles.filepath)+1:end);
-        ns       = strfind(foldname,'\');
-        if isempty(ns)
-            ns   = strfind(foldname,'/');
-        end
-        if ~isempty(ns)
-            ns = ns(1);
-            foldname = sprintf('%s\n%s',foldname(1:ns),foldname(ns+1:end));
-            set(handles.text13,'String',foldname);
+    if length(folder_name) > length(handles.filepath)
+        if strcmp(folder_name(1:length(handles.filepath)),handles.filepath)
+            foldname = folder_name(length(handles.filepath)+1:end);
+            ns       = strfind(foldname,'\');
+            if isempty(ns)
+                ns   = strfind(foldname,'/');
+            end
+            if ~isempty(ns)
+                ns = ns(1);
+                foldname = sprintf('%s\n%s',foldname(1:ns),foldname(ns+1:end));
+                set(handles.text13,'String',foldname);
+            end
+        else
+            set(handles.text13,'String',folder_name);
         end
     else
         set(handles.text13,'String',folder_name);
     end
+        
     handles.folder_name = folder_name;
     handles.cframe = 1;
     handles.nframes = handles.vr.Duration*handles.vr.FrameRate-1;

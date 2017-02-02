@@ -45,7 +45,7 @@ else
                         fr = fdata(handles.rX{j+2},handles.rY{j+2},:);
                     end
                     % convolve in space and time
-                    fr = my_conv2(single(fr),[2 2 3],[1 2 3]);
+                    fr = my_conv2(single(fr),[1 1 2],[1 2 3]);
                     if handles.useGPU
                         fr = gather(fr);
                     end
@@ -65,7 +65,7 @@ else
                         [u s v] = svd(fr2'*fr2);
                         % pixels x components
                         nc = 20;
-                        uMot{j}    = cat(2,uMot{j},normc(fr*u(:,1:nc)));
+                        uMot{j}    = cat(2,uMot{j},normc(fr2*u(:,1:nc)));
                     end
                     clear fr2;
                 end
@@ -207,7 +207,7 @@ else
                 fdata = gpuArray(fdata(:,:,1:k));
             end
             % convolve in space and time
-            fdata = my_conv2(single(fdata),[2 2 3],[1 2 3]);
+            fdata = my_conv2(single(fdata),[1 1 2],[1 2 3]);
             if handles.useGPU
                 fdata = gather(fdata);
             end
