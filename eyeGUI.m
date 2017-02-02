@@ -57,7 +57,7 @@ handles.output = hObject;
 
 % default filepath for eye camera
 handles.filepath = '\\zserver.ioo.ucl.ac.uk\Data\EyeCamera\';
-handles.suffix   = {'.mj2','.mp4','.mkv','avi','mpeg','mpg'}; % suffix of eye camera file!
+handles.suffix   = {'.mj2','.mp4','.mkv','.avi','.mpeg','.mpg'}; % suffix of eye camera file!
 handles.nX       = 640;
 handles.nY       = 480;
 for j = 1:6
