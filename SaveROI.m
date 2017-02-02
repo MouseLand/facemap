@@ -6,13 +6,7 @@ function handles = SaveROI(handles)
 for j = 1:length(handles.files)
     clear proc;
     % folder path
-    ns = strfind(handles.files{j},'\');
-    if isempty(ns)
-        ns = strfind(handles.files{j},'/');
-    end
-    ns = ns(end);
-    savefolder = handles.files{j}(1:ns);
-    savefile0   = handles.files{j}(ns+1:end-(length(handles.suffix)));
+    [savefolder,savefile0,~] = fileparts(handles.files{j});
     
     proc.suffix = handles.suffix;
     proc.files = handles.files;

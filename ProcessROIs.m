@@ -224,7 +224,6 @@ else
                     proc(jf).blink.area   = cat(1, proc(jf).blink.area,blink.area);
                 end
             end
-            size(proc(jf).pupil.area)
             % whisker ROI computation
             if sum(handles.svdmat(1,:))>0
                 whisk = ProcessMoves(fdata,handles,3);

@@ -7,6 +7,7 @@ fs        = fs(3:end);
 
 % if it's a folder of folders, descend one to find .mj2's
 idate = [];
+ik = 1;
 if fs(1).isdir==1
     blks = questdlg('would you like to process all blocks?');
     switch blks
@@ -19,11 +20,10 @@ if fs(1).isdir==1
                     [~,~,ext] = fileparts(fm(k).name);
                     ismov = 0;
                     for ie = 1:length(handles.suffix)
-                        if strcmp(ext, handles.suffix{ie})
+                        if strcmp(ext, handles.suffix{ie})          
                             ismov = 1;
+                            break;
                         end
-                        ext
-                        handles.suffix{ie}
                     end
                     if ismov
                         fname = fullfile(folder_name,fs(j).name,fm(k).name);
@@ -45,7 +45,15 @@ if fs(1).isdir==1
                     fm = dir(fullfile(folder_name,fs(j).name));
                     fm = fm(3:end);
                     for k = 1:length(fm)
-                        if strcmp(fm(k).name(end-3:end),handles.suffix)
+                        [~,~,ext] = fileparts(fm(k).name);
+                        ismov = 0;
+                        for ie = 1:length(handles.suffix)
+                            if strcmp(ext, handles.suffix{ie})
+                                ismov = 1;
+                                break;
+                            end
+                        end
+                        if ismov
                             fname = fullfile(folder_name,fs(j).name,fm(k).name);
                             filename{ik} = fname;
                             idate   = [idate; fm(k).datenum];
@@ -61,16 +69,14 @@ end
     % sort files by date
 % otherwise, find all .mj2s in current folder
 fm = fs;
-ik = 1;
 for k = 1:length(fm)
     [~,~,ext] = fileparts(fm(k).name);
     ismov = 0;
     for ie = 1:length(handles.suffix)
         if strcmp(ext, handles.suffix{ie})
             ismov = 1;
+            break;
         end
-        ext
-        handles.suffix{ie}
     end
     if ismov
         fname = fullfile(folder_name,fm(k).name);
