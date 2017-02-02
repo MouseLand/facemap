@@ -4,7 +4,10 @@ matlab GUI for processing eye camera data from rodents
 ![Alt text](/GUIscreenshot.PNG?raw=true "gui screenshot")
 
 # supported movie files
-extensions '.mj2','.mp4','.mkv' (add more in line 60 of eyeGUI.m)
+extensions '.mj2','.mp4','.mkv','.avi','.mpeg','.mpg' (add more in line 60 of eyeGUI.m)
+
+# default starting folder
+set at line 59 of eyeGUI.m (handles.filepath)
 
 # folder loading structure
 Choose a folder (say M012/2016-09-23) and it will assemble a list of all video files in that folder and 1 folder down (e.g. M012/2016-09-23/1/mov.mkv, M012/2016-09-23/2/mov.mkv, M012/2016-09-23/3/mov.mkv). You can choose which of these you want to process. You'll then see the ones that you chose in the drop down menu labelled by their folder names (1,2,3). You can switch between them and inspect how well the ROI works for each of the movies.
