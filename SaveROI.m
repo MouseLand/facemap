@@ -8,7 +8,7 @@ for j = 1:length(handles.files)
     % folder path
     [savefolder,savefile0,~] = fileparts(handles.files{j});
     
-    proc.suffix = handles.suffix;
+    %proc.suffix = handles.suffix;
     proc.files = handles.files;
     proc.folders = handles.folders;
     proc.filename  = handles.files{j};
