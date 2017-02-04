@@ -151,6 +151,8 @@ else
                 ns = ns(1);
                 foldname = sprintf('%s\n%s',foldname(1:ns),foldname(ns+1:end));
                 set(handles.text13,'String',foldname);
+            else
+                set(handles.text13,'String',folder_name);
             end
         else
             set(handles.text13,'String',folder_name);
