@@ -180,14 +180,15 @@ else
         handles.vr = vr;
         % take mean from 1000 random frames
         fdata = zeros(vr.Height,vr.Width,1000,'uint16');
-        nframes = vr.Duration*vr.FrameRate-1;
+        nframes = round(vr.Duration*vr.FrameRate-1);
+        
         indf = randperm(nframes,min(1000,nframes));
         for k = 1:min(1000,nframes)
             fdata(:,:,k) = read(vr,indf(k));
         end
-        avgframe = median(fdata,3);        
+        avgframe = median(fdata,3);
         handles.avgframe{jf} = avgframe;
-
+        
         % initialize pupil/blink ROIs
         wroi = find(handles.whichROIs(1:2))';
         [pbroi,wroi] = InitPupilBlink(handles,wroi,avgframe);        
