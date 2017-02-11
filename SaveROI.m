@@ -17,7 +17,8 @@ for j = 1:length(handles.files)
     if isfield(handles,'proc')
         % save processed data
         proc.data = handles.proc(j);
-        proc.avgframe = handles.avgframe{j};
+        proc.avgframe = handles.avgframe;
+        proc.avgmotion = handles.avgmotion;
         savefile   = sprintf('%s_proc.mat',savefile0);
         savepath   = fullfile(savefolder,savefile);
         

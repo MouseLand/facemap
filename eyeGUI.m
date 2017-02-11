@@ -474,7 +474,7 @@ guidata(hObject,handles);
 
 % ----- ROIs will be processed in blocks -------------------- %
 function processROIs_Callback(hObject, eventdata, handles)
-handles = ProcessROIs(handles);
+handles = ProcessROIs_bin(handles);
 handles = SaveROI(handles);
 
 guidata(hObject,handles);

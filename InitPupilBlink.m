@@ -2,8 +2,8 @@ function [roif,wroi] = InitPupilBlink(handles,wroi,avgframe)
 
 roif(2) = struct();
 for j = wroi
-    roif(j).rX       = handles.rX{j};
-    roif(j).rY       = handles.rY{j};
+    roif(j).rX       = handles.rXc{j};
+    roif(j).rY       = handles.rYc{j};
     roif(j).nX       = numel(roif(j).rX);
     roif(j).nY       = numel(roif(j).rY);
     nX = roif(j).nX;

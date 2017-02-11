@@ -55,7 +55,7 @@ else
                         [u s v] = svd(fr2'*fr2);
                         % pixels x components
                         nc = 20;
-                        uMov{j}    = cat(2,uMov{j},normc(fr2*u(:,1:nc)));
+                        uMov{j}    = cat(2,uMov{j},fr2*u(:,1:nc));
                     end
                     clear fr2;
                     if sum(handles.svdmat(j,2))>0
@@ -65,7 +65,7 @@ else
                         [u s v] = svd(fr2'*fr2);
                         % pixels x components
                         nc = 20;
-                        uMot{j}    = cat(2,uMot{j},normc(fr2*u(:,1:nc)));
+                        uMot{j}    = cat(2,uMot{j},fr2*u(:,1:nc));
                     end
                     clear fr2;
                 end
@@ -104,7 +104,7 @@ else
                 [uMov0 s v] = svd(uMot{j}'*uMot{j});
                 % pixels x components
                 uMot{j}    = uMot{j}*uMov0(:,1:min(100,size(uMov0,2)));
-                % normalize uMov
+                % normalize uMot
                 uMot{j}    = normc(uMot{j});
                 handles.motionMask{j} = (uMot{j});
                 switch j
