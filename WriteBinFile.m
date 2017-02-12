@@ -1,4 +1,4 @@
-function fileframes = WriteBinFile(handles)
+function [fileframes, avgframe, avgmotion] = WriteBinFile(handles)
 sc       = handles.sc;
 nX       = handles.nX;
 nY       = handles.nY;
@@ -48,8 +48,7 @@ for jf = 1:length(handles.files)
 end
 avgframe = avgframe/nfall;
 avgmotion = avgmotion/(nfall-length(handles.files));
-handles.avgframe = avgframe;
-handles.avgmotion = avgmotion;
+
 
 fclose('all');
 toc;

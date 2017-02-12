@@ -29,8 +29,10 @@ else
     handles.facefile = facefile;
 
     fprintf('writing face file to binary file\n');
-    fileframes = WriteBinFile(handles);
+    [fileframes, avgframe, avgmotion] = WriteBinFile(handles);
     handles.fileframes = fileframes;
+    handles.avgframe = avgframe;
+    handles.avgmotion = avgmotion;
     
     %%%% pass through data to compute SVDs
     if svdmot || svdmov
