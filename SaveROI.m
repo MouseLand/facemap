@@ -36,6 +36,7 @@ for j = 1:length(handles.files)
         proc.sc = handles.sc;
         proc.tsc = handles.tsc;
         proc.thres = handles.thres;
+        proc.binfolder = handles.binfolder;
         if isfield(handles,'motionMask')
             proc.motionMask = handles.motionMask;
         end
