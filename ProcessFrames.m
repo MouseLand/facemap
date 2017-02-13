@@ -35,17 +35,18 @@ for jf = 1:length(handles.files)
         if isface
             fdata    = fread(fid,[nXc*nYc nt]);
             fdata    = reshape(fdata, nYc, nXc, size(fdata,2));
-            nt       = size(fdata,2);
+            nt0      = size(fdata,3);
         end
         if ispupil
             fdatap   = fread(fidp,[nXp*nYp nt]);
-            nt       = size(fdatap,2);
+            nt0      = size(fdatap,2);
         end
         if isempty(fdata) && isempty(fdatap)
             disp('frame counting is off! :(');
+            keyboard;
             break;
         end
-        ntall = ntall + nt;
+        ntall = ntall + nt0;
         
         % pupil ROI computation
         if ispupil

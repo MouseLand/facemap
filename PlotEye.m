@@ -4,7 +4,7 @@ tstr = {'pupil','blink','whisker','groom','snout','face'};
 
 % smoothing constants
 sc = handles.sc;
-tsc = handles.sc;
+tsc = handles.tsc;
 
 
 axes(handles.axes1);
@@ -16,10 +16,12 @@ frames = zeros(handles.nY, handles.nX, 11, 'uint8');
 for j = 1:11
     if handles.cframe+j-6 > 0 && handles.cframe+j-6<=handles.nframes
         frames(:,:,j) = read(handles.vr,handles.cframe+j-6);
+    else
+        frames(:,:,j) = read(handles.vr,handles.cframe);
     end
 end
 imagesc(frame)
-title(sprintf('frame %d',handles.cframe),'fontsize',10);
+title('');
 axis tight;
 axis off;
 
@@ -49,7 +51,8 @@ if ~isempty(indROI)
     end
     
     if indROI == 1
-        fr = my_conv2(fr(:,:,6), [1 1], [1 2]);
+        fr = my_conv2(fr, [1 1 tsc], [1 2 3]);
+        fr = fr(:,:,6);
     end
     if indROI == 2
         fr = fr(:,:,6);

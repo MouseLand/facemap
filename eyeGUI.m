@@ -22,16 +22,16 @@ function varargout = eyeGUI(varargin)
 
 % Edit the above text to modify the response to help eyeGUI
 
-% Last Modified by GUIDE v2.5 12-Feb-2017 20:23:11
+% Last Modified by GUIDE v2.5 13-Feb-2017 19:27:15
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
 gui_State = struct('gui_Name',       mfilename, ...
-                   'gui_Singleton',  gui_Singleton, ...
-                   'gui_OpeningFcn', @eyeGUI_OpeningFcn, ...
-                   'gui_OutputFcn',  @eyeGUI_OutputFcn, ...
-                   'gui_LayoutFcn',  [] , ...
-                   'gui_Callback',   []);
+    'gui_Singleton',  gui_Singleton, ...
+    'gui_OpeningFcn', @eyeGUI_OpeningFcn, ...
+    'gui_OutputFcn',  @eyeGUI_OutputFcn, ...
+    'gui_LayoutFcn',  [] , ...
+    'gui_Callback',   []);
 if nargin && ischar(varargin{1})
     gui_State.gui_Callback = str2func(varargin{1});
 end
@@ -56,12 +56,17 @@ function eyeGUI_OpeningFcn(hObject, eventdata, handles, varargin)
 handles.output = hObject;
 
 % default filepath for eye camera
-handles.filepath = '\\zserver.ioo.ucl.ac.uk\Data\EyeCamera\';
+handles.filepath = '\\zserver.cortexlab.net\Data\EyeCamera\';
 handles.suffix   = {'.mj2','.mp4','.mkv','.avi','.mpeg','.mpg'}; % suffix of eye camera file!
+
+% default filepath to write binary file (ideally an SSD)
+handles.binfolder = 'F:\DATA\';
+
+% default file size
 handles.nX       = 640;
 handles.nY       = 480;
 for j = 1:6
-    handles.ROI{j} = [handles.nX/4 handles.nY/4 handles.nX/4 handles.nY/4]; 
+    handles.ROI{j} = [handles.nX/4 handles.nY/4 handles.nX/4 handles.nY/4];
     if j == 6
         handles.ROI{j} = [2 2 handles.nX-4 handles.nY-4];
     end
@@ -85,8 +90,6 @@ handles.thres     = [4 6];
 set(handles.slider2,'Min',0);
 set(handles.slider2,'Max',1);
 set(handles.slider2,'Value',0);
-set(handles.checkbox15,'Value',1); % use GPU by default
-handles.useGPU = 1;
 set(handles.edit1,'String',num2str(0));
 handles.saturation = zeros(6,1);
 
@@ -105,70 +108,69 @@ guidata(hObject, handles);
 
 
 % --- Outputs from this function are returned to the command line.
-function varargout = eyeGUI_OutputFcn(hObject, eventdata, handles) 
+function varargout = eyeGUI_OutputFcn(hObject, eventdata, handles)
 % Get default command line output from handles structure
 varargout{1} = handles.output;
 
 
-% ---- do you have a gpu? -----------%
-function checkbox15_Callback(hObject, eventdata, handles)
-wc = get(hObject,'Value');
-handles.useGPU  = wc;
-guidata(hObject,handles);
+%%%%% choose folder to write binary file
+function pushbutton18_Callback(hObject, eventdata, handles)
+folder_name = uigetdir(handles.binfolder);
+if folder_name ~= 0
+    handles.binfolder = folder_name;
+    set(handles.text21,'String',handles.binfolder);
+end
+% Update handles structure
+guidata(hObject, handles);
 
 
 % ------------ choose folder -- can have multiple blocks!
 function folder_Callback(hObject, eventdata, handles)
 folder_name = uigetdir(handles.filepath);
-handles.rootfolder = folder_name;
-[filename,folders] = FindBlocks(handles,folder_name);
-if isempty(filename{1})
-    msgbox('ahh! no movie files found!');
-else
-    handles.files = filename;
-    handles.folders = folders;
-    % which block do you want to view
-%     if length(filename)>1
-%         [folds,didchoose] = listdlg('PromptString','choose single file to view',...
-%             'SelectionMode','single','ListSize',[160 160],'ListString',folders);
-%         if didchoose
-%             handles.whichfile = folds;
-%         else
-%             handles.whichfile = 1;
-%         end
-%     else
+if folder_name ~= 0
+    handles.rootfolder = folder_name;
+    [filename,folders] = FindBlocks(handles,folder_name);
+    if isempty(filename{1})
+        msgbox('ahh! no movie files found!');
+    else
+        handles.files = filename;
+        handles.folders = folders;
         handles.whichfile = 1;
-    %end
-    set(handles.popupmenu6,'String',folders);
-    set(handles.popupmenu6,'Value',handles.whichfile);
-    handles.vr = VideoReader(filename{handles.whichfile});
-    fprintf('displaying \n%s\n',filename{handles.whichfile});
-    if length(folder_name) > length(handles.filepath)
-        if strcmp(folder_name(1:length(handles.filepath)),handles.filepath)
-            foldname = folder_name(length(handles.filepath)+1:end);
-            ns       = strfind(foldname,'\');
-            if isempty(ns)
-                ns   = strfind(foldname,'/');
-            end
-            if ~isempty(ns)
-                ns = ns(1);
-                foldname = sprintf('%s\n%s',foldname(1:ns),foldname(ns+1:end));
-                set(handles.text13,'String',foldname);
+        
+        set(handles.popupmenu6,'String',folders);
+        set(handles.popupmenu6,'Value',handles.whichfile);
+        handles.vr = VideoReader(filename{handles.whichfile});
+        nX    = handles.vr.Width;
+        nY    = handles.vr.Height;
+        handles.nX = nX;
+        handles.nY = nY;
+        fprintf('displaying \n%s\n',filename{handles.whichfile});
+        if length(folder_name) > length(handles.filepath)
+            if strcmp(folder_name(1:length(handles.filepath)),handles.filepath)
+                foldname = folder_name(length(handles.filepath)+1:end);
+                ns       = strfind(foldname,'\');
+                if isempty(ns)
+                    ns   = strfind(foldname,'/');
+                end
+                if ~isempty(ns)
+                    ns = ns(1);
+                    foldname = sprintf('%s\n%s',foldname(1:ns),foldname(ns+1:end));
+                    set(handles.text13,'String',foldname);
+                else
+                    set(handles.text13,'String',folder_name);
+                end
             else
                 set(handles.text13,'String',folder_name);
             end
         else
             set(handles.text13,'String',folder_name);
         end
-    else
-        set(handles.text13,'String',folder_name);
-    end
         
-    handles.folder_name = folder_name;
-    handles.cframe = 1;
-    handles.nframes = handles.vr.Duration*handles.vr.FrameRate-1;
-    PlotEye(handles);
-    
+        handles.folder_name = folder_name;
+        handles.cframe = 1;
+        handles.nframes = handles.vr.Duration*handles.vr.FrameRate-1;
+        PlotEye(handles);
+    end
 end
 guidata(hObject,handles);
 
@@ -188,11 +190,9 @@ guidata(hObject,handles);
 function roi0 = OnScreenROI(ROI,nX,nY)
 roi0 = ROI;
 roi0(1) = min(nX,max(1,ROI(1)));
-roi0(2) = min(nY,max(1,ROI(2))); 
+roi0(2) = min(nY,max(1,ROI(2)));
 roi0(3) = min(nX-roi0(1),ROI(3));
 roi0(4) = min(nY-roi0(2),ROI(4));
-
-
 
 function drawpupilROI_Callback(hObject, eventdata, handles)
 j = 1;
@@ -310,8 +310,6 @@ set(handles.slider2,'Value',handles.saturation(j));
 set(handles.edit1,'String',num2str(handles.saturation(j)));
 guidata(hObject, handles);
 
-
-
 % --- SLIDER FOR CHOOSING DISPLAYED FRAME ------------------ %
 function slider1_CreateFcn(hObject, eventdata, handles)
 % Hint: slider controls usually have a light gray background.
@@ -331,9 +329,33 @@ smax = get(hObject,'Max');
 cframe = min(handles.nframes,max(1,round(v/(smax-smin) * handles.nframes)));
 handles.cframe = cframe;
 set(handles.edit3,'String',num2str(cframe));
+set(handles.slider4,'Value',handles.cframe/handles.nframes);
 PlotEye(handles);
 
 guidata(hObject,handles);
+
+
+% --- FINESCALE SLIDER ------------------ %
+function slider4_Callback(hObject, eventdata, handles)
+set(hObject,'Interruptible','On');
+set(hObject,'BusyAction','cancel');
+set(hObject,'SliderStep',[1/double(handles.nframes) 2/double(handles.nframes)]);
+v = get(hObject,'Value');
+fprintf('%2.7f\n',v)
+cframe = min(handles.nframes,max(1,round((v)*handles.nframes)));%%/ handles.nframes)));
+handles.cframe = cframe;
+set(handles.edit3,'String',num2str(cframe));
+set(handles.slider1,'Value',handles.cframe/handles.nframes);
+PlotEye(handles);
+guidata(hObject,handles);
+
+function slider4_CreateFcn(hObject, eventdata, handles)
+if isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor',[.9 .9 .9]);
+end
+set(hObject,'Min',0);
+set(hObject,'Max',1);
+%set(hObject,'SliderStep',[1e-6 1e-7]);
 
 
 
@@ -354,7 +376,6 @@ if isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColo
     set(hObject,'BackgroundColor',[.9 .9 .9]);
 end
 
-
 function edit1_Callback(hObject, eventdata, handles)
 sval = get(hObject,'String');
 set(handles.slider2,'Value',str2num(sval));
@@ -367,6 +388,132 @@ guidata(hObject,handles);
 function edit1_CreateFcn(hObject, eventdata, handles)
 if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor','white','String',num2str(handles.pupLow));
+end
+
+
+% ------ Save ROI settings and keep list of saved folders ----- %
+function savesettings_Callback(hObject, eventdata, handles)
+handles = SaveROI(handles);
+if ~isfield(handles,'multifiles')
+    ik = 1;
+else
+    ik = length(handles.multifiles)+1;
+end
+handles.multifiles{ik} = handles.settings;
+if strcmp(handles.settings(1:length(handles.filepath)),handles.filepath)
+    foldname = handles.settings(length(handles.filepath)+1:end);
+else
+    foldname = handles.settings;
+end
+ns = strfind(foldname,'\');
+if isempty(ns)
+    ns = strfind(foldname,'/');
+end
+if ~isempty(ns)
+    foldname = foldname(1:ns(end));
+end
+handles.multifilelabel{ik} = foldname;
+
+guidata(hObject,handles);
+
+
+% ----- ROIs will be processed across expts -------------------- %
+function processROIs_Callback(hObject, eventdata, handles)
+handles = ProcessROIs_bin(handles);
+handles = SaveROI(handles);
+guidata(hObject,handles);
+
+
+% ----- batch process ROIs -------------------- %
+function pushbutton17_Callback(hObject, eventdata, handles)
+% make multi-file folder list to choose from
+[folds,didchoose] = listdlg('PromptString','which folders (ctrl for multiple)',...
+    'SelectionMode','multiple','ListSize',[240 160],'ListString',handles.multifilelabel);
+for j = folds
+    load(handles.multifiles{j})
+    proc.axesPupil = handles.axesPupil;
+    proc.axes1     = handles.axes1;
+    proc.useGPU    = handles.useGPU;
+    proc = ProcessROIs(proc);
+    proc = SaveROI(proc);
+end
+guidata(hObject,handles);
+
+%%%% list of files box
+function popupmenu6_CreateFcn(hObject, eventdata, handles)
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+set(hObject,'String','first choose folder');
+set(hObject,'Value',1);
+if isfield(handles,'folders')
+    set(hObject,'String',folders);
+end
+
+%%%%% frame number edit box
+function edit3_Callback(hObject, eventdata, handles)
+cframe = get(hObject,'String');
+if iscell(cframe)
+    cframe = cframe{1};
+end
+handles.cframe = max(1,min(handles.nframes,round(str2num(cframe))));
+set(hObject,'String',sprintf('%d',handles.cframe));
+set(handles.slider1,'Value',handles.cframe/handles.nframes);
+PlotEye(handles);
+guidata(hObject,handles);
+
+function edit3_CreateFcn(hObject, eventdata, handles)
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+
+%%%%% spatial smoothing constant box
+function edit4_Callback(hObject, eventdata, handles)
+spatscale = get(hObject,'String');
+if iscell(spatscale)
+    spatscale = spatscale{1};
+end
+handles.sc    = max(1, min(50, round(str2num(spatscale))));
+set(hObject, 'String', sprintf('%d', handles.sc));
+PlotEye(handles);
+guidata(hObject, handles);
+
+function edit4_CreateFcn(hObject, eventdata, handles)
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+%%%%% temporal smoothing constant box
+function edit5_Callback(hObject, eventdata, handles)
+tempscale = get(hObject,'String');
+if iscell(tempscale)
+    tempscale = tempscale{1};
+end
+handles.tsc    = max(1, min(50, round(str2num(tempscale))));
+set(hObject, 'String', sprintf('%d', handles.tsc));
+PlotEye(handles);
+guidata(hObject, handles);
+
+function edit5_CreateFcn(hObject, eventdata, handles)
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+%%%% pupil sigma -- how many stds off to draw pupil ROI!
+function edit6_Callback(hObject, eventdata, handles)
+thres = get(hObject,'String');
+if iscell(thres)
+    thres = thres{1};
+end
+handles.thres(1)  = max(0.5, min(10, str2num(thres)));
+set(hObject, 'String', sprintf('%1.1f', handles.thres(1)));
+PlotEye(handles);
+guidata(hObject, handles);
+
+function edit6_CreateFcn(hObject, eventdata, handles)
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
 end
 
 
@@ -442,193 +589,3 @@ function checkbox14_Callback(hObject, eventdata, handles)
 wc = get(hObject,'Value');
 handles.svdmat(4,3)  = wc;
 guidata(hObject,handles);
-
-
-% ------ Save ROI settings and keep list of saved folders ----- %
-function savesettings_Callback(hObject, eventdata, handles)
-handles = SaveROI(handles);
-if ~isfield(handles,'multifiles')
-    ik = 1;
-else
-    ik = length(handles.multifiles)+1;
-end
-handles.multifiles{ik} = handles.settings;
-if strcmp(handles.settings(1:length(handles.filepath)),handles.filepath)
-    foldname = handles.settings(length(handles.filepath)+1:end);
-else
-    foldname = handles.settings;
-end
-ns = strfind(foldname,'\');
-if isempty(ns)
-    ns = strfind(foldname,'/');
-end
-if ~isempty(ns)
-    foldname = foldname(1:ns(end));
-end
-handles.multifilelabel{ik} = foldname;
-
-guidata(hObject,handles);
-
-
-% ----- ROIs will be processed in blocks -------------------- %
-function processROIs_Callback(hObject, eventdata, handles)
-handles = ProcessROIs_bin(handles);
-handles = SaveROI(handles);
-
-guidata(hObject,handles);
-
-
-% ----- batch process ROIs -------------------- %
-function pushbutton17_Callback(hObject, eventdata, handles)
-% make multi-file folder list to choose from
-[folds,didchoose] = listdlg('PromptString','which folders (ctrl for multiple)',...
-    'SelectionMode','multiple','ListSize',[240 160],'ListString',handles.multifilelabel);
-
-for j = folds
-    load(handles.multifiles{j})
-    proc.axesPupil = handles.axesPupil;
-    proc.axes1     = handles.axes1;
-    proc.useGPU    = handles.useGPU;
-    proc = ProcessROIs(proc);
-    proc = SaveROI(proc);
-end
-
-
-guidata(hObject,handles);
-
-
-
-                
-    
-
-% ---save function
-function pushbutton2_Callback(hObject, eventdata, handles)
-keyboard;
-for idx = 1:2:1000
-    vr = VideoReader(handles.files{1});
-    rimg = read(vr,idx*2);
-    clf
-    axes('position',[.05 .2 .9 .7]);
-    imagesc(rimg(1:2:end,1:2:end));
-    colormap('gray')
-    axes('position',[.05 .05 .9 .1]);
-    pf = zscore(handles.face{2}(1:5,:)');
-    plot(pf)
-    hold all;
-    plot(idx,pf(idx,:),'k*');
-    axis tight;
-    drawnow
-    pause(.5);
-end
-
-save('f1.mat','handles');
-
-
-% hObject    handle to edit1 (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hints: get(hObject,'String') returns contents of edit1 as text
-%        str2double(get(hObject,'String')) returns contents of edit1 as a double
-
-
-% --- Executes during object creation, after setting all properties.
-
-
-% --- Executes on button press in pushbutton15.
-
-
-% --- Executes on button press in checkbox6.
-
-
-% --- Executes on selection change in popupmenu6.
-
-% --- Executes during object creation, after setting all properties.
-function popupmenu6_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to popupmenu6 (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
-
-% Hint: popupmenu controls usually have a white background on Windows.
-%       See ISPC and COMPUTER.
-if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-    set(hObject,'BackgroundColor','white');
-end
-set(hObject,'String','first choose folder');
-set(hObject,'Value',1);
-if isfield(handles,'folders')
-    set(hObject,'String',folders);
-end
-
-
-% --- Executes on button press in pushbutton16.
-% hObject    handle to pushbutton16 (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-
-% --- Executes on button press in checkbox15.
-% hObject    handle to checkbox15 (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hint: get(hObject,'Value') returns toggle state of checkbox15
-
-
-%%%%% frame number edit box
-function edit3_Callback(hObject, eventdata, handles)
-cframe = get(hObject,'String');
-if iscell(cframe)
-    cframe = cframe{1};
-end
-handles.cframe = max(1,min(handles.nframes,round(str2num(cframe))));
-set(hObject,'String',sprintf('%d',handles.cframe));
-set(handles.slider1,'Value',handles.cframe/handles.nframes);
-PlotEye(handles);
-guidata(hObject,handles);
-
-function edit3_CreateFcn(hObject, eventdata, handles)
-if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-    set(hObject,'BackgroundColor','white');
-end
-
-
-%%%%% spatial smoothing constant box
-function edit4_Callback(hObject, eventdata, handles)
-spatscale = get(hObject,'String');
-if iscell(spatscale)
-    spatscale = spatscale{1};
-end
-handles.sc    = max(1, min(50, round(str2num(spatscale))));
-set(hObject, 'String', sprintf('%d', handles.sc));
-PlotEye(handles);
-guidata(hObject, handles);
-
-function edit4_CreateFcn(hObject, eventdata, handles)
-if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-    set(hObject,'BackgroundColor','white');
-end
-
-%%%%% temporal smoothing constant box
-function edit5_Callback(hObject, eventdata, handles)
-tempscale = get(hObject,'String');
-if iscell(tempscale)
-    tempscale = tempscale{1};
-end
-handles.tsc    = max(1, min(50, round(str2num(tempscale))));
-set(hObject, 'String', sprintf('%d', handles.tsc));
-PlotEye(handles);
-guidata(hObject, handles);
-
-
-% --- Executes during object creation, after setting all properties.
-function edit5_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to edit5 (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
-
-% Hint: edit controls usually have a white background on Windows.
-%       See ISPC and COMPUTER.
-if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-    set(hObject,'BackgroundColor','white');
-end

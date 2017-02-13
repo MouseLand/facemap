@@ -53,7 +53,7 @@ while 1
     end
     end
     k = k+1;
-    fprintf('frameset %d/%d  time %d', k);
+    fprintf('frameset %d/%d  time %3.2fs\n', k, round(fileframes(end)/nt), toc);
 end
 
 % take SVD of SVD components

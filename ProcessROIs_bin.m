@@ -3,8 +3,16 @@ function handles = ProcessROIs_bin(handles)
 
 tstr = {'pupil','blink','whisker','groom','snout','face'};
 
-if sum(handles.whichROIs)==0 && sum(handles.svdmat(:))==0
+wroi   = find(handles.whichROIs(1:2))';
+wroim  = find(sum(handles.svdmat,2)>0)';
+roiall = [wroi(:); wroim(:)+2];
+wroiall = false(6,1);
+wroiall(roiall) = 1;
+
+if isempty(roiall)
     h=msgbox('no ROIs chosen for processing :(');
+elseif sum((wroiall - handles.plotROIs) == 1) > 0
+    h=msgbox('you chose to process ROI(s) that aren''t drawn');
 else
     svdmot = sum(handles.svdmat(:,2))>0;
     svdmov = sum(handles.svdmat(:,3))>0;
@@ -28,14 +36,11 @@ else
     end
     handles.rXc = rXc;
     handles.rYc = rYc;
-    facefile = 'F:\DATA\face.bin';
-    pupilfile = 'F:\DATA\pupil.bin';
+    facefile = fullfile(handles.binfolder, 'face.bin');
+    pupilfile = fullfile(handles.binfolder, 'pupil.bin');
     handles.facefile = facefile;
     handles.pupilfile = pupilfile;
     
-    wroi   = find(handles.whichROIs(1:2))';
-    wroim  = find(sum(handles.svdmat,2)>0)';
-    roiall = [wroi(:); wroim(:)];
     fprintf('\n----- PROCESSING ROIs: ');
     for j = 1:length(roiall)
         fprintf('%s ',tstr{j});
