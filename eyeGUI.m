@@ -168,6 +168,9 @@ if folder_name ~= 0
         
         handles.folder_name = folder_name;
         handles.cframe = 1;
+        set(handles.slider1,'Value',0);
+        set(handles.slider4,'Value',0);
+        set(handles.edit3,'String','1');
         handles.nframes = handles.vr.Duration*handles.vr.FrameRate-1;
         PlotEye(handles);
     end
