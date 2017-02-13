@@ -77,7 +77,6 @@ for all ROIs:
 for pupil ROI:
 
 	proc.data.pupil.area   = area of fit ellipse
-	proc.data.pupil.center = center of fit ellipse
 	proc.data.pupil.com    = center of mass of ellipse (using pixel values)
 
 for blink ROI:
