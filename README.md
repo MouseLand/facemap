@@ -31,6 +31,10 @@ you can choose which ROIs to process with the checkboxes on the right (if you've
 
 after choosing ROIs for a set of movies (seen in drop-down), click "save ROI and processing settings". load the next set of files and save settings. Then choose "Batch Process ROIs"
 
+# pupil computation
+
+Use the saturation bar to reduce the background of the eye. The algorithm zeros out any pixels less than the saturation level. Next it finds the pixel with the largest magnitude. It draws a box around that area (1/2 the size of the ROI) and then finds the center-of-mass of that region. It then centers the box on that area. It fits a multivariate gaussian to the pixels in the box using maximum likelihood. The ellipse is then drawn at "sigma" standard deviations around the center-of-mass of the gaussian (default "sigma" = 4, but this can be changed in the GUI).
+
 # different statistics of movement
 motion: absolute value of the difference of two frames and sum over pixels greater than the threshold set by the GUI 
 	
