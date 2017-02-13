@@ -27,8 +27,8 @@ if isface
 end
 fdata  = [];
 fdatap = [];
+ntall = 0;
 for jf = 1:length(handles.files)
-    ntall = 0;
     nf    = 0;
     while ntall < fileframes(jf+1)
         nt           = 500 * sc;
@@ -44,7 +44,6 @@ for jf = 1:length(handles.files)
         end
         if isempty(fdata) && isempty(fdatap)
             disp('frame counting is off! :(');
-            keyboard;
             break;
         end
         ntall = ntall + nt0;
