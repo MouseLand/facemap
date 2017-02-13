@@ -1,13 +1,21 @@
 # eyeGUI
 matlab GUI for processing eye camera data from rodents
-(( works for GRAYSCALE images ))
+(( works for GRAYSCALE int16 images ))
 ![Alt text](/GUIscreenshot.PNG?raw=true "gui screenshot")
 
 # supported movie files
 extensions '.mj2','.mp4','.mkv','.avi','.mpeg','.mpg' (add more in line 60 of eyeGUI.m)
 
 # default starting folder
-set at line 59 of eyeGUI.m (handles.filepath)
+**set at line 59 of eyeGUI.m (handles.filepath)**
+
+# default folder to write binary files
+**set at line 63 of eyeGUI.m (handles.binfolder)**
+
+in GUI, click "choose folder for binary file" to change the location
+
+This should be set to a location on your SSD for fast read/write speeds.
+
 
 # folder loading structure
 Choose a folder (say M012/2016-09-23) and it will assemble a list of all video files in that folder and 1 folder down (e.g. M012/2016-09-23/1/mov.mkv, M012/2016-09-23/2/mov.mkv, M012/2016-09-23/3/mov.mkv). You can choose which of these you want to process. You'll then see the ones that you chose in the drop down menu labelled by their folder names (1,2,3). You can switch between them and inspect how well the ROI works for each of the movies.
@@ -17,7 +25,7 @@ Or if M012/2016-09-23 has 3 movie files (e.g. M012/2016-09-23/mov1.mkv, M012/201
 When you choose ROIs these will be used to process ALL the folders that you see in the drop down menu when you click "Process ROIs".
 
 # processing
-you can choose which ROIs to process with the checkboxes on the right (if you've drawn the ROIs!). Choose useGPU to speed up processing by using built-in matlab GPU functions.
+you can choose which ROIs to process with the checkboxes on the right (if you've drawn the ROIs!)
 
 ++++ for multiple days of recordings ++++
 
@@ -52,7 +60,8 @@ proc:
       filename: '\\zserver.ioo.uc…' <--- filename of movie
     fitellipse: [0 1]          
           data: [1x1 struct]
-      avgframe: [480x640 uint16]
+      avgframe: [ypix x xpix int16]
+      avgmotion: [ypix x xpix int16]
 
 proc.data structure
 
