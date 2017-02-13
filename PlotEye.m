@@ -14,7 +14,7 @@ cla;
 colormap('gray');
 frame = read(handles.vr,handles.cframe);
 jl = 1;
-frames = zeros(handles.nY, handles.nX, 11, 'uint8');
+frames = zeros(handles.vr.Height, handles.vr.Width, 11, 'uint8');
 for j = 1:11
     if handles.cframe+j-6 > 0 && handles.cframe+j-6<=handles.nframes
         frames(:,:,j) = read(handles.vr,handles.cframe+j-6);

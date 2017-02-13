@@ -181,6 +181,8 @@ handles.vr = VideoReader(handles.files{handles.whichfile});
 fprintf('displaying \n%s\n',handles.files{handles.whichfile});
 handles.cframe = 1;
 set(handles.slider1,'Value',0);
+set(handles.slider4,'Value',0);
+set(handles.edit3,'String','1');
 PlotEye(handles);
 handles.nframes = handles.vr.Duration*handles.vr.FrameRate-1;
 guidata(hObject,handles);
