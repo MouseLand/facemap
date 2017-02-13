@@ -60,7 +60,7 @@ handles.filepath = '\\zserver.cortexlab.net\Data\EyeCamera\';
 handles.suffix   = {'.mj2','.mp4','.mkv','.avi','.mpeg','.mpg'}; % suffix of eye camera file!
 
 % default filepath to write binary file (ideally an SSD)
-handles.binfolder = 'F:\DATA\';
+handles.binfolder = 'C:\';
 
 % default file size
 handles.nX       = 640;
