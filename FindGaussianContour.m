@@ -1,3 +1,8 @@
+% fits multivariate gaussian to COM of pupil
+% to find COM, first take pixel of max darkness, zoom in there
+% compute COM of zoomed in region
+% recenter box on new COM
+% fit gaussian
 function [params] = FindGaussianContour(r,tpt)
 
 frame = r.fr(:,:,tpt);

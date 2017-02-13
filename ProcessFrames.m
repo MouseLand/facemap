@@ -1,3 +1,4 @@
+% process ROIs by loading bin file
 function data = ProcessFrames(handles,wroi,wroim)
 
 sc  = handles.sc;

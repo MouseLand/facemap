@@ -1,7 +1,7 @@
-function handles = SaveROI(handles)
-
 % if there are multiple blocks, save the processed data for each block
 % separately in its own folder
+
+function handles = SaveROI(handles)
 
 for j = 1:length(handles.files)
     clear proc;
@@ -33,6 +33,9 @@ for j = 1:length(handles.files)
         proc.saturation = handles.saturation;
         proc.whichROIs  = handles.whichROIs;
         proc.svdmat     = handles.svdmat;
+        proc.sc = handles.sc;
+        proc.tsc = handles.tsc;
+        proc.thres = handles.thres;
         if isfield(handles,'motionMask')
             proc.motionMask = handles.motionMask;
         end

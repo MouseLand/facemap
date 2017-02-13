@@ -1,3 +1,4 @@
+% fill up proc structure with appropriate ROI information
 function proc = ConstructProc(data, handles, isproc)
 
 rX = handles.rX;

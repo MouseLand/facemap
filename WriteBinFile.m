@@ -1,3 +1,4 @@
+% write face and pupil to binary file
 function [fileframes, avgframe, avgmotion] = WriteBinFile(handles)
 sc       = handles.sc;
 tsc      = handles.tsc;

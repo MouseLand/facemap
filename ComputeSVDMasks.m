@@ -1,3 +1,4 @@
+% load face file and compute SVD of motion and/or movie
 function handles = ComputeSVDMasks(handles)
 fid = fopen(handles.facefile,'r');
 fileframes = handles.fileframes;

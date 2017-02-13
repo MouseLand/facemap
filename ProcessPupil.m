@@ -1,3 +1,4 @@
+% compute pupil area from set of frames
 function [pup] = ProcessPupil(handles,frames)
 
 % take chosen area

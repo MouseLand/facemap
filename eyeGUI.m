@@ -22,7 +22,7 @@ function varargout = eyeGUI(varargin)
 
 % Edit the above text to modify the response to help eyeGUI
 
-% Last Modified by GUIDE v2.5 13-Feb-2017 19:27:15
+% Last Modified by GUIDE v2.5 13-Feb-2017 20:19:14
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -341,7 +341,6 @@ set(hObject,'Interruptible','On');
 set(hObject,'BusyAction','cancel');
 set(hObject,'SliderStep',[1/double(handles.nframes) 2/double(handles.nframes)]);
 v = get(hObject,'Value');
-fprintf('%2.7f\n',v)
 cframe = min(handles.nframes,max(1,round((v)*handles.nframes)));%%/ handles.nframes)));
 handles.cframe = cframe;
 set(handles.edit3,'String',num2str(cframe));
@@ -355,8 +354,18 @@ if isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColo
 end
 set(hObject,'Min',0);
 set(hObject,'Max',1);
-%set(hObject,'SliderStep',[1e-6 1e-7]);
 
+
+% --- PLAY button
+function togglebutton1_Callback(hObject, eventdata, handles)
+while get(hObject, 'value') && handles.cframe < handles.nframes
+    handles.cframe = handles.cframe+4;
+    set(handles.edit3,'String',num2str(handles.cframe));
+    set(handles.slider1,'Value',handles.cframe/handles.nframes);
+    PlotEye(handles);
+end
+set(handles.slider4,'Value',handles.cframe/handles.nframes);
+guidata(hObject,handles);
 
 
 % --- SLIDERS FOR CONTRAST IN PUPIL WINDOW -------------------%
@@ -431,10 +440,10 @@ function pushbutton17_Callback(hObject, eventdata, handles)
     'SelectionMode','multiple','ListSize',[240 160],'ListString',handles.multifilelabel);
 for j = folds
     load(handles.multifiles{j})
+    fprintf('file %s\n', handles.multifiles{j});
     proc.axesPupil = handles.axesPupil;
     proc.axes1     = handles.axes1;
-    proc.useGPU    = handles.useGPU;
-    proc = ProcessROIs(proc);
+    proc = ProcessROIs_bin(proc);
     proc = SaveROI(proc);
 end
 guidata(hObject,handles);
@@ -459,6 +468,7 @@ end
 handles.cframe = max(1,min(handles.nframes,round(str2num(cframe))));
 set(hObject,'String',sprintf('%d',handles.cframe));
 set(handles.slider1,'Value',handles.cframe/handles.nframes);
+set(handles.slider4,'Value',handles.cframe/handles.nframes);
 PlotEye(handles);
 guidata(hObject,handles);
 
@@ -589,3 +599,4 @@ function checkbox14_Callback(hObject, eventdata, handles)
 wc = get(hObject,'Value');
 handles.svdmat(4,3)  = wc;
 guidata(hObject,handles);
+

@@ -1,3 +1,4 @@
+% construct data structure to fill up
 function data = ConstructData(handles)
 
 data(length(handles.files)).mroi(4).motion = [];

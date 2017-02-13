@@ -1,3 +1,5 @@
+% write face movie to binary file and then load to do SVDs, projections,
+% pupil computations
 function handles = ProcessROIs_bin(handles)
 
 

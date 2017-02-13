@@ -1,3 +1,5 @@
+% processes movements in frames and projects motion and movie SVDs
+% for whisker, groom, snout, face ROIs
 function movs = ProcessMoves(frames,handles,j,avgframe,avgmotion)
 
 % take chosen area

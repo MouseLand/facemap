@@ -1,3 +1,5 @@
+% plot full face frame and selected ROI
+
 function PlotEye(handles)
 
 tstr = {'pupil','blink','whisker','groom','snout','face'};
