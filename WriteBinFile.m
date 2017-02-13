@@ -1,54 +1,82 @@
 function [fileframes, avgframe, avgmotion] = WriteBinFile(handles)
 sc       = handles.sc;
+tsc      = handles.tsc;
 nX       = handles.nX;
 nY       = handles.nY;
 nXc   = sc * floor(nX/sc);
 nYc   = sc * floor(nY/sc);
-    
-fid = fopen(handles.facefile,'w');
-avgframe = zeros(nXc/sc, nYc/sc,'single');
+
+ispupil = handles.whichROIs(1);
+if ispupil
+    fidp = fopen(handles.pupilfile,'w');
+end
+% if only pupil, do not write face.bin
+isface = 1;
+if sum(handles.svdmat(:))==0 && ~handles.whichROIs(2)
+    isface = 0;
+end
+if isface
+    fid = fopen(handles.facefile,'w');
+end
+if isface
+    avgframe = zeros(nYc/sc, nXc/sc, 'single');
+else
+    avgframe = zeros(nY, nX, 'single');
+end
 avgmotion = avgframe;
 fileframes = 1;
 nfall=0;
 for jf = 1:length(handles.files)
     vr = VideoReader(handles.files{jf});
     nframes = round(vr.Duration*vr.FrameRate);
-    k=0;
-    jj=0;
-    fdata = zeros(nX, nY, 1000,'single');
-    while hasFrame(vr)
-        k=k+1;
-        nfall=nfall+1;
-        jj=jj+1;
+    k=1;
+    nf = 1;
+    nt      = 2000;
+    while k < nframes
         
-        fd = readFrame(vr);
-        fdata(:,:,jj) = fd;
-        
-        if mod(k,2000)==0 || k==nframes
-            fdata = fdata(:,:,1:jj);
-            % scale in X and Y
-            fdata = squeeze(mean(reshape(fdata(1:nXc,:,:),sc,nXc/sc,nY,jj),1));
-            fdata = squeeze(mean(reshape(fdata(:,1:nYc,:),nXc/sc,sc,nYc/sc,jj),2));
-            % convolve in time
-            fdata = my_conv2(fdata, 3, 3);
-            fdata = uint8(round(fdata));
-            fwrite(fid, reshape(fdata, [], size(fdata,3)));
-            
-            avgframe  = avgframe + sum(single(fdata),3);
-            if k > 1
-                avgmotion = avgmotion + sum(abs(diff(single(fdata),1,3)),3);
-            end
-            disp(k)
-            jj=0;
-            fdata = zeros(nX, nY, 1000,'single');
-            toc;
+        ind0    = k;
+        indend  = (k-1) + nt;
+        if indend > nframes-1
+            indend = Inf;
         end
+        fdata   = read(vr, [ind0 indend]);
+        
+        % write pupil to file
+        if ispupil
+            fdatap = fdata(handles.rY{1},handles.rX{1},:);
+            fdatap = uint8(round(my_conv2(...
+                single(fdatap), [1 1], [1 2])));
+            fwrite(fidp, reshape(fdatap, [], size(fdatap,3)));
+            if ~isface
+                avgframe = avgframe + squeeze(sum(single(fdata),4));
+            end
+        end
+        
+        % write face to file
+        if isface
+            % scale in X and Y
+            fdata0 = squeeze(mean(mean(reshape(single(fdata(1:nYc,1:nXc,:)),...
+                sc,nYc/sc,sc,nXc/sc,size(fdata,4)),1),3));
+            % convolve in time
+            fdata0 = my_conv2(fdata0, tsc, 3);
+            % write to disk
+            fdata1 = uint8(round(fdata0));
+            fwrite(fid, reshape(fdata1, [], size(fdata1,3)));
+            % compute avg frame and motion
+            avgframe  = avgframe + sum(fdata0,3);
+            if k > 1
+                avgmotion = avgmotion + sum(abs(diff(fdata0,1,3)),3);
+            end
+        end
+        fprintf('file %d frameset %d/%d  time %3.2fs\n',...
+            jf,nf,round(nframes/(nt)),toc);
+        k=k+size(fdata,4);
+        nfall=nfall+size(fdata,4);
+        nf=nf+1;
     end
     fileframes(jf+1) = nfall;
 end
 avgframe = avgframe/nfall;
 avgmotion = avgmotion/(nfall-length(handles.files));
 
-
 fclose('all');
-toc;

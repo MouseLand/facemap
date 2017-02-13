@@ -22,7 +22,7 @@ function varargout = eyeGUI(varargin)
 
 % Edit the above text to modify the response to help eyeGUI
 
-% Last Modified by GUIDE v2.5 06-Sep-2016 22:48:19
+% Last Modified by GUIDE v2.5 12-Feb-2017 20:23:11
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -66,18 +66,21 @@ for j = 1:6
         handles.ROI{j} = [2 2 handles.nX-4 handles.nY-4];
     end
     ROI = handles.ROI{j};
-    handles.rY{j}   = floor(ROI(1)-1+[1:ROI(3)]);
-    handles.rX{j}   = floor(ROI(2)-1+[1:ROI(4)]);
+    handles.rX{j}   = floor(ROI(1)-1+[1:ROI(3)]);
+    handles.rY{j}   = floor(ROI(2)-1+[1:ROI(4)]);
 end
 handles.plotROIs  = false(6,1);
 handles.lastROI   = false(6,1);
 handles.whichROIs = false(2,1);
 handles.svdmat    = false(4,3);
 handles.colors    = [.2 .6 1; 0 1 0; 1 .4 .2; 1 .8 .2; .8 0 .8; .7 .6 1];
-handles.fitellipse = [0 1]; 
-handles.roif(2) = struct();
-% by default fit a circle to the pupil
-% and an ellipse to the eye area
+
+% default smoothing constants
+handles.sc        = 4;
+handles.tsc       = 3;
+
+% default stds for eye ROIs
+handles.thres     = [4 6];
 
 set(handles.slider2,'Min',0);
 set(handles.slider2,'Max',1);
@@ -198,15 +201,11 @@ ROI = handles.ROI{j};
 ROI = DrawROI(handles,ROI);
 ROI = OnScreenROI(ROI,handles.nX,handles.nY);
 handles.ROI{j} = ROI;
-handles.rY{j}   = floor(ROI(1)-1+[1:ROI(3)]);
-handles.rX{j}   = floor(ROI(2)-1+[1:ROI(4)]);
+handles.rX{j}   = floor(ROI(1)-1+[1:ROI(3)]);
+handles.rY{j}   = floor(ROI(2)-1+[1:ROI(4)]);
 handles.whichROIs(j) = 1;
 handles.plotROIs(j) = 1;
 handles.lastROI(j) = 1;
-if ~isfield(handles,'roif')
-    handles.roif(2) = struct();
-end
-handles = InitPlot(handles,j);
 PlotEye(handles);
 set(handles.checkbox1,'Value',1);
 set(handles.slider2,'Value',handles.saturation(j));
@@ -220,12 +219,11 @@ ROI = handles.ROI{j};
 ROI = DrawROI(handles,ROI);
 ROI = OnScreenROI(ROI,handles.nX,handles.nY);
 handles.ROI{j} = ROI;
-handles.rY{j}   = floor(ROI(1)-1+[1:ROI(3)]);
-handles.rX{j}   = floor(ROI(2)-1+[1:ROI(4)]);
+handles.rX{j}   = floor(ROI(1)-1+[1:ROI(3)]);
+handles.rY{j}   = floor(ROI(2)-1+[1:ROI(4)]);
 handles.whichROIs(j) = 1;
 handles.plotROIs(j) = 1;
 handles.lastROI(j) = 1;
-handles = InitPlot(handles,j);
 PlotEye(handles);
 set(handles.checkbox2,'Value',1);
 set(handles.slider2,'Value',handles.saturation(j));
@@ -239,8 +237,8 @@ ROI = handles.ROI{j};
 ROI = DrawROI(handles,ROI);
 ROI = OnScreenROI(ROI,handles.nX,handles.nY);
 handles.ROI{j} = ROI;
-handles.rY{j}   = floor(ROI(1)-1+[1:ROI(3)]);
-handles.rX{j}   = floor(ROI(2)-1+[1:ROI(4)]);
+handles.rX{j}   = floor(ROI(1)-1+[1:ROI(3)]);
+handles.rY{j}   = floor(ROI(2)-1+[1:ROI(4)]);
 handles.plotROIs(j) = 1;
 handles.lastROI(j) = 1;
 PlotEye(handles);
@@ -259,8 +257,8 @@ ROI = handles.ROI{j};
 ROI = DrawROI(handles,ROI);
 ROI = OnScreenROI(ROI,handles.nX,handles.nY);
 handles.ROI{j} = ROI;
-handles.rY{j}   = floor(ROI(1)-1+[1:ROI(3)]);
-handles.rX{j}   = floor(ROI(2)-1+[1:ROI(4)]);
+handles.rX{j}   = floor(ROI(1)-1+[1:ROI(3)]);
+handles.rY{j}   = floor(ROI(2)-1+[1:ROI(4)]);
 handles.plotROIs(j) = 1;
 handles.lastROI(j) = 1;
 PlotEye(handles);
@@ -279,8 +277,8 @@ ROI = handles.ROI{j};
 ROI = DrawROI(handles,ROI);
 ROI = OnScreenROI(ROI,handles.nX,handles.nY);
 handles.ROI{j} = ROI;
-handles.rY{j}   = floor(ROI(1)-1+[1:ROI(3)]);
-handles.rX{j}   = floor(ROI(2)-1+[1:ROI(4)]);
+handles.rX{j}   = floor(ROI(1)-1+[1:ROI(3)]);
+handles.rY{j}   = floor(ROI(2)-1+[1:ROI(4)]);
 handles.plotROIs(j) = 1;
 handles.lastROI(j) = 1;
 PlotEye(handles);
@@ -299,8 +297,8 @@ ROI = handles.ROI{j};
 ROI = DrawROI(handles,ROI);
 ROI = OnScreenROI(ROI,handles.nX,handles.nY);
 handles.ROI{j} = ROI;
-handles.rY{j}   = floor(ROI(1)-1+[1:ROI(3)]);
-handles.rX{j}   = floor(ROI(2)-1+[1:ROI(4)]);
+handles.rX{j}   = floor(ROI(1)-1+[1:ROI(3)]);
+handles.rY{j}   = floor(ROI(2)-1+[1:ROI(4)]);
 handles.plotROIs(j) = 1;
 handles.lastROI(j) = 1;
 PlotEye(handles);
@@ -577,29 +575,55 @@ end
 % Hint: get(hObject,'Value') returns toggle state of checkbox15
 
 
-
+%%%%% frame number edit box
 function edit3_Callback(hObject, eventdata, handles)
-% hObject    handle to edit3 (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
 cframe = get(hObject,'String');
 if iscell(cframe)
     cframe = cframe{1};
 end
 handles.cframe = max(1,min(handles.nframes,round(str2num(cframe))));
-%keyboard;
 set(hObject,'String',sprintf('%d',handles.cframe));
 set(handles.slider1,'Value',handles.cframe/handles.nframes);
 PlotEye(handles);
 guidata(hObject,handles);
 
-% Hints: get(hObject,'String') returns contents of edit3 as text
-%        str2double(get(hObject,'String')) returns contents of edit3 as a double
+function edit3_CreateFcn(hObject, eventdata, handles)
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+
+%%%%% spatial smoothing constant box
+function edit4_Callback(hObject, eventdata, handles)
+spatscale = get(hObject,'String');
+if iscell(spatscale)
+    spatscale = spatscale{1};
+end
+handles.sc    = max(1, min(50, round(str2num(spatscale))));
+set(hObject, 'String', sprintf('%d', handles.sc));
+PlotEye(handles);
+guidata(hObject, handles);
+
+function edit4_CreateFcn(hObject, eventdata, handles)
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+%%%%% temporal smoothing constant box
+function edit5_Callback(hObject, eventdata, handles)
+tempscale = get(hObject,'String');
+if iscell(tempscale)
+    tempscale = tempscale{1};
+end
+handles.tsc    = max(1, min(50, round(str2num(tempscale))));
+set(hObject, 'String', sprintf('%d', handles.tsc));
+PlotEye(handles);
+guidata(hObject, handles);
 
 
 % --- Executes during object creation, after setting all properties.
-function edit3_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to edit3 (see GCBO)
+function edit5_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to edit5 (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    empty - handles not created until after all CreateFcns called
 

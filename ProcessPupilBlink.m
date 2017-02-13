@@ -1,12 +1,13 @@
-function [pup,blink] = ProcessPupilBlink(handles,frames,wroi,roif)
+function [pup,blink] = ProcessPupilBlink(handles,frames,wroi)
 
 % take chosen area
 for j = wroi
-    roif(j).fr = frames(roif(j).rX,roif(j).rY,:);
-    [nX1 nY1 nframes] = size(roif(j).fr);
-    roif(j).fmap = roif(j).fr < roif(j).sats;
+    roif(j).fr    = frames;
+    roif(j).sats  = (1-handles.saturation(j))*255;
+    roif(j).fmap  = roif(j).fr < roif(j).sats;
 end
 
+nframes    = size(frames,3);
 pup.com    = [];
 pup.center = [];
 pup.area   = [];
@@ -26,11 +27,14 @@ for k = 1:nframes
     for j = wroi
         roif(j).thres = thres(j);
         if j==1
-            [params] = FindEllipseandContour(roif(j),k);
+            %[params] = FindEllipseandContour(roif(j),k);
             %pup2(k).area = params0.ra^2*pi;
-            pup.center = [pup.center; params.xc params.yc];
-            pup.com = [pup.com; params.com];
-            pup.area = [pup.area; pi*params.ra*params.rb];
+            %pup.center = [pup.center; params.xc params.yc];
+            %pup.com = [pup.com; params.com];
+            
+            params   = FindGaussianContour(roif(j), k);
+            pup.com  = [pup.com; params.mu(1) params.mu(2)];
+            pup.area = [pup.area; params.area];
         else
             blink.area = [blink.area; sum(sum(roif(j).fmap(:,:,k),1),2)];
         end

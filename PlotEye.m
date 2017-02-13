@@ -2,16 +2,20 @@ function PlotEye(handles)
 
 tstr = {'pupil','blink','whisker','groom','snout','face'};
 
+% smoothing constants
+sc = handles.sc;
+tsc = handles.sc;
+
+
 axes(handles.axes1);
 cla;
 colormap('gray');
 frame = read(handles.vr,handles.cframe);
 jl = 1;
-frames = [];
+frames = zeros(handles.nY, handles.nX, 11, 'uint8');
 for j = 1:11
     if handles.cframe+j-6 > 0 && handles.cframe+j-6<=handles.nframes
-        frames(:,:,jl) = sum(read(handles.vr,handles.cframe+j-6),3);
-        jl=jl+1;
+        frames(:,:,j) = read(handles.vr,handles.cframe+j-6);
     end
 end
 imagesc(frame)
@@ -32,33 +36,55 @@ cla;
 indROI = find(handles.lastROI);
 if ~isempty(indROI)
     colormap('gray')
-    sat    = max(1,(1-handles.saturation(indROI))*255);
-    fr     = my_conv2(single(frame(handles.rX{indROI},handles.rY{indROI})),[2 2],[1 2]);
+    sat    = min(254,max(1,(handles.saturation(indROI))*255));
+    fr     = single(frames(handles.rY{indROI}, handles.rX{indROI},:));
+    
+    % all ROIs besides pupil are down-sampled
+    if indROI > 1
+        [nY nX nt]  = size(fr);
+        nYc = floor(nY/sc)*sc;
+        nXc = floor(nX/sc)*sc;
+        fr = squeeze(mean(reshape(fr(1:nYc,:,:),sc,nYc/sc,nX,nt),1));
+        fr = squeeze(mean(reshape(fr(:,1:nXc,:),nYc/sc,sc,nXc/sc,nt),2));
+    end
+    
+    if indROI == 1
+        fr = my_conv2(fr(:,:,6), [1 1], [1 2]);
+    end
+    if indROI == 2
+        fr = fr(:,:,6);
+    end
     
     % pupil and eye area contours
-    imagesc(fr,[0 sat]);
-    if indROI < 2
-        r        = handles.roif(indROI);
-        r.fr     = fr;
-        r.sats   = (1-handles.saturation(indROI))*255;
-        tpt      = 1;
-        thres = [0.85 .95];
-        r.thres = thres(indROI);
-        [params] = FindEllipseandContour(r,tpt);
-        
-        if params.isgood
-            hold all;
-            ellipse(params.rb,params.ra,pi-params.ang,params.yc,params.xc,[1 0 0],300,2);
+    if indROI < 3
+        imagesc(fr, [0 255-sat]);
+        if indROI == 1
+            r.fr     = fr;
+            r.sats   = sat;
+            r.thres  = handles.thres(indROI);
+            tpt      = 1;
+            params    = FindGaussianContour(r,tpt);
+            
+            if params.isgood
+                hold all;
+                plot(params.xy(:,1),params.xy(:,2),'r.')
+                plot(params.mu(1), params.mu(2), 'k*');
+            end
         end
     end
     
     % show difference between frames for movement areas
     if indROI > 2
-        sat    = max(0,(1-handles.saturation(indROI))*5);
-        fr     = my_conv2(single(frames),[2 2 3],[1 2 3]);
-        tdiff = abs(fr(:,:,6)-fr(:,:,5));
-        tdiff = tdiff(handles.rX{indROI},handles.rY{indROI});
+        fr     = my_conv2(fr, tsc, 3);
+        %keyboard;
+        tdiff  = abs(fr(:,:,6)-fr(:,:,5));
+        tdiff  = round(tdiff * tsc); 
+        
+        tdiff  = max(0, 5 - tdiff);
+        sat    = min(4.99, max(0.01,(1-handles.saturation(indROI))*5));
+        
         imagesc(tdiff,[0 sat]);
+        %keyboard;
     end
     title(tstr{indROI},'fontsize',10);
     
@@ -66,4 +92,3 @@ if ~isempty(indROI)
     axis tight;
 end
 drawnow;
-    

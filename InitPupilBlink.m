@@ -32,12 +32,5 @@ for j = wroi
     roif(j).boxY    = boxY;
     roif(j).fitellipse = handles.fitellipse(j);
     
-    if sum(avgf(:))<20
-        wroi(find(wroi==j)) = [];
-        if j==1
-            disp('no pupil area found :( ... decrease saturation');
-        else
-            disp('no blink area found :( ... decrease saturation')
-        end
-    end
+    
 end

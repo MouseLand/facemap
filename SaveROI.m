@@ -12,7 +12,6 @@ for j = 1:length(handles.files)
     proc.files = handles.files;
     proc.folders = handles.folders;
     proc.filename  = handles.files{j};
-    proc.fitellipse = handles.fitellipse;
     
     if isfield(handles,'proc')
         % save processed data

@@ -1,5 +1,8 @@
 function handles = ProcessROIs_bin(handles)
 
+
+tstr = {'pupil','blink','whisker','groom','snout','face'};
+
 if sum(handles.whichROIs)==0 && sum(handles.svdmat(:))==0
     h=msgbox('no ROIs chosen for processing :(');
 else
@@ -9,11 +12,11 @@ else
     %%%% put data on SSD
     tic;
     vr = VideoReader(handles.files{1});
-    nX = vr.Height;
-    nY = vr.Width;
+   
     % X,Y subsampling
-    sc    = 4;
-    handles.sc = 4;
+    sc    = handles.sc;
+    nX    = vr.Width;
+    nY    = vr.Height;
     handles.nX = nX;
     handles.nY = nY;
     % subsample chosen ROIs
@@ -26,9 +29,20 @@ else
     handles.rXc = rXc;
     handles.rYc = rYc;
     facefile = 'F:\DATA\face.bin';
+    pupilfile = 'F:\DATA\pupil.bin';
     handles.facefile = facefile;
-
-    fprintf('writing face file to binary file\n');
+    handles.pupilfile = pupilfile;
+    
+    wroi   = find(handles.whichROIs(1:2))';
+    wroim  = find(sum(handles.svdmat,2)>0)';
+    roiall = [wroi(:); wroim(:)];
+    fprintf('\n----- PROCESSING ROIs: ');
+    for j = 1:length(roiall)
+        fprintf('%s ',tstr{j});
+    end
+    fprintf('\n');
+    
+    fprintf('writing face and pupil to binary file\n');
     [fileframes, avgframe, avgmotion] = WriteBinFile(handles);
     handles.fileframes = fileframes;
     handles.avgframe = avgframe;
@@ -36,19 +50,15 @@ else
     
     %%%% pass through data to compute SVDs
     if svdmot || svdmov
-        tic;
-        fprintf('computing SVDs across all movies...\n');
+        fprintf('computing SVDs across all movies\n');
         handles = ComputeSVDMasks(handles);
         toc;
-        handles.motionMask
-        handles.movieMask
     end
     
     %%%% pass through data to compute pupil/blink/motion and svd projs
     % processing ROIS!
-    fprintf('computing pupil/blink and motion and SVD projections...\n');
-    wroi = find(handles.whichROIs(1:2))';
-    wroim = find(sum(handles.svdmat,2)>0)';
+    fprintf('computing pupil/blink and motion and SVD projections\n');
+    
     data = ProcessFrames(handles, wroi, wroim);
     
     %%
@@ -56,4 +66,6 @@ else
     isproc = [wroi (2+find((sum(handles.svdmat,2)>0))')];
     proc = ConstructProc(data, handles, isproc);
     handles.proc = proc;
+    
+    fprintf('done processing!\n');
 end
