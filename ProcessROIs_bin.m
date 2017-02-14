@@ -45,7 +45,7 @@ else
     
     fprintf('\n----- PROCESSING ROIs: ');
     for j = 1:length(roiall)
-        fprintf('%s ',tstr{j});
+        fprintf('%s ',tstr{roiall(j)});
     end
     fprintf('\n');
     

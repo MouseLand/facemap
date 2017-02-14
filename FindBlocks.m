@@ -8,6 +8,7 @@ fs        = fs(3:end);
 % if it's a folder of folders, descend one to find .mj2's
 idate = [];
 ik = 1;
+if ~isempty(fs)
 if fs(1).isdir==1
     blks = questdlg('would you like to process all blocks?');
     switch blks
@@ -65,6 +66,7 @@ if fs(1).isdir==1
                 end
             end
     end
+end
 end
     % sort files by date
 % otherwise, find all .mj2s in current folder
