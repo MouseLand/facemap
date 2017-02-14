@@ -5,6 +5,11 @@
 % fit gaussian
 function [params] = FindGaussianContour(r,tpt)
 
+params.xy     = [];
+params.area   = 0;
+params.mu     = [NaN NaN];
+params.isgood = 0;
+
 frame = r.fr(:,:,tpt);
 r.nX  = size(frame,1);
 r.nY  = size(frame,2);
@@ -48,11 +53,4 @@ if ~isnan(com(1))
         params = FitMVGaus(iyinds(:), ixinds(:), fr(ix(:)), r.thres);
         params.isgood = 1;
     end
-end
-        
-if ~exist('params');
-    params.xy     = [];
-    params.area   = 0;
-    params.mu     = [NaN NaN];
-    params.isgood = 0;
 end
