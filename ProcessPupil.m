@@ -11,14 +11,13 @@ pup.com    = [];
 pup.center = [];
 pup.area   = [];
 
-thres = [0.85 .95];
+r.thres = handles.thres(1);
 for k = 1:nframes
     isplotting = (mod(k,1000)==0);
     if isplotting
         %PlotEye(handles);
     end
     
-    r.thres = thres(1);
     params   = FindGaussianContour(r, k);
     pup.com  = [pup.com; params.mu(1) params.mu(2)];
     pup.area = [pup.area; params.area]; 
