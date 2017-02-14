@@ -96,6 +96,7 @@ handles.saturation = zeros(6,1);
 axes(handles.axes1);
 set(gca,'xtick',[],'ytick',[]);
 box on;
+handles.roiaxes = handles.axesPupil.Position;
 axes(handles.axesPupil);
 set(gca,'xtick',[],'ytick',[]);
 box on;

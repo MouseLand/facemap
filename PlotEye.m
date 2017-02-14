@@ -35,13 +35,34 @@ if ~isempty(indROI)
     end
 end
 
+indROI = find(handles.lastROI);
+
+%keyboard;
+
+handles.axesPupil.Position = handles.roiaxes;
 axes(handles.axesPupil)
 cla;
-indROI = find(handles.lastROI);
+
 if ~isempty(indROI)
-    colormap('gray')
     sat    = min(254,max(1,(handles.saturation(indROI))*255));
     fr     = single(frames(handles.rY{indROI}, handles.rX{indROI},:));
+    
+    [nY nX nt]  = size(fr);
+        
+    % rescale axes to ROI aspect ratio
+    axPosition  = handles.roiaxes;
+    roi_aspect = (nY/nX) / (size(frames,1)/size(frames,2));
+    if roi_aspect > 1
+        axPosition(3) = axPosition(3) * 1/roi_aspect;
+        axPosition(1) = axPosition(1) + (roi_aspect-1)*axPosition(3)/2;
+    else
+        axPosition(4) = axPosition(4) * roi_aspect;
+        axPosition(2) = axPosition(2) + (1/roi_aspect-1)*axPosition(4)/2;
+    end
+    
+    handles.axesPupil.Position = axPosition;
+    colormap('gray')
+    
     
     % all ROIs besides pupil are down-sampled
     if indROI > 1
