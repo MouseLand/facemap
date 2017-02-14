@@ -12,8 +12,6 @@ clear uMov uMot;
 for j=1:4
     uMov{j}=[];
     uMot{j}=[];
-    handles.movieMask{j}=[];
-    handles.motionMask{j}=[];
 end
 wmot = find(handles.svdmat(:,2));
 wmov = find(handles.svdmat(:,3));

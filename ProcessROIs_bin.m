@@ -56,6 +56,10 @@ else
     handles.avgmotion = avgmotion;
     
     %%%% pass through data to compute SVDs
+    for j = 1:4
+        handles.movieMask{j}=[];
+        handles.motionMask{j}=[];
+    end
     if svdmot || svdmov
         fprintf('computing SVDs across all movies\n');
         handles = ComputeSVDMasks(handles);
