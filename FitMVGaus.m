@@ -31,4 +31,5 @@ params.xy = xy;
 eval=diag(eval);
 params.eval = eval;
 params.area = sqrt(eval(1) * eval(2)) * pi;
+params.area = real(params.area);
     

@@ -20,7 +20,13 @@ for j = 1:length(handles.files)
         proc.avgmotion = handles.avgmotion;
         savefile   = sprintf('%s_proc.mat',savefile0);
         savepath   = fullfile(savefolder,savefile);
-        
+        proc.saturation = handles.saturation;
+        proc.whichROIs  = handles.whichROIs;
+        proc.svdmat     = handles.svdmat;
+        proc.sc = handles.sc;
+        proc.tsc = handles.tsc;
+        proc.thres = handles.thres;
+        handles.settings = savepath;
         save(savepath,'proc');
     else
         proc.rX = handles.rX;

@@ -76,7 +76,8 @@ for jf = 1:length(handles.files)
             end
         end
         nf = nf+1;
-        fprintf('file %d frameset %d/%d  time %3.2fs\n',jf,nf,round(fileframes(jf+1)/(500*sc)),toc);
+        fprintf('file %d frameset %d/%d  time %3.2fs\n',jf,nf,...
+            round((fileframes(jf+1)-fileframes(jf))/(500*sc)),toc);
         
     end
 end

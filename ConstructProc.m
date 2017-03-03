@@ -36,8 +36,12 @@ for jf = 1:length(handles.files)
                 proc(jf).whisker.motion    = data(jf).mroi(j-2).motion;
                 proc(jf).whisker.motionSVD = data(jf).mroi(j-2).motionSVD;
                 proc(jf).whisker.movieSVD  = data(jf).mroi(j-2).movieSVD;
-                proc(jf).whisker.motionMask = handles.motionMask{j-2};
-                proc(jf).whisker.movieMask  = handles.movieMask{j-2};
+                proc(jf).whisker.motionMask = reshape(handles.motionMask{j-2},...
+                    length(rYc{j}),length(rXc{j}),[]);
+                proc(jf).whisker.movieMask = reshape(handles.movieMask{j-2},...
+                    length(rYc{j}),length(rXc{j}),[]);
+                proc(jf).whisker.avgframe  = handles.avgframe(rYc{j+2},rXc{j+2});
+                proc(jf).whisker.avgmotion = handles.avgmotion(rYc{j+2},rXc{j+2});
             case 4
                 proc(jf).groom.ROI = handles.ROI{j};
                 proc(jf).groom.saturation = handles.saturation(j);
@@ -48,8 +52,12 @@ for jf = 1:length(handles.files)
                 proc(jf).groom.motion     = data(jf).mroi(j-2).motion;
                 proc(jf).groom.motionSVD  = data(jf).mroi(j-2).motionSVD;
                 proc(jf).groom.movieSVD   = data(jf).mroi(j-2).movieSVD;
-                proc(jf).groom.motionMask = handles.motionMask{j-2};
-                proc(jf).groom.movieMask  = handles.movieMask{j-2};
+                proc(jf).groom.motionMask = reshape(handles.motionMask{j-2},...
+                    length(rYc{j}),length(rXc{j}),[]);
+                proc(jf).groom.movieMask = reshape(handles.movieMask{j-2},...
+                    length(rYc{j}),length(rXc{j}),[]);
+                proc(jf).groom.avgframe  = handles.avgframe(rYc{j+2},rXc{j+2});
+                proc(jf).groom.avgmotion = handles.avgmotion(rYc{j+2},rXc{j+2});
             case 5
                 proc(jf).snout.ROI = handles.ROI{j};
                 proc(jf).snout.saturation = handles.saturation(j);
@@ -60,8 +68,12 @@ for jf = 1:length(handles.files)
                 proc(jf).snout.motion    = data(jf).mroi(j-2).motion;
                 proc(jf).snout.motionSVD = data(jf).mroi(j-2).motionSVD;
                 proc(jf).snout.movieSVD  = data(jf).mroi(j-2).movieSVD;
-                proc(jf).snout.motionMask = handles.motionMask{j-2};
-                proc(jf).snout.movieMask  = handles.movieMask{j-2};
+                proc(jf).snout.motionMask = reshape(handles.motionMask{j-2},...
+                    length(rYc{j}),length(rXc{j}),[]);
+                proc(jf).snout.movieMask = reshape(handles.movieMask{j-2},...
+                    length(rYc{j}),length(rXc{j}),[]);
+                proc(jf).snout.avgframe  = handles.avgframe(rYc{j+2},rXc{j+2});
+                proc(jf).snout.avgmotion = handles.avgmotion(rYc{j+2},rXc{j+2});
             case 6
                 proc(jf).face.ROI = handles.ROI{j};
                 proc(jf).face.saturation = handles.saturation(j);
@@ -72,8 +84,12 @@ for jf = 1:length(handles.files)
                 proc(jf).face.motion    = data(jf).mroi(j-2).motion;
                 proc(jf).face.motionSVD = data(jf).mroi(j-2).motionSVD;
                 proc(jf).face.movieSVD  = data(jf).mroi(j-2).movieSVD;
-                proc(jf).face.motionMask = handles.motionMask{j-2};
-                proc(jf).face.movieMask  = handles.movieMask{j-2};
-        end
+                proc(jf).face.motionMask = reshape(handles.motionMask{j-2},...
+                    length(rYc{j}),length(rXc{j}),[]);
+                proc(jf).face.movieMask = reshape(handles.movieMask{j-2},...
+                    length(rYc{j}),length(rXc{j}),[]);
+                proc(jf).face.avgframe  = handles.avgframe(rYc{j+2},rXc{j+2});
+                proc(jf).face.avgmotion = handles.avgmotion(rYc{j+2},rXc{j+2});
+            end
     end
 end
