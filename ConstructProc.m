@@ -40,8 +40,8 @@ for jf = 1:length(handles.files)
                     length(rYc{j}),length(rXc{j}),[]);
                 proc(jf).whisker.movieMask = reshape(handles.movieMask{j-2},...
                     length(rYc{j}),length(rXc{j}),[]);
-                proc(jf).whisker.avgframe  = handles.avgframe(rYc{j+2},rXc{j+2});
-                proc(jf).whisker.avgmotion = handles.avgmotion(rYc{j+2},rXc{j+2});
+                proc(jf).whisker.avgframe  = handles.avgframe(rYc{j},rXc{j});
+                proc(jf).whisker.avgmotion = handles.avgmotion(rYc{j},rXc{j});
             case 4
                 proc(jf).groom.ROI = handles.ROI{j};
                 proc(jf).groom.saturation = handles.saturation(j);
@@ -56,8 +56,8 @@ for jf = 1:length(handles.files)
                     length(rYc{j}),length(rXc{j}),[]);
                 proc(jf).groom.movieMask = reshape(handles.movieMask{j-2},...
                     length(rYc{j}),length(rXc{j}),[]);
-                proc(jf).groom.avgframe  = handles.avgframe(rYc{j+2},rXc{j+2});
-                proc(jf).groom.avgmotion = handles.avgmotion(rYc{j+2},rXc{j+2});
+                proc(jf).groom.avgframe  = handles.avgframe(rYc{j},rXc{j});
+                proc(jf).groom.avgmotion = handles.avgmotion(rYc{j},rXc{j});
             case 5
                 proc(jf).snout.ROI = handles.ROI{j};
                 proc(jf).snout.saturation = handles.saturation(j);
@@ -72,8 +72,8 @@ for jf = 1:length(handles.files)
                     length(rYc{j}),length(rXc{j}),[]);
                 proc(jf).snout.movieMask = reshape(handles.movieMask{j-2},...
                     length(rYc{j}),length(rXc{j}),[]);
-                proc(jf).snout.avgframe  = handles.avgframe(rYc{j+2},rXc{j+2});
-                proc(jf).snout.avgmotion = handles.avgmotion(rYc{j+2},rXc{j+2});
+                proc(jf).snout.avgframe  = handles.avgframe(rYc{j},rXc{j});
+                proc(jf).snout.avgmotion = handles.avgmotion(rYc{j},rXc{j});
             case 6
                 proc(jf).face.ROI = handles.ROI{j};
                 proc(jf).face.saturation = handles.saturation(j);
@@ -88,8 +88,8 @@ for jf = 1:length(handles.files)
                     length(rYc{j}),length(rXc{j}),[]);
                 proc(jf).face.movieMask = reshape(handles.movieMask{j-2},...
                     length(rYc{j}),length(rXc{j}),[]);
-                proc(jf).face.avgframe  = handles.avgframe(rYc{j+2},rXc{j+2});
-                proc(jf).face.avgmotion = handles.avgmotion(rYc{j+2},rXc{j+2});
+                proc(jf).face.avgframe  = handles.avgframe(rYc{j},rXc{j});
+                proc(jf).face.avgmotion = handles.avgmotion(rYc{j},rXc{j});
             end
     end
 end
