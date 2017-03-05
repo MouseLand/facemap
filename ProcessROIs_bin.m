@@ -16,6 +16,7 @@ if isempty(roiall)
 elseif sum((wroiall - handles.plotROIs) == 1) > 0
     h=msgbox('you chose to process ROI(s) that aren''t drawn');
 else
+    handles.svdmat
     svdmot = sum(handles.svdmat(:,2))>0;
     svdmov = sum(handles.svdmat(:,3))>0;
     

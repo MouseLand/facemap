@@ -35,7 +35,7 @@ while 1
         fdata0  = reshape(fdata0, [], size(fdata0,3));
         fdata0  = bsxfun(@minus, single(fdata0), avgframe0(:));
         [u s v] = svd(fdata0' * fdata0);
-        umov0   = fdata0 * u(:,1:100);
+        umov0   = fdata0 * u(:,1:min(100,size(u,2)));
         uMov{j}    = cat(2, uMov{j}, umov0);
     end
     end
@@ -47,7 +47,7 @@ while 1
         fdata0  = abs(diff(single(fdata0),1,2));
         fdata0  = bsxfun(@minus, single(fdata0), avgmotion0(:));
         [u s v] = svd(fdata0' * fdata0);
-        umot0   = fdata0 * u(:,1:100);
+        umot0   = fdata0 * u(:,1:min(100,size(u,2)));
         uMot{j} = cat(2, uMot{j}, umot0);
     end
     end
@@ -59,14 +59,14 @@ end
 if ~isempty(wmov)
 for j = wmov
     [u s v] = svd(uMov{j}'*uMov{j});
-    uMovMask = uMov{j} * u(:,1:100);
+    uMovMask = uMov{j} * u(:,1:min(100,size(u,2)));
     handles.movieMask{j} = uMovMask;
 end
 end
 if ~isempty(wmot)
 for j = wmot
     [u s v] = svd(uMot{j}'*uMot{j});
-    uMotMask = uMot{j} * u(:,1:100);
+    uMotMask = uMot{j} * u(:,1:min(100,size(u,2)));
     uMotMask = normc(uMotMask);
     handles.motionMask{j} = uMotMask;
 end
