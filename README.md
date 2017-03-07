@@ -1,10 +1,10 @@
 # eyeGUI
 matlab GUI for processing eye camera data from rodents
-(( works for GRAYSCALE int16 images ))
+(( works for GRAYSCALE and RGB movies ))
 ![Alt text](/GUIscreenshot.PNG?raw=true "gui screenshot")
 
 # supported movie files
-extensions '.mj2','.mp4','.mkv','.avi','.mpeg','.mpg' (add more in line 60 of eyeGUI.m)
+extensions '.mj2','.mp4','.mkv','.avi','.mpeg','.mpg','.asf' (add more in line 60 of eyeGUI.m)
 
 # default starting folder
 **set at line 59 of eyeGUI.m (handles.filepath)**
