@@ -7,6 +7,7 @@ nY       = handles.nY;
 nXc   = sc * floor(nX/sc);
 nYc   = sc * floor(nY/sc);
 
+
 ispupil = handles.whichROIs(1);
 if ispupil
     fidp = fopen(handles.pupilfile,'w');
@@ -29,10 +30,21 @@ fileframes = 1;
 nfall=0;
 for jf = 1:length(handles.files)
     vr = VideoReader(handles.files{jf});
-    nframes = round(vr.Duration*vr.FrameRate);
+    % check if movie is RGB
+    frame = read(vr,1);
+    if size(frame,3) == 3
+        isRGB = 1;
+    else
+        isRGB = 0;
+    end
+    nframes = vr.NumberOfFrames;
     k=1;
     nf = 1;
-    nt      = 2000;
+    if isRGB
+        nt  = 700;
+    else
+        nt  = 2000;
+    end
     while k < nframes
         
         ind0    = k;
@@ -41,7 +53,12 @@ for jf = 1:length(handles.files)
             indend = Inf;
         end
         fdata   = read(vr, [ind0 indend]);
-        
+        fdata   = single(fdata);
+       
+        if isRGB
+            fdata = (0.2989*fdata(:,:,1,:) + 0.5870*fdata(:,:,2,:) ...
+               + 0.1140*fdata(:,:,3,:));  
+        end
         % write pupil to file
         if ispupil
             fdatap = fdata(handles.rY{1},handles.rX{1},:);

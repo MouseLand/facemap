@@ -57,7 +57,7 @@ handles.output = hObject;
 
 % default filepath for eye camera
 handles.filepath = '\\zserver.cortexlab.net\Data\EyeCamera\';
-handles.suffix   = {'.mj2','.mp4','.mkv','.avi','.mpeg','.mpg'}; % suffix of eye camera file!
+handles.suffix   = {'.mj2','.mp4','.mkv','.avi','.mpeg','.mpg','.asf'}; % suffix of eye camera file!
 
 % default filepath to write binary file (ideally an SSD)
 handles.binfolder = 'F:\DATA';

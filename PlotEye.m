@@ -13,14 +13,27 @@ axes(handles.axes1);
 cla;
 colormap('gray');
 frame = read(handles.vr,handles.cframe);
+nframes = handles.vr.NumberOfFrames;
+if size(frame,3) == 3
+    isRGB = 1;
+else
+    isRGB = 0;
+end
+if isRGB
+    frame = rgb2gray(frame);
+end
 jl = 1;
 frames = zeros(handles.vr.Height, handles.vr.Width, 11, 'uint8');
 for j = 1:11
-    if handles.cframe+j-6 > 0 && handles.cframe+j-6<=handles.nframes
-        frames(:,:,j) = read(handles.vr,handles.cframe+j-6);
+    if handles.cframe+j-6 > 0 && handles.cframe+j-6<=nframes
+        fr = read(handles.vr,handles.cframe+j-6);
     else
-        frames(:,:,j) = read(handles.vr,handles.cframe);
+        fr = read(handles.vr,handles.cframe);
     end
+    if isRGB
+        fr = rgb2gray(fr);
+    end
+    frames(:,:,j) = fr;
 end
 imagesc(frame)
 title('');
