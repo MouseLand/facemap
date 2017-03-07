@@ -65,17 +65,9 @@ handles.binfolder = 'F:\DATA';
 % default file size
 handles.nX       = 640;
 handles.nY       = 480;
-for j = 1:6
-    handles.ROI{j} = [handles.nX/4 handles.nY/4 handles.nX/4 handles.nY/4];
-    if j == 6
-        handles.ROI{j} = [2 2 handles.nX-4 handles.nY-4];
-    end
-    ROI = handles.ROI{j};
-    handles.rX{j}   = floor(ROI(1)-1+[1:ROI(3)]);
-    handles.rY{j}   = floor(ROI(2)-1+[1:ROI(4)]);
-end
-handles.plotROIs  = false(6,1);
-handles.lastROI   = false(6,1);
+
+handles = ResetROIs(handles);
+
 handles.whichROIs = false(2,1);
 handles.svdmat    = false(4,3);
 handles.colors    = [.2 .6 1; 0 1 0; 1 .4 .2; 1 .8 .2; .8 0 .8; .7 .6 1];
@@ -145,6 +137,9 @@ if folder_name ~= 0
         nY    = handles.vr.Height;
         handles.nX = nX;
         handles.nY = nY;
+        % reset ROIs to fit in video
+        handles = ResetROIs(handles);
+
         fprintf('displaying \n%s\n',filename{handles.whichfile});
         if length(folder_name) > length(handles.filepath)
             if strcmp(folder_name(1:length(handles.filepath)),handles.filepath)
