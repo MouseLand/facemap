@@ -31,7 +31,7 @@ you can choose which ROIs to process with the checkboxes on the right (if you've
 
 ++++ for multiple days of recordings ++++
 
-after choosing ROIs for a set of movies (seen in drop-down), click "save ROI and processing settings". load the next set of files and save settings. Then choose "Batch Process ROIs"
+after choosing ROIs for a set of movies (seen in drop-down), click "save ROI and processing settings". load the next set of files and save settings. Then choose "Batch Process ROIs." A list of any groups of files you've saved to since opening the GUI shows up. The groups of files are labelled by the last movie folder\file in the set of files.
 
 # pupil computation
 
