@@ -1,4 +1,4 @@
-function [filename,folders,namef] = FindBlocks(handles,folder_name)
+function [filename,folders] = FindBlocks(handles,folder_name)
 
 filename{1} = [];
 folders     = {};
@@ -96,15 +96,11 @@ end
 
 
 % sort files by name
+keyboard;
 %%
 if numel(namef) > 1
     [~,iname] = sort(namef);
     for j = 1:numel(namef)
-        filename0{j} = filename{iname(j)};
-    end
-    folders = folders(iname);
-    filename = filename0;
-    namef    = namef(iname);
 end
 
 % sort files by time recorded

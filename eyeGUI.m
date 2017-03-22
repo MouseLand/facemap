@@ -122,10 +122,13 @@ function folder_Callback(hObject, eventdata, handles)
 folder_name = uigetdir(handles.filepath);
 if folder_name ~= 0
     handles.rootfolder = folder_name;
-    [filename,folders] = FindBlocks(handles,folder_name);
+    [filename,folders,namef] = FindBlocks(handles,folder_name);
+    
     if isempty(filename{1})
         msgbox('ahh! no movie files found!');
     else
+        [filename,folders,namef] = ChooseFiles(filename,folders,namef);
+    
         handles.files = filename;
         handles.folders = folders;
         handles.whichfile = 1;
