@@ -418,13 +418,6 @@ if strcmp(handles.settings(1:length(handles.filepath)),handles.filepath)
 else
     foldname = handles.settings;
 end
-ns = strfind(foldname,'\');
-if isempty(ns)
-    ns = strfind(foldname,'/');
-end
-if ~isempty(ns)
-    foldname = foldname(1:ns(end));
-end
 handles.multifilelabel{ik} = foldname;
 
 guidata(hObject,handles);
@@ -437,11 +430,12 @@ handles = SaveROI(handles);
 guidata(hObject,handles);
 
 
-% ----- batch process ROIs -------------------- %
+% ----- BATCH PROCESS ROIs -------------------- %
 function pushbutton17_Callback(hObject, eventdata, handles)
 % make multi-file folder list to choose from
+
 [folds,didchoose] = listdlg('PromptString','which folders (ctrl for multiple)',...
-    'SelectionMode','multiple','ListSize',[240 160],'ListString',handles.multifilelabel);
+    'SelectionMode','multiple','ListSize',[260 160],'ListString',handles.multifilelabel);
 for j = folds
     load(handles.multifiles{j})
     fprintf('file %s\n', handles.multifiles{j});
