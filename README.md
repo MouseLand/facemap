@@ -1,10 +1,10 @@
 # eyeGUI
 matlab GUI for processing eye camera data from rodents
-(( works for GRAYSCALE int16 images ))
+(( works for GRAYSCALE and RGB movies ))
 ![Alt text](/GUIscreenshot.PNG?raw=true "gui screenshot")
 
 # supported movie files
-extensions '.mj2','.mp4','.mkv','.avi','.mpeg','.mpg' (add more in line 60 of eyeGUI.m)
+extensions '.mj2','.mp4','.mkv','.avi','.mpeg','.mpg','.asf' (add more in line 60 of eyeGUI.m)
 
 # default starting folder
 **set at line 59 of eyeGUI.m (handles.filepath)**
@@ -22,7 +22,9 @@ Choose a folder (say M012/2016-09-23) and it will assemble a list of all video f
 
 Or if M012/2016-09-23 has 3 movie files (e.g. M012/2016-09-23/mov1.mkv, M012/2016-09-23/mov2.mkv, M012/2016-09-23/mov3.mkv), then they show up in the drop down menu as mov1.mkv, mov2.mkv, mov3.mkv.
 
-When you choose ROIs these will be used to process ALL the folders that you see in the drop down menu when you click "Process ROIs".
+Next, you can choose among all the movies in all the folders and one folder down from the root folder that you chose.
+
+When you choose ROIs these will be used to process ALL the movies that you see in the drop down menu when you click "Process ROIs".
 
 # processing
 you can choose which ROIs to process with the checkboxes on the right (if you've drawn the ROIs!)
