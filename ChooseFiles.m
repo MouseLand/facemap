@@ -5,7 +5,10 @@ function [filename0, folders0, namef0] = ChooseFiles(filename, folders, namef)
 wfs = questdlg('would you like to process all movies?');
 switch wfs
     case 'Yes'
-                
+        filename0 = filename;
+        folders0  = folders;
+        namef0    = namef;
+        
     case 'No'
         fstr = {};
         for j = 1:numel(folders)
