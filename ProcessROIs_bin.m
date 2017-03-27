@@ -30,12 +30,16 @@ else
     nY    = vr.Height;
     handles.nX = nX;
     handles.nY = nY;
+    nXc        = floor(handles.nX/sc);
+    nYc        = floor(handles.nY/sc);
     % subsample chosen ROIs
     for j = 1:6
         rXc{j} = ceil(handles.rX{j}/sc);
         rXc{j} = unique(rXc{j});
+        rXc{j}(rXc{j}>nXc) = [];
         rYc{j} = ceil(handles.rY{j}/sc);
         rYc{j} = unique(rYc{j});
+        rYc{j}(rYc{j}>nYc) = [];
     end
     handles.rXc = rXc;
     handles.rYc = rYc;

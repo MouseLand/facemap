@@ -26,10 +26,10 @@ fr    = max(0, fr-(r.sats));
 [~,ix] = max(fr(:));
 [ix,iy] = ind2sub(size(fr),ix);
 
-% find com in window of 1/3 ROI size
-ixinds = ix + [-1*round(r.nX/4):round(r.nX/4)];
+% find com in window of ROI size
+ixinds = ix + [-1*round(r.nX/2):round(r.nX/2)];
 ixinds(ixinds>r.nX | ixinds<1) = [];
-iyinds = iy + [-1*round(r.nY/4):round(r.nY/4)];
+iyinds = iy + [-1*round(r.nY/2):round(r.nY/2)];
 iyinds(iyinds>r.nY | iyinds<1) = [];
 iyinds = repmat(iyinds(:), 1, numel(ixinds));
 ixinds = repmat(ixinds(:)', size(iyinds,1), 1);
@@ -41,9 +41,9 @@ com    = [sum(ixinds(:).*fr(ix(:))) sum(iyinds(:).*fr(ix(:)))] /sum(fr(ix(:)));
 if ~isnan(com(1))
     ix     = round(com(1));
     iy     = round(com(2));
-    ixinds = ix + [-1*round(r.nX/4):round(r.nX/4)];
+    ixinds = ix + [-1*round(r.nX/2):round(r.nX/2)];
     ixinds(ixinds>r.nX | ixinds<1) = [];
-    iyinds = iy + [-1*round(r.nY/4):round(r.nY/4)];
+    iyinds = iy + [-1*round(r.nY/2):round(r.nY/2)];
     iyinds(iyinds>r.nY | iyinds<1) = [];
     iyinds = repmat(iyinds(:), 1, numel(ixinds));
     ixinds = repmat(ixinds(:)', size(iyinds,1), 1);
