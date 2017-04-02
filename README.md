@@ -29,9 +29,11 @@ When you choose ROIs these will be used to process ALL the movies that you see i
 # processing
 you can choose which ROIs to process with the checkboxes on the right (if you've drawn the ROIs!)
 
-++++ for multiple days of recordings ++++
+# batch processing (multiple recordings, different ROI settings)
 
-after choosing ROIs for a set of movies (seen in drop-down), click "save ROI and processing settings". load the next set of files and save settings. Then choose "Batch Process ROIs." A list of any groups of files you've saved to since opening the GUI shows up. The groups of files are labelled by the last movie folder\file in the set of files.
+after choosing ROIs for a set of movies (seen in drop-down), click "save ROI and processing settings". load the next set of files and save settings. Then choose "Batch Process ROIs." A list of any groups of files you've saved to since opening the GUI shows up. The groups of files are labelled by the last (alphabetically) movie folder\file in the set of files.
+
+If you want to process any movies which already have saved folders, you can use the script "BatchProcess_standalone.m". This loads the previously saved settings (using the same db structure as Suite2P) and processes the ROIs with those settings. You can change the processing settings as well. I'm showing an example in that file where I change the temporal smoothing constant for the motion ROIs.
 
 # pupil computation
 
