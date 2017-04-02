@@ -87,7 +87,7 @@ if ~isempty(indROI)
     end
     
     if indROI == 1
-        fr = my_conv2(fr, [1 1 tsc], [1 2 3]);
+        fr = my_conv2(fr, [1 1 1], [1 2 3]);
         fr = fr(:,:,6);
     end
     if indROI == 2

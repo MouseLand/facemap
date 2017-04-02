@@ -63,7 +63,7 @@ for jf = 1:length(handles.files)
         if ispupil
             fdatap = fdata(handles.rY{1},handles.rX{1},:);
             fdatap = uint8(round(my_conv2(...
-                single(fdatap), [1 1 tsc], [1 2 3])));
+                single(fdatap), [1 1 1], [1 2 3])));
             fwrite(fidp, reshape(fdatap, [], size(fdatap,3)));
             if ~isface
                 avgframe = avgframe + squeeze(sum(single(fdata),4));
