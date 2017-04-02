@@ -14,7 +14,7 @@ db(i).date          = '2015-12-19';
 db(i).expts         = [4];
 
 %%
-for j = 1:length(db)
+for j = 2:length(db)
     if ~isempty(db(j).expts)
         moviefolder = fullfile(rootfolder, db(j).mouse_name, db(j).date,...
             num2str(db(j).expts(1)));
