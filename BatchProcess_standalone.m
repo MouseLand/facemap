@@ -27,9 +27,15 @@ for j = 1:length(db)
         for k = 1:length(procfile)
             clear proc;
             load(fullfile(moviefolder, procfile(k).name));
+            % >>> change processing settings here <<<
+            proc.tsc = 1; % changed temporal smoothing constant to 1 frame
+            
+            % run processing using proc structure
             fprintf('>>>>> processing %s %s\n',db(j).mouse_name, db(j).date);
             fprintf('file %s\n', fullfile(moviefolder, procfile(k).name));
             proc = ProcessROIs_bin(proc);
+            
+            % saves proc file to _proc.mat (overwriting previous file)
             proc = SaveROI(proc);
         end
     else
