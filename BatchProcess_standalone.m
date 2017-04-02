@@ -27,7 +27,7 @@ for j = 1:length(db)
         for k = 1:length(procfile)
             clear proc;
             load(fullfile(moviefolder, procfile(k).name));
-            fprintf('>>>> processing %s %s\n',db(j).mouse_name, db(j).date);
+            fprintf('>>>>> processing %s %s\n',db(j).mouse_name, db(j).date);
             fprintf('file %s\n', fullfile(moviefolder, procfile(k).name));
             proc = ProcessROIs_bin(proc);
             proc = SaveROI(proc);
