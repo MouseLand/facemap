@@ -42,22 +42,11 @@ if handles.svdmat(j-2,3)
     movMask = handles.movieMask{j-2};
     movSVD  = fr2'*movMask;
 end
-    
-movs{1} = [dfr(1);dfr(:)];
+
+if ~isempty(dfr)
+    movs{1} = [dfr(1);dfr(:)];
+else
+    movs{1} = [];
+end
 movs{2} = motSVD;
 movs{3} = movSVD;
-
-if 0
-for k = 1:100:1000
-    clf
-    subplot(2,1,1),
-    imagesc(frames(:,:,k))
-    subplot(2,1,2),
-    mt=zscore(motSVD(:,1:3));
-    plot(mt);
-    hold all;
-    plot(k,mt(k,:),'k*');
-drawnow;
-%pause;
-end
-end
