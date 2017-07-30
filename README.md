@@ -1,5 +1,5 @@
-# eyeGUI
-matlab GUI for processing eye camera data from rodents
+# FaceMap
+matlab GUI for processing face camera data from rodents
 (( works for GRAYSCALE and RGB movies ))
 ![Alt text](/GUIscreenshot.PNG?raw=true "gui screenshot")
 
