@@ -2,6 +2,7 @@
 function handles = ComputeSVDMasks(handles)
 fid = fopen(handles.facefile,'r');
 fileframes = handles.fileframes;
+tsc        = handles.tsc;
 sc         = handles.sc;
 nXc        = floor(handles.nX/sc);
 nYc        = floor(handles.nY/sc);
@@ -18,7 +19,7 @@ wmov = find(handles.svdmat(:,3));
 wmot = wmot';
 wmov = wmov';
 %%
-nt   = 1000 * sc;
+nt   = 2000 * sc * tsc;
 
 k = 0;
 nf = round(fileframes(end)/nt);
@@ -33,6 +34,8 @@ while 1
             fdata0  = fdata(rYc{j+2}, rXc{j+2}, :);
             avgframe0 = handles.avgframe(rYc{j+2}, rXc{j+2});
             fdata0  = reshape(fdata0, [], size(fdata0,3));
+            fdata0  = squeeze(mean(reshape(fdata0(:, 1:floor(size(fdata0,2)/tsc)*tsc),...
+                size(fdata0,1), tsc, floor(size(fdata0,2)/tsc)), 2));
             fdata0  = bsxfun(@minus, single(fdata0), avgframe0(:));
             [u s v] = svd(fdata0' * fdata0);
             umov0   = fdata0 * u(:,1:min(100,size(u,2)));
@@ -45,14 +48,19 @@ while 1
             avgmotion0 = handles.avgmotion(rYc{j+2}, rXc{j+2});
             fdata0  = reshape(fdata0, [], size(fdata0,3));
             fdata0  = abs(diff(single(fdata0),1,2));
+            fdata0  = squeeze(mean(reshape(fdata0(:, 1:floor(size(fdata0,2)/tsc)*tsc),...
+                size(fdata0,1), tsc, floor(size(fdata0,2)/tsc)), 2));
             fdata0  = bsxfun(@minus, single(fdata0), avgmotion0(:));
             [u s v] = svd(fdata0' * fdata0);
             umot0   = fdata0 * u(:,1:min(100,size(u,2)));
             uMot{j} = cat(2, uMot{j}, umot0);
         end
     end
+    if mod(k-1,5)==0
+        fprintf('frameset %d/%d  time %3.2fs\n', k, round(fileframes(end)/nt), toc);
+    end
     k = k+1;
-    fprintf('frameset %d/%d  time %3.2fs\n', k, round(fileframes(end)/nt), toc);
+    
 end
 
 % take SVD of SVD components
@@ -60,7 +68,7 @@ if ~isempty(wmov)
     for j = wmov
         fprintf('computing SVD of movie of size %d time %3.2fs\n', size(uMov{j},2),toc);
         [u s v] = svd(uMov{j}'*uMov{j});
-        uMovMask = uMov{j} * u(:,1:min(100,size(u,2)));
+        uMovMask = uMov{j} * u(:,1:min(1000,size(u,2)));
         handles.movieMask{j} = uMovMask;
     end
 end
@@ -68,7 +76,7 @@ if ~isempty(wmot)
     for j = wmot
         fprintf('computing SVD of motion of size %d time %3.2fs\n', size(uMov{j},2),toc);
         [u s v] = svd(uMot{j}'*uMot{j});
-        uMotMask = uMot{j} * u(:,1:min(100,size(u,2)));
+        uMotMask = uMot{j} * u(:,1:min(1000,size(u,2)));
         uMotMask = normc(uMotMask);
         handles.motionMask{j} = uMotMask;
     end

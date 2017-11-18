@@ -1,5 +1,5 @@
 % process ROIs by loading bin file
-function data = ProcessFrames(handles,wroi,wroim)
+function data = ProcessFrames(handles, wroim)
 
 sc  = handles.sc;
 data = ConstructData(handles);
@@ -31,7 +31,7 @@ ntall = 0;
 for jf = 1:length(handles.files)
     nf    = 0;
     while ntall < fileframes(jf+1)
-        nt           = 500 * sc;
+        nt           = 2000 * sc;
         nt           = min(nt, fileframes(jf+1) - ntall);
         if isface
             fdata    = fread(fid,[nXc*nYc nt]);
@@ -76,8 +76,10 @@ for jf = 1:length(handles.files)
             end
         end
         nf = nf+1;
-        fprintf('file %d frameset %d/%d  time %3.2fs\n',jf,nf,...
-            round((fileframes(jf+1)-fileframes(jf))/(500*sc)),toc);
+        if mod(nf-1,5)==0
+            fprintf('file %d frameset %d/%d  time %3.2fs\n',jf,nf,...
+                round((fileframes(jf+1)-fileframes(jf))/(nt)),toc);
+        end
         
     end
 end

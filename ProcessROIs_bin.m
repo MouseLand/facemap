@@ -30,8 +30,8 @@ else
     nY    = vr.Height;
     handles.nX = nX;
     handles.nY = nY;
-    nXc        = floor(handles.nX/sc);
-    nYc        = floor(handles.nY/sc);
+    nXc        = floor(handles.nX/sc)
+    nYc        = floor(handles.nY/sc)
     % subsample chosen ROIs
     for j = 1:6
         rXc{j} = ceil(handles.rX{j}/sc);
@@ -70,12 +70,13 @@ else
         handles = ComputeSVDMasks(handles);
         toc;
     end
+    handles.motionMask
     
     %%%% pass through data to compute pupil/blink/motion and svd projs
     % processing ROIS!
     fprintf('computing pupil/blink and motion and SVD projections\n');
     
-    data = ProcessFrames(handles, wroi, wroim);
+    data = ProcessFrames(handles, wroim);
     
     %%
     % assign ROI's to proc if ROI was processed

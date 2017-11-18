@@ -38,6 +38,6 @@ for j = 1:length(handles.files)
     savefile   = sprintf('%s_proc.mat',savefile0);
     savepath   = fullfile(savefolder,savefile);
     handles.settings = savepath;
-    save(savepath,'proc');
+    save(savepath,'-v7.3','proc');
     
 end

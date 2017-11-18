@@ -1,7 +1,7 @@
 % write face and pupil to binary file
 function [fileframes, avgframe, avgmotion] = WriteBinFile(handles)
 sc       = handles.sc;
-tsc      = handles.tsc;
+%tsc      = handles.tsc;
 nX       = handles.nX;
 nY       = handles.nY;
 nXc   = sc * floor(nX/sc);
@@ -75,8 +75,6 @@ for jf = 1:length(handles.files)
             % scale in X and Y
             fdata0 = squeeze(mean(mean(reshape(single(fdata(1:nYc,1:nXc,:)),...
                 sc,nYc/sc,sc,nXc/sc,size(fdata,4)),1),3));
-            % convolve in time
-            fdata0 = my_conv2(fdata0, tsc, 3);
             % write to disk
             fdata1 = uint8(round(fdata0));
             fwrite(fid, reshape(fdata1, [], size(fdata1,3)));
@@ -86,8 +84,10 @@ for jf = 1:length(handles.files)
                 avgmotion = avgmotion + sum(abs(diff(fdata0,1,3)),3);
             end
         end
-        fprintf('file %d frameset %d/%d  time %3.2fs\n',...
-            jf,nf,round(nframes/(nt)),toc);
+        if mod(nf-1,5)==0
+            fprintf('file %d frameset %d/%d  time %3.2fs\n',...
+                jf,nf,round(nframes/(nt)),toc);
+        end
         k=k+size(fdata,4);
         nfall=nfall+size(fdata,4);
         nf=nf+1;
