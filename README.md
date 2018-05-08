@@ -30,8 +30,15 @@ The multivideo motion SVD and the small ROIs 1-3 are computed on the movie downs
 
 The union of all pixels in "areas to include" are used, excluding any pixels that intersect this union from "areas to exclude". The motion energy is computed from these pixels: abs(current_frame - previous_frame), and the average motion energy across frames is computed using a subset of frames (*avgmot*) (4000 - set at line 45 in subsampledMean.m). Then the singular vectors of the motion energy are computed on chunks of data, also from a subset of frames (50 chunks of 1000 frames each). Let *F* be the chunk of frames [pixels x time]. Then
 ```
-M = abs(diff(F,1,2));
-M = M - avgmot;
+uMot = [];
+for j = 1:nchunks
+  M = abs(diff(F,1,2));
+  M = M - avgmot;
+  [u,~,~] = svd(M);
+  uMot = cat(2, uMot, u);
+end
+[uMot,~,~] = svd(uMot);
+uMot = normc(uMot);
 ```
 
 
