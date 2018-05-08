@@ -26,49 +26,28 @@ You'll then see the ones that you chose in the drop down menu (by filename). You
 
 Use the saturation bar to reduce the background of the eye. The algorithm zeros out any pixels less than the saturation level. Next it finds the pixel with the largest magnitude. It draws a box around that area (1/2 the size of the ROI) and then finds the center-of-mass of that region. It then centers the box on that area. It fits a multivariate gaussian to the pixels in the box using maximum likelihood. The ellipse is then drawn at "sigma" standard deviations around the center-of-mass of the gaussian (default "sigma" = 4, but this can be changed in the GUI).
 
-# small ROIs
+### small motion ROIs
 
-The SVD of the motion is computed for each of the smaller ROIs. Motion is the abs(current_frame - previous_frame). The singular vectors are computed on subsets of the frames, and the top 500 components are kept.
+The SVD of the motion is computed for each of the smaller motion ROIs. Motion is the abs(current_frame - previous_frame). The singular vectors are computed on subsets of the frames, and the top 500 components are kept.
                   
-# output of processing
+## output of processing
 
 creates one mat file for all videos (saved in current folder), mat file has name "videofile_proc.mat"
+- **nX**,**nY**: cell arrays of number of pixels in X and Y in each video taken simultaneously
+- **ROI**: [# of videos x # of areas] - areas to be included for multivideo SVD
+- **eROI**: [# of videos x # of areas] - areas to be excluded from multivideo SVD
+- **locROI**: location of small ROIs (in order pupil1, pupil2, ROI1, ROI2, ROI3, running)
+- **ROIfile**: in which movie is the small ROI
+- **plotROIs**: which ROIs are being processed (these are the ones shown on the frame in the GUI)
+- **files**: all the files you processed together 
+- **npix**: array of number of pixels from each video used for multivideo SVD
+- **tpix**: array of number of pixels in each video used for processing
+- **wpix**: cell array of which pixels were used from each video for multivideo SVD 
+- **avgframe**: [sum(tpix) x 1] average frame across videos computed on a subset of frames
+- **avgmotion**: [sum(tpix) x 1] average frame across videos computed on a subset of frames
+- **motSVD**: cell array of motion SVDs [components x time] (in order ROI1, ROI2, ROI3, multivideoSVD)
+- **uMotMask**: cell array of motion masks [pixels x time]
+- **running**: 2D running speed computed using phase correlation [time x 2]
+- **pupil**: structure of size 2 (pupil1 and pupil2) with 3 fields: area, area_raw, and com
 
-	   nX: 
-	files: all the files you processed together 
-	 npix: array of number of pixels from each video used for all-video SVD
-	 tpix: array of number of pixels in each video used for processing
-	 wpix: cell array of which pixels were used from each video for all-video SVD 
-         data: [1x1 
-     avgframe: [sum(tpix) x 1] average frame across videos computed on a subset of frames
-     avgmotion: [sum(tpix) x 1] average frame across videos computed on a subset of frames
-
-proc.data structure
-
-for all ROIs:
-
-	proc.data.pupil.ROI = [x y Lx Ly]
-	proc.data.pupil.saturation = saturation value set by user
-	proc.data.pupil.ROIX = x-1 + [1:Lx];
-	proc.data.pupil.ROIY = y-1 + [1:Ly];
-	proc.data.pupil.nX   = Lx;
-	proc.data.pupil.nY   = Ly;
-
-for pupil ROI:
-
-	proc.data.pupil.area   = area of fit ellipse
-	proc.data.pupil.com    = center of mass of ellipse (using pixel values)
-
-for blink ROI:
-
-	proc.data.blink.area   = sum of pixels greater than threshold set
-	
-for whisker, face, etc (see above for description of fields):
-
-	proc.data.whisker.motion
-	proc.data.whisker.motionSVD
-	proc.data.whisker.movieSVD
-	proc.data.whisker.motionMask
-	proc.data.whisker.movieMask
-
-
+an ROI is [1x4]: [x0 y0 Lx Ly]
