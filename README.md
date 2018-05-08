@@ -3,24 +3,32 @@ matlab GUI for processing videos of rodents
 (( works for GRAYSCALE and RGB movies ))
 ![Alt text](/GUIscreenshot.PNG?raw=true "gui screenshot")
 
-## Supported movie files
+### Supported movie files
 extensions '.mj2','.mp4','.mkv','.avi','.mpeg','.mpg','.asf' (add more in line 60 of MovieGUI.m)
 
-## Default starting folder
-**set at line 59 of eyeGUI.m (handles.filepath)**
+### Default starting folder
+set at line 59 of MovieGUI.m (handles.filepath)
 
 ## File loading structure
-Choose a folder (say M012) and it will assemble a list of all video files in that folder and 1 folder down. The GUI will ask "would you like to process all movies?". If you say no, then a list of movies to choose from will appear. 
+Choose a folder and it will assemble a list of all video files in that folder and 1 folder down. The GUI will ask *"would you like to process all movies?"*. If you say no, then a list of movies to choose from will appear. 
 
-After choosing the movies, you have to tell the GUI if these are multiple videos acquired simultaneously. It will ask "are you processing multiple videos taken simultaneously?". 
+You will then see all the movies that you chose in the drop down menu (by filename). You can switch between them and inspect how well an ROI works for each of the movies.
 
-Or if M012/2016-09-23 has 3 movie files (e.g. M012/2016-09-23/mov1.mkv, M012/2016-09-23/mov2.mkv, M012/2016-09-23/mov3.mkv), then they show up in the drop down menu as mov1.mkv, mov2.mkv, mov3.mkv.
+### Processing movies captured simultaneously (multiple camera setups)
 
-Next, you can choose among all the movies in all the folders and one folder down from the root folder that you chose.
+The GUI will ask *"are you processing multiple videos taken simultaneously?"* if across movies the **FIRST FOUR** letters of the filename vary. If the first four letters of two movies are the same, then the GUI assumed that they were acquired *sequentially* not *simultaneously*.
 
-When you choose ROIs these will be used to process ALL the movies that you see in the drop down menu when you click "Process ROIs".
+Example:
++ cam1_G7c1_1.avi
++ cam1_G7c1_2.avi
++ cam2_G7c1_1.avi
++ cam2_G7c1_2.avi
++ cam3_G7c1_1.avi
++ cam3_G7c1_2.avi
 
-You'll then see the ones that you chose in the drop down menu (by filename). You can switch between them and inspect how well an ROI works for each of the movies.
+*"are you processing multiple videos taken simultaneously?"* ANSWER: Yes
+
+Then the GUI assumes {cam1_G7c1_1.avi, cam2_G7c1_1.avi, cam3_G7c1_1.avi} were acquired simultaneously and {cam1_G7c1_2.avi, cam2_G7c1_2.avi, cam3_G7c1_2.avi} were acquired simultaneously. They will be processed in alphabetical order (1 before 2) and the results from the videos will be concatenated in time.
 
 ## Processing
 
@@ -43,11 +51,11 @@ uMot = normc(uMot);
 
 ### Pupil computation
 
-Use the saturation bar to reduce the background of the eye. All pixels below the saturation level in the ROI are set to the saturation level. Then template matching on the pupil area proceeds (see `getRadius.m` and `getTemplates.m`). 101 different templates each with a different pupil radius are phase-correlated with the ROI in the FFT domain. The smoothness of the edges of the template are set by the pupil sigma parameter in the GUI. 2-3 is recommended for smaller pupils, and 4 for larger pupils when the animal is in darkness. 
+Use the saturation bar to reduce the background of the eye. All pixels below the saturation level in the ROI are set to the saturation level. Then template matching on the pupil area proceeds (see [getRadius.m](getRadius.m) and [getTemplates.m](getTemplates.m)). 101 different templates each with a different pupil radius are phase-correlated with the ROI in the FFT domain. The smoothness of the edges of the template are set by the pupil sigma parameter in the GUI. 2-3 is recommended for smaller pupils, and 4 for larger pupils when the animal is in darkness. 
 
 The phase-correlation of the ROI with the 101 different templates of different radii produces 101 correlation values. This vector is upsampled 10 times using kriging interpolation with a Gaussian kernel of standard deviation of 1. The maximum of this vector is the radius of the pupil in pixels - then the area is pi* radius^2. The center-of-mass (com) of the pupil is the XY position that maximizes the phase-correlation of the best template.
 
-This raw pupil area is post-processed (see `smoothPupil.m`). The area is median filtered. Then all points...
+This raw pupil area is post-processed (see [smoothPupil.m](smoothPupil.m))). The area is median filtered. Then all points...
 
 ### Small motion ROIs
 
