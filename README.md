@@ -4,27 +4,23 @@ matlab GUI for processing face camera data from rodents
 ![Alt text](/GUIscreenshot.PNG?raw=true "gui screenshot")
 
 # supported movie files
-extensions '.mj2','.mp4','.mkv','.avi','.mpeg','.mpg','.asf' (add more in line 60 of eyeGUI.m)
+extensions '.mj2','.mp4','.mkv','.avi','.mpeg','.mpg','.asf' (add more in line 60 of MovieGUI.m)
 
 # default starting folder
 **set at line 59 of eyeGUI.m (handles.filepath)**
 
-# default folder to write binary files
-**set at line 63 of eyeGUI.m (handles.binfolder)**
-
-in GUI, click "choose folder for binary file" to change the location
-
-This should be set to a location on your SSD for fast read/write speeds.
-
-
 # folder loading structure
-Choose a folder (say M012/2016-09-23) and it will assemble a list of all video files in that folder and 1 folder down (e.g. M012/2016-09-23/1/mov.mkv, M012/2016-09-23/2/mov.mkv, M012/2016-09-23/3/mov.mkv). You can choose which of these you want to process. You'll then see the ones that you chose in the drop down menu labelled by their folder names (1,2,3). You can switch between them and inspect how well the ROI works for each of the movies.
+Choose a folder (say M012) and it will assemble a list of all video files in that folder and 1 folder down. The GUI will ask "would you like to process all movies?". If you say no, then a list of movies to choose from will appear. 
+
+After choosing the movies, you have to tell the GUI if these are multiple videos acquired simultaneously. It will ask "are you processing multiple videos taken simultaneously?". 
 
 Or if M012/2016-09-23 has 3 movie files (e.g. M012/2016-09-23/mov1.mkv, M012/2016-09-23/mov2.mkv, M012/2016-09-23/mov3.mkv), then they show up in the drop down menu as mov1.mkv, mov2.mkv, mov3.mkv.
 
 Next, you can choose among all the movies in all the folders and one folder down from the root folder that you chose.
 
 When you choose ROIs these will be used to process ALL the movies that you see in the drop down menu when you click "Process ROIs".
+
+You'll then see the ones that you chose in the drop down menu (by filename). You can switch between them and inspect how well an ROI works for each of the movies.
 
 # processing
 you can choose which ROIs to process with the checkboxes on the right (if you've drawn the ROIs!)
