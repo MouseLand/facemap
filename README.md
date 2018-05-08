@@ -1,5 +1,5 @@
 # FaceMap
-matlab GUI for processing face camera data from rodents
+matlab GUI for processing videos of rodents
 (( works for GRAYSCALE and RGB movies ))
 ![Alt text](/GUIscreenshot.PNG?raw=true "gui screenshot")
 
@@ -22,50 +22,26 @@ When you choose ROIs these will be used to process ALL the movies that you see i
 
 You'll then see the ones that you chose in the drop down menu (by filename). You can switch between them and inspect how well an ROI works for each of the movies.
 
-# processing
-you can choose which ROIs to process with the checkboxes on the right (if you've drawn the ROIs!)
-
-# batch processing (multiple recordings, different ROI settings)
-
-after choosing ROIs for a set of movies (seen in drop-down), click "save ROI and processing settings". load the next set of files and save settings. Then choose "Batch Process ROIs." A list of any groups of files you've saved to since opening the GUI shows up. The groups of files are labelled by the last (alphabetically) movie folder\file in the set of files.
-
-If you want to process any movies which already have saved folders, you can use the script "BatchProcess_standalone.m". This loads the previously saved settings (using the same db structure as Suite2P) and processes the ROIs with those settings. You can change the processing settings as well. I'm showing an example in that file where I change the temporal smoothing constant for the motion ROIs.
-
 # pupil computation
 
 Use the saturation bar to reduce the background of the eye. The algorithm zeros out any pixels less than the saturation level. Next it finds the pixel with the largest magnitude. It draws a box around that area (1/2 the size of the ROI) and then finds the center-of-mass of that region. It then centers the box on that area. It fits a multivariate gaussian to the pixels in the box using maximum likelihood. The ellipse is then drawn at "sigma" standard deviations around the center-of-mass of the gaussian (default "sigma" = 4, but this can be changed in the GUI).
 
-# different statistics of movement
-motion: absolute value of the difference of two frames and sum over pixels greater than the threshold set by the GUI 
-	
-	motpix = abs(frames(:,t) - frames(:,t-1)); % this is pixels by time
-	motion = sum(motpix>=saturation); % this is time by 1
+# small ROIs
 
-motion SVD: take the svd of the motpix: 
-	
-	[u s v] = svd(motpix);
-	proc.xx.motionMask = u;
-	motionSVD = v(:,1:100);
-
-movieSVD: take the svd of the frames:
-	
-	[u s v] = svd(frames);
-	proc.xx.movieMask = u;
-	movieSVD = v(:,1:100);
+The SVD of the motion is computed for each of the smaller ROIs. Motion is the abs(current_frame - previous_frame). The singular vectors are computed on subsets of the frames, and the top 500 components are kept.
                   
 # output of processing
-creates a separate mat file for each video (saved in folder with video), mat file has name "videofile_proc.mat"
 
-proc:
-	
-	suffix: '.mj2'     
-        files: {1x3 cell} <--- all the files you processed together 
-       folders: {3x1 cell}
-      filename: '\\zserver.ioo.uc…' <--- filename of movie
-    fitellipse: [0 1]          
-          data: [1x1 struct]
-      avgframe: [ypix x xpix int16]
-      avgmotion: [ypix x xpix int16]
+creates one mat file for all videos (saved in current folder), mat file has name "videofile_proc.mat"
+
+	   nX: 
+	files: all the files you processed together 
+	 npix: array of number of pixels from each video used for all-video SVD
+	 tpix: array of number of pixels in each video used for processing
+	 wpix: cell array of which pixels were used from each video for all-video SVD 
+         data: [1x1 
+     avgframe: [sum(tpix) x 1] average frame across videos computed on a subset of frames
+     avgmotion: [sum(tpix) x 1] average frame across videos computed on a subset of frames
 
 proc.data structure
 
