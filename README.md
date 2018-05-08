@@ -24,7 +24,7 @@ You'll then see the ones that you chose in the drop down menu (by filename). You
 
 ## Processing
 
-The multivideo motion SVD and the small ROIs 1-3 are computed on the movie downsampled in space by the smoothing constant in the GUI (default 4 pixels).
+The multivideo motion SVD and the small ROIs 1-3 are computed on the movie downsampled in space by the spatial downsampling input box in the GUI (default 4 pixels).
 
 ### Multivideo motion SVD
 
@@ -41,16 +41,21 @@ end
 uMot = normc(uMot);
 ```
 
-
 ### Pupil computation
 
-Use the saturation bar to reduce the background of the eye. The algorithm zeros out any pixels less than the saturation level. Next it finds the pixel with the largest magnitude. It draws a box around that area (1/2 the size of the ROI) and then finds the center-of-mass of that region. It then centers the box on that area. It fits a multivariate gaussian to the pixels in the box using maximum likelihood. The ellipse is then drawn at "sigma" standard deviations around the center-of-mass of the gaussian (default "sigma" = 4, but this can be changed in the GUI).
+Use the saturation bar to reduce the background of the eye. All pixels below the saturation level in the ROI are set to the saturation level. Then template matching on the pupil area proceeds (see `getRadius.m` and `getTemplates.m`). 101 different templates each with a different pupil radius are phase-correlated with the ROI in the FFT domain. The smoothness of the edges of the template are set by the pupil sigma parameter in the GUI. 2-3 is recommended for smaller pupils, and 4 for larger pupils when the animal is in darkness. 
+
+The phase-correlation of the ROI with the 101 different templates of different radii produces 101 correlation values. This vector is upsampled 10 times using kriging interpolation with a Gaussian kernel of standard deviation of 1. The maximum of this vector is the radius of the pupil in pixels - then the area is pi* radius^2. The center-of-mass (com) of the pupil is the XY position that maximizes the phase-correlation of the best template.
+
+This raw pupil area is post-processed (see `smoothPupil.m`). The area is median filtered. Then all points...
 
 ### Small motion ROIs
 
 The SVD of the motion is computed for each of the smaller motion ROIs. Motion is the abs(current_frame - previous_frame). The singular vectors are computed on subsets of the frames, and the top 500 components are kept.
                   
 ### Running computation
+
+
                   
 ## Output of processing
 
