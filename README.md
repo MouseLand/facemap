@@ -11,11 +11,9 @@ set at line 59 of MovieGUI.m (handles.filepath)
 ## File loading structure
 Choose a folder and it will assemble a list of all video files in that folder and 1 folder down. The GUI will ask *"would you like to process all movies?"*. If you say no, then a list of movies to choose from will appear. 
 
-You will then see all the movies that you chose in the drop down menu (by filename). You can switch between them and inspect how well an ROI works for each of the movies.
-
 ### Processing movies captured simultaneously (multiple camera setups)
 
-The GUI will ask *"are you processing multiple videos taken simultaneously?"*. If you say yes, then the script will look if across movies the **FIRST FOUR** letters of the filename vary. If the first four letters of two movies are the same, then the GUI assumed that they were acquired *sequentially* not *simultaneously*.
+The GUI will then ask *"are you processing multiple videos taken simultaneously?"*. If you say yes, then the script will look if across movies the **FIRST FOUR** letters of the filename vary. If the first four letters of two movies are the same, then the GUI assumed that they were acquired *sequentially* not *simultaneously*.
 
 Example file list:
 + cam1_G7c1_1.avi
@@ -28,6 +26,8 @@ Example file list:
 *"are you processing multiple videos taken simultaneously?"* ANSWER: Yes
 
 Then the GUI assumes {cam1_G7c1_1.avi, cam2_G7c1_1.avi, cam3_G7c1_1.avi} were acquired simultaneously and {cam1_G7c1_2.avi, cam2_G7c1_2.avi, cam3_G7c1_2.avi} were acquired simultaneously. They will be processed in alphabetical order (1 before 2) and the results from the videos will be concatenated in time. If one of these files was missing, then the GUI will error and you will have to choose file folders again.
+
+After the file choosing process is over, you will see all the movies in the drop down menu (by filename). You can switch between them and inspect how well an ROI works for each of the movies.
 
 ## Processing
 
@@ -56,6 +56,8 @@ for j = 1:nchunks
   motSVD((j-1)*nt + [1:nt],:) = motSVD0;
 end
 ```
+Example motion masks and traces:
+![Alt text](/exsvds.png?raw=true "motionSVDs")
 
 ### Pupil computation
 
