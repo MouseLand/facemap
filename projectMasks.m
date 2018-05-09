@@ -58,7 +58,7 @@ for j = 1:2
 end
 
 
-for j = 1:nsegs
+for j = 1:10%nsegs
     tc = ifr;
     % which video is tc in
     ivid = find(tc<nframetimes(2:end) & tc>=nframetimes(1:end-1));
@@ -87,6 +87,8 @@ for j = 1:nsegs
                 z = pups(l) + (numel(h.ROIfile)-2);
                 ims = imb(h.spix{z}(:),:);
                 ims = reshape(ims, h.iroi{z}(4), h.iroi{z}(3), nt);
+                ims = my_conv2(ims, [1 1 1], [1 2 3]);
+                ims = ims - min(min(ims,[],1),[],2);
                 h.indROI = z;
                 pupil = processPupil(h, ims, h.saturation(z));
                 h.pupil(l).area(ifr + [1:nt]) = pupil.area;

@@ -59,8 +59,9 @@ if ~isempty(h.indROI)
     % pupil contours
     if indROI>4
         fr = fr - min(fr(:));
-        fr = fr / max(fr(:)) * 255;
-        imagesc(fr, [0 255-sat]);
+        %fr = fr / max(fr(:)) * 255;
+        fr(fr>sat) = sat;
+        imagesc(fr,[0 255-sat]);
         
         r.fr     = fr;
         r.sats   = sat;

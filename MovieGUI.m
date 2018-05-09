@@ -67,7 +67,12 @@ h.sc        = 4;
 h.tsc       = 1;
 
 % colors for ROIs
-h.colors = [.3 .3 .3; .7 .3 0; 1 0 1; .5 .5 0; 0 1 0; .3 .7 0];
+h.colors = [1 0 1;...
+           1 .65 0;...
+           .85 .3 .1;...
+           .8 .8 0;...
+           0 1 0;...
+           .3 .7 0];
 % default threshold for pupil
 h.thres = 4;
 
@@ -195,8 +200,8 @@ if folder_name ~= 0
         end
         
         h.folder_name = folder_name;
-        h.nframes = h.vr{h.whichfile}.Duration*h.vr{h.whichfile}.FrameRate;
-        disp(h.nframes)
+        h.nframes = h.vr{h.whichfile}.Duration*h.vr{h.whichfile}.FrameRate - 1;
+        disp(h.nframes+1)
         h.cframe = 1;
         set(h.slider1,'Value',0);
         set(h.slider4,'Value',0);
@@ -319,7 +324,7 @@ set(hObject,'BusyAction','cancel');
 v = get(hObject,'Value');
 smin = get(hObject,'Min');
 smax = get(hObject,'Max');
-cframe = min(h.nframes,max(1,round(v/(smax-smin) * h.nframes)));
+cframe = min(h.nframes-1,max(1,round(v/(smax-smin) * h.nframes)));
 h.cframe = cframe;
 set(h.edit3,'String',num2str(cframe));
 set(h.slider4,'Value',h.cframe/h.nframes);
