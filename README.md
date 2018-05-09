@@ -1,6 +1,5 @@
 # FaceMap
-matlab GUI for processing videos of rodents
-(( works for GRAYSCALE and RGB movies ))
+matlab GUI for processing videos of rodents. Works for GRAYSCALE and RGB movies. Can process multi-camera videos.
 ![Alt text](/GUIscreenshot.PNG?raw=true "gui screenshot")
 
 ### Supported movie files
@@ -63,7 +62,7 @@ The SVD of the motion is computed for each of the smaller motion ROIs. Motion is
                   
 ### Running computation
 
-The phase-correlation between consecutive ROIs in time are computed in the fourier domain. 
+The phase-correlation between consecutive frames (in running ROI) are computed in the fourier domain (see [processRunning.m](processRunning.m)). The XY position of maximal correlation gives the amount of shift between the two consecutive frames. 
 
 ## Output of processing
 
