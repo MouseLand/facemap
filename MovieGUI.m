@@ -326,7 +326,7 @@ smax = get(hObject,'Max');
 cframe = min(h.nframes-1,max(1,round(v/(smax-smin) * h.nframes)));
 h.cframe = cframe;
 set(h.edit3,'String',num2str(cframe));
-set(h.slider4,'Value',h.cframe/h.nframes);
+set(h.slider4,'Value',h.cframe/(h.nframes-1));
 PlotFrame(h);
 PlotROI(h);
 guidata(hObject,h);
@@ -335,9 +335,9 @@ guidata(hObject,h);
 function slider4_Callback(hObject, eventdata, h)
 set(hObject,'Interruptible','On');
 set(hObject,'BusyAction','cancel');
-set(hObject,'SliderStep',[1/double(h.nframes) 2/double(h.nframes)]);
+set(hObject,'SliderStep',[1/double(h.nframes-1) 2/double(h.nframes-1)]);
 v = get(hObject,'Value');
-cframe = min(h.nframes,max(1,round((v)*h.nframes)));%%/ h.nframes)));
+cframe = min(h.nframes-1,max(1,round((v)*h.nframes)));%%/ h.nframes)));
 h.cframe = cframe;
 set(h.edit3,'String',num2str(cframe));
 set(h.slider1,'Value',h.cframe/h.nframes);
@@ -354,14 +354,14 @@ set(hObject,'Max',1);
 
 % --- PLAY button
 function togglebutton1_Callback(hObject, eventdata, h)
-while get(hObject, 'value') && h.cframe < h.nframes
+while get(hObject, 'value') && h.cframe+1 < h.nframes
     h.cframe = h.cframe+1;
     set(h.edit3,'String',num2str(h.cframe));
     set(h.slider1,'Value',h.cframe/h.nframes);
     PlotFrame(h);
     PlotROI(h);
 end
-set(h.slider4,'Value',h.cframe/h.nframes);
+set(h.slider4,'Value',h.cframe/(h.nframes-1));
 guidata(hObject,h);
 
 % --- Executes during object creation, after setting all properties.

@@ -16,7 +16,7 @@ if ~isempty(h.indROI)
     
     if h.cframe-1 < 2
         h.vr{kc}.currentTime = (h.cframe) / h.vr{kc}.FrameRate;
-    elseif h.cframe-1 > h.nframes - 1
+    elseif h.cframe > h.nframes - 2
         h.vr{kc}.currentTime = (h.cframe-2) / h.vr{kc}.FrameRate;
     else
         h.vr{kc}.currentTime = (h.cframe-1) / h.vr{kc}.FrameRate;

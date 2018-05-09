@@ -4,7 +4,7 @@
 function saveROI(h)
 
 proc.files = h.files;
-
+proc.rootfolder = h.rootfolder;
 proc.nX = h.nX;
 proc.nY = h.nY;
 proc.sc = h.sc;
@@ -21,20 +21,30 @@ proc.thres = h.thres;
 proc.tpix = h.tpix;
 proc.npix = h.npix;
 proc.wpix = h.wpix;
-    
+
 if isfield(h,'motSVD')
     %proc.spix = h.spix;
     proc.avgmot = h.avgmot;
-
+    
     % save processed data
     proc.motSVD   = h.motSVD;
     proc.uMotMask = h.uMotMask;
+    
+    for j = 2:length(proc.uMotMask)
+        if ~isempty(proc.uMotMask{j})
+            um = proc.uMotMask{j};
+            ROI = round(proc.locROI{j});
+            um = reshape(um, ROI(4), ROI(3), size(um,ndims(um)));
+            proc.uMotMask{j} = um;
+        end
+    end
+    
     proc.avgframe = h.avgframe;
     proc.avgmotion = h.avgmotion;
 end
 
-if isfield(h, 'running')
-    proc.running = h.running;
+if isfield(h, 'runSpeed')
+    proc.runSpeed = h.runSpeed;
 end
 
 if isfield(h, 'pupil')
@@ -49,7 +59,7 @@ if isfield(h, 'pupil')
 end
 
 
-    
+
 %%
 [~,fname,~] = fileparts(h.files{1});
 fname = [fname '_proc.mat'];
