@@ -56,7 +56,8 @@ for j = 1:nchunks
   motSVD((j-1)*nt + [1:nt],:) = motSVD0;
 end
 ```
-Example motion masks and traces:
+Example motion masks *uMotMask* and traces *motSVD*:
+
 <img src="exsvds.png" width="50%" alt="example SVDs">
 
 ### Pupil computation
@@ -94,8 +95,12 @@ creates one mat file for all videos (saved in current folder), mat file has name
 - **avgmotion**: [sum(tpix) x 1] average frame across videos computed on a subset of frames
 - **motSVD**: cell array of motion SVDs [components x time] (in order: multivideo, ROI1, ROI2, ROI3)
 - **uMotMask**: cell array of motion masks [pixels x time]
-- **running**: 2D running speed computed using phase correlation [time x 2]
+- **runSpeed**: 2D running speed computed using phase correlation [time x 2]
 - **pupil**: structure of size 2 (pupil1 and pupil2) with 3 fields: area, area_raw, and com
 
 an ROI is [1x4]: [x0 y0 Lx Ly]
+
+### Motion SVD Masks
+
+Use the script [plotSVDmasks.m](plotSVDmasks.m) to easily view motion masks from the multivideo SVD. The motion masks from the smaller ROIs have been reshaped to be [xpixels x ypixels x components].
 
