@@ -1,5 +1,6 @@
 # FaceMap
-matlab GUI for processing videos of rodents. Works for GRAYSCALE and RGB movies. Can process multi-camera videos.
+matlab GUI for processing videos of rodents. Works for GRAYSCALE and RGB movies. Can process multi-camera videos. Some example movies to test the GUI on are located [here](https://drive.google.com/drive/folders/1fOkIXyEsxO-lDGZLy0gCKf1d7OjnUcnQ?usp=sharing)
+
 ![GUI screenshot](/GUIscreenshot.png?raw=true "gui screenshot")
 
 ### Supported movie files
@@ -84,14 +85,15 @@ The phase-correlation between consecutive frames (in running ROI) are computed i
 
 creates one mat file for all videos (saved in current folder), mat file has name "videofile_proc.mat"
 - **nX**,**nY**: cell arrays of number of pixels in X and Y in each video taken simultaneously
-- **ROI**: [# of videos x # of areas] - areas to be included for multivideo SVD
-- **eROI**: [# of videos x # of areas] - areas to be excluded from multivideo SVD
-- **locROI**: location of small ROIs (in order pupil1, pupil2, ROI1, ROI2, ROI3, running)
+- **sc**: spatial downsampling constant used
+- **ROI**: [# of videos x # of areas] - areas to be included for multivideo SVD (in downsampled reference)
+- **eROI**: [# of videos x # of areas] - areas to be excluded from multivideo SVD (in downsampled reference)
+- **locROI**: location of small ROIs (in order running, ROI1, ROI2, ROI3, pupil1, pupil2); ROI1-3 are in downsampled reference
 - **ROIfile**: in which movie is the small ROI
 - **plotROIs**: which ROIs are being processed (these are the ones shown on the frame in the GUI)
 - **files**: all the files you processed together 
 - **npix**: array of number of pixels from each video used for multivideo SVD
-- **tpix**: array of number of pixels in each video used for processing
+- **tpix**: array of number of pixels in each view that was used for SVD processing
 - **wpix**: cell array of which pixels were used from each video for multivideo SVD 
 - **avgframe**: [sum(tpix) x 1] average frame across videos computed on a subset of frames
 - **avgmotion**: [sum(tpix) x 1] average frame across videos computed on a subset of frames
@@ -99,8 +101,10 @@ creates one mat file for all videos (saved in current folder), mat file has name
 - **uMotMask**: cell array of motion masks [pixels x time]
 - **runSpeed**: 2D running speed computed using phase correlation [time x 2]
 - **pupil**: structure of size 2 (pupil1 and pupil2) with 3 fields: area, area_raw, and com
+- **thres**: pupil sigma used
+- **saturation**: saturation levels (array in order running, ROI1, ROI2, ROI3, pupil1, pupil2); only saturation levels for pupil1 and pupil2 are used in the processing, others are just for viewing ROIs
 
-an ROI is [1x4]: [x0 y0 Lx Ly]
+an ROI is [1x4]: [y0 x0 Ly Lx]
 
 ### Motion SVD Masks
 
