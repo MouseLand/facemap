@@ -16,9 +16,9 @@ You will then see all the movies that you chose in the drop down menu (by filena
 
 ### Processing movies captured simultaneously (multiple camera setups)
 
-The GUI will ask *"are you processing multiple videos taken simultaneously?"* if across movies the **FIRST FOUR** letters of the filename vary. If the first four letters of two movies are the same, then the GUI assumed that they were acquired *sequentially* not *simultaneously*.
+The GUI will ask *"are you processing multiple videos taken simultaneously?"*. If you say yes, then the script will look if across movies the **FIRST FOUR** letters of the filename vary. If the first four letters of two movies are the same, then the GUI assumed that they were acquired *sequentially* not *simultaneously*.
 
-Example:
+Example file list:
 + cam1_G7c1_1.avi
 + cam1_G7c1_2.avi
 + cam2_G7c1_1.avi
@@ -28,7 +28,7 @@ Example:
 
 *"are you processing multiple videos taken simultaneously?"* ANSWER: Yes
 
-Then the GUI assumes {cam1_G7c1_1.avi, cam2_G7c1_1.avi, cam3_G7c1_1.avi} were acquired simultaneously and {cam1_G7c1_2.avi, cam2_G7c1_2.avi, cam3_G7c1_2.avi} were acquired simultaneously. They will be processed in alphabetical order (1 before 2) and the results from the videos will be concatenated in time.
+Then the GUI assumes {cam1_G7c1_1.avi, cam2_G7c1_1.avi, cam3_G7c1_1.avi} were acquired simultaneously and {cam1_G7c1_2.avi, cam2_G7c1_2.avi, cam3_G7c1_2.avi} were acquired simultaneously. They will be processed in alphabetical order (1 before 2) and the results from the videos will be concatenated in time. If one of these files was missing, then the GUI will error and you will have to choose file folders again.
 
 ## Processing
 
@@ -51,11 +51,11 @@ uMot = normc(uMot);
 
 ### Pupil computation
 
-Use the saturation bar to reduce the background of the eye. All pixels below the saturation level in the ROI are set to the saturation level. Then template matching on the pupil area proceeds (see [getRadius.m](getRadius.m) and [getTemplates.m](getTemplates.m)). 101 different templates each with a different pupil radius are phase-correlated with the ROI in the FFT domain. The smoothness of the edges of the template are set by the pupil sigma parameter in the GUI. 2-3 is recommended for smaller pupils, and 4 for larger pupils when the animal is in darkness. 
+Use the saturation bar to reduce the background of the eye. All pixels below the saturation level in the ROI are set to the saturation level. Then template matching on the pupil area proceeds (see [getRadius.m](getRadius.m) and [getTemplates.m](getTemplates.m)). 101 different templates each with a different pupil radius are phase-correlated with the ROI in the fourier domain. The smoothness of the edges of the template are set by the pupil sigma parameter in the GUI. 2-3 is recommended for smaller pupils, and 4 for larger pupils when the animal is in darkness. 
 
 The phase-correlation of the ROI with the 101 different templates of different radii produces 101 correlation values. This vector is upsampled 10 times using kriging interpolation with a Gaussian kernel of standard deviation of 1. The maximum of this vector is the radius of the pupil in pixels - then the area is pi* radius^2. The center-of-mass (com) of the pupil is the XY position that maximizes the phase-correlation of the best template.
 
-This raw pupil area is post-processed (see [smoothPupil.m](smoothPupil.m))). The area is median filtered. Then all points...
+This raw pupil area is post-processed (see [smoothPupil.m](smoothPupil.m))). The area is median filtered. Then points are replaced if  they deviate more than half a standard deviation.
 
 ### Small motion ROIs
 
@@ -63,8 +63,8 @@ The SVD of the motion is computed for each of the smaller motion ROIs. Motion is
                   
 ### Running computation
 
+The phase-correlation between consecutive ROIs in time are computed in the fourier domain. 
 
-                  
 ## Output of processing
 
 creates one mat file for all videos (saved in current folder), mat file has name "videofile_proc.mat"
