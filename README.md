@@ -6,7 +6,7 @@ matlab GUI for processing videos of rodents. Works for GRAYSCALE and RGB movies.
 extensions '.mj2','.mp4','.mkv','.avi','.mpeg','.mpg','.asf' (add more in line 60 of MovieGUI.m)
 
 ### Default starting folder
-set at line 59 of MovieGUI.m (handles.filepath)
+set at line 59 of MovieGUI.m (h.filepath)
 
 ## File loading structure
 Choose a folder and it will assemble a list of all video files in that folder and 1 folder down. The GUI will ask *"would you like to process all movies?"*. If you say no, then a list of movies to choose from will appear. 
@@ -29,13 +29,17 @@ Then the GUI assumes {cam1_G7c1_1.avi, cam2_G7c1_1.avi, cam3_G7c1_1.avi} were ac
 
 After the file choosing process is over, you will see all the movies in the drop down menu (by filename). You can switch between them and inspect how well an ROI works for each of the movies.
 
-## Processing
+## Settings and processing
 
 The multivideo motion SVD and the small ROIs 1-3 are computed on the movie downsampled in space by the spatial downsampling input box in the GUI (default 4 pixels).
 
 ### Multivideo motion SVD
 
-The union of all pixels in "areas to include" are used, excluding any pixels that intersect this union from "areas to exclude". The motion energy is computed from these pixels: abs(current_frame - previous_frame), and the average motion energy across frames is computed using a subset of frames (*avgmot*) (4000 - set at line 45 in subsampledMean.m). Then the singular vectors of the motion energy are computed on chunks of data, also from a subset of frames (50 chunks of 1000 frames each). Let *F* be the chunk of frames [pixels x time]. Then
+Draw areas to be included and excluded in the multivideo SVD (or single video if you only have one view). The buttons are "area to keep" and "area to exclude" and will draw blue and red boxes respectively. The union of all pixels in "areas to include" are used, excluding any pixels that intersect this union from "areas to exclude" (you can toggle between viewing the boxes and viewing the included pixels using the "Show areas" checkbox, see example below). 
+
+<img src="incexcareas.png" width="60%" alt="example areas">
+
+The motion energy is computed from these non-red pixels: abs(current_frame - previous_frame), and the average motion energy across frames is computed using a subset of frames (*avgmot*) (4000 - set at line 45 in subsampledMean.m). Then the singular vectors of the motion energy are computed on chunks of data, also from a subset of frames (50 chunks of 1000 frames each). Let *F* be the chunk of frames [pixels x time]. Then
 ```
 uMot = [];
 for j = 1:nchunks
@@ -68,7 +72,7 @@ The phase-correlation of the ROI with the 101 different templates of different r
 
 This raw pupil area trace is post-processed (see [smoothPupil.m](smoothPupil.m))). The trace is median filtered with a window of 30 timeframes. At each timepoint, the difference between the raw trace and the median filtered trace is computed. If the difference at a given point exceeds half the standard deviation of the raw trace, then the raw value is replaced by the median filtered value.
 
-![Alt text](/pupilfilter.png?raw=true "pupil filtering")
+![pupil](/pupilfilter.png?raw=true "pupil filtering")
 
 ### Small motion ROIs
 
