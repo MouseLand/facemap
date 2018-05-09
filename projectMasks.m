@@ -10,7 +10,7 @@ np = cumsum([0 h.npix]);
 tp = cumsum([0 h.tpix]);
 
 
-imend{1} = zeros(sum(npix),1,'single');
+imendA = zeros(sum(npix),1,'single');
 motSVD{1} = zeros(sum(nframes),ncomps,'single');
 
 zf = find(h.plotROIs(2:end-2)) + 1;
@@ -18,8 +18,8 @@ for z = zf(:)'
     imend{z} = zeros(sum(h.spix{z}(:)),1,'single');
     motSVD{z} = zeros(sum(nframes),size(h.uMotMask{z},2),'single');
 end
-if h.plotROIs(end)
-    imend{numel(h.plotROIs)} = zeros(sum(h.spix{end}(:)),1,'single');
+if h.plotROIs(1)
+    imend{1} = zeros(sum(h.spix{1}(:)),1,'single');
 end
 
 ifr = 0;
@@ -99,13 +99,13 @@ for j = 1:nsegs
         if z
             ims = imb(h.spix{1}(:),:);
             if j == 1
-                imend{end} = ims(:,1);
+                imend{1} = ims(:,1);
             end
-            ims = cat(2, imend{end}, ims);
+            ims = cat(2, imend{1}, ims);
             ims = reshape(ims, h.iroi{1}(4), h.iroi{1}(3), nt+1);
             DS = processRunning(h, ims);
             h.runSpeed(ifr + [1:nt] ,:) = DS;
-            imend{end} = reshape(ims(:,:,end),[],1);
+            imend{1} = reshape(ims(:,:,end),[],1);
         end
         
         ns = h.sc;
@@ -117,14 +117,14 @@ for j = 1:nsegs
         imd = reshape(imd,[],nt)';
         
         ima = imd(:,h.wpix{k}(:))';
-        imdiff = abs(diff(cat(2,imend{1}(np(k) + [1:npix(k)]),ima),1,2));
+        imdiff = abs(diff(cat(2,imendA(np(k) + [1:npix(k)]),ima),1,2));
         if j==1
             imdiff(:,1) = imdiff(:,2);
         end
         imdiff = bsxfun(@minus, imdiff, avgmotion{k});
         motSVD{1}(ifr+[1:nt],:)  = motSVD{1}(ifr+[1:nt],:) + ...
             gather(imdiff' * h.uMotMask{1}(np(k) + [1:npix(k)],:));
-        imend{1}(np(k) + [1:npix(k)]) = ima(:,end);
+        imendA(np(k) + [1:npix(k)]) = ima(:,end);
         
         % motion SVD projection for small ROIs
         for m = 1:numel(sroi{k})

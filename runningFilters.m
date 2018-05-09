@@ -1,6 +1,6 @@
 function h = runningFilters(h)
-ly = h.iroi{end}(4);
-lx = h.iroi{end}(3);
+ly = h.iroi{1}(4);
+lx = h.iroi{1}(3);
 
 [ys, xs] = ndgrid(1:ly, 1:lx);
 ys = abs(ys - mean(ys(:)));
