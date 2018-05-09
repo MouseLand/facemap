@@ -45,16 +45,25 @@ for j = 1:nchunks
   uMot = cat(2, uMot, u);
 end
 [uMot,~,~] = svd(uMot);
-uMot = normc(uMot);
+uMotMask = normc(uMot);
+```
+*uMotMask* are the motion masks that are then projected onto the video at all timepoints (done in chunks of size *nt*=2000):
+```
+for j = 1:nchunks
+  M = abs(diff(F,1,2));
+  M = M - avgmot;
+  motSVD0 = M' * uMotMask;
+  motSVD((j-1)*nt + [1:nt],:) = motSVD0;
+end
 ```
 
 ### Pupil computation
 
-Use the saturation bar to reduce the background of the eye. All pixels below the saturation level in the ROI are set to the saturation level. Then template matching on the pupil area proceeds (see [getRadius.m](getRadius.m) and [getTemplates.m](getTemplates.m)). 101 different templates each with a different pupil radius are phase-correlated with the ROI in the fourier domain. The smoothness of the edges of the template are set by the pupil sigma parameter in the GUI. 2-3 is recommended for smaller pupils, and 4 for larger pupils when the animal is in darkness. 
+The minimum pixel value is subtracted from the ROI. The saturation bar is used to reduce the background of the eye. All pixels below the saturation level in the ROI are set to the saturation level. Then template matching on the pupil area proceeds (see [getRadius.m](getRadius.m) and [getTemplates.m](getTemplates.m)). 101 different templates each with a different pupil radius are phase-correlated with the ROI in the fourier domain. The smoothness of the edges of the template are set by the pupil sigma parameter in the GUI. 2-3 is recommended for smaller pupils, and 4-5 for larger pupils when the animal is in darkness. 
 
 The phase-correlation of the ROI with the 101 different templates of different radii produces 101 correlation values. This vector is upsampled 10 times using kriging interpolation with a Gaussian kernel of standard deviation of 1. The maximum of this vector is the radius of the pupil in pixels - then the area is pi* radius^2. The center-of-mass (com) of the pupil is the XY position that maximizes the phase-correlation of the best template.
 
-This raw pupil area is post-processed (see [smoothPupil.m](smoothPupil.m))). The area is median filtered. Then points are replaced if  they deviate more than half a standard deviation.
+This raw pupil area trace is post-processed (see [smoothPupil.m](smoothPupil.m))). The trace is median filtered with a window of 30 timeframes. At each timepoint, the difference between the raw trace and the median filtered trace is computed. If the difference at a given point exceeds half the standard deviation of the raw trace, then the raw value is replaced by the median filtered value.
 
 ### Small motion ROIs
 
