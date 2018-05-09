@@ -88,7 +88,7 @@ creates one mat file for all videos (saved in current folder), mat file has name
 - **sc**: spatial downsampling constant used
 - **ROI**: [# of videos x # of areas] - areas to be included for multivideo SVD (in downsampled reference)
 - **eROI**: [# of videos x # of areas] - areas to be excluded from multivideo SVD (in downsampled reference)
-- **locROI**: location of small ROIs (in order running, ROI1, ROI2, ROI3, pupil1, pupil2); ROI1-3 are in downsampled reference
+- **locROI**: location of small ROIs (in order running, ROI1, ROI2, ROI3, pupil1, pupil2); in downsampled reference
 - **ROIfile**: in which movie is the small ROI
 - **plotROIs**: which ROIs are being processed (these are the ones shown on the frame in the GUI)
 - **files**: all the files you processed together 
