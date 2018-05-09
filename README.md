@@ -1,102 +1,112 @@
 # FaceMap
-matlab GUI for processing face camera data from rodents
-(( works for GRAYSCALE and RGB movies ))
-![Alt text](/GUIscreenshot.PNG?raw=true "gui screenshot")
+Matlab GUI for processing videos of rodents. Works for GRAYSCALE and RGB movies. Can process multi-camera videos. Some example movies to test the GUI on are located [here](https://drive.google.com/drive/folders/1fOkIXyEsxO-lDGZLy0gCKf1d7OjnUcnQ?usp=sharing). The original FaceMap GUI which only works on single-view movies and writes a binary file for processing (only efficient if movies are compressed) is [here](https://github.com/carsen-stringer/FaceMapOriginal).
 
-# supported movie files
-extensions '.mj2','.mp4','.mkv','.avi','.mpeg','.mpg','.asf' (add more in line 60 of eyeGUI.m)
+![GUI screenshot](/GUIscreenshot.png?raw=true "gui screenshot")
 
-# default starting folder
-**set at line 59 of eyeGUI.m (handles.filepath)**
+### Supported movie files
+extensions '.mj2','.mp4','.mkv','.avi','.mpeg','.mpg','.asf' (add more in line 60 of MovieGUI.m)
 
-# default folder to write binary files
-**set at line 63 of eyeGUI.m (handles.binfolder)**
+### Default starting folder
+set at line 59 of MovieGUI.m (h.filepath)
 
-in GUI, click "choose folder for binary file" to change the location
+## File loading structure
+Choose a folder and it will assemble a list of all video files in that folder and 1 folder down. The GUI will ask *"would you like to process all movies?"*. If you say no, then a list of movies to choose from will appear. 
 
-This should be set to a location on your SSD for fast read/write speeds.
+### Processing movies captured simultaneously (multiple camera setups)
 
+The GUI will then ask *"are you processing multiple videos taken simultaneously?"*. If you say yes, then the script will look if across movies the **FIRST FOUR** letters of the filename vary. If the first four letters of two movies are the same, then the GUI assumed that they were acquired *sequentially* not *simultaneously*.
 
-# folder loading structure
-Choose a folder (say M012/2016-09-23) and it will assemble a list of all video files in that folder and 1 folder down (e.g. M012/2016-09-23/1/mov.mkv, M012/2016-09-23/2/mov.mkv, M012/2016-09-23/3/mov.mkv). You can choose which of these you want to process. You'll then see the ones that you chose in the drop down menu labelled by their folder names (1,2,3). You can switch between them and inspect how well the ROI works for each of the movies.
+Example file list:
++ cam1_G7c1_1.avi
++ cam1_G7c1_2.avi
++ cam2_G7c1_1.avi
++ cam2_G7c1_2.avi
++ cam3_G7c1_1.avi
++ cam3_G7c1_2.avi
 
-Or if M012/2016-09-23 has 3 movie files (e.g. M012/2016-09-23/mov1.mkv, M012/2016-09-23/mov2.mkv, M012/2016-09-23/mov3.mkv), then they show up in the drop down menu as mov1.mkv, mov2.mkv, mov3.mkv.
+*"are you processing multiple videos taken simultaneously?"* ANSWER: Yes
 
-Next, you can choose among all the movies in all the folders and one folder down from the root folder that you chose.
+Then the GUI assumes {cam1_G7c1_1.avi, cam2_G7c1_1.avi, cam3_G7c1_1.avi} were acquired simultaneously and {cam1_G7c1_2.avi, cam2_G7c1_2.avi, cam3_G7c1_2.avi} were acquired simultaneously. They will be processed in alphabetical order (1 before 2) and the results from the videos will be concatenated in time. If one of these files was missing, then the GUI will error and you will have to choose file folders again.
 
-When you choose ROIs these will be used to process ALL the movies that you see in the drop down menu when you click "Process ROIs".
+After the file choosing process is over, you will see all the movies in the drop down menu (by filename). You can switch between them and inspect how well an ROI works for each of the movies.
 
-# processing
-you can choose which ROIs to process with the checkboxes on the right (if you've drawn the ROIs!)
+## Settings and processing
 
-# batch processing (multiple recordings, different ROI settings)
+The multivideo motion SVD and the small ROIs 1-3 are computed on the movie downsampled in space by the spatial downsampling input box in the GUI (default 4 pixels).
 
-after choosing ROIs for a set of movies (seen in drop-down), click "save ROI and processing settings". load the next set of files and save settings. Then choose "Batch Process ROIs." A list of any groups of files you've saved to since opening the GUI shows up. The groups of files are labelled by the last (alphabetically) movie folder\file in the set of files.
+### Multivideo motion SVD
 
-If you want to process any movies which already have saved folders, you can use the script "BatchProcess_standalone.m". This loads the previously saved settings (using the same db structure as Suite2P) and processes the ROIs with those settings. You can change the processing settings as well. I'm showing an example in that file where I change the temporal smoothing constant for the motion ROIs.
+Draw areas to be included and excluded in the multivideo SVD (or single video if you only have one view). The buttons are "area to keep" and "area to exclude" and will draw blue and red boxes respectively. The union of all pixels in "areas to include" are used, excluding any pixels that intersect this union from "areas to exclude" (you can toggle between viewing the boxes and viewing the included pixels using the "Show areas" checkbox, see example below). 
 
-# pupil computation
+<img src="incexcareas.png" width="60%" alt="example areas">
 
-Use the saturation bar to reduce the background of the eye. The algorithm zeros out any pixels less than the saturation level. Next it finds the pixel with the largest magnitude. It draws a box around that area (1/2 the size of the ROI) and then finds the center-of-mass of that region. It then centers the box on that area. It fits a multivariate gaussian to the pixels in the box using maximum likelihood. The ellipse is then drawn at "sigma" standard deviations around the center-of-mass of the gaussian (default "sigma" = 4, but this can be changed in the GUI).
+The motion energy is computed from these non-red pixels: abs(current_frame - previous_frame), and the average motion energy across frames is computed using a subset of frames (*avgmot*) (4000 - set at line 45 in subsampledMean.m). Then the singular vectors of the motion energy are computed on chunks of data, also from a subset of frames (50 chunks of 1000 frames each). Let *F* be the chunk of frames [pixels x time]. Then
+```
+uMot = [];
+for j = 1:nchunks
+  M = abs(diff(F,1,2));
+  M = M - avgmot;
+  [u,~,~] = svd(M);
+  uMot = cat(2, uMot, u);
+end
+[uMot,~,~] = svd(uMot);
+uMotMask = normc(uMot);
+```
+*uMotMask* are the motion masks that are then projected onto the video at all timepoints (done in chunks of size *nt*=2000):
+```
+for j = 1:nchunks
+  M = abs(diff(F,1,2));
+  M = M - avgmot;
+  motSVD0 = M' * uMotMask;
+  motSVD((j-1)*nt + [1:nt],:) = motSVD0;
+end
+```
+Example motion masks *uMotMask* and traces *motSVD*:
 
-# different statistics of movement
-motion: absolute value of the difference of two frames and sum over pixels greater than the threshold set by the GUI 
-	
-	motpix = abs(frames(:,t) - frames(:,t-1)); % this is pixels by time
-	motion = sum(motpix>=saturation); % this is time by 1
+<img src="exsvds.png" width="50%" alt="example SVDs">
 
-motion SVD: take the svd of the motpix: 
-	
-	[u s v] = svd(motpix);
-	proc.xx.motionMask = u;
-	motionSVD = v(:,1:100);
+### Pupil computation
 
-movieSVD: take the svd of the frames:
-	
-	[u s v] = svd(frames);
-	proc.xx.movieMask = u;
-	movieSVD = v(:,1:100);
+The minimum pixel value is subtracted from the ROI. Use the saturation bar to reduce the background of the eye. The algorithm zeros out any pixels less than the saturation level. Next it finds the pixel with the largest magnitude. It draws a box around that area (1/2 the size of the ROI) and then finds the center-of-mass of that region. It then centers the box on that area. It fits a multivariate gaussian to the pixels in the box using maximum likelihood (see [fitMVGaus.m](fitMVGaus.m)). After a Gaussian is fit, it zeros out pixels whose squared distance from the center (normalized by the standard deviation of the Gaussian fit) is greater than 2 * sigma^2 where sigma is set by the user in the GUI. It now performs the fit again with these points erased, and repeats this process 4 more times. The pupil is then defined as an ellipse sigma standard deviations away from the center-of-mass of the gaussian (default sigma = 4).
+
+This raw pupil area trace is post-processed (see [smoothPupil.m](smoothPupil.m))). The trace is median filtered with a window of 30 timeframes. At each timepoint, the difference between the raw trace and the median filtered trace is computed. If the difference at a given point exceeds half the standard deviation of the raw trace, then the raw value is replaced by the median filtered value.
+
+![pupil](/pupilfilter.png?raw=true "pupil filtering")
+
+### Small motion ROIs
+
+The SVD of the motion is computed for each of the smaller motion ROIs. Motion is the abs(current_frame - previous_frame). The singular vectors are computed on subsets of the frames, and the top 500 components are kept.
                   
-# output of processing
-creates a separate mat file for each video (saved in folder with video), mat file has name "videofile_proc.mat"
+### Running computation
 
-proc:
-	
-	suffix: '.mj2'     
-        files: {1x3 cell} <--- all the files you processed together 
-       folders: {3x1 cell}
-      filename: '\\zserver.ioo.uc…' <--- filename of movie
-    fitellipse: [0 1]          
-          data: [1x1 struct]
-      avgframe: [ypix x xpix int16]
-      avgmotion: [ypix x xpix int16]
+The phase-correlation between consecutive frames (in running ROI) are computed in the fourier domain (see [processRunning.m](processRunning.m)). The XY position of maximal correlation gives the amount of shift between the two consecutive frames. 
 
-proc.data structure
+## Output of processing
 
-for all ROIs:
+creates one mat file for all videos (saved in current folder), mat file has name "videofile_proc.mat"
+- **nX**,**nY**: cell arrays of number of pixels in X and Y in each video taken simultaneously
+- **sc**: spatial downsampling constant used
+- **ROI**: [# of videos x # of areas] - areas to be included for multivideo SVD (in downsampled reference)
+- **eROI**: [# of videos x # of areas] - areas to be excluded from multivideo SVD (in downsampled reference)
+- **locROI**: location of small ROIs (in order running, ROI1, ROI2, ROI3, pupil1, pupil2); in downsampled reference
+- **ROIfile**: in which movie is the small ROI
+- **plotROIs**: which ROIs are being processed (these are the ones shown on the frame in the GUI)
+- **files**: all the files you processed together 
+- **npix**: array of number of pixels from each video used for multivideo SVD
+- **tpix**: array of number of pixels in each view that was used for SVD processing
+- **wpix**: cell array of which pixels were used from each video for multivideo SVD 
+- **avgframe**: [sum(tpix) x 1] average frame across videos computed on a subset of frames
+- **avgmotion**: [sum(tpix) x 1] average frame across videos computed on a subset of frames
+- **motSVD**: cell array of motion SVDs [components x time] (in order: multivideo, ROI1, ROI2, ROI3)
+- **uMotMask**: cell array of motion masks [pixels x time]
+- **runSpeed**: 2D running speed computed using phase correlation [time x 2]
+- **pupil**: structure of size 2 (pupil1 and pupil2) with 3 fields: area, area_raw, and com
+- **thres**: pupil sigma used
+- **saturation**: saturation levels (array in order running, ROI1, ROI2, ROI3, pupil1, pupil2); only saturation levels for pupil1 and pupil2 are used in the processing, others are just for viewing ROIs
 
-	proc.data.pupil.ROI = [x y Lx Ly]
-	proc.data.pupil.saturation = saturation value set by user
-	proc.data.pupil.ROIX = x-1 + [1:Lx];
-	proc.data.pupil.ROIY = y-1 + [1:Ly];
-	proc.data.pupil.nX   = Lx;
-	proc.data.pupil.nY   = Ly;
+an ROI is [1x4]: [y0 x0 Ly Lx]
 
-for pupil ROI:
+### Motion SVD Masks
 
-	proc.data.pupil.area   = area of fit ellipse
-	proc.data.pupil.com    = center of mass of ellipse (using pixel values)
-
-for blink ROI:
-
-	proc.data.blink.area   = sum of pixels greater than threshold set
-	
-for whisker, face, etc (see above for description of fields):
-
-	proc.data.whisker.motion
-	proc.data.whisker.motionSVD
-	proc.data.whisker.movieSVD
-	proc.data.whisker.motionMask
-	proc.data.whisker.movieMask
-
+Use the script [plotSVDmasks.m](plotSVDmasks.m) to easily view motion masks from the multivideo SVD. The motion masks from the smaller ROIs have been reshaped to be [xpixels x ypixels x components].
 

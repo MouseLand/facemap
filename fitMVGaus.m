@@ -1,25 +1,30 @@
 % fit 2D gaussian to cell with lam pixel weights
-function params = FitMVGaus(iy, ix, lam, thres)
+function params = fitMVGaus(iy, ix, lam0, thres)
 
 % normalize pixel weigths
-lam     = lam / sum(lam);
+lam = lam0;
 
-mu      = [sum(lam.*iy) sum(lam.*ix)];
-
-xy      = bsxfun(@minus, [iy ix], mu);
-xy      = bsxfun(@times, xy, sqrt(lam));
-
-sigxy   = xy' * xy;
-
+% iteratively fit the Guassian, excluding outliers
+for k = 1:5
+    lam     = lam / sum(lam);    
+    mu      = [sum(lam.*iy) sum(lam.*ix)];    
+    xydist      = bsxfun(@minus, [iy ix], mu);
+    xy      = bsxfun(@times, xydist, sqrt(lam));    
+    sigxy   = xy' * xy;    
+    lam = lam0;
+    dd = sum((xydist / sigxy) .* xydist, 2);    
+    lam(dd > 2 * thres^2) = 0;
+end
+%%
 params.mu = mu;
 params.sig = sigxy;
-[evec,eval]=eig(thres*params.sig);
+[evec,eval]=eig(thres^2*params.sig);
 eval = real(eval);
 
 % enforce some circularity on pupil
 % principal axis can only be 2x bigger than minor axis
 min_eval = min(diag(eval));
-eval     = min_eval * min(2, eval/min_eval);
+eval     = min_eval * min(4, eval/min_eval);
 
 % compute pts surrounding ellipse
 n=100; % Number of points around ellipse
