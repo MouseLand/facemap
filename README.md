@@ -57,7 +57,7 @@ for j = 1:nchunks
 end
 ```
 Example motion masks and traces:
-![Alt text](/exsvds.png?raw=true "motionSVDs") <!-- .element height="50%" width="50%" -->
+<img src="exsvds.png" width="50%" alt="example SVDs">
 
 ### Pupil computation
 
