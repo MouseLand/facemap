@@ -46,7 +46,7 @@ for k = 1:nviews
     end
 end
 
-if h.plotROIs(end)
+if h.plotROIs(1)
     h = runningFilters(h);
     h.runSpeed = zeros(sum(nframes), 2, 'single');
 end
