@@ -55,7 +55,7 @@ for z = zf(:)'
     end
 end
 %%
-for j = 1:5%nsegs
+for j = 1:nsegs
     tc = tf(j);
     % which video is tc in
     ivid = find(tc<nframetimes(2:end) & tc>=nframetimes(1:end-1));
