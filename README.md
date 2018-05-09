@@ -1,6 +1,6 @@
 # FaceMap
 matlab GUI for processing videos of rodents. Works for GRAYSCALE and RGB movies. Can process multi-camera videos.
-![Alt text](/GUIscreenshot.PNG?raw=true "gui screenshot")
+![GUI screenshot](/GUIscreenshot.png?raw=true "gui screenshot")
 
 ### Supported movie files
 extensions '.mj2','.mp4','.mkv','.avi','.mpeg','.mpg','.asf' (add more in line 60 of MovieGUI.m)
