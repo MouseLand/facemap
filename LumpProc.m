@@ -5,9 +5,9 @@ function h = LumpProc(h)
 %%
 tic;
 
-% for uncompressed files
+% compute mean from a subset of frames
 h = subsampledMean(h);
-%keyboard;
+
 %%
 % compute svd of videos ----------------------------- %
 h = computeSVDmotion(h);

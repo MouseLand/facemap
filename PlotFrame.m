@@ -113,3 +113,5 @@ end
 axis off;
 axis image;
 drawnow;
+
+title('');

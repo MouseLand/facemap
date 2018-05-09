@@ -1,8 +1,10 @@
 % compute pupil area from set of frames
-function [pup] = processPupil(h,frames,sats)
+function [pup] = processPupil(frames,sats,thres)
 
-sats  = 255 - max(1, sats*255);
-
-params   = getRadius(h, frames, sats);
+sats  = min(254,max(1, sats*255));
+r.fr = frames;
+r.sats = sats;
+r.thres = thres;
+params   = findGaussianContour(r);
 pup.com  = params.mu;
 pup.area = params.area;

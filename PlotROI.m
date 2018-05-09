@@ -3,7 +3,7 @@ function PlotROI(h)
 
 kc = h.whichfile;
 k = h.whichview;
-tstr = {'pupil 1','pupil 2','whisker','snout','other ROI','running'};
+tstr = {'running','ROI1','ROI2','ROI3','pupil 1','pupil 2'};
 
 % smoothing constants
 sc = h.sc;
@@ -60,12 +60,12 @@ if ~isempty(h.indROI)
     if indROI>4
         fr = fr - min(fr(:));
         %fr = fr / max(fr(:)) * 255;
-        fr(fr>sat) = sat;
         imagesc(fr,[0 255-sat]);
         
         r.fr     = fr;
         r.sats   = sat;
-        params   = drawBestFit(h,r);
+        r.thres  = h.thres;
+        params   = findGaussianContour(r);
             
         if params.isgood
             hold all;

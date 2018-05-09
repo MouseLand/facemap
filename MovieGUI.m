@@ -56,7 +56,7 @@ function MovieGUI_OpeningFcn(hObject, eventdata, h, varargin)
 h.output = hObject;
 
 % default filepath for eye camera
-h.filepath = '/mnt/data/EXP/';
+h.filepath = '/media/carsen/DATA2/grive/sample_movies/';
 h.suffix   = {'.mj2','.mp4','.mkv','.avi','.mpeg','.mpg','.asf'}; % suffix of eye camera file!
 
 % use a GPU? default 1

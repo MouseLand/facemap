@@ -48,6 +48,8 @@ if strcmp(ismulti, 'Yes')
         '','Yes','No','Cancel','Cancel');
 elseif length(filename0) > 1
     isblk = 'Yes';
+else
+    isblk = 'No';
 end
 
 if strcmp(isblk,'Yes')

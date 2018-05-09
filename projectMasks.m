@@ -50,10 +50,10 @@ if h.plotROIs(end)
     h = runningFilters(h);
     h.runSpeed = zeros(sum(nframes), 2, 'single');
 end
-for j = 1:2
+for j = numel(h.plotROIs)-1:numel(h.plotROIs)
     if h.plotROIs(j)
-        h.pupil(j).area = zeros(sum(nframes),1,'single');
-        h.pupil(j).com  = zeros(sum(nframes),2,'single');
+        h.pupil(j+2-numel(h.plotROIs)).area = zeros(sum(nframes),1,'single');
+        h.pupil(j+2-numel(h.plotROIs)).com  = zeros(sum(nframes),2,'single');
     end
 end
 
@@ -90,7 +90,7 @@ for j = 1:nsegs
                 ims = my_conv2(ims, [1 1 1], [1 2 3]);
                 ims = ims - min(min(ims,[],1),[],2);
                 h.indROI = z;
-                pupil = processPupil(h, ims, h.saturation(z));
+                pupil = processPupil(ims, h.saturation(z), h.thres);
                 h.pupil(l).area(ifr + [1:nt]) = pupil.area;
                 h.pupil(l).com(ifr + [1:nt],:) = pupil.com;
             end
