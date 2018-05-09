@@ -1,119 +1,50 @@
-function [filename,folders,namef] = FindBlocks(handles,folder_name)
+function [filename,folders,namef] = FindBlocks(h,folder_name)
 
-filename{1} = [];
+
+filename = {};
 folders     = {};
 namef       = {};
 fs        = dir(folder_name);
 fs        = fs(3:end);
 
-% if it's a folder of folders, descend one to find .mj2's
-idate = [];
-ik = 1;
+% check for files in root folder
 if ~isempty(fs)
-    if fs(1).isdir==1
-        blks = questdlg('would you like to process all blocks?');
-        switch blks
-            case 'Yes'
-                ik = 1;
-                for j = 1:length(fs)
-                    fm = dir(fullfile(folder_name,fs(j).name));
-                    fm = fm(3:end);
-                    for k = 1:length(fm)
-                        [~,namef0,ext] = fileparts(fm(k).name);
-                        ismov = 0;
-                        for ie = 1:length(handles.suffix)
-                            if strcmp(ext, handles.suffix{ie})
-                                ismov = 1;
-                                break;
-                            end
-                        end
-                        if ismov
-                            fname = fullfile(folder_name,fs(j).name,fm(k).name);
-                            filename{ik} = fname;
-                            idate   = [idate; fm(k).datenum];
-                            folders = cat(1,folders,fs(j).name);
-                            namef   = cat(1, namef, namef0);
-                            ik = ik+1;
-                        end
-                    end
-                end
-                
-            case 'No'
-                ik = 1;
-                fstr = {fs.name};
-                [folds,didchoose] = listdlg('PromptString','which folders (ctrl for multiple)',...
-                    'SelectionMode','multiple','ListSize',[160 160],'ListString',fstr);
-                if didchoose
-                    for j = folds
-                        fm = dir(fullfile(folder_name,fs(j).name));
-                        fm = fm(3:end);
-                        for k = 1:length(fm)
-                            [~,namef0,ext] = fileparts(fm(k).name);
-                            ismov = 0;
-                            for ie = 1:length(handles.suffix)
-                                if strcmp(ext, handles.suffix{ie})
-                                    ismov = 1;
-                                    break;
-                                end
-                            end
-                            if ismov
-                                fname = fullfile(folder_name,fs(j).name,fm(k).name);
-                                filename{ik} = fname;
-                                idate   = [idate; fm(k).datenum];
-                                folders = cat(1,folders,fs(j).name);
-                                namef   = cat(1, namef, namef0);
-                                ik = ik+1;
-                                
-                            end
-                        end
-                    end
-                end
+    isfolderf=[fs.isdir];
+    if sum(~isfolderf)
+        [file0,~,namef0] = findallmov(folder_name, fs(~isfolderf), h.suffix);
+        for k = 1:length(file0)
+            filename = cat(1,filename, file0{k});
+            namef = cat(1,namef, namef0{k});
+            folders = cat(1,folders,' ');
         end
-    else
-        % otherwise, find all .mj2s in current folder
-        fm = fs;
-        for k = 1:length(fm)
-            [~,namef0,ext] = fileparts(fm(k).name);
-            ismov = 0;
-            for ie = 1:length(handles.suffix)
-                if strcmp(ext, handles.suffix{ie})
-                    ismov = 1;
-                    break;
+    end
+    % the files might be in separate folders
+    % go down one folder and find all movies
+    %%
+    ifold=find(isfolderf)';
+    if ~isempty(ifold)
+        for j = ifold
+            fm = dir(fullfile(folder_name,fs(j).name));
+            fm = fm(3:end);
+            isfolderm = [fm.isdir];
+            fm = fm(~isfolderm);
+            
+            [file0,~,namef0]=findallmov(fullfile(folder_name,fs(j).name),...
+                fm,h.suffix);
+            
+            if ~isempty(file0{1})
+                for k = 1:length(file0)
+                    filename = cat(1,filename, file0{k});
+                    namef = cat(1,namef, namef0{k});
+                    folders = cat(1,folders,fs(j).name);
                 end
-            end
-            if ismov
-                fname = fullfile(folder_name,fm(k).name);
-                filename{ik} = fname;
-                ik = ik+1;
-                idate   = [idate; fm(k).datenum];
-                folders = cat(1,folders,fm(k).name);
-                namef   = cat(1, namef, namef0);
             end
         end
         
+        if length(filename)==1
+            filename{1}=[];
+        end
     end
+else
+    filename{1}=[];
 end
-
-
-% sort files by name
-%%
-if numel(namef) > 1
-    [~,iname] = sort(namef);
-    for j = 1:numel(namef)
-        filename0{j} = filename{iname(j)};
-    end
-    folders = folders(iname);
-    filename = filename0;
-    namef    = namef(iname);
-end
-
-% sort files by time recorded
-%if numel(idate)>1
-%    [~,idate] = sort(idate);
-%    for j = 1:numel(idate)
-%        filename0{j} = filename{idate(j)};
-%    end
-%    folders = folders(idate);
-%    filename=filename0;
-%end
-
