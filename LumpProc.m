@@ -7,7 +7,7 @@ tic;
 
 % compute mean from a subset of frames
 h = subsampledMean(h);
-keyboard;
+
 %%
 % compute svd of videos ----------------------------- %
 h = computeSVDmotion(h);
