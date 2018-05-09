@@ -3,12 +3,11 @@
 function h = LumpProc(h)
 
 %%
-pmovie = 0;
 tic;
 
 % for uncompressed files
 h = subsampledMean(h);
-keyboard;
+%keyboard;
 %%
 % compute svd of videos ----------------------------- %
 h = computeSVDmotion(h);

@@ -58,7 +58,7 @@ for j = 1:2
 end
 
 
-for j = 1:10%nsegs
+for j = 1:nsegs
     tc = ifr;
     % which video is tc in
     ivid = find(tc<nframetimes(2:end) & tc>=nframetimes(1:end-1));

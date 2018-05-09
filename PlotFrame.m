@@ -101,7 +101,6 @@ colormap(h.axes1,'gray');
 
 hold off;
 
-
 pROI = find(h.plotROIs);
 hold all;
 if ~isempty(pROI)

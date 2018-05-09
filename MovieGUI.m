@@ -91,7 +91,6 @@ h.indROI = [];
 for k = 1:length(h.plotROIs)
     h.locROI{k} = [];
 end
-h.colors = [0 1 0; .3 .7 0; .7 .3 0;  1 0 1; .5 .5 0; 1 .7 .5];
 
 axes(h.axes1);
 set(gca,'xtick',[],'ytick',[]);
