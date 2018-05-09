@@ -65,6 +65,8 @@ The phase-correlation of the ROI with the 101 different templates of different r
 
 This raw pupil area trace is post-processed (see [smoothPupil.m](smoothPupil.m))). The trace is median filtered with a window of 30 timeframes. At each timepoint, the difference between the raw trace and the median filtered trace is computed. If the difference at a given point exceeds half the standard deviation of the raw trace, then the raw value is replaced by the median filtered value.
 
+![Alt text](/pupilfilter.png?raw=true "pupil filtering")
+
 ### Small motion ROIs
 
 The SVD of the motion is computed for each of the smaller motion ROIs. Motion is the abs(current_frame - previous_frame). The singular vectors are computed on subsets of the frames, and the top 500 components are kept.
