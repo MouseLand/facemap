@@ -1,5 +1,5 @@
 # FaceMap
-matlab GUI for processing videos of rodents. Works for GRAYSCALE and RGB movies. Can process multi-camera videos. Some example movies to test the GUI on are located [here](https://drive.google.com/drive/folders/1fOkIXyEsxO-lDGZLy0gCKf1d7OjnUcnQ?usp=sharing)
+Matlab GUI for processing videos of rodents. Works for GRAYSCALE and RGB movies. Can process multi-camera videos. Some example movies to test the GUI on are located [here](https://drive.google.com/drive/folders/1fOkIXyEsxO-lDGZLy0gCKf1d7OjnUcnQ?usp=sharing). The original FaceMap GUI which only works on single-view movies and writes a binary file for processing (only efficient if movies are compressed) is [here](https://github.com/carsen-stringer/FaceMapOriginal).
 
 ![GUI screenshot](/GUIscreenshot.png?raw=true "gui screenshot")
 
