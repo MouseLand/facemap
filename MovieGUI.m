@@ -370,6 +370,7 @@ if isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColo
     set(hObject,'BackgroundColor',[.9 .9 .9]);
 end
 
+% ***************** SATURATION SETTINGS ****************%
 % --- SLIDER FOR FULL FRAME SATURATION ---------------------%
 function slider5_Callback(hObject, eventdata, h)
 set(hObject,'Interruptible','On');
@@ -378,8 +379,6 @@ sats = get(hObject,'Value');
 h.framesaturation(h.whichview) = sats;
 PlotFrame(h);
 guidata(hObject,h);
-
-
 
 % --- SLIDER FOR SELECTED ROI SATURATION -------------------%
 function slider2_Callback(hObject, eventdata, h)
@@ -399,8 +398,7 @@ if isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColo
     set(hObject,'BackgroundColor',[.9 .9 .9]);
 end
 
-
-
+% saturation edit
 function edit1_Callback(hObject, eventdata, h)
 sval = get(hObject,'String');
 set(h.slider2,'Value',str2num(sval));
@@ -413,21 +411,20 @@ if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgr
     set(hObject,'BackgroundColor','white','String',num2str(h.pupLow));
 end
 
-
-% ------ Save ROI settings and keep list of saved folders ----- %
+% ****** Save ROI settings and keep list of saved folders ----- %
 function savesettings_Callback(hObject, eventdata,h)
 saveROI(h);
 
 guidata(hObject,h);
 
 
-% ----- ROIs will be processed across expts -------------------- %
+% ****** ROIs will be processed across expts -------------------- %
 function processROIs_Callback(hObject, eventdata, h)
 h = LumpProc(h);
 guidata(hObject,h);
 
 
-%%%% list of files box
+% **** initialize list of files box
 function popupmenu6_CreateFcn(hObject, eventdata, h)
 if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor','white');
@@ -439,14 +436,14 @@ if isfield(h,'folders')
 end
 
 
-%%%%%%-------------------TEXT BOXES --------------- %%%%%%%
+%%%%%% ***************** TEXT BOXES *************** %%%%%%%
 %%%%% frame number edit box
 function edit3_Callback(hObject, eventdata, h)
 cframe = get(hObject,'String');
 if iscell(cframe)
     cframe = cframe{1};
 end
-h.cframe = max(1,min(h.nframes,round(str2num(cframe))));
+h.cframe = max(1,min(h.nframes-1,round(str2num(cframe))));
 set(hObject,'String',sprintf('%d',h.cframe));
 set(h.slider1,'Value',h.cframe/h.nframes);
 set(h.slider4,'Value',h.cframe/h.nframes);
@@ -458,7 +455,6 @@ if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgr
     set(hObject,'BackgroundColor','white');
 end
 
-
 %%%%% SPATIAL SMOOTHING BOX
 function edit4_Callback(hObject, eventdata, h)
 spatscale = get(hObject,'String');
@@ -467,7 +463,7 @@ if iscell(spatscale)
 end
 spatscale = max(1, min(50, round(str2num(spatscale))));
 % resize ROIs
-h = ResizeROIs(h, spatscale);
+h = resizeROIs(h, spatscale);
 
 h.sc    = spatscale;
 set(hObject, 'String', sprintf('%d', h.sc));

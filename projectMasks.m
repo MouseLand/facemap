@@ -102,7 +102,7 @@ for j = 1:nsegs
                 imend{end} = ims(:,1);
             end
             ims = cat(2, imend{end}, ims);
-            ims = reshape(ims, h.iroi{end}(4), h.iroi{end}(3), nt+1);
+            ims = reshape(ims, h.iroi{1}(4), h.iroi{1}(3), nt+1);
             DS = processRunning(h, ims);
             h.runSpeed(ifr + [1:nt] ,:) = DS;
             imend{end} = reshape(ims(:,:,end),[],1);

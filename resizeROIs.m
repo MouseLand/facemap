@@ -1,8 +1,8 @@
-function h = ResizeROIs(h, spatscale)
+function h = resizeROIs(h, spatscale)
 
 rsc = h.sc / spatscale;
 
-for k = 1:numel(h.ROI)
+for k = 1:size(h.ROI,1)
     nxS = floor(h.nX{k} / spatscale);
     nyS = floor(h.nY{k} / spatscale);
 
@@ -20,7 +20,7 @@ for k = 1:numel(h.ROI)
         end
     end
     for j = 1:numel(h.locROI)
-        if ~isempty(h.locROI{j})
+        if ~isempty(h.locROI{j}) && h.ROIfile(j)==k 
             h.locROI{j} = h.locROI{j} * rsc;
             h.locROI{j} = OnScreenROI(h.locROI{j}, nxS, nyS);
         end

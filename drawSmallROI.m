@@ -13,9 +13,6 @@ end
 ROI = DrawROI(h,ROI0);
 ROI = OnScreenROI(ROI, nxS, nyS);
 h.locROI{h.indROI} = ROI;
-if h.indROI > 4
-    h = getTemplates(h);
-end
 PlotFrame(h);
 axes(h.axes4);
 cla;
