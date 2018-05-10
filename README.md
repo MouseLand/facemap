@@ -1,7 +1,9 @@
 # FaceMap
-Matlab GUI for processing videos of rodents. Works for GRAYSCALE and RGB movies. Can process multi-camera videos. Some example movies to test the GUI on are located [here](https://drive.google.com/drive/folders/1fOkIXyEsxO-lDGZLy0gCKf1d7OjnUcnQ?usp=sharing). The original FaceMap GUI which only works on single-view movies and writes a binary file for processing (only efficient if movies are compressed) is [here](https://github.com/carsen-stringer/FaceMapOriginal).
+Matlab GUI for processing videos of rodents. Works for grayscale and RGB movies. Can process multi-camera videos. Some example movies to test the GUI on are located [here](https://drive.google.com/drive/folders/1fOkIXyEsxO-lDGZLy0gCKf1d7OjnUcnQ?usp=sharing). We use ptgrey cameras (e.g. [this](https://www.ptgrey.com/flea3-13-mp-mono-usb3-vision-vita-1300-camera)). For simultaneous acquisition from multiple cameras, we use [BIAS](http://public.iorodeo.com/notes/bias/) software.
 
-![GUI screenshot](/GUIscreenshot.png?raw=true "gui screenshot")
+The original FaceMap GUI which only works on single-view movies and writes a binary file for processing (only efficient if movies are compressed) is [here](https://github.com/carsen-stringer/FaceMapOriginal).
+
+![GUI screenshot](/figs/GUIscreenshot.png?raw=true "gui screenshot")
 
 ### Supported movie files
 extensions '.mj2','.mp4','.mkv','.avi','.mpeg','.mpg','.asf' (add more in line 60 of MovieGUI.m)
@@ -38,9 +40,9 @@ The multivideo motion SVD and the small ROIs 1-3 are computed on the movie downs
 
 Draw areas to be included and excluded in the multivideo SVD (or single video if you only have one view). The buttons are "area to keep" and "area to exclude" and will draw blue and red boxes respectively. The union of all pixels in "areas to include" are used, excluding any pixels that intersect this union from "areas to exclude" (you can toggle between viewing the boxes and viewing the included pixels using the "Show areas" checkbox, see example below). 
 
-<img src="incexcareas.png" width="60%" alt="example areas">
+<img src="figs/incexcareas.png" width="60%" alt="example areas">
 
-The motion energy is computed from these non-red pixels: abs(current_frame - previous_frame), and the average motion energy across frames is computed using a subset of frames (*avgmot*) (4000 - set at line 45 in subsampledMean.m). Then the singular vectors of the motion energy are computed on chunks of data, also from a subset of frames (50 chunks of 1000 frames each). Let *F* be the chunk of frames [pixels x time]. Then
+The motion energy is computed from these non-red pixels: abs(current_frame - previous_frame), and the average motion energy across frames is computed using a subset of frames (*avgmot*) (4000 - set at line 45 in [subsampledMean.m](subsampledMean.m)). Then the singular vectors of the motion energy are computed on chunks of data, also from a subset of frames (50 chunks of 1000 frames each). Let *F* be the chunk of frames [pixels x time]. Then
 ```
 uMot = [];
 for j = 1:nchunks
@@ -63,15 +65,17 @@ end
 ```
 Example motion masks *uMotMask* and traces *motSVD*:
 
-<img src="exsvds.png" width="50%" alt="example SVDs">
+<img src="figs/exsvds.png" width="50%" alt="example SVDs">
+
+We found that these extracted singular vectors explained up to half of the total explainable variance in neural activity in visual cortex and in other forebrain areas. See our [preprint](https://www.biorxiv.org/content/early/2018/04/22/306019) for more details.
 
 ### Pupil computation
 
-The minimum pixel value is subtracted from the ROI. Use the saturation bar to reduce the background of the eye. The algorithm zeros out any pixels less than the saturation level. Next it finds the pixel with the largest magnitude. It draws a box around that area (1/2 the size of the ROI) and then finds the center-of-mass of that region. It then centers the box on that area. It fits a multivariate gaussian to the pixels in the box using maximum likelihood (see [fitMVGaus.m](fitMVGaus.m)). After a Gaussian is fit, it zeros out pixels whose squared distance from the center (normalized by the standard deviation of the Gaussian fit) is greater than 2 * sigma^2 where sigma is set by the user in the GUI. It now performs the fit again with these points erased, and repeats this process 4 more times. The pupil is then defined as an ellipse sigma standard deviations away from the center-of-mass of the gaussian (default sigma = 4).
+The minimum pixel value is subtracted from the ROI. Use the saturation bar to reduce the background of the eye. The algorithm zeros out any pixels less than the saturation level. Next it finds the pixel with the largest magnitude. It draws a box around that area (1/2 the size of the ROI) and then finds the center-of-mass of that region. It then centers the box on that area. It fits a multivariate gaussian to the pixels in the box using maximum likelihood (see [fitMVGaus.m](utils/fitMVGaus.m)). After a Gaussian is fit, it zeros out pixels whose squared distance from the center (normalized by the standard deviation of the Gaussian fit) is greater than 2 * sigma^2 where sigma is set by the user in the GUI. It now performs the fit again with these points erased, and repeats this process 4 more times. The pupil is then defined as an ellipse sigma standard deviations away from the center-of-mass of the gaussian (default sigma = 4).
 
-This raw pupil area trace is post-processed (see [smoothPupil.m](smoothPupil.m))). The trace is median filtered with a window of 30 timeframes. At each timepoint, the difference between the raw trace and the median filtered trace is computed. If the difference at a given point exceeds half the standard deviation of the raw trace, then the raw value is replaced by the median filtered value.
+This raw pupil area trace is post-processed (see [smoothPupil.m](pupil/smoothPupil.m))). The trace is median filtered with a window of 30 timeframes. At each timepoint, the difference between the raw trace and the median filtered trace is computed. If the difference at a given point exceeds half the standard deviation of the raw trace, then the raw value is replaced by the median filtered value.
 
-![pupil](/pupilfilter.png?raw=true "pupil filtering")
+![pupil](/figs/pupilfilter.png?raw=true "pupil filtering")
 
 ### Small motion ROIs
 
@@ -79,7 +83,7 @@ The SVD of the motion is computed for each of the smaller motion ROIs. Motion is
                   
 ### Running computation
 
-The phase-correlation between consecutive frames (in running ROI) are computed in the fourier domain (see [processRunning.m](processRunning.m)). The XY position of maximal correlation gives the amount of shift between the two consecutive frames. 
+The phase-correlation between consecutive frames (in running ROI) are computed in the fourier domain (see [processRunning.m](/running/processRunning.m)). The XY position of maximal correlation gives the amount of shift between the two consecutive frames. 
 
 ## Output of processing
 
@@ -108,5 +112,5 @@ an ROI is [1x4]: [y0 x0 Ly Lx]
 
 ### Motion SVD Masks
 
-Use the script [plotSVDmasks.m](plotSVDmasks.m) to easily view motion masks from the multivideo SVD. The motion masks from the smaller ROIs have been reshaped to be [xpixels x ypixels x components].
+Use the script [plotSVDmasks.m](figs/plotSVDmasks.m) to easily view motion masks from the multivideo SVD. The motion masks from the smaller ROIs have been reshaped to be [xpixels x ypixels x components].
 
