@@ -1,4 +1,4 @@
-function h = ResetROIs(h)
+function h = resetROIs(h)
 
 h.ROI{h.whichfile} = [];
 h.eROI{h.whichfile} = [];

@@ -1,6 +1,6 @@
 % write face movie to binary file and then load to do SVDs, projections,
 % pupil computations
-function h = LumpProc(h)
+function h = processROIs(h)
 
 %%
 tic;

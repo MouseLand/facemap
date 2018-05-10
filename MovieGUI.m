@@ -55,6 +55,8 @@ function MovieGUI_OpeningFcn(hObject, eventdata, h, varargin)
 % Choose default command line output for MovieGUI
 h.output = hObject;
 
+addpath(genpath('.')); % add all subdirectories here to path
+
 % default filepath for eye camera
 h.filepath = '/media/carsen/DATA2/grive/sample_movies/';
 h.suffix   = {'.mj2','.mp4','.mkv','.avi','.mpeg','.mpg','.asf'}; % suffix of eye camera file!
@@ -420,7 +422,7 @@ guidata(hObject,h);
 
 % ****** ROIs will be processed across expts -------------------- %
 function processROIs_Callback(hObject, eventdata, h)
-h = LumpProc(h);
+h = processROIs(h);
 guidata(hObject,h);
 
 
