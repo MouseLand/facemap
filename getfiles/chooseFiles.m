@@ -1,4 +1,5 @@
-function [filename, folders, namef] = ChooseFiles(filename, folders, namef)
+% choose which movies to process and how to process them
+function [filename, folders, namef] = chooseFiles(filename, folders, namef)
 filename0{1} = [];
 folders0     = {};
 namef0       = {};

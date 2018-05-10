@@ -1,4 +1,5 @@
-function [filename,folders,namef] = FindBlocks(h,folder_name)
+% finds all movie files in current directory and all subdirectories
+function [filename,folders,namef] = findMovieFolders(h,folder_name)
 
 
 filename = {};

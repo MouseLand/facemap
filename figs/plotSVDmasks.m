@@ -13,7 +13,7 @@ for ic = 1:nc
         i1 = proc.uMotMask{1}(np(k)+[1:proc.npix(k)], ic);
         ib = NaN*zeros(floor(proc.nY{k}/proc.sc), floor(proc.nX{k}/proc.sc));
         ib(proc.wpix{k}) = i1;
-        subplot(nc,nvids,(ic-1)*nvids + k),
+        my_subplot(nc,nvids,(ic-1)*nvids + k, [.9 .9]);
         imagesc(ib,'alphadata',~isnan(ib));
         axis image;
         axis off;

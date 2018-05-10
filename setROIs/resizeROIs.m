@@ -1,3 +1,4 @@
+% resizes ROIs based on the spatial downsampling set in the GUI
 function h = resizeROIs(h, spatscale)
 
 rsc = h.sc / spatscale;

@@ -1,3 +1,4 @@
+% draws small ROIs (on right of GUI) and sets their settings
 function h = drawSmallROI(h)
 h.plotROIs(h.indROI) = 1;
 
@@ -10,9 +11,11 @@ if isempty(h.locROI{h.indROI})
 else
     ROI0 = h.locROI{h.indROI};
 end
-ROI = DrawROI(h,ROI0);
-ROI = OnScreenROI(ROI, nxS, nyS);
+ROI = drawROI(h,ROI0);
+ROI = onScreenROI(ROI, nxS, nyS);
 h.locROI{h.indROI} = ROI;
+
+axes(h.axes1);
 PlotFrame(h);
 axes(h.axes4);
 cla;

@@ -132,13 +132,13 @@ folder_name = uigetdir(h.filepath);
 if folder_name ~= 0
     h.rootfolder = folder_name;
     
-    [filename,folders,namef] = FindBlocks(h,folder_name);
+    [filename,folders,namef] = findMovieFolders(h,folder_name);
     namef
     if isempty(filename{1})
         msgbox('ahh! no movie files found!');
     else
         
-        [filename,folders,namef] = ChooseFiles(filename,folders,namef);
+        [filename,folders,namef] = chooseFiles(filename,folders,namef);
         
         axes(h.axes1);
         cla;
@@ -254,8 +254,8 @@ if isempty(h.ROI{h.whichview}{1})
 else
     ROI0 = [nxS*.25 nyS*.25 nxS*.5 nyS*.5];
 end
-ROI = DrawROI(h,ROI0);
-ROI = OnScreenROI(ROI, nxS, nyS);
+ROI = drawROI(h,ROI0);
+ROI = onScreenROI(ROI, nxS, nyS);
 if isempty(h.ROI{h.whichview}{1})
     h.ROI{h.whichview}{1} = ROI;
 else
@@ -271,8 +271,8 @@ function excludeROI_Callback(hObject, eventdata, h)
 nxS = floor(h.nX{h.whichview} / h.sc);
 nyS = floor(h.nY{h.whichview} / h.sc);
 ROI0 = [nxS*.4 nyS*.4 nxS*.3 nyS*.3];
-ROI = DrawROI(h,ROI0);
-ROI = OnScreenROI(ROI, nxS, nyS);
+ROI = drawROI(h,ROI0);
+ROI = onScreenROI(ROI, nxS, nyS);
 if isempty(h.eROI{h.whichview}{1})
     h.eROI{h.whichview}{1} = ROI;
 else
@@ -285,7 +285,7 @@ PlotFrame(h);
 guidata(hObject, h);
 
 function deleteall_Callback(hObject, eventdata, h)
-h = ResetROIs(h);
+h = resetROIs(h);
 PlotFrame(h);
 guidata(hObject, h);
 

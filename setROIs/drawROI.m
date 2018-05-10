@@ -1,4 +1,4 @@
-function newPos = DrawROI(handles,ROI,rcol)
+function newPos = drawROI(handles,ROI)
 
 h = imrect(handles.axes1, ROI);
 title(handles.axes1, 'Update the ROI and double-click')

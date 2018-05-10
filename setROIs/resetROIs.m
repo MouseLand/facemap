@@ -1,3 +1,4 @@
+% removes all ROIs drawn for multivideo SVD
 function h = resetROIs(h)
 
 h.ROI{h.whichfile} = [];
