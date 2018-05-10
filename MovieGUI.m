@@ -172,6 +172,10 @@ if folder_name ~= 0
         h.whichfile = 1;
         h.whichview = 1;
         
+        % delete small ROIs
+        h.plotROIs(:) = 0;
+        h.ROIfile(:) = 0;
+        
         % string for movie choosing menu
         set(h.popupmenu6, 'String', fstr);
         set(h.popupmenu6, 'Value', h.whichfile);
