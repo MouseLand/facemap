@@ -4,7 +4,7 @@ Matlab GUI for processing videos of rodents. Works for grayscale and RGB movies.
 The original FaceMap GUI which only works on single-view movies and writes a binary file for processing (only efficient if movies are compressed) is [here](https://github.com/carsen-stringer/FaceMapOriginal).
 
 ### Start processing!
-To start the GUI, run the command `MovieGUI` in this folder. The following window should appear:
+This GUI has been mostly tested in MATLAB 2018a, but should work in most recent releases - please submit issues if it's not working. To start the GUI, run the command `MovieGUI` in this folder. The following window should appear:
 
 ![GUI screenshot](/figs/GUIscreenshot.png?raw=true "gui screenshot")
 
