@@ -10,20 +10,20 @@ for k = 1:size(h.ROI,1)
     for j = 1:numel(h.ROI{k})
         if ~isempty(h.ROI{k}{j})
             h.ROI{k}{j} = h.ROI{k}{j} * rsc;
-            h.ROI{k}{j} = OnScreenROI(h.ROI{k}{j}, nxS, nyS);
+            h.ROI{k}{j} = onScreenROI(h.ROI{k}{j}, nxS, nyS);
             
         end
     end
     for j = 1:numel(h.eROI{k})
         if ~isempty(h.eROI{k}{j})
             h.eROI{k}{j} = h.eROI{k}{j} * rsc;
-            h.eROI{k}{j} = OnScreenROI(h.eROI{k}{j}, nxS, nyS);
+            h.eROI{k}{j} = onScreenROI(h.eROI{k}{j}, nxS, nyS);
         end
     end
     for j = 1:numel(h.locROI)
         if ~isempty(h.locROI{j}) && h.ROIfile(j)==k 
             h.locROI{j} = h.locROI{j} * rsc;
-            h.locROI{j} = OnScreenROI(h.locROI{j}, nxS, nyS);
+            h.locROI{j} = onScreenROI(h.locROI{j}, nxS, nyS);
         end
     end
     

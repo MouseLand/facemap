@@ -83,7 +83,7 @@ set(h.slider2,'Max',1);
 set(h.slider2,'Value',0);
 set(h.edit1,'String',num2str(0));
 set(h.pupilsigma,'String',num2str(4));
-h.thres = 4;
+h.thres = 2;
 h.saturation = zeros(100,1);
 h.framesaturation = zeros(100,1);
 h.whichfile = 1;
@@ -162,7 +162,7 @@ if folder_name ~= 0
                 fstr{k,j} = sprintf('%s/%s',folders{k,j},namef{k,j});
             end
             h.whichfile = k;
-            h = ResetROIs(h);
+            h = resetROIs(h);
         end
         h.nX = nX;
         h.nY = nY;
@@ -474,6 +474,7 @@ cla;
 PlotFrame(h);
 axes(h.axes4);
 cla;
+PlotROI(h);
 guidata(hObject, h);
 
 function edit4_CreateFcn(hObject, eventdata, h)
@@ -557,36 +558,54 @@ function pupil1delete_Callback(hObject, eventdata, h)
 h.plotROIs(5) = 0;
 h.ROIfile(5) = 0;
 PlotFrame(h);
+axes(h.axes4);
+cla;
+title('');
 guidata(hObject,h);
 
 function pupil2delete_Callback(hObject, eventdata, h)
 h.plotROIs(6) = 0;
 h.ROIfile(6) = 0;
 PlotFrame(h);
+axes(h.axes4);
+cla;
+title('');
 guidata(hObject,h);
 
 function whiskerdelete_Callback(hObject, eventdata, h)
 h.plotROIs(2) = 0;
 h.ROIfile(2) = 0;
 PlotFrame(h);
+axes(h.axes4);
+cla;
+title('');
 guidata(hObject,h);
 
 function snoutdelete_Callback(hObject, eventdata, h)
 h.plotROIs(3) = 0;
 h.ROIfile(3) = 0;
 PlotFrame(h);
+axes(h.axes4);
+cla;
+title('');
 guidata(hObject,h);
 
 function otherdelete_Callback(hObject, eventdata, h)
 h.plotROIs(4) = 0;
 h.ROIfile(4) = 0;
 PlotFrame(h);
+axes(h.axes4);
+cla;
+title('');
 guidata(hObject,h);
 
 function runningdelete_Callback(hObject, eventdata, h)
 h.plotROIs(1) = 0;
 h.ROIfile(1) = 0;
 PlotFrame(h);
+axes(h.axes4);
+cla;
+title('');
 guidata(hObject,h);
 
 function pushbutton23_Callback(hObject, eventdata, h)
