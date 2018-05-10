@@ -1,7 +1,10 @@
 # FaceMap
-Matlab GUI for processing videos of rodents. Works for grayscale and RGB movies. Can process multi-camera videos. Some example movies to test the GUI on are located [here](https://drive.google.com/drive/folders/1fOkIXyEsxO-lDGZLy0gCKf1d7OjnUcnQ?usp=sharing). We use ptgrey cameras (e.g. [this](https://www.ptgrey.com/flea3-13-mp-mono-usb3-vision-vita-1300-camera)). For simultaneous acquisition from multiple cameras, we use [BIAS](http://public.iorodeo.com/notes/bias/) software.
+Matlab GUI for processing videos of rodents. Works for grayscale and RGB movies. Can process multi-camera videos. Some example movies to test the GUI on are located [here](https://drive.google.com/drive/folders/1fOkIXyEsxO-lDGZLy0gCKf1d7OjnUcnQ?usp=sharing). We use [ptgrey cameras](https://www.ptgrey.com/flea3-13-mp-mono-usb3-vision-vita-1300-camera)). For simultaneous acquisition from multiple cameras, we use [BIAS](http://public.iorodeo.com/notes/bias/) software.
 
 The original FaceMap GUI which only works on single-view movies and writes a binary file for processing (only efficient if movies are compressed) is [here](https://github.com/carsen-stringer/FaceMapOriginal).
+
+### Start processing!
+To start the GUI, run the command `MovieGUI` in this folder. The following window should appear:
 
 ![GUI screenshot](/figs/GUIscreenshot.png?raw=true "gui screenshot")
 
