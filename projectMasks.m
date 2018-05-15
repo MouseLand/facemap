@@ -5,7 +5,7 @@ ncomps = size(h.uMotMask{1},2);
 npix = h.npix;
 tpix = h.tpix;
 nframes = h.nframes;
-nt0 = 2000;
+nt0 = 1000;
 np = cumsum([0 h.npix]);
 tp = cumsum([0 h.tpix]);
 
