@@ -17,10 +17,11 @@ proc.plotROIs = h.plotROIs;
 proc.saturation = h.saturation;
 proc.thres = h.thres;
 
-
-proc.tpix = h.tpix;
-proc.npix = h.npix;
-proc.wpix = h.wpix;
+if isfield(h, 'tpix')
+    proc.tpix = h.tpix;
+    proc.npix = h.npix;
+    proc.wpix = h.wpix;
+end
 
 if isfield(h,'motSVD')
     %proc.spix = h.spix;
