@@ -8,7 +8,7 @@ namef       = {};
 fs        = dir(folder_name);
 fs        = fs(3:end);
 
-% check for files in root folder
+%% check for files in root folder
 if ~isempty(fs)
     isfolderf=[fs.isdir];
     if sum(~isfolderf)
@@ -22,9 +22,9 @@ if ~isempty(fs)
     % the files might be in separate folders
     % go down one folder and find all movies
     %%
-    ifold=find(isfolderf)';
+    ifold=find(isfolderf);
     if ~isempty(ifold)
-        for j = ifold
+        for j = ifold(:)'
             fm = dir(fullfile(folder_name,fs(j).name));
             fm = fm(3:end);
             isfolderm = [fm.isdir];
