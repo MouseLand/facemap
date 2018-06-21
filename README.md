@@ -11,8 +11,8 @@ A basic lens that works for zoomed out views [here](https://www.bhphotovideo.com
 
 For 2p imaging, you'll need a tighter filter around 850nm so you don't see the laser shining through the mouse's eye/head, for example [this](https://www.thorlabs.de/thorproduct.cfm?partnumber=FB850-40). Depending on your lenses you'll need to figure out the right adapter(s) for such a filter. For our 10x lens above, you might need all of these: 
 https://www.edmundoptics.com/optics/optical-filters/optical-filter-accessories/M52-to-M46-Filter-Thread-Adapter/
-https://www.thorlabs.de/thorproduct.cfm?partnumber=SM2A53
-https://www.thorlabs.de/thorproduct.cfm?partnumber=SM2A6
+https://www.thorlabs.de/thorproduct.cfm?partnumber=SM2A53 ,
+https://www.thorlabs.de/thorproduct.cfm?partnumber=SM2A6 ,
 https://www.thorlabs.de/thorproduct.cfm?partnumber=SM1L03
 
 
