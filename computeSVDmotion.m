@@ -89,7 +89,7 @@ for j = 1:nsegs
                 imot = gpuArray(imot);
             end
             [u s v] = svdecon(imot);
-            u       = gather(u);
+            u       = gather_try(u);
             uMot{z}    = cat(2, uMot{z}, u(:,1:min(200,size(u,2))));
         end
     end

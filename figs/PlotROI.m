@@ -41,7 +41,7 @@ if ~isempty(h.indROI)
         fr  = squeeze(mean(reshape(frames(1:nYc,:,:),sc,nYc/sc,nX,nt),1));
         fr  = squeeze(mean(reshape(fr(:,1:nXc,:),nYc/sc,sc,nXc/sc,nt),2));
     elseif indROI > 4
-        fr = my_conv2(frames, [1 1 1], [1 2 3]);
+        fr = my_conv2(single(frames), [1 1 1], [1 2 3]);
         fr = fr(:,:,2);
     elseif indROI==1
         fr = frames;
