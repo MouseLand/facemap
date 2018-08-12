@@ -4,6 +4,8 @@ filename0{1} = [];
 folders0     = {};
 namef0       = {};
 
+figpos = get('DefaultFigurePosition');
+figunits = get('DefaultFigureUnits');
 set(0,'DefaultFigurePosition',[1000 500 500 150],'DefaultFigureUnits','pixels');
 wfs = MFquestdlg([.5,.5],'would you like to process all movies?',...
     '','Yes','No','Cancel','Cancel');
@@ -107,3 +109,5 @@ else
     folders = folders0(:);
     namef = namef0(:);
 end
+
+set(0,'DefaultFigurePosition',figpos,'DefaultFigureUnits',figunits);

@@ -107,7 +107,7 @@ for z = 1:numel(ims)
         ncompsz = ncomps;
     end
     [u s v]  = svdecon(uMot{z});
-    uMotMask{z} = gather(u(:,1:min(ncompsz,size(u,2))));
+    uMotMask{z} = gather_try(u(:,1:min(ncompsz,size(u,2))));
     uMotMask{z} = normc(uMotMask{z});
 end
 
