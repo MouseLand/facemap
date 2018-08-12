@@ -123,7 +123,7 @@ for j = 1:nsegs
         end
         imdiff = bsxfun(@minus, imdiff, avgmotion{k});
         motSVD{1}(ifr+[1:nt],:)  = motSVD{1}(ifr+[1:nt],:) + ...
-            gather(imdiff' * h.uMotMask{1}(np(k) + [1:npix(k)],:));
+            gather_try(imdiff' * h.uMotMask{1}(np(k) + [1:npix(k)],:));
         imendA(np(k) + [1:npix(k)]) = ima(:,end);
         
         % motion SVD projection for small ROIs

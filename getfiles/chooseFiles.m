@@ -4,8 +4,8 @@ filename0{1} = [];
 folders0     = {};
 namef0       = {};
 
-figpos = get('DefaultFigurePosition');
-figunits = get('DefaultFigureUnits');
+figpos = get(0,'DefaultFigurePosition');
+figunits = get(0,'DefaultFigureUnits');
 set(0,'DefaultFigurePosition',[1000 500 500 150],'DefaultFigureUnits','pixels');
 wfs = MFquestdlg([.5,.5],'would you like to process all movies?',...
     '','Yes','No','Cancel','Cancel');
