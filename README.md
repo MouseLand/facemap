@@ -19,7 +19,7 @@ https://www.thorlabs.de/thorproduct.cfm?partnumber=SM1L03.
 
 
 ### Start processing!
-To start the GUI, run the command `MovieGUI` in this folder. The following window should appear:
+To start the GUI, run the command `MovieGUI` in this folder. The following window should appear. After you click an ROI button and draw an area, you have to **double-click** inside the drawn box to confirm it.
 
 ![GUI screenshot](/figs/GUIscreenshot.png?raw=true "gui screenshot")
 
