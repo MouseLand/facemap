@@ -1,9 +1,11 @@
 % plot full face frame and selected ROI
 function PlotROI(h)
 
+nROIs = numel(h.plotROIs);
+
 kc = h.whichfile;
 k = h.whichview;
-tstr = {'running','ROI1','ROI2','ROI3','pupil 1','pupil 2'};
+tstr = {'running','ROI1','ROI2','ROI3','pupil 1','pupil 2','blink1','blink2'};
 
 % smoothing constants
 sc = h.sc;
@@ -33,18 +35,21 @@ if ~isempty(h.indROI)
     
     sat    = min(254,max(1,(h.saturation(indROI))*255));
     
-    % all ROIs besides pupil are down-sampled
-    if indROI > 1 && indROI < 5
+    % only small ROIs are are down-sampled
+    if indROI > 1 && indROI <= nROIs-4
         [nY nX nt]  = size(frames);
         nYc = floor(nY/sc)*sc;
         nXc = floor(nX/sc)*sc;
         fr  = squeeze(mean(reshape(frames(1:nYc,:,:),sc,nYc/sc,nX,nt),1));
         fr  = squeeze(mean(reshape(fr(:,1:nXc,:),nYc/sc,sc,nXc/sc,nt),2));
-    elseif indROI > 4
+	% pupil ROIs are smoothed
+    elseif indROI > nROIs-4 && indROI <= nROIs-2
         fr = my_conv2(single(frames), [1 1 1], [1 2 3]);
         fr = fr(:,:,2);
-    elseif indROI==1
+	elseif indROI==1
         fr = frames;
+	else
+		fr = frames(:,:,2);
     end
     
     if indROI==1 || indROI>4
@@ -56,10 +61,10 @@ if ~isempty(h.indROI)
     
     fr = fr(iroi(2)-1 + [1:iroi(4)], iroi(1)-1 + [1:iroi(3)], :);
     
+	
     % pupil contours
-    if indROI>4
+    if indROI>nROIs-4 && indROI<=nROIs-2
         fr = fr - min(fr(:));
-        %fr = fr / max(fr(:)) * 255;
         imagesc(fr,[0 255-sat]);
         
         r.fr     = fr;
@@ -85,6 +90,9 @@ if ~isempty(h.indROI)
         rb = redblue;
         colormap(h.axes4, rb(33:end,:));
         %keyboard;
+	else
+		imagesc(fr,[0 255-sat])
+		colormap(h.axes4,'gray')
     end
     title(tstr{indROI},'fontsize',10);
     

@@ -12,11 +12,11 @@ h = subsampledMean(h);
 % compute svd of videos ----------------------------- %
 h = computeSVDmotion(h);
 
-%% pupil and running ROIs
+%% pupil, blink and running ROIs
 h.spix{1}=[];
 zf = find(h.plotROIs);
-zf = zf(ismember(zf,[1 numel(h.plotROIs)-1 numel(h.plotROIs)]));
-% ROIs are not down-sampled
+zf = zf(ismember(zf,[1 numel(h.plotROIs)-3:numel(h.plotROIs)]));
+% these ROIs are not down-sampled in space
 % h.iroi are full frame positions
 for z = zf(:)'
     if h.plotROIs(z)

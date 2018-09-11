@@ -22,7 +22,7 @@ function varargout = MovieGUI(varargin)
 
 % Edit the above text to modify the response to help MovieGUI
 
-% Last Modified by GUIDE v2.5 08-May-2018 14:15:46
+% Last Modified by GUIDE v2.5 11-Sep-2018 13:13:32
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -74,7 +74,9 @@ h.colors = [1 0 1;...
            .85 .3 .1;...
            .8 .8 0;...
            0 1 0;...
-           .3 .7 0];
+           .3 .7 0;
+		   0 0.5 0.5;
+		   0 0.4 0.8];
 % default threshold for pupil
 h.thres = 4;
 
@@ -87,8 +89,8 @@ h.thres = 2;
 h.saturation = zeros(100,1);
 h.framesaturation = zeros(100,1);
 h.whichfile = 1;
-h.ROIfile = zeros(6,1);
-h.plotROIs = false(6,1);
+h.ROIfile = zeros(8,1);
+h.plotROIs = false(8,1);
 h.indROI = [];
 for k = 1:length(h.plotROIs)
     h.locROI{k} = [];
@@ -249,7 +251,7 @@ h.wROI = wc;
 PlotFrame(h);
 guidata(hObject,h);
 
-% ------- DRAW MAIN ROIs ----------------------- %
+% ------- DRAW INCLUDED ROIs FOR MULTIVIDEO SVD ----------------------- %
 function keepROI_Callback(hObject, eventdata, h)
 nxS = floor(h.nX{h.whichview} / h.sc);
 nyS = floor(h.nY{h.whichview} / h.sc);
@@ -271,6 +273,7 @@ PlotFrame(h);
 
 guidata(hObject, h);
 
+% ------- DRAW EXCLUDED ROIs FOR MULTIVIDEO SVD ----------------------- %
 function excludeROI_Callback(hObject, eventdata, h)
 nxS = floor(h.nX{h.whichview} / h.sc);
 nyS = floor(h.nY{h.whichview} / h.sc);
@@ -288,11 +291,13 @@ PlotFrame(h);
 
 guidata(hObject, h);
 
+% --- delete all multivideo SVD ROIs ---- %
 function deleteall_Callback(hObject, eventdata, h)
 h = resetROIs(h);
 PlotFrame(h);
 guidata(hObject, h);
 
+% --- delete last drawn multivideo SVD ROI ---- %
 function deleteone_Callback(hObject, eventdata, h)
 if h.rcurr
     if numel(h.eROI{h.whichview}) > 1
@@ -522,14 +527,8 @@ end
 
 
 % --- SMALLER ROIs AND PUPILS ----------------------------------- %
-function pupil1_Callback(hObject, eventdata, h)
-h.indROI = 5;
-
-h = drawSmallROI(h);
-guidata(hObject, h);
-
-function pupil2_Callback(hObject, eventdata, h)
-h.indROI = 6;
+function running_Callback(hObject, eventdata, h)
+h.indROI = 1;
 
 h = drawSmallROI(h);
 guidata(hObject, h);
@@ -552,24 +551,35 @@ h.indROI = 4;
 h = drawSmallROI(h);
 guidata(hObject, h);
 
-function running_Callback(hObject, eventdata, h)
-h.indROI = 1;
+function pupil1_Callback(hObject, eventdata, h)
+h.indROI = 5;
 
 h = drawSmallROI(h);
 guidata(hObject, h);
 
-function pupil1delete_Callback(hObject, eventdata, h)
-h.plotROIs(5) = 0;
-h.ROIfile(5) = 0;
-PlotFrame(h);
-axes(h.axes4);
-cla;
-title('');
-guidata(hObject,h);
+function pupil2_Callback(hObject, eventdata, h)
+h.indROI = 6;
 
-function pupil2delete_Callback(hObject, eventdata, h)
-h.plotROIs(6) = 0;
-h.ROIfile(6) = 0;
+h = drawSmallROI(h);
+guidata(hObject, h);
+
+function blink1_Callback(hObject, eventdata, h)
+h.indROI = 7;
+
+h = drawSmallROI(h);
+guidata(hObject, h);
+
+function blink2_Callback(hObject, eventdata, h)
+h.indROI = 8;
+
+h = drawSmallROI(h);
+guidata(hObject, h);
+
+% --------- DELETE ROIs -------- %
+
+function runningdelete_Callback(hObject, eventdata, h)
+h.plotROIs(1) = 0;
+h.ROIfile(1) = 0;
 PlotFrame(h);
 axes(h.axes4);
 cla;
@@ -603,9 +613,36 @@ cla;
 title('');
 guidata(hObject,h);
 
-function runningdelete_Callback(hObject, eventdata, h)
-h.plotROIs(1) = 0;
-h.ROIfile(1) = 0;
+function pupil1delete_Callback(hObject, eventdata, h)
+h.plotROIs(5) = 0;
+h.ROIfile(5) = 0;
+PlotFrame(h);
+axes(h.axes4);
+cla;
+title('');
+guidata(hObject,h);
+
+function pupil2delete_Callback(hObject, eventdata, h)
+h.plotROIs(6) = 0;
+h.ROIfile(6) = 0;
+PlotFrame(h);
+axes(h.axes4);
+cla;
+title('');
+guidata(hObject,h);
+
+function blink1delete_Callback(hObject, eventdata, h)
+h.plotROIs(7) = 0;
+h.ROIfile(7) = 0;
+PlotFrame(h);
+axes(h.axes4);
+cla;
+title('');
+guidata(hObject,h);
+
+function blink2delete_Callback(hObject, eventdata, h)
+h.plotROIs(8) = 0;
+h.ROIfile(8) = 0;
 PlotFrame(h);
 axes(h.axes4);
 cla;

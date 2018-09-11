@@ -14,7 +14,7 @@ for k = 1:nviews
     kmotion = h.avgmotion(tp(k) + [1:tpix(k)]);
     avgmotion(np(k) + [1:npix(k)]) = kmotion(h.wpix{k});
     
-    sroi{k} = find(h.ROIfile(2:end-2)==k) + 1;
+    sroi{k} = find(h.ROIfile(2:end-4)==k) + 1;
     
     if ~isempty(sroi{k}) || sum(h.wpix{k}(:)) > 0 
         wvids = cat(1, wvids, k);
@@ -36,7 +36,7 @@ avgmot{1} = avgmotion(:);
 uMot{1} = [];
 
 % small motion SVD ROIs (excludes pupils and last ROI = running)
-zf = find(h.plotROIs(2:end-2)) + 1;
+zf = find(h.plotROIs(2:end-4)) + 1;
 for z = zf(:)'
     if h.plotROIs(z)
         k = h.ROIfile(z);

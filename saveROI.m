@@ -67,7 +67,7 @@ fname = [fname '_proc.mat'];
 
 %%
 savefile = fname;
-savepath   = fullfile(h.rootfolder, savefile);
+savepath   = fullfile('/media/carsen/SSD/', savefile);
 %savepath   = fullfile(h.folder_name, savefile);
 h.settings = savepath;
 save(savepath,'-v7.3','proc');

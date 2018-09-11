@@ -1,4 +1,5 @@
-% write face and pupil to binary file
+% compute mean of videos on a subset of frames
+% only use videos that are in multivideo SVD or ROI1-3
 function h = subsampledMean(h)
 nviews = numel(h.nX);
 nvids  = size(h.vr,2);
@@ -29,7 +30,7 @@ for k = 1:nviews
             end
         end
         tpix(k) = nx * ny;
-    elseif sum(h.ROIfile(2:end-2)==k) > 0
+    elseif sum(h.ROIfile(2:end-4)==k) > 0
         tpix(k) = nx * ny;
     else
         tpix(k) = 0;
