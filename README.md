@@ -95,6 +95,10 @@ This raw pupil area trace is post-processed (see [smoothPupil.m](pupil/smoothPup
 
 ![pupil](/figs/pupilfilter.png?raw=true "pupil filtering")
 
+### Blink computation
+
+You may want to ignore frames in which the animal is blinking if you are looking at pupil size. The blink area is the number of pixels above the saturation level (all non-white pixels).
+
 ### Small motion ROIs
 
 The SVD of the motion is computed for each of the smaller motion ROIs. Motion is the abs(current_frame - previous_frame). The singular vectors are computed on subsets of the frames, and the top 500 components are kept.
