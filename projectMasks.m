@@ -125,7 +125,8 @@ for j = 1:nsegs
                 z = blinks(l) + (numel(h.ROIfile)-2);
                 ims = imb(h.spix{z}(:),:);
                 h.indROI = z;
-                barea = sum(ims>h.saturation(z));
+				sats  = min(254,max(1, (1-h.saturation(z))*255));
+                barea = sum(ims<sats);
                 h.blink(l).area(ifr + [1:nt]) = barea;
             end
 		end

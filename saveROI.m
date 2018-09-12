@@ -59,6 +59,9 @@ if isfield(h, 'pupil')
     proc.pupil = h.pupil;
 end
 
+if isfield(h, 'blink')
+	proc.blink = h.blink;
+end
 
 
 %%
@@ -67,7 +70,7 @@ fname = [fname '_proc.mat'];
 
 %%
 savefile = fname;
-savepath   = fullfile('/media/carsen/SSD/', savefile);
-%savepath   = fullfile(h.folder_name, savefile);
+%savepath   = fullfile('/media/carsen/SSD/', savefile);
+savepath   = fullfile(h.folder_name, savefile);
 h.settings = savepath;
 save(savepath,'-v7.3','proc');
