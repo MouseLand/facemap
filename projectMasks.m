@@ -5,7 +5,6 @@ ncomps = size(h.uMotMask{1},2);
 npix = h.npix;
 tpix = h.tpix;
 nframes = h.nframes;
-nt0 = 1000;
 np = cumsum([0 h.npix]);
 tp = cumsum([0 h.tpix]);
 
@@ -32,6 +31,7 @@ for k = 1:nviews
     end
 end
 
+nt0 = min(1000, min(nframes));
 nsegs = ceil(sum(nframes)/nt0);
 nframetimes = cumsum([0; nframes]);
 
@@ -62,8 +62,10 @@ for j = numel(h.plotROIs)-1:numel(h.plotROIs)
     end
 end
 
-
-for j = 1:nsegs
+j=0;
+ivid = 0;
+while ivid <= nvids && ifr < sum(nframes)
+	j=j+1;
     tc = ifr;
     % which video is tc in
     ivid = find(tc<nframetimes(2:end) & tc>=nframetimes(1:end-1));
@@ -82,6 +84,7 @@ for j = 1:nsegs
         end
         if nt < nt0
             imb = imb(:,:,1:nt);
+			ivid = ivid+1;
 		end
         imb = reshape(single(imb), [], nt);
         

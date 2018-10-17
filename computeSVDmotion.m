@@ -21,13 +21,13 @@ for k = 1:nviews
     end
 end
 
-nt0 = 1000;
+nt0 = min(1000, min(nframes));
 ncomps = 500;
 ncompsSmall = ncomps;
 fprintf('computing SVDs across all movies\n');
-nsegs = floor(10000 / 200);
+nsegs = min(floor(50000 / nt0), floor(sum(nframes)/nt0));
 
-tf = linspace(0,ntime-((nt0+1)/h.vr{1}.FrameRate),nsegs);
+tf = linspace(0,(sum(nframes)-(nt0))/h.vr{1}.FrameRate,nsegs);
 nframetimes = cumsum([0; nframes]) / h.vr{1}.FrameRate;
 
 % first ROI is main ROI (all cameras)
@@ -60,8 +60,12 @@ for j = 1:nsegs
     % which video is tc in
     ivid = find(tc<nframetimes(2:end) & tc>=nframetimes(1:end-1));
     tcv = tc - nframetimes(ivid);
-    if tcv > (nframes(ivid)-(nt0+1))/h.vr{1}.FrameRate
-        tcv = tcv - (nt0+1)/h.vr{1}.FrameRate;
+    if tcv > (nframes(ivid)-(nt0))/h.vr{1}.FrameRate
+		ivid = ivid+1;
+		tcv = 0;
+        if ivid > nvids
+			break;
+		end
     end
     
     for k = wvids'
