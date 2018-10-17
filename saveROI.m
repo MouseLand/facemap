@@ -4,6 +4,7 @@
 function saveROI(h)
 
 proc.files = h.files;
+proc.nframes = h.nframes;
 proc.rootfolder = h.rootfolder;
 proc.nX = h.nX;
 proc.nY = h.nY;
