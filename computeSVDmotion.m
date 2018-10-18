@@ -25,10 +25,10 @@ nt0 = min(1000, min(nframes));
 ncomps = 500;
 ncompsSmall = ncomps;
 fprintf('computing SVDs across all movies\n');
-nsegs = min(floor(50000 / nt0), floor(sum(nframes)/nt0));
+nsegs = min(floor(50000 / nt0), floor(double(sum(nframes))/nt0));
 
-tf = linspace(0,(sum(nframes)-(nt0))/h.vr{1}.FrameRate,nsegs);
-nframetimes = cumsum([0; nframes]) / h.vr{1}.FrameRate;
+tf = linspace(0,floor(double(sum(nframes)-(nt0))/h.vr{1}.FrameRate),nsegs);
+nframetimes = double(cumsum([0; nframes])) / h.vr{1}.FrameRate;
 
 % first ROI is main ROI (all cameras)
 ims{1} = zeros(sum(npix),ncomps,'single');

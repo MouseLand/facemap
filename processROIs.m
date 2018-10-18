@@ -7,6 +7,7 @@ tic;
 
 % compute mean from a subset of frames
 h = subsampledMean(h);
+h.nframes = int64(h.nframes);
 
 %%
 % compute svd of videos ----------------------------- %

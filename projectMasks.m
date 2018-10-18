@@ -81,7 +81,10 @@ while ivid <= nvids && ifr < sum(nframes)
                 imb(:,:,t) = im(:,:,1);
                 nt = nt + 1;
             end
-        end
+		end
+		if ifr+nt > sum(nframes)
+			nt = sum(nframes)-ifr;
+		end
         if nt < nt0
             imb = imb(:,:,1:nt);
 			ivid = ivid+1;

@@ -12,7 +12,7 @@ tsc = h.tsc;
 
 axes(h.axes1);
 
-h.vr{kc}.currentTime = (h.cframe-1) /  h.vr{kc}.FrameRate;
+h.vr{kc}.currentTime = double(h.cframe-1) /  h.vr{kc}.FrameRate;
 frame = readFrame(h.vr{kc});
        
 if size(frame,3) == 3

@@ -7,7 +7,8 @@ nframes = zeros(nvids,1);
 for j = 1:nvids
     nframes(j) = h.vr{1,j}.Duration * h.vr{1,j}.FrameRate;
 end
-ntime = sum(nframes) / h.vr{1}.FrameRate;
+nframes = int64(nframes);
+ntime = sum(double(nframes)) / h.vr{1}.FrameRate;
 npix = [];
 tpix = [];
 wvids = [];
@@ -43,11 +44,11 @@ for k = 1:nviews
     
 end
     
-nf = 4000;
-nt0 = 100;
+nf = min(4000,cumsum(nframes));
+nt0 = min(100, min(nframes));
 nsegs = nf/nt0;
-tf = linspace(0,ntime-(nt0+1)/h.vr{1}.FrameRate,nsegs);
-nframetimes = cumsum([0; nframes]) / h.vr{1}.FrameRate;
+tf = linspace(0,floor(double(sum(nframes)-(nt0))/h.vr{1}.FrameRate),nsegs);
+nframetimes = double(cumsum([0; nframes])) / h.vr{1}.FrameRate;
 
 tp = [0 tpix];
 tp = cumsum(tp);
@@ -57,12 +58,16 @@ for j = 1:nsegs
     
     for k = wvids'
         tc = tf(j);
-        % which video is tc in
-        ivid = find(tc<nframetimes(2:end) & tc>=nframetimes(1:end-1));
-        tcv = tc - nframetimes(ivid);
-        if tcv > (nframes(ivid)-(nt0+1))/h.vr{1}.FrameRate
-            tcv = tcv - (nt0+1)/h.vr{1}.FrameRate;
-        end
+		% which video is tc in
+		ivid = find(tc<nframetimes(2:end) & tc>=nframetimes(1:end-1));
+		tcv = tc - nframetimes(ivid);
+		if tcv > (nframes(ivid)-(nt0))/h.vr{1}.FrameRate
+			ivid = ivid+1;
+			tcv = 0;
+			if ivid > nvids
+				break;
+			end
+		end
         h.vr{k,ivid}.CurrentTime = tcv;
         
         for t = 1:nt0
@@ -88,8 +93,8 @@ for j = 1:nsegs
     end
     
 end
-avgframe = avgframe/nsegs;
-avgmotion = avgmotion/nsegs;
+avgframe = avgframe/double(nsegs);
+avgmotion = avgmotion/double(nsegs);
 
 h.nframes = nframes;
 h.avgframe = single(avgframe);

@@ -15,7 +15,7 @@ if ~isempty(h.indROI)
     
     axes(h.axes4);
     frames = zeros(h.vr{k}.Height, h.vr{k}.Width, 3, 'uint8');
-    
+    h.cframe = double(h.cframe);
     if h.cframe-1 < 2
         h.vr{kc}.currentTime = (h.cframe) / h.vr{kc}.FrameRate;
     elseif h.cframe > h.nframes - 2
