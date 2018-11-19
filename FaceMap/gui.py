@@ -8,6 +8,8 @@ import pyqtgraph as pg
 from pyqtgraph import GraphicsScene
 import pims
 from FaceMap import facemap
+from scipy.stats import zscore, skew
+from matplotlib import cm
 
 class MainW(QtGui.QMainWindow):
     def __init__(self):
@@ -15,7 +17,14 @@ class MainW(QtGui.QMainWindow):
         pg.setConfigOptions(imageAxisOrder='row-major')
         self.setGeometry(70,70,1070,1070)
         self.setWindowTitle('FaceMap')
-        self.setStyleSheet("background-color: black;")
+        self.setStyleSheet("QMainWindow {background: 'black';}")
+        self.styleUnpressed = ("QPushButton {Text-align: left; "
+                               "background-color: rgb(50,50,50); "
+                               "color:white;}")
+        self.stylePressed = ("QPushButton {Text-align: left; "
+                             "background-color: rgb(100,50,100); "
+                             "color:white;}")
+
         self.cwidget = QtGui.QWidget(self)
         self.setCentralWidget(self.cwidget)
         self.l0 = QtGui.QGridLayout()
@@ -27,7 +36,7 @@ class MainW(QtGui.QMainWindow):
         self.win = pg.GraphicsLayoutWidget()
         self.win.move(600,0)
         self.win.resize(1000,500)
-        self.l0.addWidget(self.win,0,0,13,14)
+        self.l0.addWidget(self.win,1,1,13,14)
         layout = self.win.ci.layout
         # A plot area (ViewBox + axes) for displaying the image
         self.p0 = self.win.addViewBox(lockAspect=True,row=0,col=0,invertY=True)
@@ -51,17 +60,9 @@ class MainW(QtGui.QMainWindow):
         self.cframe = 0
         self.createButtons()
         # create ROI chooser
-        self.l0.addWidget(QtGui.QLabel(''),2,0,1,2)
-        qlabel = QtGui.QLabel(self)
-        qlabel.setText("<font color='white'>Selected ROI:</font>")
-        self.l0.addWidget(qlabel,3,0,1,2)
-        self.ROIedit = QtGui.QLineEdit(self)
-        self.ROIedit.setValidator(QtGui.QIntValidator(0,10000))
-        self.ROIedit.setText('0')
-        self.ROIedit.setFixedWidth(45)
-        self.ROIedit.setAlignment(QtCore.Qt.AlignRight)
-        self.ROIedit.returnPressed.connect(self.number_chosen)
-        self.l0.addWidget(self.ROIedit, 4,0,1,1)
+        #qlabel = QtGui.QLabel(self)
+        #qlabel.setText("<font color='white'>Selected ROI:</font>")
+        #self.l0.addWidget(qlabel,3,0,1,2)
         # create frame slider
         self.frameLabel = QtGui.QLabel("Current frame:")
         self.frameLabel.setStyleSheet("color: white;")
@@ -77,10 +78,14 @@ class MainW(QtGui.QMainWindow):
         self.l0.addWidget(self.frameLabel, 13,0,1,2)
         self.l0.addWidget(self.frameNumber, 14,0,1,2)
         self.l0.addWidget(self.frameSlider, 13,2,14,13)
-        self.l0.addWidget(QtGui.QLabel(''),14,1,1,1)
+        self.l0.addWidget(QtGui.QLabel(''),16,1,1,1)
+        self.l0.setRowStretch(16,2)
+        ll = QtGui.QLabel('play/pause with SPACE')
+        ll.setStyleSheet("color: white;")
+        self.l0.addWidget(ll,17,0,1,3)
         ll = QtGui.QLabel('(when paused, left/right arrow keys can move slider)')
         ll.setStyleSheet("color: white;")
-        self.l0.addWidget(ll,16,0,1,3)
+        self.l0.addWidget(ll,18,0,1,3)
         #speedLabel = QtGui.QLabel("Speed:")
         #self.speedSpinBox = QtGui.QSpinBox()
         #self.speedSpinBox.setRange(1, 9999)
@@ -99,15 +104,72 @@ class MainW(QtGui.QMainWindow):
         self.win.scene().sigMouseClicked.connect(self.plot_clicked)
         self.win.show()
         self.show()
+        self.processed = False
         # if not a combined recording, automatically open binary
 
     def open(self):
-        fileName = QtGui.QFileDialog.getOpenFileName(self,
+        open_choice = QtGui.QMessageBox.question(
+            self, "Open", "opening a movie (YES) or processed movie (NO)",
+                     QtGui.QMessageBox.Yes | QtGui.QMessageBox.No
+        )
+        if open_choice ==  QtGui.QMessageBox.Yes:
+            fileName = QtGui.QFileDialog.getOpenFileName(self,
                             "Open movie file")
-        # load ops in same folder
-        if fileName:
-            print(fileName[0])
-            self.openFile([fileName[0]])
+            # load ops in same folder
+            if fileName:
+                print(fileName[0])
+                self.openFile([fileName[0]])
+        else:
+            fileName = QtGui.QFileDialog.getOpenFileName(self,
+                            "Open processed file", filter="*.npy")
+            self.openProc(fileName[0])
+
+    def openProc(self, fileName):
+        try:
+            proc = np.load(fileName)
+            proc = proc.item()
+            self.filenames = proc['filenames']
+            good=True
+        except:
+            print("ERROR: not a processed movie file")
+        if good:
+            v = []
+            nframes = 0
+            iframes = []
+            for file in self.filenames:
+                v.append(pims.Video(file))
+                iframes.append(len(v[-1]))
+                nframes += len(v[-1])
+            self.motSVD = proc['motSVD']
+            self.motStd = self.motSVD.std(axis=0)
+            self.video = v
+            self.nframes = nframes
+            self.iframes = np.array(iframes).astype(int)
+            self.Ly = self.video[0].frame_shape[0]
+            self.Lx = self.video[0].frame_shape[1]
+            self.p1.clear()
+            self.p2.clear()
+            self.process.setEnabled(True)
+            # get scaling from 100 random frames
+            rperm = np.random.permutation(nframes)
+            frames = np.zeros((self.Ly,self.Lx,100))
+            for r in range(100):
+                frames[:,:,r] = np.array(self.video[0][rperm[r]]).mean(axis=-1)
+            self.srange = frames.mean() + frames.std()*np.array([-3,3])
+            #self.srange = [np.percentile(frames.flatten(),8), np.percentile(frames.flatten(),99)]
+            self.movieLabel.setText(self.filenames[0])
+            self.nbytesread = 2 * self.Ly * self.Lx
+            self.frameDelta = int(np.maximum(5,self.nframes/200))
+            self.frameSlider.setSingleStep(self.frameDelta)
+            if self.nframes > 0:
+                self.updateFrameSlider()
+                self.updateButtons()
+            self.cframe = -1
+            self.loaded = True
+            self.processed = True
+            self.plot_processed()
+            self.next_frame()
+
 
     #def open_folder(self):
     #    fileName = QtGui.QFileDialog.getOpenFolder(self,
@@ -133,21 +195,20 @@ class MainW(QtGui.QMainWindow):
             print(e)
             good = False
         if good:
-            self.v = v
+            self.video = v
             self.filenames = fileNames
             self.nframes = nframes
             self.iframes = np.array(iframes).astype(int)
-            self.Ly = self.v[0].frame_shape[0]
-            self.Lx = self.v[0].frame_shape[1]
+            self.Ly = self.video[0].frame_shape[0]
+            self.Lx = self.video[0].frame_shape[1]
             self.p1.clear()
             self.p2.clear()
-            self.ichosen = 0
-            self.ROIedit.setText('0')
+            self.process.setEnabled(True)
             # get scaling from 100 random frames
             rperm = np.random.permutation(nframes)
             frames = np.zeros((self.Ly,self.Lx,100))
             for r in range(100):
-                frames[:,:,r] = np.array(self.v[0][rperm[r]]).mean(axis=-1)
+                frames[:,:,r] = np.array(self.video[0][rperm[r]]).mean(axis=-1)
             self.srange = frames.mean() + frames.std()*np.array([-3,3])
             #self.srange = [np.percentile(frames.flatten(),8), np.percentile(frames.flatten(),99)]
             self.movieLabel.setText(self.filenames[0])
@@ -194,23 +255,6 @@ class MainW(QtGui.QMainWindow):
                     self.start()
                 else:
                     self.pause()
-
-    def number_chosen(self):
-        if self.Floaded:
-            self.ichosen = int(self.ROIedit.text())
-            if self.ichosen >= len(self.stat):
-                self.ichosen = len(self.stat) - 1
-            self.cell_mask()
-            self.p2.clear()
-            self.ft = self.Fcell[self.ichosen,:]
-            self.p2.plot(self.ft,pen='b')
-            self.p2.setRange(yRange=(self.ft.min(),self.ft.max()))
-            self.scatter2 = pg.ScatterPlotItem()
-            self.p2.addItem(self.scatter2)
-            self.scatter2.setData([self.cframe],[self.ft[self.cframe]],size=10,brush=pg.mkBrush(255,0,0))
-            self.p2.setXLink('plot1')
-            self.jump_to_frame()
-            self.show()
 
     def plot_clicked(self,event):
         items = self.win.scene().items(event.scenePos())
@@ -284,11 +328,15 @@ class MainW(QtGui.QMainWindow):
         openButton = QtGui.QToolButton()
         openButton.setIcon(self.style().standardIcon(QtGui.QStyle.SP_DialogOpenButton))
         openButton.setIconSize(iconSize)
-        openButton.setToolTip("Open binary file")
+        openButton.setToolTip("Open movie file/folder")
         openButton.clicked.connect(self.open)
 
-        self.process = QtGui.QPushButton("Process data")
+        self.process = QtGui.QToolButton()
+        self.process.setIcon(self.style().standardIcon(QtGui.QStyle.SP_ComputerIcon))
+        self.process.setIconSize(iconSize)
+        self.process.setToolTip("Process ROIs")
         self.process.clicked.connect(self.process_ROIs)
+        self.process.setEnabled(False)
 
         self.playButton = QtGui.QToolButton()
         self.playButton.setIcon(self.style().standardIcon(QtGui.QStyle.SP_MediaPlay))
@@ -336,7 +384,7 @@ class MainW(QtGui.QMainWindow):
         self.cframe+=1
         if self.cframe > self.nframes - 1:
             self.cframe = 0
-        self.img = np.array(self.v[0][self.cframe])
+        self.img = np.array(self.video[0][self.cframe])
         #if self.Floaded:
         #    self.img[self.yext,self.xext,0] = self.srange[0]
         #    self.img[self.yext,self.xext,1] = self.srange[0]
@@ -345,9 +393,15 @@ class MainW(QtGui.QMainWindow):
         self.pimg.setLevels(self.srange)
         self.frameSlider.setValue(self.cframe)
         self.frameNumber.setText(str(self.cframe))
-        #self.scatter1.setData([self.cframe,self.cframe],
-        #                      [self.yoff[self.cframe],self.xoff[self.cframe]],
-        #                      size=10,brush=pg.mkBrush(255,0,0))
+        if self.processed:
+            self.scatter1.setData([self.cframe, self.cframe],
+                                   [self.motSVD[self.cframe, 0],
+                                   self.motSVD[self.cframe, 1]],
+                                   size=10,brush=pg.mkBrush(255,255,255))
+            self.scatter2.setData([self.cframe, self.cframe],
+                                  [self.motSVD[self.cframe, 0] / self.motStd[0],
+                                  self.motSVD[self.cframe, 1]] / self.motStd[1],
+                                  size=10,brush=pg.mkBrush(255,255,255))
 
     def start(self):
         if self.cframe < self.nframes - 1:
@@ -365,13 +419,50 @@ class MainW(QtGui.QMainWindow):
         #print('paused')
 
     def process_ROIs(self):
-        self.playButton.setEnabled(False)
-        self.pauseButton.setEnabled(False)
-        self.frameSlider.setEnabled(False)
-        facemap.run(self, self.filenames)
+        self.motSVD = facemap.run(self.filenames, self)
+        print(self.motSVD.shape)
+        self.processed = True
+        self.motSVD *= np.sign(skew(self.motSVD, axis=0))[np.newaxis,:]
+        self.motStd = self.motSVD.std(axis=0)
+        self.plot_processed()
 
+    def plot_processed(self):
+        self.cframe = 0
+        self.p1.clear()
+        self.p2.clear()
+        cmap = cm.get_cmap("hsv")
+        cmap = (255 * cmap(np.linspace(0,.98,10))).astype(int)
+        for c in range(min(10,self.motSVD.shape[1])):
+            self.p1.plot(self.motSVD[:, c],  pen=tuple(cmap[c,:]))
+            self.p2.plot(self.motSVD[:, c] / self.motStd[c],  pen=tuple(cmap[c,:]))
 
+        self.p1.setRange(xRange=(0,self.nframes),
+                          padding=0.0)
+        self.p1.setLimits(xMin=0,xMax=self.nframes)
+        self.scatter1 = pg.ScatterPlotItem()
+        self.p1.addItem(self.scatter1)
+        self.scatter1.setData([self.cframe, self.cframe],
+                               [self.motSVD[self.cframe, 0],
+                               self.motSVD[self.cframe, 1]],
+                               size=10,brush=pg.mkBrush(255,255,255))
 
+        self.p2.setRange(xRange=(0,self.nframes),
+                          padding=0.0)
+        self.p2.setLimits(xMin=0,xMax=self.nframes)
+
+        self.scatter2 = pg.ScatterPlotItem()
+        self.p2.addItem(self.scatter2)
+        self.scatter2.setData([self.cframe, self.cframe],
+                              [self.motSVD[self.cframe, 0] / self.motStd[0],
+                              self.motSVD[self.cframe, 1]] / self.motStd[1],
+                              size=10,brush=pg.mkBrush(255,255,255))
+        self.jump_to_frame()
+
+    def button_status(self, status):
+        self.playButton.setEnabled(status)
+        self.pauseButton.setEnabled(status)
+        self.frameSlider.setEnabled(status)
+        self.process.setEnabled(status)
 
 def run():
     # Always start by initializing Qt (only once per application)

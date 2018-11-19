@@ -1,8 +1,12 @@
 import pims
 import numpy as np
-from FaceMap import gui
+from FaceMap import gui, utils
+import pyqtgraph as pg
+import time
+import os
 
 def run(filenames, parent=None):
+    print('processing videos')
     # grab files
     if parent is not None:
         video = parent.video
@@ -26,16 +30,42 @@ def run(filenames, parent=None):
     if len(frame_shape) > 2:
         isRGB = True
 
+    sbin = 4
+    ncomps = 500
+    tic = time.time()
     # compute average frame and average motion across videos
-    avgframe, avgmotion = subsampled_mean(video, Ly, Lx, iframes)
+    avgframe, avgmotion = subsampled_mean(video, Ly, Lx, iframes, sbin)
+    print('computed subsampled mean at %1.2fs'%(time.time() - tic))
 
     # compute SVD from frames subsampled across videos and return spatial components
-    U = compute_SVD(video, Ly, Lx, iframes, avgmotion, ncomps=500, sbin=3)
+    U = compute_SVD(video, Ly, Lx, iframes, avgmotion, ncomps, sbin)
+    print('computed subsampled SVD at %1.2fs'%(time.time() - tic))
 
     # project U onto all movie frames
-    V = project_masks(video, Ly, Lx, iframes, avgmotion, U, sbin=3)
+    V = project_masks(video, Ly, Lx, iframes, avgmotion, U, sbin, tic)
+    print('computed projection at %1.2fs'%(time.time() - tic))
 
-def subsampled_mean(video, Ly, Lx, iframes):
+    # save output to file (can load in gui)
+    save_ROIs(filenames, Ly, Lx, sbin, U, V, avgframe, avgmotion)
+
+    return V
+
+def save_ROIs(filenames, Ly, Lx, sbin, U, V, avgframe, avgmotion):
+    Lyb = int(np.floor(Ly / sbin))
+    Lxb = int(np.floor(Lx / sbin))
+    U = np.reshape(U, (Lyb, Lxb, -1))
+    avgframe  = np.reshape(avgframe, (Lyb, Lxb))
+    avgmotion = np.reshape(avgmotion, (Lyb, Lxb))
+    proc = {'motMask': U, 'motSVD': V,
+            'avgframe': avgframe, 'avgmotion': avgmotion,
+            'filenames': filenames}
+    basename, filename = os.path.split(filenames[0])
+    savename = os.path.join(basename, ("%s_proc.npy"%filename))
+    print(savename)
+    np.save(savename, proc)
+
+
+def subsampled_mean(video, Ly, Lx, iframes, sbin=3):
     # grab up to 2000 frames to average over for mean
     # v is a list of videos loaded with pims
     # iframes are the frames in each video
@@ -49,8 +79,10 @@ def subsampled_mean(video, Ly, Lx, iframes):
     tf = np.floor(np.linspace(0, nframes - nt0, nsegs)).astype(int)
     nfr = np.cumsum(np.concatenate(([0], iframes)))
 
-    avgframe = np.zeros((Ly, Lx), np.float32)
-    avgmotion = np.zeros((Ly, Lx), np.float32)
+    Lyb = int(np.floor(Ly / sbin))
+    Lxb = int(np.floor(Lx / sbin))
+    avgframe = np.zeros((Lyb * Lxb), np.float32)
+    avgmotion = np.zeros((Lyb * Lxb), np.float32)
     ns = 0
     for n in range(nsegs):
         t = tf[n]
@@ -65,15 +97,16 @@ def subsampled_mean(video, Ly, Lx, iframes):
         im = np.array(video[ivid][t:t+nt0])
         if im.ndim > 3:
             im = im[:,:,:,0]
-        imchunk = im.astype(np.float32)
-
+        im = np.transpose(im, (1,2,0)).astype(np.float32)
+        imbin = spatial_bin(im, sbin, Lyb, Lxb)
         # add to averages
-        avgframe += imchunk.mean(axis=0)
-        avgmotion += np.abs(np.diff(imchunk, axis=0)).mean(axis=0)
+        avgframe += imbin.mean(axis=-1)
+        imbin = np.abs(np.diff(imbin, axis=-1))
+        avgmotion += np.abs(np.diff(imbin, axis=-1)).mean(axis=-1)
         ns+=1
 
-    avgframe /= ns
-    avgmotion /= ns
+    avgframe /= float(ns)
+    avgmotion /= float(ns)
 
     return avgframe, avgmotion
 
@@ -90,8 +123,7 @@ def compute_SVD(video, Ly, Lx, iframes, avgmotion, ncomps=500, sbin=3):
     # load in chunks of up to 1000 frames (for speed)
     nt0 = min(1000, iframes.min())
     nsegs = int(min(np.floor(25000 / nt0), np.floor(nframes / nt0)))
-    print(nsegs)
-    nc = int(ncomps / 2) # <- how many PCs to keep in each chunk
+    nc = int(250) # <- how many PCs to keep in each chunk
     nc = min(nc, nt0-1)
     if nsegs==1:
         nc = min(ncomps, nt0-1)
@@ -103,8 +135,6 @@ def compute_SVD(video, Ly, Lx, iframes, avgmotion, ncomps=500, sbin=3):
     Lyb = int(np.floor(Ly / sbin))
     Lxb = int(np.floor(Lx / sbin))
     U = np.zeros((Lyb*Lxb, nsegs*nc), np.float32)
-    print(U.shape)
-    avgmotion = (np.reshape(avgmotion[:Lyb*sbin, :Lxb*sbin], (Lyb,sbin,Lxb,sbin))).mean(axis=-1).mean(axis=1).flatten()
     imchunk = np.zeros((Ly, Lx, nt0), np.float32)
     for n in range(nsegs):
         t = tf[n]
@@ -121,11 +151,10 @@ def compute_SVD(video, Ly, Lx, iframes, avgmotion, ncomps=500, sbin=3):
         im = np.array(video[ivid][t:t+nt0])
         if im.ndim > 3:
             im = im[:,:,:,0]
-        im = np.transpose(im, (1,2,0))
         # compute motion energy
-        imbin = (np.reshape(im[:Lyb*sbin, :Lxb*sbin, :], (Lyb,sbin,Lxb,sbin,-1))).mean(axis=1).mean(axis=2)
-        imbin = imbin.astype(np.float32)
-        imbin = np.reshape(np.abs(np.diff(imbin)), (Lyb*Lxb, -1))
+        im = np.transpose(im, (1,2,0)).astype(np.float32)
+        imbin = spatial_bin(im, sbin, Lyb, Lxb)
+        imbin = np.abs(np.diff(imbin, axis=-1))
         imbin -= avgmotion[:,np.newaxis]
         usv  = utils.svdecon(imbin, k=nc)
         U[:, n*nc:(n+1)*nc] = usv[0]
@@ -133,45 +162,90 @@ def compute_SVD(video, Ly, Lx, iframes, avgmotion, ncomps=500, sbin=3):
     U = U[:, :(ns+1)*nc]
 
     # take SVD of concatenated spatial PCs
-    if U.shape[1] > ncomps:
-        usv = utils.svdecon(U, k = min(ncomps, U.shape[1]))
+    if ns > 1:
+        usv = utils.svdecon(U, k = min(ncomps, U.shape[1]-1))
         u = usv[0]
     else:
         u = U
     return u
 
-def project_masks(video, Ly, Lx, iframes, avgmotion, U, sbin=3):
+def spatial_bin(im, sbin, Lyb, Lxb):
+    imbin = im.astype(np.float32)
+    if sbin > 1:
+        imbin = (np.reshape(im[:Lyb*sbin, :Lxb*sbin, :], (Lyb,sbin,Lxb,sbin,-1))).mean(axis=1).mean(axis=2)
+    imbin = np.reshape(imbin, (Lyb*Lxb, -1))
+    return imbin
+
+def project_masks(video, Ly, Lx, iframes, avgmotion, U, sbin=3, tic=None):
     # project U onto each frame in the video and compute the motion energy
     nframes = iframes.sum()
-    V = np.zeros((U.shape[1], nframes), np.float32)
+    ncomps = U.shape[1]
+    V = np.zeros((nframes, ncomps), np.float32)
     nvids = len(video)
     nfr = np.cumsum(np.concatenate(([0], iframes)))
 
+    if tic is None:
+        tic=time.time()
+
     # loop over videos in list
     # compute in chunks of 2000
-    nt0 = 2000
+    nt0 = 500
     Lyb = int(np.floor(Ly / sbin))
     Lxb = int(np.floor(Lx / sbin))
-    avgmotion = (np.reshape(avgmotion[:Lyb*sbin, :Lxb*sbin], (Lyb,sbin,Lxb,sbin))).mean(axis=-1).mean(axis=1).flatten()
     for ivid in range(nvids):
         ifr   = nfr[ivid]
         nsegs = int(np.ceil(iframes[ivid] / nt0))
         tvid  = np.floor(np.linspace(0, iframes[ivid], nsegs+1)).astype(int)
         for n in range(nsegs):
-            im = np.array(v[ivid][tvid[n]:tvid[n+1]])
-            if isRGB:
+            im = np.array(video[ivid][tvid[n]:tvid[n+1]])
+            if im.ndim > 3:
                 im = im[:,:,:,0]
-            im = np.transpose(im, (1,2,0))
-            imbin = (np.reshape(im[:Lyb*sbin, :Lxb*sbin, :], (Lyb,sbin,Lxb,sbin,-1))).mean(axis=1).mean(axis=2)
-            imbin = np.reshape(imbin, (Lyb*Lxb,-1)).astype(np.float32)
-            if n==0:
-                imbin = np.concatenate((imbin[:,0][:,np.newaxis], imbin), axis=-1)
-            else:
+            # compute motion energy
+            im = np.transpose(im, (1,2,0)).astype(np.float32)
+            imbin = spatial_bin(im, sbin, Lyb, Lxb)
+            if n>0:
                 imbin = np.concatenate((imend[:,np.newaxis], imbin), axis=-1)
-            imbin = np.abs(np.diff(imbin))
+            imend = imbin[:,-1]
+            imbin = np.abs(np.diff(imbin, axis=-1))
             imbin -= avgmotion[:,np.newaxis]
 
-            vproj = U.T @ imbin
-            V[:, (ifr+tvid[n]) : (ifr+tvid[n+1])] = vproj
-            imend = imbin[:, -1]
+            vproj = imbin.T @ U
+            if n==0:
+                vproj = np.concatenate((vproj[0,:][np.newaxis, :], vproj), axis=0)
+            V[(ifr+tvid[n]) : (ifr+tvid[n+1]), :] = vproj
+
+            if n%5==0:
+                print('video %d, segment %d / %d, time %1.2f'%(ivid+1, n+1, nsegs, time.time() - tic))
+
+
+                # parent.p1.clear()
+                # parent.p2.clear()
+                # for c in range(min(10,ncomps)):
+                #     parent.p1.plot(V[:, c] * sign(skew(V[:, c])),  pen=(255-20*c, 0, 0+20*c))
+                #     parent.p2.plot(zscore(V[:, c]) * sign(skew(V[:, c])),  pen=(255-20*c, 0, 0+20*c))
+                #
+                # parent.p1.setRange(xRange=(0,nframes),
+                #                   padding=0.0)
+                # parent.p1.setLimits(xMin=0,xMax=nframes)
+                # parent.cframe = ifr+tvid[n+1] - 1
+                # parent.scatter1 = pg.ScatterPlotItem()
+                # parent.p1.addItem(parent.scatter1)
+                # parent.scatter1.setData([parent.cframe, parent.cframe],
+                #                       [V[parent.cframe, 0], V[parent.cframe, 1]],
+                #                       size=10,brush=pg.mkBrush(255,0,0))
+                #
+                # parent.p2.setRange(xRange=(0,nframes),
+                #                   padding=0.0)
+                # parent.p2.setLimits(xMin=0,xMax=nframes)
+                # parent.cframe = ifr+tvid[n+1] - 1
+                # parent.scatter2 = pg.ScatterPlotItem()
+                # parent.p2.addItem(parent.scatter1)
+                # parent.scatter2.setData([parent.cframe, parent.cframe],
+                #                       [V[parent.cframe, 0], V[parent.cframe, 1]],
+                #                       size=10,brush=pg.mkBrush(255,0,0))
+                #
+                #
+                # parent.jump_to_frame()
+                # parent.win.show()
+                # parent.show()
     return V
