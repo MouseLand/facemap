@@ -51,6 +51,7 @@ class MainW(QtGui.QMainWindow):
         self.p2 = self.win.addPlot(name='plot2',row=2,col=0)
         self.p2.setMouseEnabled(x=True,y=False)
         self.p2.setMenuEnabled(False)
+        self.p2.setXLink("plot1")
         #self.p2.autoRange(padding=0.01)
         self.win.ci.layout.setRowStretchFactor(0,5)
         self.movieLabel = QtGui.QLabel("No movie chosen")
@@ -64,6 +65,13 @@ class MainW(QtGui.QMainWindow):
         #qlabel.setText("<font color='white'>Selected ROI:</font>")
         #self.l0.addWidget(qlabel,3,0,1,2)
         # create frame slider
+        binLabel = QtGui.QLabel("Spatial bin:")
+        binLabel.setStyleSheet("color: white;")
+        self.binSpinBox = QtGui.QSpinBox()
+        self.binSpinBox.setRange(1, 20)
+        self.binSpinBox.setValue(4)
+        self.l0.addWidget(binLabel, 4, 0, 1, 2)
+        self.l0.addWidget(self.binSpinBox, 5, 0, 1, 1)
         self.frameLabel = QtGui.QLabel("Current frame:")
         self.frameLabel.setStyleSheet("color: white;")
         self.frameNumber = QtGui.QLabel("0")
@@ -79,18 +87,13 @@ class MainW(QtGui.QMainWindow):
         self.l0.addWidget(self.frameNumber, 14,0,1,2)
         self.l0.addWidget(self.frameSlider, 13,2,14,13)
         self.l0.addWidget(QtGui.QLabel(''),16,1,1,1)
-        self.l0.setRowStretch(16,2)
+        #self.l0.setRowStretch(16,2)
         ll = QtGui.QLabel('play/pause with SPACE')
         ll.setStyleSheet("color: white;")
         self.l0.addWidget(ll,17,0,1,3)
         ll = QtGui.QLabel('(when paused, left/right arrow keys can move slider)')
         ll.setStyleSheet("color: white;")
         self.l0.addWidget(ll,18,0,1,3)
-        #speedLabel = QtGui.QLabel("Speed:")
-        #self.speedSpinBox = QtGui.QSpinBox()
-        #self.speedSpinBox.setRange(1, 9999)
-        #self.speedSpinBox.setValue(100)
-        #self.speedSpinBox.setSuffix("%")
         self.frameSlider.valueChanged.connect(self.go_to_frame)
         self.l0.addWidget(self.movieLabel,0,0,1,5)
         self.updateFrameSlider()
@@ -141,6 +144,7 @@ class MainW(QtGui.QMainWindow):
                 iframes.append(len(v[-1]))
                 nframes += len(v[-1])
             self.motSVD = proc['motSVD']
+            self.motSVD *= np.sign(skew(self.motSVD, axis=0))[np.newaxis,:]
             self.motStd = self.motSVD.std(axis=0)
             self.video = v
             self.nframes = nframes
@@ -271,7 +275,7 @@ class MainW(QtGui.QMainWindow):
                     pos = vb.mapSceneToView(event.scenePos())
                     posx = pos.x()
                     iplot = 1
-                elif x==self.p2 and self.Floaded:
+                elif x==self.p2:
                     vb = self.p1.vb
                     pos = vb.mapSceneToView(event.scenePos())
                     posx = pos.x()
@@ -419,6 +423,7 @@ class MainW(QtGui.QMainWindow):
         #print('paused')
 
     def process_ROIs(self):
+        self.sbin = int(self.binSpinBox.value())
         self.motSVD = facemap.run(self.filenames, self)
         print(self.motSVD.shape)
         self.processed = True
@@ -431,12 +436,14 @@ class MainW(QtGui.QMainWindow):
         self.p1.clear()
         self.p2.clear()
         cmap = cm.get_cmap("hsv")
-        cmap = (255 * cmap(np.linspace(0,.98,10))).astype(int)
-        for c in range(min(10,self.motSVD.shape[1])):
+        nc = min(8,self.motSVD.shape[1])
+        cmap = (255 * cmap(np.linspace(0,0.8,nc))).astype(int)
+        for c in range(nc):
             self.p1.plot(self.motSVD[:, c],  pen=tuple(cmap[c,:]))
             self.p2.plot(self.motSVD[:, c] / self.motStd[c],  pen=tuple(cmap[c,:]))
 
         self.p1.setRange(xRange=(0,self.nframes),
+                         yRange=(self.motSVD[:,:nc].min(), self.motSVD[:,:nc].max()),
                           padding=0.0)
         self.p1.setLimits(xMin=0,xMax=self.nframes)
         self.scatter1 = pg.ScatterPlotItem()
@@ -446,7 +453,9 @@ class MainW(QtGui.QMainWindow):
                                self.motSVD[self.cframe, 1]],
                                size=10,brush=pg.mkBrush(255,255,255))
 
+        motScale = self.motSVD[:,:nc] / self.motStd[:nc][np.newaxis,:]
         self.p2.setRange(xRange=(0,self.nframes),
+                         yRange=(motScale.min(), motScale.max()),
                           padding=0.0)
         self.p2.setLimits(xMin=0,xMax=self.nframes)
 

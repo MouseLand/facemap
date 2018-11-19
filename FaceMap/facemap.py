@@ -1,7 +1,6 @@
 import pims
 import numpy as np
 from FaceMap import gui, utils
-import pyqtgraph as pg
 import time
 import os
 
@@ -12,6 +11,7 @@ def run(filenames, parent=None):
         video = parent.video
         iframes = parent.iframes
         nframes = parent.nframes
+        sbin = parent.sbin
         frame_shape = video[0].frame_shape
     else:
         video=[]
@@ -23,6 +23,7 @@ def run(filenames, parent=None):
             iframes.append(len(video[-1]))
         iframes = np.array(iframes).astype(int)
         frame_shape = video[0].frame_shape
+        sbin = 4
 
     Ly = frame_shape[0]
     Lx = frame_shape[1]
@@ -30,7 +31,6 @@ def run(filenames, parent=None):
     if len(frame_shape) > 2:
         isRGB = True
 
-    sbin = 4
     ncomps = 500
     tic = time.time()
     # compute average frame and average motion across videos
@@ -60,6 +60,7 @@ def save_ROIs(filenames, Ly, Lx, sbin, U, V, avgframe, avgmotion):
             'avgframe': avgframe, 'avgmotion': avgmotion,
             'filenames': filenames}
     basename, filename = os.path.split(filenames[0])
+    filename, ext = os.path.splitext(filename)
     savename = os.path.join(basename, ("%s_proc.npy"%filename))
     print(savename)
     np.save(savename, proc)
@@ -102,7 +103,7 @@ def subsampled_mean(video, Ly, Lx, iframes, sbin=3):
         # add to averages
         avgframe += imbin.mean(axis=-1)
         imbin = np.abs(np.diff(imbin, axis=-1))
-        avgmotion += np.abs(np.diff(imbin, axis=-1)).mean(axis=-1)
+        avgmotion += imbin.mean(axis=-1)
         ns+=1
 
     avgframe /= float(ns)
@@ -119,7 +120,6 @@ def compute_SVD(video, Ly, Lx, iframes, avgmotion, ncomps=500, sbin=3):
     sbin = max(1, sbin)
     nframes = iframes.sum()
     nvids = len(video)
-    nf = min(2000, nframes)
     # load in chunks of up to 1000 frames (for speed)
     nt0 = min(1000, iframes.min())
     nsegs = int(min(np.floor(25000 / nt0), np.floor(nframes / nt0)))
@@ -135,7 +135,6 @@ def compute_SVD(video, Ly, Lx, iframes, avgmotion, ncomps=500, sbin=3):
     Lyb = int(np.floor(Ly / sbin))
     Lxb = int(np.floor(Lx / sbin))
     U = np.zeros((Lyb*Lxb, nsegs*nc), np.float32)
-    imchunk = np.zeros((Ly, Lx, nt0), np.float32)
     for n in range(nsegs):
         t = tf[n]
         # which video is segment "n" in
@@ -189,7 +188,7 @@ def project_masks(video, Ly, Lx, iframes, avgmotion, U, sbin=3, tic=None):
 
     # loop over videos in list
     # compute in chunks of 2000
-    nt0 = 500
+    nt0 = 1000
     Lyb = int(np.floor(Ly / sbin))
     Lxb = int(np.floor(Lx / sbin))
     for ivid in range(nvids):

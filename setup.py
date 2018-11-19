@@ -13,7 +13,7 @@ setuptools.setup(
     long_description_content_type="text/markdown",
     url="https://github.com/MouseLand/FaceMap",
     packages=setuptools.find_packages(),
-    install_requires = ['pyqtgraph', 'PyQt5', 'numpy>=1.13.0', 'scipy', 'h5py'],
+    install_requires = ['pyqtgraph', 'PyQt5', 'numpy>=1.13.0', 'scipy','matplotlib','pims' 'h5py'],
     include_package_data=True,
     classifiers=(
         "Programming Language :: Python :: 3",
