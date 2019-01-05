@@ -7,15 +7,39 @@ from PyQt5 import QtGui, QtCore
 import pyqtgraph as pg
 from pyqtgraph import GraphicsScene
 import pims
-from FaceMap import facemap
+from FaceMap import facemap, roi
 from scipy.stats import zscore, skew
 from matplotlib import cm
+
+class Slider(QtGui.QSlider):
+    def __init__(self, bid, parent=None):
+        super(self.__class__, self).__init__()
+        initval = [99,99]
+        self.bid = bid
+        self.setOrientation(QtCore.Qt.Horizontal)
+        self.setMinimum(0)
+        self.setMaximum(100)
+        self.setValue(initval[bid])
+        self.setTickInterval(10)
+        self.valueChanged.connect(lambda: self.level_change(parent,bid))
+        self.setTracking(False)
+
+    def level_change(self, parent, bid):
+        parent.sat[bid] = float(self.value())/100 * 255
+        if bid==0:
+            parent.pimg.setLevels([0, parent.sat[bid]])
+        else:
+            #parent.pROIimg.setLevels([0, parent.sat[bid]])
+            parent.saturation[parent.iROI] = parent.sat[bid]
+            if len(parent.ROIs) > 0:
+                parent.ROIs[parent.iROI].plot(parent)
+        parent.win.show()
 
 class MainW(QtGui.QMainWindow):
     def __init__(self):
         super(MainW, self).__init__()
         pg.setConfigOptions(imageAxisOrder='row-major')
-        self.setGeometry(70,70,1070,1070)
+        self.setGeometry(15,15,1470,1000)
         self.setWindowTitle('FaceMap')
         self.setStyleSheet("QMainWindow {background: 'black';}")
         self.styleUnpressed = ("QPushButton {Text-align: left; "
@@ -38,17 +62,45 @@ class MainW(QtGui.QMainWindow):
         self.win.resize(1000,500)
         self.l0.addWidget(self.win,1,1,13,14)
         layout = self.win.ci.layout
+
         # A plot area (ViewBox + axes) for displaying the image
         self.p0 = self.win.addViewBox(lockAspect=True,row=0,col=0,invertY=True)
         #self.p0.setMouseEnabled(x=False,y=False)
         self.p0.setMenuEnabled(False)
         self.pimg = pg.ImageItem()
         self.p0.addItem(self.pimg)
-        self.p1 = self.win.addPlot(name='plot1',row=1,col=0)
+
+        # image ROI
+        self.pROI = self.win.addViewBox(lockAspect=True,row=0,col=1,invertY=True)
+        #self.p0.setMouseEnabled(x=False,y=False)
+        self.pROI.setMenuEnabled(False)
+        self.pROIimg = pg.ImageItem()
+        self.pROI.addItem(self.pROIimg)
+        self.scatter = pg.ScatterPlotItem([0], [0], pen='k', symbol='+')
+        self.pROI.addItem(self.scatter)
+
+        # roi initializations
+        self.iROI = 0
+        self.nROIs = 0
+        self.saturation = []
+        self.ROIs = []
+
+        # saturation sliders
+        self.sl = []
+        txt = ["saturation", 'saturation']
+        self.sat = [255,255]
+        for j in range(2):
+            self.sl.append(Slider(j, self))
+            self.l0.addWidget(self.sl[j],1,6+5*j,1,2)
+            qlabel = QtGui.QLabel(txt[j])
+            qlabel.setStyleSheet('color: white;')
+            self.l0.addWidget(qlabel,0,6+5*j,1,1)
+
+        self.p1 = self.win.addPlot(name='plot1',row=1,col=0,colspan=2)
         self.p1.setMouseEnabled(x=True,y=False)
         self.p1.setMenuEnabled(False)
         #self.p1.autoRange(padding=0.01)
-        self.p2 = self.win.addPlot(name='plot2',row=2,col=0)
+        self.p2 = self.win.addPlot(name='plot2',row=2,col=0,colspan=2)
         self.p2.setMouseEnabled(x=True,y=False)
         self.p2.setMenuEnabled(False)
         self.p2.setXLink("plot1")
@@ -65,13 +117,23 @@ class MainW(QtGui.QMainWindow):
         #qlabel.setText("<font color='white'>Selected ROI:</font>")
         #self.l0.addWidget(qlabel,3,0,1,2)
         # create frame slider
-        binLabel = QtGui.QLabel("Spatial bin:")
+        binLabel = QtGui.QLabel("SVD spatial bin:")
         binLabel.setStyleSheet("color: white;")
         self.binSpinBox = QtGui.QSpinBox()
         self.binSpinBox.setRange(1, 20)
         self.binSpinBox.setValue(4)
-        self.l0.addWidget(binLabel, 4, 0, 1, 2)
-        self.l0.addWidget(self.binSpinBox, 5, 0, 1, 1)
+        self.binSpinBox.setFixedWidth(30)
+        self.l0.addWidget(binLabel, 7, 0, 1, 2)
+        self.l0.addWidget(self.binSpinBox, 8, 0, 1, 2)
+        binLabel = QtGui.QLabel("pupil sigma:")
+        binLabel.setStyleSheet("color: white;")
+        self.sigmaBox = QtGui.QLineEdit()
+        self.sigmaBox.setText("2.5")
+        self.sigmaBox.setFixedWidth(45)
+        self.l0.addWidget(binLabel, 9, 0, 1, 2)
+        self.l0.addWidget(self.sigmaBox, 10, 0, 1, 2)
+        self.pupil_sigma = 2.5
+        self.sigmaBox.returnPressed.connect(self.pupil_sigma_change)
         self.frameLabel = QtGui.QLabel("Current frame:")
         self.frameLabel.setStyleSheet("color: white;")
         self.frameNumber = QtGui.QLabel("0")
@@ -108,7 +170,28 @@ class MainW(QtGui.QMainWindow):
         self.win.show()
         self.show()
         self.processed = False
+        self.openFile(["D:/cams5/mouse_face.mp4"])
         # if not a combined recording, automatically open binary
+
+    def pupil_sigma_change(self):
+        self.pupil_sigma = float(self.sigmaBox.text())
+        if len(self.ROIs) > 0:
+            self.ROIs[self.iROI].plot(self)
+
+    def add_ROI(self):
+        roitype = self.comboBox.currentIndex()
+        roistr = self.comboBox.currentText()
+        if roitype > 0:
+            self.saturation.append(255.)
+            self.iROI = self.nROIs
+            self.ROIs.append(roi.sROI(rind=roitype, rtype=roistr, iROI=self.nROIs, parent=self))
+            self.nROIs += 1
+        else:
+            msg = QtGui.QMessageBox(self)
+            msg.setIcon(QtGui.QMessageBox.Warning)
+            msg.setText("You have to choose an ROI type before creating ROI")
+            msg.setStandardButtons(QtGui.QMessageBox.Ok)
+            msg.exec_()
 
     def open(self):
         open_choice = QtGui.QMessageBox.question(
@@ -174,16 +257,6 @@ class MainW(QtGui.QMainWindow):
             self.plot_processed()
             self.next_frame()
 
-
-    #def open_folder(self):
-    #    fileName = QtGui.QFileDialog.getOpenFolder(self,
-    #                        "Open movie folder")
-        # load ops in same folder
-    #    if fileName:
-    #        print(fileName[0])
-    #        os.path.
-    #        self.openFile(fileName[0], False)
-
     def openFile(self, fileNames):
         try:
             v = []
@@ -205,6 +278,7 @@ class MainW(QtGui.QMainWindow):
             self.iframes = np.array(iframes).astype(int)
             self.Ly = self.video[0].frame_shape[0]
             self.Lx = self.video[0].frame_shape[1]
+            self.imgs = np.zeros((self.Ly, self.Lx, 3, 3))
             self.p1.clear()
             self.p2.clear()
             self.process.setEnabled(True)
@@ -222,23 +296,9 @@ class MainW(QtGui.QMainWindow):
             if self.nframes > 0:
                 self.updateFrameSlider()
                 self.updateButtons()
-            # plot ops X-Y offsets
-            #
-            # self.p1.plot(self.yoff, pen='g')
-            # self.p1.plot(self.xoff, pen='y')
-            # self.p1.setRange(xRange=(0,self.nframes),
-            #                  yRange=(np.minimum(self.yoff.min(),self.xoff.min()),
-            #                          np.maximum(self.yoff.max(),self.xoff.max())),
-            #                  padding=0.0)
-            # self.p1.setLimits(xMin=0,xMax=self.nframes)
-            # self.scatter1 = pg.ScatterPlotItem()
-            # self.p1.addItem(self.scatter1)
-            # self.scatter1.setData([self.cframe,self.cframe],
-            #                       [self.yoff[self.cframe],self.xoff[self.cframe]],
-            #                       size=10,brush=pg.mkBrush(255,0,0))
-            self.cframe = -1
+            self.cframe = 1
             self.loaded = True
-            self.next_frame()
+            self.jump_to_frame()
 
     def keyPressEvent(self, event):
         bid = -1
@@ -303,12 +363,6 @@ class MainW(QtGui.QMainWindow):
                 self.frameSlider.setValue(self.cframe)
                 #self.jump_to_frame()
 
-    def cell_mask(self):
-        #self.cmask = np.zeros((self.Ly,self.Lx,3),np.float32)
-        self.yext = self.stat[self.ichosen]['yext']
-        self.xext = self.stat[self.ichosen]['xext']
-        #self.cmask[self.yext,self.xext,2] = (self.srange[1]-self.srange[0])/2 * np.ones((self.yext.size,),np.float32)
-
     def go_to_frame(self):
         self.cframe = int(self.frameSlider.value())
         self.jump_to_frame()
@@ -325,6 +379,7 @@ class MainW(QtGui.QMainWindow):
     def updateButtons(self):
         self.playButton.setEnabled(True)
         self.pauseButton.setEnabled(False)
+        self.addROI.setEnabled(True)
         self.pauseButton.setChecked(True)
 
     def createButtons(self):
@@ -367,8 +422,25 @@ class MainW(QtGui.QMainWindow):
         quitButton.setToolTip("Quit")
         quitButton.clicked.connect(self.close)
 
+        self.comboBox = QtGui.QComboBox(self)
+        self.comboBox.setFixedWidth(80)
+        self.comboBox.addItem("ROI type")
+        self.comboBox.addItem("pupil")
+        self.comboBox.addItem("motion SVD")
+        self.comboBox.addItem("blink")
+        self.newROI = 0
+        self.comboBox.setCurrentIndex(0)
+        #self.comboBox.currentIndexChanged.connect(self.mode_change)
+
+        self.addROI = QtGui.QPushButton("add ROI")
+        self.addROI.setFont(QtGui.QFont("Arial", 8, QtGui.QFont.Bold))
+        self.addROI.clicked.connect(self.add_ROI)
+        self.addROI.setEnabled(False)
+
         self.l0.addWidget(openButton,1,0,1,1)
         self.l0.addWidget(self.process,2,0,1,1)
+        self.l0.addWidget(self.comboBox, 3, 0, 1, 2)
+        self.l0.addWidget(self.addROI,4,0,1,2)
         self.l0.addWidget(self.playButton,15,0,1,1)
         self.l0.addWidget(self.pauseButton,15,1,1,1)
         #self.l0.addWidget(quitButton,0,1,1,1)
@@ -381,20 +453,35 @@ class MainW(QtGui.QMainWindow):
             self.cframe = np.maximum(0, np.minimum(self.nframes-1, self.cframe))
             self.cframe = int(self.cframe)
             self.cframe -= 1
+            self.img = self.get_frame(self.cframe)
+            self.imgs[:,:,:,1] = self.img.copy()
+            self.imgs[:,:,:,2] = self.get_frame(self.cframe+1)
             self.next_frame()
+
+    def get_frame(self, cframe):
+        cframe = np.maximum(0, np.minimum(self.nframes-1, cframe))
+        cframe = int(cframe)
+        img = np.array(self.video[0][cframe])
+        return img
 
     def next_frame(self):
         # loop after video finishes
         self.cframe+=1
         if self.cframe > self.nframes - 1:
             self.cframe = 0
-        self.img = np.array(self.video[0][self.cframe])
+        self.imgs[:,:,:,:2] = self.imgs[:,:,:,1:]
+        self.imgs[:,:,:,2] = self.get_frame(self.cframe+1)
+        self.img = self.imgs[:,:,:,1].copy()
+        #self.img = np.array(self.video[0][self.cframe])
+        if len(self.ROIs) > 0:
+            self.ROIs[self.iROI].plot(self)
         #if self.Floaded:
         #    self.img[self.yext,self.xext,0] = self.srange[0]
         #    self.img[self.yext,self.xext,1] = self.srange[0]
         #    self.img[self.yext,self.xext,2] = (self.srange[1]) * np.ones((self.yext.size,),np.float32)
         self.pimg.setImage(self.img)
-        self.pimg.setLevels(self.srange)
+        self.pimg.setLevels([0,self.sat[0]])
+        #self.pROIimg.setLevels([0,self.sat[1]])
         self.frameSlider.setValue(self.cframe)
         self.frameNumber.setText(str(self.cframe))
         if self.processed:
