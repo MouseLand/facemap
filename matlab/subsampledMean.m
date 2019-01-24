@@ -44,7 +44,7 @@ for k = 1:nviews
     
 end
     
-nf = min(4000,cumsum(nframes));
+nf = min(4000,sum(nframes));
 nt0 = min(100, min(nframes));
 nsegs = nf/nt0;
 tf = linspace(0,floor(double(sum(nframes)-(nt0))/h.vr{1}.FrameRate),nsegs);
