@@ -170,7 +170,7 @@ class MainW(QtGui.QMainWindow):
         self.win.show()
         self.show()
         self.processed = False
-        self.openFile(["D:/cams5/mouse_face.mp4"])
+        #self.openFile(["D:/cams5/mouse_face.mp4"])
         # if not a combined recording, automatically open binary
 
     def pupil_sigma_change(self):
