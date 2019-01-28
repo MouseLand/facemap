@@ -262,9 +262,11 @@ class MainW(QtGui.QMainWindow):
             v = []
             nframes = 0
             iframes = []
+            cumframes = [0]
             for file in fileNames:
                 v.append(pims.Video(file))
                 iframes.append(len(v[-1]))
+                cumframes.append(cumframes[-1] + len(v[-1]))
                 nframes += len(v[-1])
             good = True
         except Exception as e:
@@ -276,6 +278,7 @@ class MainW(QtGui.QMainWindow):
             self.filenames = fileNames
             self.nframes = nframes
             self.iframes = np.array(iframes).astype(int)
+            self.cumframes = np.array(cumframes).astype(int)
             self.Ly = self.video[0].frame_shape[0]
             self.Lx = self.video[0].frame_shape[1]
             self.imgs = np.zeros((self.Ly, self.Lx, 3, 3))
@@ -461,7 +464,11 @@ class MainW(QtGui.QMainWindow):
     def get_frame(self, cframe):
         cframe = np.maximum(0, np.minimum(self.nframes-1, cframe))
         cframe = int(cframe)
-        img = np.array(self.video[0][cframe])
+        try:
+            ivid = (self.cumframes < cframe).nonzero()[0][-1]
+        except:
+            ivid = 0
+        img = np.array(self.video[ivid][cframe - self.cumframes[ivid]])
         return img
 
     def next_frame(self):
@@ -489,10 +496,10 @@ class MainW(QtGui.QMainWindow):
                                    [self.motSVD[self.cframe, 0],
                                    self.motSVD[self.cframe, 1]],
                                    size=10,brush=pg.mkBrush(255,255,255))
-            self.scatter2.setData([self.cframe, self.cframe],
-                                  [self.motSVD[self.cframe, 0] / self.motStd[0],
-                                  self.motSVD[self.cframe, 1]] / self.motStd[1],
-                                  size=10,brush=pg.mkBrush(255,255,255))
+            #self.scatter2.setData([self.cframe, self.cframe],
+            #                      [self.motSVD[self.cframe, 0] / self.motStd[0],
+            #                      self.motSVD[self.cframe, 1]] / self.motStd[1],
+            #                      size=10,brush=pg.mkBrush(255,255,255))
 
     def start(self):
         if self.cframe < self.nframes - 1:
@@ -511,7 +518,8 @@ class MainW(QtGui.QMainWindow):
 
     def process_ROIs(self):
         self.sbin = int(self.binSpinBox.value())
-        self.motSVD = facemap.run(self.filenames, self)
+        self.motSVDs, self.pupils = facemap.run(self.filenames, self)
+        self.motSVD = self.motSVDs[0]
         print(self.motSVD.shape)
         self.processed = True
         self.motSVD *= np.sign(skew(self.motSVD, axis=0))[np.newaxis,:]
@@ -526,32 +534,38 @@ class MainW(QtGui.QMainWindow):
         nc = min(8,self.motSVD.shape[1])
         cmap = (255 * cmap(np.linspace(0,0.8,nc))).astype(int)
         for c in range(nc):
-            self.p1.plot(self.motSVD[:, c],  pen=tuple(cmap[c,:]))
-            self.p2.plot(self.motSVD[:, c] / self.motStd[c],  pen=tuple(cmap[c,:]))
+            #self.p1.plot(self.motSVD[:, c],  pen=tuple(cmap[c,:]))
+            self.p1.plot(self.motSVD[:, c] / self.motStd[c],  pen=tuple(cmap[c,:]))
 
+        motScale = self.motSVD[:,:nc] / self.motStd[:nc][np.newaxis,:]
         self.p1.setRange(xRange=(0,self.nframes),
-                         yRange=(self.motSVD[:,:nc].min(), self.motSVD[:,:nc].max()),
+                         yRange=(motScale.min(), motScale.max()),
                           padding=0.0)
         self.p1.setLimits(xMin=0,xMax=self.nframes)
+
         self.scatter1 = pg.ScatterPlotItem()
         self.p1.addItem(self.scatter1)
         self.scatter1.setData([self.cframe, self.cframe],
-                               [self.motSVD[self.cframe, 0],
-                               self.motSVD[self.cframe, 1]],
-                               size=10,brush=pg.mkBrush(255,255,255))
-
-        motScale = self.motSVD[:,:nc] / self.motStd[:nc][np.newaxis,:]
-        self.p2.setRange(xRange=(0,self.nframes),
-                         yRange=(motScale.min(), motScale.max()),
-                          padding=0.0)
-        self.p2.setLimits(xMin=0,xMax=self.nframes)
-
-        self.scatter2 = pg.ScatterPlotItem()
-        self.p2.addItem(self.scatter2)
-        self.scatter2.setData([self.cframe, self.cframe],
                               [self.motSVD[self.cframe, 0] / self.motStd[0],
                               self.motSVD[self.cframe, 1]] / self.motStd[1],
                               size=10,brush=pg.mkBrush(255,255,255))
+
+        self.p2.setLimits(xMin=0,xMax=self.nframes)
+        self.scatter2 = pg.ScatterPlotItem()
+        self.p2.addItem(self.scatter2)
+        for p in range(len(self.pupils)):
+            pup = self.pupils[p]
+            self.p2.plot(zscore(pup['area']))
+            self.p2.plot(zscore(pup['com'][:,0]))
+            self.p2.plot(zscore(pup['com'][:,1]))
+            self.p2.setRange(xRange=(0,self.nframes),
+                             yRange=(-2, 4),
+                             padding=0.0)
+        #self.scatter2.setData([self.cframe, self.cframe],
+        #                       [self.motSVD[self.cframe, 0],
+        #                       self.motSVD[self.cframe, 1]],
+        #                       size=10,brush=pg.mkBrush(255,255,255))
+
         self.jump_to_frame()
 
     def button_status(self, status):

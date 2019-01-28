@@ -19,6 +19,8 @@ class sROI():
         self.iROI = iROI
         self.rind = rind
         self.rtype = rtype
+        self.saturation = 0
+        self.pupil_sigma = 0
         colors = ['g','r','b']
         rind = 0
         roipen = pg.mkPen(colors[rind], width=3,
@@ -66,6 +68,8 @@ class sROI():
         img = parent.imgs.mean(axis=2).copy()
         img = img[np.ix_(self.yrange, self.xrange, np.arange(0,3))]
         sat = parent.saturation[self.iROI]
+        self.saturation = sat
+        self.pupil_sigma = parent.pupil_sigma
         if self.rind==1:
             img = img.mean(axis=-1)
             try:
@@ -73,7 +77,7 @@ class sROI():
                 fr -= fr.min()
                 fr = 255.0 - fr
                 fr = np.maximum(0, fr - (255.0-sat))
-                mu, sig, xy = pupil.fit_gaussian(fr, parent.pupil_sigma)
+                mu, sig, xy = pupil.fit_gaussian(fr, parent.pupil_sigma, True)
                 xy = xy[xy[:,0]>=0, :]
                 xy = xy[xy[:,0]<self.yrange.size, :]
                 xy = xy[xy[:,1]>=0, :]
