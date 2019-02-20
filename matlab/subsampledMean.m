@@ -3,12 +3,14 @@
 function h = subsampledMean(h)
 nviews = numel(h.nX);
 nvids  = size(h.vr,2);
-nframes = zeros(nvids,1);
+nframes = zeros(nvids,1,'single');
+
 for j = 1:nvids
     nframes(j) = h.vr{1,j}.Duration * h.vr{1,j}.FrameRate;
 end
-nframes = int64(nframes);
-ntime = sum(double(nframes)) / h.vr{1}.FrameRate;
+
+nframes = floor(nframes);
+
 npix = [];
 tpix = [];
 wvids = [];
