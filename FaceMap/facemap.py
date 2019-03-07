@@ -16,8 +16,8 @@ def run(filenames, parent=None):
         rois = parent.ROIs
         for r in rois:
             if r.rind==2:
-                r.yrange_bin = np.arange(np.floor(r.yrange[0]/sbin), np.floor(r.yrange[-1]/sbin)).astype(int)
-                r.xrange_bin = np.arange(np.floor(r.xrange[0]/sbin), np.floor(r.xrange[-1]/sbin)).astype(int)
+                r.yrange_bin = np.arange(np.floor(r.yrange[0]/sbin), np.floor((r.yrange[-1])/sbin)).astype(int)
+                r.xrange_bin = np.arange(np.floor(r.xrange[0]/sbin), np.floor((r.xrange[-1])/sbin)).astype(int)
     else:
         video=[]
         nframes = 0
@@ -27,7 +27,7 @@ def run(filenames, parent=None):
             video.append(pims.Video(file))
             nframes += len(video[-1])
             iframes.append(len(video[-1]))
-            cumframes.append(cumframes[-1] + len(v[-1]))
+            cumframes.append(cumframes[-1] + len(video[-1]))
         iframes = np.array(iframes).astype(int)
         cumframes = np.array(cumframes).astype(int)
         frame_shape = video[0].frame_shape
@@ -59,8 +59,8 @@ def run(filenames, parent=None):
     # reshape components
     Lyb = int(np.floor(Ly / sbin))
     Lxb = int(np.floor(Lx / sbin))
-    for nr in range(len(U)):
-        U[nr] = np.reshape(U[nr], (Lyb, Lxb, -1))
+    #for nr in range(len(U)):
+    #    U[nr] = np.reshape(U[nr], (Lyb, Lxb, -1))
     avgframe  = np.reshape(avgframe, (Lyb, Lxb))
     avgmotion = np.reshape(avgmotion, (Lyb, Lxb))
 
@@ -168,7 +168,7 @@ def compute_SVD(video, cumframes, avgmotion, ncomps=500, sbin=3, rois=None):
                 mind.append(i)
                 nyb = r.yrange_bin.size
                 nxb = r.xrange_bin.size
-                U.append(np.zeros((nyb*nxb, nsegs*nc), np.float32))
+                U.append(np.zeros((nyb*nxb, nsegs*min(nc,nyb*nxb)), np.float32))
     ns = 0
     for n in range(nsegs):
         tic=time.time()
@@ -182,12 +182,13 @@ def compute_SVD(video, cumframes, avgmotion, ncomps=500, sbin=3, rois=None):
         usv  = utils.svdecon(imbin, k=nc)
         U[0][:, n*nc:(n+1)*nc] = usv[0]
         if nroi > 0:
-            imbin = np.reshape((Lyb, Lxb, -1))
+            imbin = np.reshape(imbin, (Lyb, Lxb,-1))
             for i,m in enumerate(mind):
-                lilbin = imbin[np.ix_(rois[m].yrange_bin, rois[m].xrange_bin)]
+                lilbin = imbin[np.ix_(rois[m].yrange_bin, rois[m].xrange_bin, np.arange(0,imbin.shape[-1],1,int))]
                 lilbin = np.reshape(lilbin, (-1, lilbin.shape[-1]))
                 usv  = utils.svdecon(lilbin, k=nc)
-                U[i][:, n*nc:(n+1)*nc] = usv[0]
+                ncb = min(nc, lilbin.shape[0])
+                U[i+1][:, n*ncb:(n+1)*ncb] = usv[0]
 
         ns+=1
     for nr in range(len(U)):
@@ -224,13 +225,15 @@ def process_ROIs(video, cumframes, avgmotion, U, sbin=3, tic=None, rois=None):
     mind=[]
     pind=[]
     if rois is not None:
+        nr=0
         for i,r in enumerate(rois):
             if r.rind==1:
                 pind.append(i)
                 pup.append({'area': np.zeros((nframes,)), 'com': np.zeros((nframes,2))})
             if r.rind==2:
                 mind.append(i)
-                V.append(np.zeros((nframes, ncomps), np.float32))
+                nr+=1
+                V.append(np.zeros((nframes, U[nr].shape[1]), np.float32))
 
     # compute in chunks of 2000
     nt0 = 2000
@@ -248,7 +251,7 @@ def process_ROIs(video, cumframes, avgmotion, U, sbin=3, tic=None, rois=None):
         if len(pind)>0:
             k=0
             for p in pind:
-                com, area = pupil.process(im[np.ix_(rois[p].yrange, rois[p].xrange)],
+                com, area = pupil.process(im[np.ix_(rois[p].yrange, rois[p].xrange, np.arange(0,im.shape[-1],1,int))],
                               rois[p].saturation, rois[p].pupil_sigma)
                 pup[k]['com'][t:t+nt0,:] = com
                 pup[k]['area'][t:t+nt0] = area
@@ -267,7 +270,7 @@ def process_ROIs(video, cumframes, avgmotion, U, sbin=3, tic=None, rois=None):
             if nr==0:
                 vproj = np.reshape(imbin, (Lyb*Lxb, -1)).T @ U[nr]
             else:
-                lilbin = imbin[np.ix_(rois[mind[nr-1]].yrange_bin, rois[mind[nr-1]].xrange_bin)]
+                lilbin = imbin[np.ix_(rois[mind[nr-1]].yrange_bin, rois[mind[nr-1]].xrange_bin, np.arange(0,imbin.shape[-1],1,int))]
                 lilbin = np.reshape(lilbin, (-1, lilbin.shape[-1]))
                 vproj = lilbin.T @ U[nr]
             # first time block will have one less subtracted frame
