@@ -7,6 +7,8 @@ import os
 def run(filenames, parent=None):
     print('processing videos')
     # grab files
+    Lys = []
+    Lxs = []
     if parent is not None:
         video = parent.video
         cumframes = parent.cumframes
@@ -14,10 +16,18 @@ def run(filenames, parent=None):
         sbin = parent.sbin
         frame_shape = video[0].frame_shape
         rois = parent.ROIs
+
+        Ly = frame_shape[0]
+        Lx = frame_shape[1]
+        Lys.append(int(np.floor(Ly/sbin)))
+        Lxs.append(int(np.floor(Lx/sbin)))
         for r in rois:
             if r.rind==2:
                 r.yrange_bin = np.arange(np.floor(r.yrange[0]/sbin), np.floor((r.yrange[-1])/sbin)).astype(int)
                 r.xrange_bin = np.arange(np.floor(r.xrange[0]/sbin), np.floor((r.xrange[-1])/sbin)).astype(int)
+                Lys.append(len(r.yrange_bin))
+                Lxs.append(len(r.xrange_bin))
+
     else:
         video=[]
         nframes = 0
@@ -57,12 +67,12 @@ def run(filenames, parent=None):
     print('computed projection at %1.2fs'%(time.time() - tic))
 
     # reshape components
-    Lyb = int(np.floor(Ly / sbin))
-    Lxb = int(np.floor(Lx / sbin))
-    #for nr in range(len(U)):
-    #    U[nr] = np.reshape(U[nr], (Lyb, Lxb, -1))
-    avgframe  = np.reshape(avgframe, (Lyb, Lxb))
-    avgmotion = np.reshape(avgmotion, (Lyb, Lxb))
+    #Lyb = int(np.floor(Ly / sbin))
+    #Lxb = int(np.floor(Lx / sbin))
+    for nr in range(len(U)):
+        U[nr] = np.reshape(U[nr], (Lys[nr], Lxs[nr], -1))
+    avgframe  = np.reshape(avgframe, (Lys[0], Lxs[0]))
+    avgmotion = np.reshape(avgmotion, (Lys[0], Lxs[0]))
 
     # save output to file (can load in gui)
     save_ROIs(filenames, sbin, U, V, pup, avgframe, avgmotion, rois)
