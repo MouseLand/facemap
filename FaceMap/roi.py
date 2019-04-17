@@ -21,8 +21,7 @@ class sROI():
         self.rtype = rtype
         self.saturation = 0
         self.pupil_sigma = 0
-        colors = ['g','r','b']
-        rind = 0
+        colors = ['g','r','b','m']
         roipen = pg.mkPen(colors[rind], width=3,
                                 style=QtCore.Qt.SolidLine)
         view = parent.p0.viewRange()
@@ -30,8 +29,8 @@ class sROI():
         imy = (view[1][1] + view[1][0]) / 2
         dx = (view[0][1] - view[0][0]) / 4
         dy = (view[1][1] - view[1][0]) / 4
-        dx = np.minimum(dx, parent.Ly*0.4)
-        dy = np.minimum(dy, parent.Lx*0.4)
+        dx = np.minimum(dx, parent.Ly[0]*0.4)
+        dy = np.minimum(dy, parent.Lx[0]*0.4)
         imx = imx - dx / 2
         imy = imy - dy / 2
         self.ROI = pg.RectROI(
@@ -55,22 +54,36 @@ class sROI():
         xrange = (np.arange(-1 * int(sizex), 1) + int(posx)).astype(np.int32)
         yrange = (np.arange(-1 * int(sizey), 1) + int(posy)).astype(np.int32)
         xrange = xrange[xrange >= 0]
-        xrange = xrange[xrange < parent.Lx]
+        xrange = xrange[xrange < parent.LX]
         yrange = yrange[yrange >= 0]
-        yrange = yrange[yrange < parent.Ly]
+        yrange = yrange[yrange < parent.LY]
+
+        # which movie is this ROI in?
+        ivid = int(np.round(parent.vmap[np.ix_(yrange, xrange)].mean()))
+        # crop yrange and xrange
+        xrange = xrange[xrange>=parent.sx[ivid]]
+        xrange = xrange[xrange<parent.sx[ivid]+parent.Lx[ivid]]
+        yrange = yrange[yrange>=parent.sy[ivid]]
+        yrange = yrange[yrange<parent.sy[ivid]+parent.Ly[ivid]]
+
+        xrange -= parent.sx[ivid]
+        yrange -= parent.sy[ivid]
+        
         self.xrange = xrange
         self.yrange = yrange
+        self.ivid   = ivid
         self.plot(parent)
         #ypix, xpix = np.meshgrid(yrange, xrange)
         #self.select_cells(ypix, xpix)
 
     def plot(self, parent):
-        img = parent.imgs.mean(axis=2).copy()
+        img = parent.imgs[self.ivid].mean(axis=2).copy()
         img = img[np.ix_(self.yrange, self.xrange, np.arange(0,3))]
         sat = parent.saturation[self.iROI]
         self.saturation = sat
         self.pupil_sigma = parent.pupil_sigma
-        if self.rind==1:
+
+        if self.rind==0:
             img = img.mean(axis=-1)
             try:
                 fr = gaussian_filter(img.astype(np.float32), 1)
@@ -96,13 +109,25 @@ class sROI():
                 parent.pROI.addItem(parent.scatter)
                 parent.pROIimg.setImage(img)
                 parent.pROIimg.setLevels([0, sat])
-            parent.pROI.setRange(xRange=(0, self.yrange.size), yRange=(0,self.xrange.size))
-        elif self.rind==2:
+            parent.pROI.setRange(xRange=(0, self.xrange.size), yRange=(0,self.yrange.size))
+        elif self.rind==1 or self.rind==3:
             parent.pROI.removeItem(parent.scatter)
             parent.scatter = pg.ScatterPlotItem([0], [0], pen='k', symbol='+')
             parent.pROI.addItem(parent.scatter)
             parent.pROIimg.setImage(img[:,:,1] - img[:,:,0])
             parent.pROIimg.setLevels([0, sat])
+        elif self.rind==2:
+            # blink
+            img = img.mean(axis=-1)
+            parent.pROI.removeItem(parent.scatter)
+            parent.scatter = pg.ScatterPlotItem([0], [0], pen='k', symbol='+')
+            parent.pROI.addItem(parent.scatter)
+            fr  = img - img.min()
+            fr  = 255.0 - fr
+            fr  = np.maximum(0, fr - (255.0-sat))
+            parent.pROIimg.setImage(255-fr)
+            parent.pROIimg.setLevels([255-sat, 255])
 
+            
         parent.win.show()
         parent.show()
