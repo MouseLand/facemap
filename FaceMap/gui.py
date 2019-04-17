@@ -734,7 +734,7 @@ class MainW(QtGui.QMainWindow):
         self.sbin = int(self.binSpinBox.value())
         self.motSVDs, self.pupils, self.running = facemap.run(self.filenames, self)
         self.processed = True
-        if fullSVD:
+        if self.fullSVD:
             self.motSVD = self.motSVDs[0]
             print(self.motSVD.shape)
             self.motSVD *= np.sign(skew(self.motSVD, axis=0))[np.newaxis,:]
