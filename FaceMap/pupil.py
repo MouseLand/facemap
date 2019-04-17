@@ -40,7 +40,10 @@ def process(img, saturation, pupil_sigma):
     # smooth in time by two bins
     cumsum = np.cumsum(img, axis=-1)
     img[:,:,1:-1] = (cumsum[:, :, 2:] - cumsum[:, :, :-2]) / float(2)
+
+    # smoothing in space
     img = gaussian_filter1d(gaussian_filter1d(img, 1, axis=0), 1, axis=1)
+    
     img -= img.min(axis=1).min(axis=0)[np.newaxis, np.newaxis, :]
     img = 255.0 - img
     img = np.maximum(0, img - (255.0 - saturation))

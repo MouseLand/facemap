@@ -86,6 +86,7 @@ class sROI():
         if self.rind==0:
             img = img.mean(axis=-1)
             try:
+                # smooth in space
                 fr = gaussian_filter(img.astype(np.float32), 1)
                 fr -= fr.min()
                 fr = 255.0 - fr

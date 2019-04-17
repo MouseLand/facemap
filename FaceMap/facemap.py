@@ -8,13 +8,14 @@ import pdb
 def run(filenames, parent=None):
     print('processing videos')
     # grab files
+    Lys = []
+    Lxs = []
     if parent is not None:
         video = parent.video
         cumframes = parent.cumframes
         nframes = parent.nframes
         sbin = parent.sbin
         rois = parent.ROIs
-        nroi = 0
         for r in rois:
             if r.rind==1:
                 r.yrange_bin = np.arange(np.floor(r.yrange[0]/sbin), np.floor((r.yrange[-1])/sbin)).astype(int)
@@ -69,12 +70,10 @@ def run(filenames, parent=None):
     print('computed projection at %1.2fs'%(time.time() - tic))
 
     # reshape components
-    #Lyb = int(np.floor(Ly / sbin))
-    #Lxb = int(np.floor(Lx / sbin))
     #for nr in range(len(U)):
-    #    U[nr] = np.reshape(U[nr], (Lyb, Lxb, -1))
-    #avgframe  = np.reshape(avgframe, (Lyb, Lxb))
-    #avgmotion = np.reshape(avgmotion, (Lyb, Lxb))
+    #    U[nr] = np.reshape(U[nr], (Lys[nr], Lxs[nr], -1))
+    #avgframe  = np.reshape(avgframe, (Lys[0], Lxs[0]))
+    #avgmotion = np.reshape(avgmotion, (Lys[0], Lxs[0]))
 
     # save output to file (can load in gui)
     save_ROIs(filenames, sbin, U, V, pup, run, avgframe, avgmotion, rois)
