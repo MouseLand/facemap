@@ -84,7 +84,7 @@ def save_ROIs(filenames, sbin, U, V, pup, run, avgframe, avgmotion, rois=None):
     proc = {'motMask': U, 'motSVD': V, 'pupil': pup, 'running': run,
             'avgframe': avgframe, 'avgmotion': avgmotion,
             'filenames': filenames}
-    basename, filename = os.path.split(filenames[0])
+    basename, filename = os.path.split(filenames[0][0])
     filename, ext = os.path.splitext(filename)
     savename = os.path.join(basename, ("%s_proc.npy"%filename))
     print(savename)
