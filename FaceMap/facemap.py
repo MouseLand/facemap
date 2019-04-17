@@ -65,7 +65,7 @@ def run(filenames, parent=None):
 
     # project U onto all movie frames
     # and compute pupil (if selected)
-    V, pup, run = process_ROIs(video, cumframes, Ly, Lx, avgmotion, U, sbin, tic, rois, fullSVD)
+    V, pups, runs = process_ROIs(video, cumframes, Ly, Lx, avgmotion, U, sbin, tic, rois, fullSVD)
 
     print('computed projection at %1.2fs'%(time.time() - tic))
 
@@ -76,12 +76,12 @@ def run(filenames, parent=None):
     #avgmotion = np.reshape(avgmotion, (Lys[0], Lxs[0]))
 
     # save output to file (can load in gui)
-    save_ROIs(filenames, sbin, U, V, pup, run, avgframe, avgmotion, rois)
+    save_ROIs(filenames, sbin, U, V, pups, runs, avgframe, avgmotion, rois)
 
-    return V, pup, run
+    return V, pups, runs
 
-def save_ROIs(filenames, sbin, U, V, pup, run, avgframe, avgmotion, rois=None):
-    proc = {'motMask': U, 'motSVD': V, 'pupil': pup, 'running': run,
+def save_ROIs(filenames, sbin, U, V, pups, runs, avgframe, avgmotion, rois=None):
+    proc = {'motMask': U, 'motSVD': V, 'pupil': pups, 'running': runs,
             'avgframe': avgframe, 'avgmotion': avgmotion,
             'filenames': filenames}
     basename, filename = os.path.split(filenames[0][0])
@@ -262,24 +262,24 @@ def process_ROIs(video, cumframes, Ly, Lx, avgmotion, U, sbin=3, tic=None, rois=
     if tic is None:
         tic=time.time()
     nframes = cumframes[-1]
-        
-    pup = []
+
+    pups = []
     blink = []
-    run = []
+    runs = []
 
     motind=[]
     pupind=[]
     blind=[]
     runind = []
     ivid = []
-    run = []
+    runs = []
     if rois is not None:
         nroi=0 # number of motion ROIs
         for i,r in enumerate(rois):
             ivid.append(r.ivid)
             if r.rind==0:
                 pupind.append(i)
-                pup.append({'area': np.zeros((nframes,)), 'com': np.zeros((nframes,2))})
+                pups.append({'area': np.zeros((nframes,)), 'com': np.zeros((nframes,2))})
             elif r.rind==1:
                 motind.append(i)
                 nroi+=1
@@ -289,7 +289,7 @@ def process_ROIs(video, cumframes, Ly, Lx, avgmotion, U, sbin=3, tic=None, rois=
                 blind.append(np.zeros((nframes,)))
             elif r.rind==3:
                 runind.append(i)
-                run.append(np.zeros((nframes,2)))
+                runs.append(np.zeros((nframes,2)))
     ivid = np.array(ivid).astype(np.int32)
 
     if nroi>0:
@@ -300,8 +300,8 @@ def process_ROIs(video, cumframes, Ly, Lx, avgmotion, U, sbin=3, tic=None, rois=
         V = [np.zeros((nframes, ncomps), np.float32)]
     else:
         V = [np.zeros((0,1), np.float32)]
-        
-    
+
+
     # compute in chunks of 2000
     nt0 = 2000
     nsegs = int(np.ceil(nframes / nt0))
@@ -320,8 +320,8 @@ def process_ROIs(video, cumframes, Ly, Lx, avgmotion, U, sbin=3, tic=None, rois=
             for p in pupind:
                 com, area = pupil.process(img[ivid[p]][np.ix_(rois[p].yrange, rois[p].xrange, np.arange(0,im.shape[-1],1,int))],
                               rois[p].saturation, rois[p].pupil_sigma)
-                pup[k]['com'][t:t+nt0,:] = com
-                pup[k]['area'][t:t+nt0] = area
+                pups[k]['com'][t:t+nt0,:] = com
+                pups[k]['area'][t:t+nt0] = area
                 k+=1
 
         # compute running
@@ -338,7 +338,7 @@ def process_ROIs(video, cumframes, Ly, Lx, avgmotion, U, sbin=3, tic=None, rois=
                     rend.append(imr)
                 imr = np.transpose(imr, (2,0,1)).copy()
                 dy, dx = running.process(imr)
-                run[k][t:t+nt0,:] = np.concatenate((dy[:,np.newaxis], dx[:,np.newaxis]),axis=1)
+                runs[k][t:t+nt0,:] = np.concatenate((dy[:,np.newaxis], dx[:,np.newaxis]),axis=1)
                 k+=1
 
         # bin and get motion
@@ -378,4 +378,4 @@ def process_ROIs(video, cumframes, Ly, Lx, avgmotion, U, sbin=3, tic=None, rois=
         if n%5==0:
             print('segment %d / %d, time %1.2f'%(n+1, nsegs, time.time() - tic))
 
-    return V, pup, run
+    return V, pups, runs
