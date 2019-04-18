@@ -34,14 +34,14 @@ def run(filenames, parent=None, savepath=None):
             vs = []
             for f in fs:
                 vs.append(pims.Video(f))
-            v.append(vs)
-            iframes.append(len(v[-1][0]))
-            cumframes.append(cumframes[-1] + len(v[-1][0]))
-            nframes += len(v[-1][0])
+            video.append(vs)
+            iframes.append(len(video[-1][0]))
+            cumframes.append(cumframes[-1] + len(video[-1][0]))
+            nframes += len(video[-1][0])
             if k==0:
                 Ly = []
                 Lx = []
-                for vs in v[-1]:
+                for vs in video[-1]:
                     fshape = vs.frame_shape
                     Ly.append(fshape[0])
                     Lx.append(fshape[1])
@@ -49,7 +49,6 @@ def run(filenames, parent=None, savepath=None):
 
         iframes = np.array(iframes).astype(int)
         cumframes = np.array(cumframes).astype(int)
-        frame_shape = video[0].frame_shape
         sbin = 4
         rois = None
         nroi = 0
