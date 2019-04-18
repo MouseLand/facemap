@@ -192,11 +192,14 @@ class MainW(QtGui.QMainWindow):
         self.l0.addWidget(pl, 15, 2, 1, 1)
         self.cbs1 = []
         self.cbs2 = []
+        self.lbls = []
         for k in range(6):
             self.cbs1.append(QtGui.QCheckBox(''))
             self.l0.addWidget(self.cbs1[-1], 16+k, 0, 1, 1)
             self.cbs2.append(QtGui.QCheckBox(''))
             self.l0.addWidget(self.cbs2[-1], 16+k, 1, 1, 1)
+            self.lbls.append(QtGui.QLabel(''))
+            self.l0.addWidget(self.lbls[-1], 16+k, 2, 1, 1)
 
         #self.l0.addWidget(QtGui.QLabel(''),17,2,1,1)
         #self.l0.setRowStretch(16,2)
@@ -324,14 +327,16 @@ class MainW(QtGui.QMainWindow):
             nframes = 0
             iframes = []
             self.load_movies(self.filenames)
-            self.motSVD = proc['motSVD']
-            self.motSVD *= np.sign(skew(self.motSVD, axis=0))[np.newaxis,:]
-            self.motStd = self.motSVD.std(axis=0)
-            self.video = v
-            self.nframes = nframes
-            self.iframes = np.array(iframes).astype(int)
-            self.Ly = self.video[0].frame_shape[0]
-            self.Lx = self.video[0].frame_shape[1]
+            if 'fullSVD' in proc:
+                self.fullSVD = fullSVD
+            else:
+                self.fullSVD = True
+            if self.fullSVD:
+                self.motSVD = proc['motSVD'][0][:, :6]
+                self.motSVD *= np.sign(skew(self.motSVD, axis=0))[np.newaxis,:]
+            #self.ROIs = proc['rois']
+            #self.iROI = 0
+
             self.p1.clear()
             self.p2.clear()
 
@@ -720,6 +725,7 @@ class MainW(QtGui.QMainWindow):
     def process_ROIs(self):
         self.sbin = int(self.binSpinBox.value())
         self.motSVDs, self.pupils, self.running = facemap.run(self.filenames, self)
+        self.fullSVD = self.checkBox.ischecked()
         self.processed = True
         if self.fullSVD:
             self.motSVD = self.motSVDs[0]

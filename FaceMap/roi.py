@@ -21,9 +21,6 @@ class sROI():
         self.rtype = rtype
         self.saturation = 0
         self.pupil_sigma = 0
-        colors = ['g','r','b','m']
-        roipen = pg.mkPen(colors[rind], width=3,
-                                style=QtCore.Qt.SolidLine)
         view = parent.p0.viewRange()
         imx = (view[0][1] + view[0][0]) / 2
         imy = (view[1][1] + view[1][0]) / 2
@@ -33,6 +30,14 @@ class sROI():
         dy = np.minimum(dy, parent.Lx[0]*0.4)
         imx = imx - dx / 2
         imy = imy - dy / 2
+        self.draw(parent, imy, imx, dy, dx)
+        self.ROI.sigRegionChangeFinished.connect(lambda: self.position(parent))
+        self.position(parent)
+
+    def draw(self, parent, imy, imx, dy, dx):
+        colors = ['g','r','b','m']
+        roipen = pg.mkPen(colors[self.rind], width=3,
+                          style=QtCore.Qt.SolidLine)
         self.ROI = pg.RectROI(
             [imx, imy], [dx, dy],
             pen=roipen, sideScalers=True
@@ -41,9 +46,7 @@ class sROI():
         self.ROI.handlePen = roipen
         self.ROI.addScaleHandle([1, 0.5], [0., 0.5])
         self.ROI.addScaleHandle([0.5, 0], [0.5, 1])
-        parent.p0.addItem(self.ROI)
-        self.ROI.sigRegionChangeFinished.connect(lambda: self.position(parent))
-        self.position(parent)
+        parent.p0.addItem(self.ROI)        
 
     def position(self, parent):
         pos0 = self.ROI.getSceneHandlePositions()

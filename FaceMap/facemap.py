@@ -29,14 +29,24 @@ def run(filenames, parent=None):
         nframes = 0
         iframes = []
         cumframes = [0]
-        for file in filenames:
-            v=[]
-            for f in file:
-                v.append(pims.Video(f))
-            video.append(v)
-            nframes += len(video[-1][0])
-            iframes.append(len(video[-1][0]))
-            cumframes.append(cumframes[-1] + len(video[-1][0]))
+        k=0
+        for fs in filenames:
+            vs = []
+            for f in fs:
+                vs.append(pims.Video(f))
+            v.append(vs)
+            iframes.append(len(v[-1][0]))
+            cumframes.append(cumframes[-1] + len(v[-1][0]))
+            nframes += len(v[-1][0])
+            if k==0:
+                Ly = []
+                Lx = []
+                for vs in v[-1]:
+                    fshape = vs.frame_shape
+                    Ly.append(fshape[0])
+                    Lx.append(fshape[1])
+            k+=1
+
         iframes = np.array(iframes).astype(int)
         cumframes = np.array(cumframes).astype(int)
         frame_shape = video[0].frame_shape
@@ -76,16 +86,17 @@ def run(filenames, parent=None):
     #avgmotion = np.reshape(avgmotion, (Lys[0], Lxs[0]))
 
     # save output to file (can load in gui)
-    save_ROIs(filenames, sbin, U, V, pups, runs, avgframe, avgmotion, rois)
+    save_ROIs(filenames, sbin, U, V, pups, runs, avgframe, avgmotion, rois, fullSVD=True)
 
     return V, pups, runs
 
-def save_ROIs(filenames, sbin, U, V, pups, runs, avgframe, avgmotion, rois=None):
+def save_ROIs(filenames, sbin, U, V, pups, runs, avgframe, avgmotion, rois=None, fullSVD=True):
     proc = {'motMask': U, 'motSVD': V, 'pupil': pups, 'running': runs,
             'avgframe': avgframe, 'avgmotion': avgmotion,
-            'filenames': filenames}
+            'filenames': filenames, 'rois': rois, 'fullSVD': fullSVD}
     basename, filename = os.path.split(filenames[0][0])
     filename, ext = os.path.splitext(filename)
+    basename = '/media/carsen/SSD1/cam/'
     savename = os.path.join(basename, ("%s_proc.npy"%filename))
     print(savename)
     np.save(savename, proc)
