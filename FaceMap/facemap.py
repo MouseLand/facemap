@@ -5,7 +5,7 @@ import time
 import os
 import pdb
 
-def run(filenames, parent=None):
+def run(filenames, parent=None, savepath=None):
     print('processing videos')
     # grab files
     Lys = []
@@ -86,17 +86,18 @@ def run(filenames, parent=None):
     #avgmotion = np.reshape(avgmotion, (Lys[0], Lxs[0]))
 
     # save output to file (can load in gui)
-    save_ROIs(filenames, sbin, U, V, pups, runs, avgframe, avgmotion, rois, fullSVD=True)
+    save_ROIs(filenames, savepath, sbin, U, V, pups, runs, avgframe, avgmotion, rois, fullSVD=True)
 
     return V, pups, runs
 
-def save_ROIs(filenames, sbin, U, V, pups, runs, avgframe, avgmotion, rois=None, fullSVD=True):
+def save_ROIs(filenames, savepath, sbin, U, V, pups, runs, avgframe, avgmotion, rois=None, fullSVD=True):
     proc = {'motMask': U, 'motSVD': V, 'pupil': pups, 'running': runs,
             'avgframe': avgframe, 'avgmotion': avgmotion,
             'filenames': filenames, 'rois': rois, 'fullSVD': fullSVD}
     basename, filename = os.path.split(filenames[0][0])
     filename, ext = os.path.splitext(filename)
-    basename = '/media/carsen/SSD1/cam/'
+    if savepath is not None:
+        basename = savepath
     savename = os.path.join(basename, ("%s_proc.npy"%filename))
     print(savename)
     np.save(savename, proc)
