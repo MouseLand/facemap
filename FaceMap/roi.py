@@ -14,13 +14,17 @@ from matplotlib import cm
 
 
 class sROI():
-    def __init__(self, rind, rtype, iROI, parent=None):
+    def __init__(self, rind, rtype, iROI, moveable=True, parent=None, saturation=None):
         # what type of ROI it is
         self.iROI = iROI
         self.rind = rind
         self.rtype = rtype
-        self.saturation = 0
+        if saturation is None:
+            self.saturation = 0
+        else:
+            self.saturation = saturation
         self.pupil_sigma = 0
+        self.moveable = moveable
         view = parent.p0.viewRange()
         imx = (view[0][1] + view[0][0]) / 2
         imy = (view[1][1] + view[1][0]) / 2
@@ -32,23 +36,27 @@ class sROI():
         imy = imy - dy / 2
         self.draw(parent, imy, imx, dy, dx)
         self.ROI.sigRegionChangeFinished.connect(lambda: self.position(parent))
-        self.position(parent)
+        self.ROI.sigClicked.connect(lambda: self.position(parent))
+        self.ROI.sigRemoveRequested.connect(lambda: self.remove(parent))
+        #self.position(parent)
 
     def draw(self, parent, imy, imx, dy, dx):
         colors = ['g','r','b','m']
         roipen = pg.mkPen(colors[self.rind], width=3,
                           style=QtCore.Qt.SolidLine)
         self.ROI = pg.RectROI(
-            [imx, imy], [dx, dy],
-            pen=roipen, sideScalers=True
+            [imx, imy], [dx, dy], movable = self.moveable,
+            pen=roipen, sideScalers=True, removable=True
         )
         self.ROI.handleSize = 8
         self.ROI.handlePen = roipen
         self.ROI.addScaleHandle([1, 0.5], [0., 0.5])
         self.ROI.addScaleHandle([0.5, 0], [0.5, 1])
-        parent.p0.addItem(self.ROI)        
+        self.ROI.setAcceptedMouseButtons(QtCore.Qt.LeftButton)
+        parent.p0.addItem(self.ROI)
 
     def position(self, parent):
+        parent.iROI = self.iROI
         pos0 = self.ROI.getSceneHandlePositions()
         pos = parent.p0.mapSceneToView(pos0[0][1])
         posy = pos.y()
@@ -62,28 +70,52 @@ class sROI():
         yrange = yrange[yrange < parent.LY]
 
         # which movie is this ROI in?
-        ivid = int(np.round(parent.vmap[np.ix_(yrange, xrange)].mean()))
+        vvals = parent.vmap[np.ix_(yrange, xrange)]
+        ivid = np.zeros((len(parent.Ly),))
+        for i in range(len(parent.Ly)):
+            ivid[i] = (vvals==i).sum()
+        ivid = np.argmax(ivid)
         # crop yrange and xrange
         xrange = xrange[xrange>=parent.sx[ivid]]
         xrange = xrange[xrange<parent.sx[ivid]+parent.Lx[ivid]]
         yrange = yrange[yrange>=parent.sy[ivid]]
         yrange = yrange[yrange<parent.sy[ivid]+parent.Ly[ivid]]
-
+    
         xrange -= parent.sx[ivid]
         yrange -= parent.sy[ivid]
-        
         self.xrange = xrange
         self.yrange = yrange
         self.ivid   = ivid
+
+        parent.sl[1].setValue(parent.saturation[self.iROI] * 100 / 255)
         self.plot(parent)
-        #ypix, xpix = np.meshgrid(yrange, xrange)
-        #self.select_cells(ypix, xpix)
+
+    def remove(self, parent):
+        parent.p0.removeItem(self.ROI)
+        print(parent.iROI, len(parent.ROIs))
+        for i in range(len(parent.ROIs)):
+            if i > self.iROI:
+                parent.ROIs[i].iROI -= 1
+                parent.saturation[i] = parent.saturation[i-1]
+        del parent.ROIs[self.iROI]
+        del parent.saturation[self.iROI]
+        if parent.iROI>=len(parent.ROIs):
+            parent.iROI -= 1
+        parent.iROI = max(0, parent.iROI)
+        parent.nROIs -= 1
+        parent.pROIimg.clear()
+        parent.win.show()
+        parent.show()
 
     def plot(self, parent):
-        img = parent.imgs[self.ivid].mean(axis=2).copy()
+        parent.iROI = self.iROI
+        img = parent.imgs[self.ivid].copy()
+        if img.ndim > 3:
+            img = img.mean(axis=-2)
         img = img[np.ix_(self.yrange, self.xrange, np.arange(0,3))]
         sat = parent.saturation[self.iROI]
         self.saturation = sat
+
         self.pupil_sigma = parent.pupil_sigma
 
         if self.rind==0:
@@ -131,7 +163,5 @@ class sROI():
             fr  = np.maximum(0, fr - (255.0-sat))
             parent.pROIimg.setImage(255-fr)
             parent.pROIimg.setLevels([255-sat, 255])
-
-            
         parent.win.show()
         parent.show()
