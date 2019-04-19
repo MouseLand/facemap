@@ -94,9 +94,8 @@ def save_ROIs(filenames, savepath, sbin, U, V, pups, runs, avgframe, avgmotion, 
     if rois is not None:
         ROIs = []
         for r in rois:
-            ROIs.append({'rind': r.rind, 'rtype': r.rtype, 'iROI': r.iROI, 'ivid': r.ivid,
-                         'yrange': r.yrange, 'xrange': r.xrange, 'saturation': r.saturation,
-                         'yrange_bin': r.yrange_bin, 'xrange_bin': r.xrange_bin})
+            ROIs.append({'rind': r.rind, 'rtype': r.rtype, 'iROI': r.iROI, 'ivid': r.ivid, 'color': r.color,
+                         'yrange': r.yrange, 'xrange': r.xrange, 'saturation': r.saturation})
     else:
         ROIs = None
     proc = {'motMask': U, 'motSVD': V, 'pupil': pups, 'running': runs,
@@ -118,6 +117,7 @@ def get_frames(video, cframes, cumframes):
     imall = []
     for ii in range(len(video[0])):
         for n in np.unique(ivids):
+            #print(cframes[ivids==n], cumframes[n])
             im = np.array(video[n][ii][cframes[ivids==n] - cumframes[n]])
             if np.ndim(im)<4:
                 im = im[np.newaxis, :, :, :]
@@ -150,9 +150,9 @@ def subsampled_mean(video, cumframes, Ly, Lx, sbin=3):
     # Ly, Lx are the sizes of the videos
     # sbin is the spatial binning
     nframes = cumframes[-1]
-    nf = min(2000, nframes)
-    # load in chunks of up to 200 frames (for speed)
-    nt0 = min(200, np.diff(cumframes).min())
+    nf = min(1000, nframes)
+    # load in chunks of up to 100 frames (for speed)
+    nt0 = min(100, np.diff(cumframes).min())
     nsegs = int(np.floor(nf / nt0))
     # what times to sample
     tf = np.floor(np.linspace(0, nframes - nt0, nsegs)).astype(int)
@@ -195,7 +195,7 @@ def compute_SVD(video, cumframes, Ly, Lx, avgmotion, ncomps=500, sbin=3, rois=No
 
     # load in chunks of up to 1000 frames (for speed)
     nt0 = min(1000, nframes)
-    nsegs = int(min(np.floor(10000 / nt0), np.floor(nframes / nt0)))
+    nsegs = int(min(np.floor(6000 / nt0), np.floor(nframes / nt0)))
     nc = int(250) # <- how many PCs to keep in each chunk
     nc = min(nc, nt0-1)
     if nsegs==1:
@@ -233,17 +233,23 @@ def compute_SVD(video, cumframes, Ly, Lx, avgmotion, ncomps=500, sbin=3, rois=No
         if fullSVD:
             imall = np.zeros(((Lyb*Lxb).sum(), nt0-1), np.float32)
         for ii,im in enumerate(img):
-            imbin = spatial_bin(im, sbin, Lyb[ii], Lxb[ii])
-            # compute motion energy
-            imbin = np.abs(np.diff(imbin, axis=-1))
-            imbin -= avgmotion[ii][:,np.newaxis]
-
+            usevid=False
             if fullSVD:
-                imall[ir[ii]] = imbin
-            if nroi > 0:
+                usevid=True
+            if nroi>0:
                 wmot = (ivid[motind]==ii).nonzero()[0]
-                if wmot.size > 0:
+                if wmot.size>0:
+                    usevid=True
+            if usevid:
+                imbin = spatial_bin(im, sbin, Lyb[ii], Lxb[ii])
+                # compute motion energy
+                imbin = np.abs(np.diff(imbin, axis=-1))
+                imbin -= avgmotion[ii][:,np.newaxis]
+                if fullSVD:
+                    imall[ir[ii]] = imbin
+                if nroi>0 and wmot.size>0:
                     imbin = np.reshape(imbin, (Lyb[ii], Lxb[ii], -1))
+                    wmot=np.array(wmot).astype(int)
                     wroi = motind[wmot]
                     for i in range(wroi.size):
                         #print(rois[wroi[i]].yrange_bin[0], rois[wroi[i]].yrange_bin[-1])
@@ -254,6 +260,7 @@ def compute_SVD(video, cumframes, Ly, Lx, avgmotion, ncomps=500, sbin=3, rois=No
                         usv  = utils.svdecon(lilbin, k=nc)
                         ncb = min(nc, lilbin.shape[0])
                         U[wmot[i]+1][:, n*ncb:(n+1)*ncb] = usv[0]
+        print('SVD %d/%d chunks'%(n,nsegs))
         if fullSVD:
             usv  = utils.svdecon(imall, k=nc)
             U[0][:, n*nc:(n+1)*nc] = usv[0]
@@ -327,6 +334,7 @@ def process_ROIs(video, cumframes, Ly, Lx, avgmotion, U, sbin=3, tic=None, rois=
                 runind.append(i)
                 runs.append(np.zeros((nframes,2)))
     ivid = np.array(ivid).astype(np.int32)
+    motind = np.array(motind).astype(np.int32)
 
     # compute in chunks of 2000
     nt0 = 2000
@@ -378,27 +386,34 @@ def process_ROIs(video, cumframes, Ly, Lx, avgmotion, U, sbin=3, tic=None, rois=
                 imall = np.zeros(((Lyb*Lxb).sum(), img[0].shape[-1]-1), np.float32)
         if fullSVD or nroi > 0:
             for ii,im in enumerate(img):
-                imbin = spatial_bin(im, sbin, Lyb[ii], Lxb[ii])
-                if n>0:
-                    imbin = np.concatenate((imend[ii][:,np.newaxis], imbin), axis=-1)
-                imend[ii] = imbin[:,-1]
-                # compute motion energy
-                imbin = np.abs(np.diff(imbin, axis=-1))
-                imbin -= avgmotion[ii][:,np.newaxis]
-                imall[ir[ii]] = imbin
-
-                if nroi > 0:
+                usevid=False
+                if fullSVD:
+                    usevid=True
+                if nroi>0:
                     wmot = (ivid[motind]==ii).nonzero()[0]
-                    if wmot.size > 0:
-                        imbin = np.reshape(imbin, (Lyb[ii], Lxb[ii], -1))
-                        wroi = motind[wmot]
-                        for i in range(wroi.size):
-                            lilbin = imbin[np.ix_(rois[wroi[i]].yrange_bin, rois[wroi[i]].xrange_bin)]
-                            lilbin = np.reshape(lilbin, (-1, lilbin.shape[-1]))
-                            vproj = lilbin.T @ U[wmot[i]+1]
-                            if n==0:
-                                vproj = np.concatenate((vproj[0,:][np.newaxis, :], vproj), axis=0)
-                            V[wmot[i]+1][t:t+nt0, :] = vproj
+                    if wmot.size>0:
+                        usevid=True
+                if usevid:
+                    imbin = spatial_bin(im, sbin, Lyb[ii], Lxb[ii])
+                    if n>0:
+                        imbin = np.concatenate((imend[ii][:,np.newaxis], imbin), axis=-1)
+                    imend[ii] = imbin[:,-1]
+                    # compute motion energy
+                    imbin = np.abs(np.diff(imbin, axis=-1))
+                    imbin -= avgmotion[ii][:,np.newaxis]
+                    if fullSVD:
+                        imall[ir[ii]] = imbin
+                if nroi > 0 and wmot.size>0:
+                    wmot=np.array(wmot).astype(int)
+                    imbin = np.reshape(imbin, (Lyb[ii], Lxb[ii], -1))
+                    wroi = motind[wmot]
+                    for i in range(wroi.size):
+                        lilbin = imbin[np.ix_(rois[wroi[i]].yrange_bin, rois[wroi[i]].xrange_bin)]
+                        lilbin = np.reshape(lilbin, (-1, lilbin.shape[-1]))
+                        vproj = lilbin.T @ U[wmot[i]+1]
+                        if n==0:
+                            vproj = np.concatenate((vproj[0,:][np.newaxis, :], vproj), axis=0)
+                        V[wmot[i]+1][t:t+nt0, :] = vproj
             if fullSVD:
                 vproj = imall.T @ U[0]
                 if n==0:

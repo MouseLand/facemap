@@ -12,9 +12,11 @@ from scipy.stats import zscore, skew
 from scipy.ndimage import gaussian_filter
 from matplotlib import cm
 
+colors = np.array([[0,255,0],[255,0,0],[0,0,255],[255,0,255]])
 
 class sROI():
-    def __init__(self, rind, rtype, iROI, moveable=True, parent=None, saturation=None):
+    def __init__(self, rind, rtype, iROI, moveable=True,
+                 parent=None, saturation=None, color=None):
         # what type of ROI it is
         self.iROI = iROI
         self.rind = rind
@@ -23,6 +25,11 @@ class sROI():
             self.saturation = 0
         else:
             self.saturation = saturation
+        if color is None:
+            self.color = np.maximum(0, np.minimum(255, colors[rind]+np.random.randn(3)*100))
+            self.color = tuple(self.color)
+        else:
+            self.color = color
         self.pupil_sigma = 0
         self.moveable = moveable
         view = parent.p0.viewRange()
@@ -41,12 +48,11 @@ class sROI():
         #self.position(parent)
 
     def draw(self, parent, imy, imx, dy, dx):
-        colors = ['g','r','b','m']
-        roipen = pg.mkPen(colors[self.rind], width=3,
+        roipen = pg.mkPen(self.color, width=3,
                           style=QtCore.Qt.SolidLine)
         self.ROI = pg.RectROI(
             [imx, imy], [dx, dy], movable = self.moveable,
-            pen=roipen, sideScalers=True, removable=True
+            pen=roipen, sideScalers=True, removable=self.moveable
         )
         self.ROI.handleSize = 8
         self.ROI.handlePen = roipen
@@ -80,7 +86,7 @@ class sROI():
         xrange = xrange[xrange<parent.sx[ivid]+parent.Lx[ivid]]
         yrange = yrange[yrange>=parent.sy[ivid]]
         yrange = yrange[yrange<parent.sy[ivid]+parent.Ly[ivid]]
-    
+
         xrange -= parent.sx[ivid]
         yrange -= parent.sy[ivid]
         self.xrange = xrange
@@ -104,6 +110,7 @@ class sROI():
         parent.iROI = max(0, parent.iROI)
         parent.nROIs -= 1
         parent.pROIimg.clear()
+        parent.pROI.removeItem(parent.scatter)
         parent.win.show()
         parent.show()
 

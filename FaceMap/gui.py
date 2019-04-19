@@ -124,11 +124,15 @@ class MainW(QtGui.QMainWindow):
         self.p1 = self.win.addPlot(name='plot1',row=1,col=0,colspan=2, title='p1')
         self.p1.setMouseEnabled(x=True,y=False)
         self.p1.setMenuEnabled(False)
+        self.scatter1 = pg.ScatterPlotItem()
+        self.p1.addItem(self.scatter1)
         #self.p1.setLabel('bottom', 'plot1')
         #self.p1.autoRange(padding=0.01)
         self.p2 = self.win.addPlot(name='plot2',row=2,col=0,colspan=2, title='p2')
         self.p2.setMouseEnabled(x=True,y=False)
         self.p2.setMenuEnabled(False)
+        self.scatter2 = pg.ScatterPlotItem()
+        self.p2.addItem(self.scatter1)
         #self.p2.setLabel('bottom', 'plot2')
         self.p2.setXLink("plot1")
         #self.p2.autoRange(padding=0.01)
@@ -286,7 +290,7 @@ class MainW(QtGui.QMainWindow):
             dm = QtGui.QMessageBox.question(
                 self,
                 "multiple videos found",
-                "Are these videos taken with multiple camera views?",
+                "are you processing multiple videos taken simultaneously?",
                 QtGui.QMessageBox.Yes | QtGui.QMessageBox.No,
             )
             if dm == QtGui.QMessageBox.Yes:
@@ -311,6 +315,8 @@ class MainW(QtGui.QMainWindow):
                 self.filelist = files
             else:
                 print('single camera')
+        else:
+            self.filelist = [self.filelist]
 
         print(self.filelist)
 
@@ -342,6 +348,7 @@ class MainW(QtGui.QMainWindow):
             self.wroi = [0,0,0,0,0,0,0,0]
             if self.fullSVD:
                 self.lbls[k].setText('fullSVD')
+                self.lbls[k].setStyleSheet("color: white;")
                 self.proctype[0] = 0
                 k+=1
             self.ROIs = []
@@ -352,9 +359,12 @@ class MainW(QtGui.QMainWindow):
                 if proc['rois'] is not None:
                     for r in proc['rois']:
                         if k < 8:
-                            self.ROIs.append(roi.sROI(rind=r.rind, rtype=roistr, iROI=self.nROIs,
-                                             moveable=True, parent=self))
-                            self.lbls[k].setText('%s%d'%(istr[r.rind],kt[r.rind]))
+                            rind = r['rind']
+                            self.ROIs.append(roi.sROI(rind=rind, rtype=r['rtype'], iROI=r['iROI'], color=r['color'],
+                                             moveable=False, parent=self, saturation=r['saturation']))
+                            self.lbls[k].setText('%s%d'%(istr[rind], kt[rind]))
+                            r,g,b = str(int(r['color'][0])), str(int(r['color'][1])), str(int(r['color'][2]))
+                            self.lbls[k].setStyleSheet("color: rgb(%s,%s,%s);"%(r,g,b))
                             self.wroi[k] = kt[r.rind]
                             kt[r.rind]+=1
                             self.proctype[k] = r.rind + 1
@@ -722,25 +732,14 @@ class MainW(QtGui.QMainWindow):
 
         if len(self.ROIs) > 0:
             self.ROIs[self.iROI].plot(self)
-        #if self.Floaded:
-        #    self.img[self.yext,self.xext,0] = self.srange[0]
-        #    self.img[self.yext,self.xext,1] = self.srange[0]
-        #    self.img[self.yext,self.xext,2] = (self.srange[1]) * np.ones((self.yext.size,),np.float32)
 
         self.pimg.setImage(self.fullimg)
         self.pimg.setLevels([0,self.sat[0]])
         #self.pROIimg.setLevels([0,self.sat[1]])
         self.frameSlider.setValue(self.cframe)
         self.frameNumber.setText(str(self.cframe))
-        if 0:#self.processed:
-            self.scatter1.setData([self.cframe, self.cframe],
-                                   [self.motSVD[self.cframe, 0],
-                                   self.motSVD[self.cframe, 1]],
-                                   size=10,brush=pg.mkBrush(255,255,255))
-            #self.scatter2.setData([self.cframe, self.cframe],
-            #                      [self.motSVD[self.cframe, 0] / self.motStd[0],
-            #                      self.motSVD[self.cframe, 1]] / self.motStd[1],
-            #                      size=10,brush=pg.mkBrush(255,255,255))
+        if self.processed:
+            self.plot_scatter()
 
     def start(self):
         if self.cframe < self.nframes - 1:
@@ -759,7 +758,7 @@ class MainW(QtGui.QMainWindow):
 
     def process_ROIs(self):
         self.sbin = int(self.binSpinBox.value())
-        self.motSVDs, self.pupils, self.running = facemap.run(self.filenames, self, '/media/carsen/SSD1/cam/')
+        self.motSVDs, self.pupils, self.running = facemap.run(self.filenames, self)
         self.fullSVD = self.checkBox.ischecked()
         self.processed = True
         if self.fullSVD:
@@ -781,43 +780,42 @@ class MainW(QtGui.QMainWindow):
         #self.cframe = 0
         self.p1.clear()
         self.p2.clear()
+        self.traces1 = np.zeros((0,self.nframes))
+        self.traces2 = np.zeros((0,self.nframes))
         for k in range(len(self.cbs1)):
             if self.cbs1[k].isChecked():
-                self.plot_trace(1, self.proctype[k], self.wroi[k])
+                tr = self.plot_trace(1, self.proctype[k], self.wroi[k])
+                self.traces1 = np.concatenate((self.traces1,tr), axis=0)
         for k in range(len(self.cbs2)):
             if self.cbs2[k].isChecked():
-                self.plot_trace(2, self.proctype[k], self.wroi[k])
+                tr = self.plot_trace(2, self.proctype[k], self.wroi[k])
+                self.traces2 = np.concatenate((self.traces2,tr), axis=0)
 
         self.p1.setRange(xRange=(0,self.nframes),
                          yRange=(-3, -3),
                           padding=0.0)
+        self.p2.setRange(xRange=(0,self.nframes),
+                         yRange=(-3, -3),
+                          padding=0.0)
         self.p1.setLimits(xMin=0,xMax=self.nframes)
-
-        #self.scatter1 = pg.ScatterPlotItem()
-        #self.p1.addItem(self.scatter1)
-        #self.scatter1.setData([self.cframe, self.cframe],
-        #                      [self.motSVD[self.cframe, 0],
-        #                      self.motSVD[self.cframe, 1]],
-        #                      size=10,brush=pg.mkBrush(255,255,255))
-
         self.p2.setLimits(xMin=0,xMax=self.nframes)
-        #self.scatter2 = pg.ScatterPlotItem()
-        #self.p2.addItem(self.scatter2)
-        #for p in range(len(self.pupils)):
-        #    pup = self.pupils[p]
-        #    self.p2.plot(zscore(pup['area']))
-        ##    self.p2.plot(zscore(pup['com'][:,1]))
-        #    self.p2.setRange(xRange=(0,self.nframes),
-        #                     yRange=(-2, 4),
-        #                     padding=0.0)
-        #self.scatter2.setData([self.cframe, self.cframe],
-        #                       [self.motSVD[self.cframe, 0],
-        #                       self.motSVD[self.cframe, 1]],
-        #                       size=10,brush=pg.mkBrush(255,255,255))
-
+        self.plot_scatter()
         self.jump_to_frame()
 
-    def plot_trace(self, wplot, proctype, wroi):
+    def plot_scatter(self):
+        if self.traces1.shape[0] > 0:
+            ntr = self.traces1.shape[0]
+            self.scatter1.setData(self.cframe*np.ones((ntr,)),
+                                  self.traces1[:, self.cframe],
+                                  size=8, brush=pg.mkBrush(255,255,255))
+        if self.traces2.shape[0] > 0:
+            ntr = self.traces2.shape[0]
+            self.scatter2.setData(self.cframe*np.ones((ntr,)),
+                                  self.traces2[:, self.cframe],
+                                  size=8, brush=pg.mkBrush(255,255,255))
+
+
+    def plot_trace(self, wplot, proctype, wroi, color):
         if wplot==1:
             wp = self.p1
         else:
@@ -830,18 +828,22 @@ class MainW(QtGui.QMainWindow):
                 ir = wroi
             cmap = cm.get_cmap("hsv")
             nc = min(5,self.motSVDs[ir].shape[1])
-            cmap = (255 * cmap(np.linspace(0,0.8,nc))).astype(int)
+            cmap = (255 * cmap(np.linspace(0,0.5,nc))).astype(int)
             norm = (self.motSVDs[ir][:,0]).std()
             for c in range(nc):
                 wp.plot(self.motSVDs[ir][:, c] / norm,  pen=tuple(cmap[c,:]))
-                wp.plot((self.motSVDs[ir]**2).mean(axis=1)**0.5 / norm, pen=(255,255,255))
+                tr = (self.motSVDs[ir]**2).mean(axis=1)**0.5 / norm
+                wp.plot(tr, pen=color, width=2)
         elif proctype==1:
             pup = self.pupil[wroi]
-            wp.plot(zscore(pup['area']), pen=(100,0,0))
+            tr = zscore(pup['area'])
+            wp.plot(tr, pen=color)
             wp.plot(zscore(pup['com'], axis=0), pen=(0,255,0))
         else:
             #runs = self.running[wroi]
             wp.plot(zscore(self.running[wroi], axis=0), pen=(0,0,255))
+            tr = zscore(self.running[wroi][:,0])
+        return tr
 
     def button_status(self, status):
         self.playButton.setEnabled(status)
