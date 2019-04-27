@@ -89,7 +89,7 @@ The matlab version needs to be downloaded/cloned from github (no install require
 
 Here is a youtube video showing how to process and move around the GUI (click on picture)
 <div align="center">
-  <a href="https://www.youtube.com/watch?v=YOUTUBE_VIDEO_ID_HERE"><img src="/figs/mousefacegui.png" width="600" alt="GUI tutorial"></a>
+  <a href="https://www.youtube.com/watch?v=YOUTUBE_VIDEO_ID_HERE"><img src="/figs/mousefacegui.png" width="50%" alt="GUI tutorial"></a>
 </div>
 
 
@@ -103,7 +103,9 @@ Choose a type of ROI to add and then click "add ROI" to add it to the view. The 
 
 By default, the "Compute multivideo SVD" box is unchecked. If you check it, then the motion SVD is computed across ALL videos - all videos are concatenated at each timepoint, and the SVD of this matrix of ALL_PIXELS x timepoints is computed. If you have just one video acquired at a time, then it is the SVD of this video.
 
-![GUI screenshot](/figs/guipreprocess.png?raw=true "gui screenshot")
+<div align="center"
+<img src="/figs/guipreprocess.png" width="50%" alt="gui screenshot" >
+</div>
 
 ### Batch processing (python only)
 
@@ -113,7 +115,9 @@ Load a video or a set of videos and draw your ROIs and choose your processing se
 
 To start the GUI, run the command `MovieGUI` in this folder. The following window should appear. After you click an ROI button and draw an area, you have to **double-click** inside the drawn box to confirm it. To compute the SVD across multiple simultaneously acquired videos you need to use the "multivideo SVD" options to draw ROI's on each video one at a time.
 
-![GUI screenshot](/figs/GUIscreenshot.png?raw=true "gui screenshot")
+<div align="center"
+<img src="/figs/GUIscreenshot.png" width="50%" alt="gui screenshot" >
+</div>
 
 ### Default starting folder
 
@@ -254,7 +258,13 @@ proc = np.load('cam1_proc.npy').item()
 
 These *_proc.npy files can be loaded into the GUI (and will automatically be loaded after processing). The checkboxes in the lower left allow you to view different traces from the processing.
 
-![GUI screenshot](/figs/guipostprocess.png?raw=true "gui screenshot")
+<div align="center"
+<img src="/figs/guipostprocess.png" width="50%" alt="gui screenshot" >
+</div>
+
+<div align="center"
+<img src="/figs/guipostprocess_multi.png" width="50%" alt="gui screenshot" >
+</div>
 
 **MATLAB**:
 - **nX**,**nY**: cell arrays of number of pixels in X and Y in each video taken simultaneously
