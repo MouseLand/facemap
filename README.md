@@ -85,10 +85,12 @@ The matlab version needs to be downloaded/cloned from github (no install require
 
 ## Start processing! *HOW TO GUI*
 
-**PYTHON**: here is a youtube video showing how to process and move around the GUI (click on picture)
+### PYTHON
+
+Here is a youtube video showing how to process and move around the GUI (click on picture)
 [![GUI video](/figs/mousefacegui.png)](https://www.youtube.com/watch?v=YOUTUBE_VIDEO_ID_HERE)
 
-Instructions: run the following command in a terminal
+Text instructions: run the following command in a terminal
 ```
 python -m FaceMap
 ```
@@ -100,20 +102,21 @@ By default, the "Compute multivideo SVD" box is unchecked. If you check it, then
 
 ![GUI screenshot](/figs/guipreprocess.png?raw=true "gui screenshot")
 
-**MATLAB**: To start the GUI, run the command `MovieGUI` in this folder. The following window should appear. After you click an ROI button and draw an area, you have to **double-click** inside the drawn box to confirm it. To compute the SVD across multiple simultaneously acquired videos you need to use the "multivideo SVD" options to draw ROI's on each video one at a time.
+### Batch processing (python only)
+
+Load a video or a set of videos and draw your ROIs and choose your processing settings. Then click **save ROIs**. This will save a *_proc.npy file in the folder in the specified **save folder**. The name of this proc file will be listed below **process batch** (this button will also activate). You can then repeat this process: load the video(s), draw ROIs, choose settings, and click **save ROIs**. Then to process all the listed *_proc.npy files click **process batch**.
+
+### MATLAB
+
+To start the GUI, run the command `MovieGUI` in this folder. The following window should appear. After you click an ROI button and draw an area, you have to **double-click** inside the drawn box to confirm it. To compute the SVD across multiple simultaneously acquired videos you need to use the "multivideo SVD" options to draw ROI's on each video one at a time.
 
 ![GUI screenshot](/figs/GUIscreenshot.png?raw=true "gui screenshot")
-
 
 ### Default starting folder
 
 **python**: wherever you run `python -m FaceMap`
 
 **MATLAB**: set at line 59 of MovieGUI.m (h.filepath)
-
-### Batch processing
-
-Load a video or a set of videos and draw your ROIs and choose your processing settings. Then click **save ROIs**. This will save a *_proc.npy file in the folder in the specified **save folder**. The name of this proc file will be listed below **process batch** (this button will also activate). You can then repeat this process: load the video(s), draw ROIs, choose settings, and click **save ROIs**. Then to process all the listed *_proc.npy files click **process batch**.
 
 ## File loading structure
 
@@ -145,7 +148,7 @@ Note: if you have many simultaneous videos / overall pixels (e.g. 2000 x 2000) y
 
 ### Motion SVD
 
-The motion SVDs (small ROIs / multivideo) are computed on the movie downsampled in space by the spatial downsampling input box in the GUI (default 4 pixels).
+The motion SVDs (small ROIs / multivideo) are computed on the movie downsampled in space by the spatial downsampling input box in the GUI (default 4 pixels). Note the saturation set in this window is NOT used for any processing.
 
 The motion *M* is defined as the abs(current_frame - previous_frame), and the average motion energy across frames is computed using a subset of frames (*avgmot*) (at least 1000 frames - set at line 45 in [subsampledMean.m](matlab/subsampledMean.m) or line 183 in [facemap.py](FaceMap/facemap.py)). Then the singular vectors of the motion energy are computed on chunks of data, also from a subset of frames (15 chunks of 1000 frames each). Let *F* be the chunk of frames [pixels x time]. Then
 ```
@@ -196,7 +199,7 @@ The phase-correlation between consecutive frames (in running ROI) are computed i
 
 ### Multivideo SVD ROIs
 
-**python**: Check box "Compute multivideo SVD" to compute the SVD of all pixels in all videos.
+**PYTHON**: Check box "Compute multivideo SVD" to compute the SVD of all pixels in all videos.
 
 **MATLAB**: You can draw areas to be included and excluded in the multivideo SVD (or single video if you only have one view). The buttons are "area to keep" and "area to exclude" and will draw blue and red boxes respectively. The union of all pixels in "areas to include" are used, excluding any pixels that intersect this union from "areas to exclude" (you can toggle between viewing the boxes and viewing the included pixels using the "Show areas" checkbox, see example below).
 
@@ -208,7 +211,7 @@ The motion energy is then computed from these non-red pixels.
 
 The GUIs create one file for all videos (saved in current folder), the npy file has name "videofile_proc.npy" and the mat file has name "videofile_proc.mat".
 
-**python**:
+**PYTHON**:
 - **filenames**: list of lists of video filenames - each list are the videos taken simultaneously
 - **Ly**, **Lx**: list of number of pixels in Y (Ly) and X (Lx) for each video taken simultaneously
 - **sbin**: spatial bin size for motion SVDs
