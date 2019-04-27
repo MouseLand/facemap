@@ -81,7 +81,7 @@ The matlab version needs to be downloaded/cloned from github (no install require
 
 Here is a youtube video showing how to process and move around the GUI (click on picture)
 <div align="center">
-  <a href="https://youtu.be/Rq8fEQ-DOm4"><img src="figs/videoscreenshot.png" width="50%" alt="GUI tutorial"></a>
+  <a href="https://youtu.be/Rq8fEQ-DOm4"><img src="figs/videoscreenshot.png" width="80%" alt="GUI tutorial"></a>
 </div>
 
 
