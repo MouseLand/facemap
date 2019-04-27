@@ -85,7 +85,7 @@ Here is a youtube video showing how to process and move around the GUI (click on
 </div>
 
 
-Text instructions: run the following command in a terminal
+Run the following command in a terminal
 ```
 python -m FaceMap
 ```
