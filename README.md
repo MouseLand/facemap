@@ -259,11 +259,7 @@ proc = np.load('cam1_proc.npy').item()
 These *_proc.npy files can be loaded into the GUI (and will automatically be loaded after processing). The checkboxes in the lower left allow you to view different traces from the processing.
 
 <div align="center">
-<img src="figs/guipostprocess.png" width="50%" alt="gui screenshot" >
-</div>
-
-<div align="center">
-<img src="figs/guipostprocess_multi.png" width="50%" alt="gui screenshot" >
+<img src="figs/guipostprocess.png" width="80%" alt="gui screenshot" > <img src="figs/guipostprocess_multi.png" width="80%" alt="gui screenshot" >
 </div>
 
 **MATLAB**:
