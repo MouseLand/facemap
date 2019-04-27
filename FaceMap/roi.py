@@ -12,11 +12,13 @@ from scipy.stats import zscore, skew
 from scipy.ndimage import gaussian_filter
 from matplotlib import cm
 
-colors = np.array([[0,255,0],[255,0,0],[0,0,255],[255,0,255]])
+colors = np.array([[0,200,50],[180,0,50],[40,100,250],[150,50,150]])
 
 class sROI():
     def __init__(self, rind, rtype, iROI, moveable=True,
-                 parent=None, saturation=None, color=None):
+                 parent=None, saturation=None, color=None, pos=None,
+                 yrange=None, xrange=None,
+                 ivid=None):
         # what type of ROI it is
         self.iROI = iROI
         self.rind = rind
@@ -26,21 +28,33 @@ class sROI():
         else:
             self.saturation = saturation
         if color is None:
-            self.color = np.maximum(0, np.minimum(255, colors[rind]+np.random.randn(3)*100))
+            self.color = np.maximum(0, np.minimum(255, colors[rind]+np.random.randn(3)*70))
             self.color = tuple(self.color)
         else:
             self.color = color
         self.pupil_sigma = 0
         self.moveable = moveable
-        view = parent.p0.viewRange()
-        imx = (view[0][1] + view[0][0]) / 2
-        imy = (view[1][1] + view[1][0]) / 2
-        dx = (view[0][1] - view[0][0]) / 4
-        dy = (view[1][1] - view[1][0]) / 4
-        dx = np.minimum(dx, parent.Ly[0]*0.4)
-        dy = np.minimum(dy, parent.Lx[0]*0.4)
-        imx = imx - dx / 2
-        imy = imy - dy / 2
+        if pos is None:
+            view = parent.p0.viewRange()
+            imx = (view[0][1] + view[0][0]) / 2
+            imy = (view[1][1] + view[1][0]) / 2
+            dx = (view[0][1] - view[0][0]) / 4
+            dy = (view[1][1] - view[1][0]) / 4
+            dx = np.minimum(dx, parent.Ly[0]*0.4)
+            dy = np.minimum(dy, parent.Lx[0]*0.4)
+            imx = imx - dx / 2
+            imy = imy - dy / 2
+        else:
+            imy = pos[0]
+            imx = pos[1]
+            dy = pos[2]
+            dx = pos[3]
+        if ivid is None:
+            self.ivid=0
+        else:
+            self.ivid=ivid
+            self.yrange=yrange
+            self.xrange=xrange
         self.draw(parent, imy, imx, dy, dx)
         self.ROI.sigRegionChangeFinished.connect(lambda: self.position(parent))
         self.ROI.sigClicked.connect(lambda: self.position(parent))
@@ -142,7 +156,7 @@ class sROI():
                 xy = np.concatenate((mu[np.newaxis,:], xy), axis=0)
                 xy += 0.5
 
-                parent.scatter = pg.ScatterPlotItem(xy[:,1], xy[:,0], pen='r', symbol='+')
+                parent.scatter = pg.ScatterPlotItem(xy[:,1], xy[:,0], pen=self.color, symbol='+')
                 parent.pROI.addItem(parent.scatter)
                 parent.pROIimg.setImage(255-fr)
                 parent.pROIimg.setLevels([255-sat, 255])
@@ -165,10 +179,13 @@ class sROI():
             parent.pROI.removeItem(parent.scatter)
             parent.scatter = pg.ScatterPlotItem([0], [0], pen='k', symbol='+')
             parent.pROI.addItem(parent.scatter)
-            fr  = img - img.min()
+            fr  = img #- img.min()
             fr  = 255.0 - fr
             fr  = np.maximum(0, fr - (255.0-sat))
             parent.pROIimg.setImage(255-fr)
             parent.pROIimg.setLevels([255-sat, 255])
+        parent.pROI.setRange(xRange=(0,img.shape[1]),
+                         yRange=(0, img.shape[0]),
+                          padding=0.0)
         parent.win.show()
         parent.show()
