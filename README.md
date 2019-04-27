@@ -88,7 +88,10 @@ The matlab version needs to be downloaded/cloned from github (no install require
 ### PYTHON
 
 Here is a youtube video showing how to process and move around the GUI (click on picture)
-[![GUI video](/figs/mousefacegui.png)](https://www.youtube.com/watch?v=YOUTUBE_VIDEO_ID_HERE)
+<div align="center">
+  <a href="https://www.youtube.com/watch?v=YOUTUBE_VIDEO_ID_HERE"><img src="/figs/mousefacegui.png" width="600" alt="GUI tutorial"></a>
+</div>
+
 
 Text instructions: run the following command in a terminal
 ```
