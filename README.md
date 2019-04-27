@@ -1,4 +1,4 @@
-# FaceMap <img src="FaceMap/mouse.png" width="100" title="lilmouse" alt="lilmouse" align="right" vspace = "50">
+# FaceMap <img src="FaceMap/mouse.png" width="200" title="lilmouse" alt="lilmouse" align="right" vspace = "50">
 
 GUI for processing videos of rodents, implemented in python and MATLAB. Works for grayscale and RGB movies. Can process multi-camera videos. Some example movies to test the GUI on are located [here](https://drive.google.com/drive/folders/1fOkIXyEsxO-lDGZLy0gCKf1d7OjnUcnQ?usp=sharing).
 
@@ -83,9 +83,12 @@ The matlab version needs to be downloaded/cloned from github (no install require
 
 '.mj2','.mp4','.mkv','.avi','.mpeg','.mpg','.asf'
 
-## Start processing! ~HOW TO GUI~
+## Start processing! *HOW TO GUI*
 
-**PYTHON**: run
+**PYTHON**: here is a youtube video showing how to process and move around the GUI (click on picture)
+[![GUI video](/figs/mousefacegui.png)](https://www.youtube.com/watch?v=YOUTUBE_VIDEO_ID_HERE)
+
+Instructions: run the following command in a terminal
 ```
 python -m FaceMap
 ```
@@ -107,6 +110,10 @@ By default, the "Compute multivideo SVD" box is unchecked. If you check it, then
 **python**: wherever you run `python -m FaceMap`
 
 **MATLAB**: set at line 59 of MovieGUI.m (h.filepath)
+
+### Batch processing
+
+Load a video or a set of videos and draw your ROIs and choose your processing settings. Then click **save ROIs**. This will save a *_proc.npy file in the folder in the specified **save folder**. The name of this proc file will be listed below **process batch** (this button will also activate). You can then repeat this process: load the video(s), draw ROIs, choose settings, and click **save ROIs**. Then to process all the listed *_proc.npy files click **process batch**.
 
 ## File loading structure
 
@@ -130,7 +137,7 @@ Then the GUIs assume {cam1_G7c1_1.avi, cam2_G7c1_1.avi, cam3_G7c1_1.avi} were ac
 
 Note: if you have many simultaneous videos / overall pixels (e.g. 2000 x 2000) you will need around 32GB of RAM to compute the full SVD motion masks.
 
-**python**: you will be able to see all the videos that were simultaneously collected at once. However, you can only draw ROIs that are within ONE video. Only the "full SVD" is computed over all videos.
+**python**: you will be able to see all the videos that were simultaneously collected at once. However, you can only draw ROIs that are within ONE video. Only the "multivideo SVD" is computed over all videos.
 
 **MATLAB**: after the file choosing process is over, you will see all the movies in the drop down menu (by filename). You can switch between them and inspect how well an ROI works for each of the movies.
 
