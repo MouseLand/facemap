@@ -84,8 +84,8 @@ def process(data):
     cc = np.real(ifft2(cc))
     cc = fft.fftshift(cc, axes=(1,2))
 
-    xc = int(np.floor(cc.shape[1]/2))
-    yc = int(np.floor(cc.shape[2]/2))
+    yc = int(np.floor(cc.shape[1]/2))
+    xc = int(np.floor(cc.shape[2]/2))
     yr = np.arange(yc - ly, yc + ly + 1, 1, int)
     xr = np.arange(xc - lx, xc + lx + 1, 1, int)
 

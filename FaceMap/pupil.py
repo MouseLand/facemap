@@ -24,14 +24,14 @@ def fit_gaussian(im, thres, do_xy):
     # enforce some circularity on pupil
     # principal axis can only be 2x bigger than minor axis
     min_sv = sv.min()
-    sv = min_sv * np.minimum(2, sv/min_sv)
+    sv = min_sv * np.minimum(3, sv/min_sv)
 
     # compute pts surrounding ellipse
     if do_xy:
         n = 50 # Number of points around ellipse
         p = np.linspace(0, 2*np.pi, n)[:, np.newaxis]
         # Transformation
-        xy = np.concatenate((np.cos(p), np.sin(p)),axis=1) * (sv[::-1]**0.5) @ u
+        xy = np.concatenate((np.cos(p), np.sin(p)),axis=1) * (sv[::-1]**0.5) @ u[:,::-1]
         xy += mu
     else:
         xy = []

@@ -112,7 +112,6 @@ class sROI():
 
     def remove(self, parent):
         parent.p0.removeItem(self.ROI)
-        print(parent.iROI, len(parent.ROIs))
         for i in range(len(parent.ROIs)):
             if i > self.iROI:
                 parent.ROIs[i].iROI -= 1

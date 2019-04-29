@@ -362,7 +362,7 @@ class MainW(QtGui.QMainWindow):
         self.l0.addWidget(self.checkBox, 11, 0, 1, 4)
         self.l0.addWidget(self.save_mat, 12, 0, 1, 3)
         self.l0.addWidget(self.savefolder, 13, 0, 1, 3)
-        self.l0.addWidget(self.savelabel, 14, 0, 1, 3)
+        self.l0.addWidget(self.savelabel, 14, 0, 1, 4)
         self.l0.addWidget(self.saverois, 15, 0, 1, 3)
         self.l0.addWidget(self.process,  16, 0, 1, 3)
         self.l0.addWidget(self.processbatch,  17, 0, 1, 3)
@@ -472,6 +472,7 @@ class MainW(QtGui.QMainWindow):
         # load ops in same folder
         if folderName:
             self.save_path = folderName
+            self.savelabel.setText(folderName)
 
     def open_folder(self):
         folderName = QtGui.QFileDialog.getExistingDirectory(self,
