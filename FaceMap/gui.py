@@ -195,6 +195,13 @@ class MainW(QtGui.QMainWindow):
             qlabel.setStyleSheet('color: white;')
             self.l0.addWidget(qlabel,0,6+5*j,1,1)
 
+        self.reflector = QtGui.QPushButton('add corneal reflection')
+        self.l0.addWidget(self.reflector, 1, 8+5*j, 1, 2)
+        self.reflector.setEnabled(False)
+        self.reflector.clicked.connect(self.add_reflectROI)
+        self.rROI=[]
+        self.reflectors=[]
+
         self.p1 = self.win.addPlot(name='plot1',row=1,col=0,colspan=2, title='p1')
         self.p1.setMouseEnabled(x=True,y=False)
         self.p1.setMenuEnabled(False)
@@ -432,6 +439,7 @@ class MainW(QtGui.QMainWindow):
         self.show()
         self.processed = False
         #self.load_movies([["/media/carsen/DATA2/grive/sample_movies/2016-09-29_11_M160907_MP028_eye.mj2"]])
+        self.load_movies([["/home/carsen/Downloads/2017-08-04_1_M170714_MP032_eye.mj2"]])
         #self.openProc("/media/carsen/DATA1/2016-09-29_11_M160907_MP028_eye_proc.npy")
         #self.openFile(["D:/cams5/mouse_face.mp4"])
         # if not a combined recording, automatically open binary
@@ -441,13 +449,22 @@ class MainW(QtGui.QMainWindow):
         if len(self.ROIs) > 0:
             self.ROIs[self.iROI].plot(self)
 
+    def add_reflectROI(self):
+        self.rROI[self.iROI].append(roi.reflectROI(iROI=self.iROI, wROI=len(self.rROI[self.iROI]), moveable=True, parent=self))
+
     def add_ROI(self):
         roitype = self.comboBox.currentIndex()
         roistr = self.comboBox.currentText()
         if roitype > 0:
             self.saturation.append(255.)
+            if len(self.ROIs)>0:
+                if self.ROIs[self.iROI].rind==0:
+                    for i in range(len(self.rROI[self.iROI])):
+                        self.pROI.removeItem(self.rROI[self.iROI][i].ROI)
             self.iROI = self.nROIs
             self.ROIs.append(roi.sROI(rind=roitype-1, rtype=roistr, iROI=self.nROIs, moveable=True, parent=self))
+            self.rROI.append([])
+            self.reflectors.append([])
             self.nROIs += 1
             self.ROIs[-1].position(self)
         else:

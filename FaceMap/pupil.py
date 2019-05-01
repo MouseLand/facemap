@@ -1,12 +1,58 @@
 import numpy as np
 from scipy.ndimage import gaussian_filter1d
 
-def fit_gaussian(im, thres, do_xy):
+def fit_gaussian(im, thres, do_xy, missing=None):
     ''' iterative fitting of pupil with gaussian @ sigma=thres '''
     ix,iy = im.nonzero()
-    lam0 = im[ix, iy]
+    if missing is not None:
+        mx = missing[0]
+        my = missing[1]
+        miss = np.isin(ix*im.shape[1] + iy, mx*im.shape[1] + my)
+        miss = miss.flatten()
+    else:
+        miss = np.zeros((ix.size,), np.bool)
+    ix = ix[~miss].flatten()
+    iy = iy[~miss].flatten()
+    lam0 = im[ix,iy].copy()
+    immed0 = np.median(lam0)
     lam = lam0.copy()
+    ix0 = ix.copy()
+    iy0 = iy.copy()
+    lam /= lam.sum()
+    mu = [(lam*ix).sum(), (lam*iy).sum()]
+    xdist = ix - mu[0]
+    ydist = iy - mu[1]
+    xydist = np.concatenate((xdist[:,np.newaxis], ydist[:,np.newaxis]), axis=1)
+    xy = xydist * lam[:,np.newaxis]**0.5
+    sigxy = xy.T @ xy
     for k in range(5):
+        # fill in NaN's
+        dd = ((xydist @ np.linalg.inv(sigxy)) * xydist).sum(axis=1)
+        dd=dd.flatten()
+        glam = dd[:ix0.size] <= 2*thres**2
+        lam0[~glam] = 0
+        glam = dd[:ix0.size] <= thres**2
+        immed0 = np.median(lam0[glam])
+        lam = lam0.copy()
+        #print(immed0, mu, sigxy)
+
+        if missing is not None:
+            xdist = mx - mu[0]
+            ydist = my - mu[1]
+            mxy = np.concatenate((xdist[:,np.newaxis], ydist[:,np.newaxis]), axis=1)
+            dd = ((mxy @ np.linalg.inv(sigxy)) * mxy).sum(axis=1)
+            # within thres?
+            #im[mx,my] = np.exp(-dd) * 2 * immed0
+            ithr = dd <= 1.15 * thres**2
+            im[mx[ithr], my[ithr]] = immed0 * 1 #* np.exp(-dd[ithr]) / np.exp(-dd[ithr]).mean()
+            im[mx[~ithr], my[~ithr]] = 0
+            ix = np.concatenate((ix0,mx), axis=0)
+            iy = np.concatenate((iy0,my), axis=0)
+            lamm = np.zeros((mx.size,),np.float32)
+            lamm[ithr] = immed0 * 1.1
+            #lamm = np.exp(-dd / 2) * immed0
+            lam = np.concatenate((lam0, lamm), axis=0)
+
         lam /= lam.sum()
         mu = [(lam*ix).sum(), (lam*iy).sum()]
         xdist = ix - mu[0]
@@ -14,9 +60,7 @@ def fit_gaussian(im, thres, do_xy):
         xydist = np.concatenate((xdist[:,np.newaxis], ydist[:,np.newaxis]), axis=1)
         xy = xydist * lam[:,np.newaxis]**0.5
         sigxy = xy.T @ xy
-        lam = lam0.copy()
-        dd = ((xydist @ np.linalg.inv(sigxy)) * xydist).sum(axis=1)
-        lam[dd > 2*thres**2] = 0
+
     mu = np.array(mu)
 
     sv, u = np.linalg.eig(thres**2 * sigxy)
@@ -35,7 +79,7 @@ def fit_gaussian(im, thres, do_xy):
         xy += mu
     else:
         xy = []
-    return mu, sv, xy
+    return mu, sv, xy, im[mx,my]
 
 def process(img, saturation, pupil_sigma):
     ''' get pupil by fitting 2D gaussian
@@ -48,7 +92,7 @@ def process(img, saturation, pupil_sigma):
     # smooth in space by 1 pixel
     img = gaussian_filter1d(gaussian_filter1d(img, 1, axis=0), 1, axis=1)
 
-    img -= img.min(axis=1).min(axis=0)[np.newaxis, np.newaxis, :]
+    #img -= img.min(axis=1).min(axis=0)[np.newaxis, np.newaxis, :]
     img = 255.0 - img
     img = np.maximum(0, img - (255.0 - saturation))
     nframes = img.shape[-1]
