@@ -81,7 +81,7 @@ def fit_gaussian(im, thres, do_xy, missing=None):
         xy = []
     return mu, sv, xy, im[mx,my]
 
-def process(img, saturation, pupil_sigma):
+def process(img, saturation, pupil_sigma, pupreflector):
     ''' get pupil by fitting 2D gaussian
         (only uses pixels darker than saturation) '''
 
@@ -100,7 +100,7 @@ def process(img, saturation, pupil_sigma):
     area = np.nan*np.zeros((nframes,))
     for n in range(nframes):
         try:
-            mu, sig, _ = fit_gaussian(img[:,:,n], pupil_sigma, False)
+            mu, sig, _, _ = fit_gaussian(img[:,:,n], pupil_sigma, False, missing=pupreflector)
         except:
             mu = np.nan*np.zeros((2,))
             sig = np.nan*np.zeros((2,))
@@ -125,8 +125,11 @@ def smooth(area):
             marea[k+winhalf, :] = area
     marea = np.nanmedian(marea, axis=0)
     ix = np.logical_or(np.isnan(area), np.isnan(marea)).nonzero()[0]
-    ix2 = (~np.logical_or(np.isnan(area), np.isnan(marea))).nonzero()[0]
-    area[ix] = np.interp(ix, ix2, marea[ix2])
+    ix2 = (np.logical_and(~np.isnan(area), ~np.isnan(marea))).nonzero()[0]
+    if ix2.size>0:
+        area[ix] = np.interp(ix, ix2, marea[ix2])
+    else:
+        area[ix] = 0
     marea[ix] = area[ix]
 
     # when do large deviations happen

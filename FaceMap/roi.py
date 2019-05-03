@@ -66,7 +66,7 @@ class reflectROI():
         parent.pROI.removeItem(self.ROI)
         for i in range(len(parent.rROI[self.iROI])):
             if i > self.wROI:
-                parent.rROI[i].wROI -= 1
+                parent.rROI[self.iROI][i].wROI -= 1
         del parent.rROI[self.iROI][self.wROI]
         parent.win.show()
         parent.show()
@@ -105,9 +105,9 @@ class reflectROI():
         parent.sl[1].setValue(parent.saturation[self.iROI] * 100 / 255)
         parent.ROIs[self.iROI].plot(parent)
 
-def get_reflector(yrange, xrange, rROI):
+def get_reflector(yrange, xrange, rROI=None, rdict=None):
     reflectors = np.zeros((yrange.size, xrange.size), np.bool)
-    if len(rROI)>0:
+    if rROI is not None and len(rROI)>0:
         for r in rROI:
             ellipse, ryrange, rxrange = r.ellipse.copy(), r.yrange.copy(), r.xrange.copy()
             ix = np.logical_and(rxrange >= 0, rxrange < xrange.size)
@@ -117,13 +117,23 @@ def get_reflector(yrange, xrange, rROI):
             ellipse = ellipse[iy,:]
             ryrange = ryrange[iy]
             reflectors[np.ix_(ryrange, rxrange)] = np.logical_or(reflectors[np.ix_(ryrange, rxrange)], ellipse)
-    return reflectors
+    elif rdict is not None and len(rdict)>0:
+        for r in rdict:
+            ellipse, ryrange, rxrange = r['ellipse'].copy(), r['yrange'].copy(), r['xrange'].copy()
+            ix = np.logical_and(rxrange >= 0, rxrange < xrange.size)
+            ellipse = ellipse[:,ix]
+            rxrange = rxrange[ix]
+            iy = np.logical_and(ryrange >= 0, ryrange < yrange.size)
+            ellipse = ellipse[iy,:]
+            ryrange = ryrange[iy]
+            reflectors[np.ix_(ryrange, rxrange)] = np.logical_or(reflectors[np.ix_(ryrange, rxrange)], ellipse)
+    return reflectors.nonzero()
 
 class sROI():
     def __init__(self, rind, rtype, iROI, moveable=True,
                  parent=None, saturation=None, color=None, pos=None,
                  yrange=None, xrange=None,
-                 ivid=None):
+                 ivid=None, pupil_sigma=None):
         # what type of ROI it is
         self.iROI = iROI
         self.rind = rind
@@ -137,7 +147,10 @@ class sROI():
             self.color = tuple(self.color)
         else:
             self.color = color
-        self.pupil_sigma = 0
+        if pupil_sigma is not None:
+            self.pupil_sigma = pupil_sigma
+        else:
+            self.pupil_sigma = 0
         self.moveable = moveable
         if pos is None:
             view = parent.p0.viewRange()
@@ -246,7 +259,7 @@ class sROI():
             self.rmin = 0
             parent.reflectors[self.iROI] = get_reflector(parent.ROIs[self.iROI].yrange,
                                                          parent.ROIs[self.iROI].xrange,
-                                                         parent.rROI[self.iROI])
+                                                         rROI=parent.rROI[self.iROI])
         parent.sl[1].setValue(parent.saturation[self.iROI] * 100 / 255)
         self.plot(parent)
 
@@ -286,11 +299,11 @@ class sROI():
             if 1:
                 # smooth in space
                 fr = gaussian_filter(img.astype(np.float32), 1)
-                fr -= self.rmin
+                #fr -= self.rmin
                 fr[~self.ellipse] = 255.0
                 fr = 255.0 - fr
                 fr = np.maximum(0, fr - (255.0-sat))
-                missing=parent.reflectors[self.iROI].nonzero()
+                missing=parent.reflectors[self.iROI]
                 mu, sig, xy, immiss = pupil.fit_gaussian(fr.copy(), parent.pupil_sigma, True, missing=missing)
                 fr[missing[0], missing[1]] = immiss
                 xy = xy[xy[:,0]>=0, :]

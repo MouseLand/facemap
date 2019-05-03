@@ -1,6 +1,6 @@
 import pims
 import numpy as np
-from FaceMap import gui, utils, pupil, running
+from FaceMap import gui, roi, utils, pupil, running
 import time
 import os
 import pdb
@@ -22,7 +22,7 @@ def run(filenames, parent=None, proc=None, savepath=None):
         nframes = parent.nframes
         iframes = parent.iframes
         sbin = parent.sbin
-        rois = roi_to_dict(parent.ROIs)
+        rois = roi_to_dict(parent.ROIs, parent.rROI)
         Ly = parent.Ly
         Lx = parent.Lx
         fullSVD = parent.checkBox.isChecked()
@@ -122,6 +122,9 @@ def run(filenames, parent=None, proc=None, savepath=None):
     for p in pups:
         if 'area' in p:
             p['area_smooth'] = pupil.smooth(p['area'].copy())
+            p['com_smooth'] = p['com'].copy()
+            p['com_smooth'][:,0] = pupil.smooth(p['com_smooth'][:,0].copy())
+            p['com_smooth'][:,1] = pupil.smooth(p['com_smooth'][:,1].copy())
     for b in blinks:
         b = pupil.smooth(b.copy())
     for r in runs:
@@ -156,13 +159,22 @@ def multivideo_reshape(X, LY, LX, sy, sx, Ly, Lx, iinds):
     return X_reshape
 
 
-def roi_to_dict(ROIs):
+def roi_to_dict(ROIs, rROI=None):
     rois = []
-    for r in ROIs:
+    for i,r in enumerate(ROIs):
         rois.append({'rind': r.rind, 'rtype': r.rtype, 'iROI': r.iROI, 'ivid': r.ivid, 'color': r.color,
                     'yrange': r.yrange, 'xrange': r.xrange, 'saturation': r.saturation})
         if hasattr(r, 'pupil_sigma'):
-            rois[-1]['pupil_sigma'] = r.pupil_sigma
+            rois[i]['pupil_sigma'] = r.pupil_sigma
+        if hasattr(r, 'ellipse'):
+            rois[i]['ellipse'] = r.ellipse
+        if rROI is not None:
+            if len(rROI[i]) > 0:
+                rois[i]['reflector'] = []
+                for rr in rROI[i]:
+                    rdict = {'yrange': rr.yrange, 'xrange': rr.xrange, 'ellipse': rr.ellipse}
+                    rois[i]['reflector'].append(rdict)
+
     return rois
 
 def save(proc, savepath=None):
@@ -376,6 +388,7 @@ def process_ROIs(video, cumframes, Ly, Lx, avgmotion, U, sbin=3, tic=None, rois=
     nframes = cumframes[-1]
 
     pups = []
+    pupreflector = []
     blinks = []
     runs = []
 
@@ -397,6 +410,7 @@ def process_ROIs(video, cumframes, Ly, Lx, avgmotion, U, sbin=3, tic=None, rois=
             if r['rind']==0:
                 pupind.append(i)
                 pups.append({'area': np.zeros((nframes,)), 'com': np.zeros((nframes,2))})
+                pupreflector.append(roi.get_reflector(r['yrange'], r['xrange'], rROI=None, rdict=r['reflector']))
             elif r['rind']==1:
                 motind.append(i)
                 nroi+=1
@@ -426,9 +440,9 @@ def process_ROIs(video, cumframes, Ly, Lx, avgmotion, U, sbin=3, tic=None, rois=
         if len(pupind)>0:
             k=0
             for p in pupind:
-                com, area = pupil.process(img[ivid[p]][np.ix_(rois[p]['yrange'],
-                                                              rois[p]['xrange'])],
-                                          rois[p]['saturation'], rois[p]['pupil_sigma'])
+                imgp = img[ivid[p]][np.ix_(rois[p]['yrange'], rois[p]['xrange'])]
+                imgp[~rois[p]['ellipse']] = 255.0
+                com, area = pupil.process(imgp, rois[p]['saturation'], rois[p]['pupil_sigma'], pupreflector[k])
                 pups[k]['com'][t:t+nt0,:] = com
                 pups[k]['area'][t:t+nt0] = area
                 k+=1
@@ -436,9 +450,9 @@ def process_ROIs(video, cumframes, Ly, Lx, avgmotion, U, sbin=3, tic=None, rois=
         if len(blind)>0:
             k=0
             for b in blind:
-                bl = np.maximum(0, (255 - img[ivid[b]][np.ix_(rois[b]['yrange'],
-                                                               rois[b]['xrange'])]
-                                     - (255-rois[b]['saturation']))).sum(axis=(0,1))
+                imgp = img[ivid[b]][np.ix_(rois[b]['yrange'], rois[b]['xrange'])]
+                imgp[~rois[b]['ellipse']] = 255.0
+                bl = np.maximum(0, (255 - imgp - (255-rois[b]['saturation']))).sum(axis=(0,1))
                 blinks[k][t:t+nt0] = bl
                 k+=1
 

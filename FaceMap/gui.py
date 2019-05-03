@@ -245,7 +245,7 @@ class MainW(QtGui.QMainWindow):
         self.sigmaBox.setFixedWidth(45)
         self.l0.addWidget(binLabel, 9, 0, 1, 3)
         self.l0.addWidget(self.sigmaBox, 10, 0, 1, 3)
-        self.pupil_sigma = 2.5
+        self.pupil_sigma = float(self.sigmaBox.text())
         self.sigmaBox.returnPressed.connect(self.pupil_sigma_change)
         self.frameLabel = QtGui.QLabel("Current frame:")
         self.frameLabel.setStyleSheet("color: white;")
@@ -439,7 +439,9 @@ class MainW(QtGui.QMainWindow):
         self.show()
         self.processed = False
         #self.load_movies([["/media/carsen/DATA2/grive/sample_movies/2016-09-29_11_M160907_MP028_eye.mj2"]])
-        self.load_movies([["/home/carsen/Downloads/2017-08-04_1_M170714_MP032_eye.mj2"]])
+        #self.load_movies([["/home/carsen/Downloads/2017-08-04_1_M170714_MP032_eye.mj2"]])
+        #self.load_movies([["/media/carsen/SSD/sample_movies/mouse_face.mp4"]])
+        #self.openProc("/media/carsen/DATA1/FACES/data/mouse_face_proc.npy")
         #self.openProc("/media/carsen/DATA1/2016-09-29_11_M160907_MP028_eye_proc.npy")
         #self.openFile(["D:/cams5/mouse_face.mp4"])
         # if not a combined recording, automatically open binary
@@ -599,12 +601,14 @@ class MainW(QtGui.QMainWindow):
                     self.pupil = proc['pupil']
                     self.blink = proc['blink']
                 else:
-                    k=1
+                    k=0
 
                 self.saturation = []
                 kt = [0,0,0,0]
                 # whether or not you can move the ROIs
                 moveable = not self.processed
+                self.rROI=[]
+                self.reflectors=[]
                 if proc['rois'] is not None:
                     for r in proc['rois']:
                         rind = r['rind']
@@ -615,11 +619,31 @@ class MainW(QtGui.QMainWindow):
                         dy = r['yrange'][-1] - r['yrange'][0]
                         dx = r['xrange'][-1] - r['xrange'][0]
                         pos = [yr[0]+self.sy[ivid], xr[0]+self.sx[ivid], dy, dx]
+                        #if rind==0 or rind==2:
+                        #    pos[0] -= int(dx/2)
                         self.saturation.append(r['saturation'])
+                        self.rROI.append([])
+                        self.reflectors.append([])
+                        if 'pupil_sigma' in r:
+                            psig = r['pupil_sigma']
+                            self.pupil_sigma = psig
+                            self.sigmaBox.setText(str(r['pupil_sigma']))
+                        else:
+                            psig = None
                         self.ROIs.append(roi.sROI(rind=rind, rtype=r['rtype'], iROI=r['iROI'], color=r['color'],
-                                         moveable=moveable, parent=self, saturation=r['saturation'],
+                                         moveable=moveable, parent=self, saturation=r['saturation'], pupil_sigma= psig,
                                          yrange=yr, xrange=xr, pos=pos, ivid=ivid))
-                        self.iROI = k-1
+                        if 'reflector' in r:
+                            for i,rr in enumerate(r['reflector']):
+                                pos = [rr['yrange'][0], rr['xrange'][0],
+                                        rr['yrange'][-1]-rr['yrange'][0],
+                                        rr['xrange'][-1]-rr['xrange'][0]]
+                                self.rROI[-1].append(roi.reflectROI(iROI=r['iROI'], wROI=i, pos=pos, parent=self,
+                                                    yrange=rr['yrange'], xrange=rr['xrange'], ellipse=rr['ellipse']))
+                        if self.fullSVD:
+                            self.iROI = k-1
+                        else:
+                            self.iROI = k
                         self.ROIs[-1].position(self)
                         if self.processed:
                             if k < 8:
@@ -676,9 +700,15 @@ class MainW(QtGui.QMainWindow):
             print(e)
             good = False
         if good:
+            if len(self.rROI)>0:
+                for r in self.rROI:
+                    if len(r) > 0:
+                        for rr in r:
+                            rr.remove(self)
             if len(self.ROIs)>0:
                 for r in self.ROIs[::-1]:
                     r.remove(self)
+
             self.iROI=0
             self.nROIs=0
             self.saturation=[]
@@ -916,7 +946,7 @@ class MainW(QtGui.QMainWindow):
             savepath = None
         print(savepath)
         if len(self.ROIs)>0:
-            rois = facemap.roi_to_dict(self.ROIs)
+            rois = facemap.roi_to_dict(self.ROIs, self.rROI)
         else:
             rois = None
         proc = {'Ly':self.Ly, 'Lx':self.Lx, 'sy': self.sy, 'sx': self.sx, 'LY':self.LY, 'LX':self.LX,
@@ -1031,7 +1061,10 @@ class MainW(QtGui.QMainWindow):
             pup = self.pupil[wroi]
             pen = pg.mkPen(color, width=2)
             pp=wp.plot(zscore(pup['area_smooth']) - 4, pen=pen)
-            pupcom = pup['com'].copy()
+            if 'com_smooth' in pup:
+                pupcom = pup['com_smooth'].copy()
+            else:
+                pupcom = pup['com'].copy()
             pupcom -= pupcom.mean(axis=0)
             norm = pupcom.std()
             pen = pg.mkPen((155,255,155), width=1, style=QtCore.Qt.DashLine)
