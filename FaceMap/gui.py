@@ -141,7 +141,7 @@ class MainW(QtGui.QMainWindow):
         try:
             # try to load user settings
             opsfile = os.path.join(os.path.abspath(os.path.dirname(__file__)), 'ops_user.npy')
-            self.ops = np.load(opsfile).item()
+            self.ops = np.load(opsfile, allow_pickle=True).item()
         except:
             self.ops = {'sbin': 4, 'pupil_sigma': 2., 'fullSVD': False,
                         'save_path': '', 'save_mat': False}
@@ -558,8 +558,7 @@ class MainW(QtGui.QMainWindow):
 
     def openProc(self, fileName):
         try:
-            proc = np.load(fileName)
-            proc = proc.item()
+            proc = np.load(fileName, allow_pickle=True).item()
             self.filenames = proc['filenames']
             good=True
         except:
@@ -963,7 +962,7 @@ class MainW(QtGui.QMainWindow):
     def process_batch(self):
         files = self.batchlist
         for f in files:
-            proc = np.load(f).item()
+            proc = np.load(f, allow_pickle=True).item()
             savename = facemap.run(proc['filenames'], parent=None, proc=proc, savepath=proc['save_path'])
         if len(files)==1:
             self.openProc(savename)
