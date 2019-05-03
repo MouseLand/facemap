@@ -304,15 +304,18 @@ class sROI():
                 fr = 255.0 - fr
                 fr = np.maximum(0, fr - (255.0-sat))
                 missing=parent.reflectors[self.iROI]
-                mu, sig, xy, immiss = pupil.fit_gaussian(fr.copy(), parent.pupil_sigma, True, missing=missing)
-                fr[missing[0], missing[1]] = immiss
-                xy = xy[xy[:,0]>=0, :]
-                xy = xy[xy[:,0]<self.yrange.size, :]
-                xy = xy[xy[:,1]>=0, :]
-                xy = xy[xy[:,1]<self.xrange.size, :]
-                parent.pROI.removeItem(parent.scatter)
-                xy = np.concatenate((mu[np.newaxis,:], xy), axis=0)
-                xy += 0.5
+                try:
+                    mu, sig, xy, immiss = pupil.fit_gaussian(fr.copy(), parent.pupil_sigma, True, missing=missing)
+                    fr[missing[0], missing[1]] = immiss
+                    xy = xy[xy[:,0]>=0, :]
+                    xy = xy[xy[:,0]<self.yrange.size, :]
+                    xy = xy[xy[:,1]>=0, :]
+                    xy = xy[xy[:,1]<self.xrange.size, :]
+                    parent.pROI.removeItem(parent.scatter)
+                    xy = np.concatenate((mu[np.newaxis,:], xy), axis=0)
+                    xy += 0.5
+                except:
+                    xy = np.array([[0,0],[0,0]])
 
                 parent.scatter = pg.ScatterPlotItem(xy[:,1], xy[:,0], pen=self.color, symbol='+')
                 parent.pROI.addItem(parent.scatter)
