@@ -134,7 +134,7 @@ def run(filenames, parent=None, proc=None, savepath=None):
     print('computed projection at %1.2fs'%(time.time() - tic))
 
     proc = {
-            'filenames': filenames, 'iframes': iframes, 'Ly': Ly, 'Lx': Lx,
+            'filenames': filenames, 'save_path': savepath, 'iframes': iframes, 'Ly': Ly, 'Lx': Lx,
             'sbin': sbin, 'fullSVD': fullSVD, 'save_mat': save_mat,
             'Lybin': Lybin, 'Lxbin': Lxbin,
             'sybin': sybin, 'sxbin': sxbin, 'LYbin': LYbin, 'LXbin': LXbin,

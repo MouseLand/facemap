@@ -296,16 +296,15 @@ class sROI():
         if self.rind==0:
             parent.reflector.setEnabled(True)
             img = img.mean(axis=-1)
-            if 1:
-                # smooth in space
-                fr = gaussian_filter(img.astype(np.float32), 1)
-                #fr -= self.rmin
-                fr[~self.ellipse] = 255.0
-                fr = 255.0 - fr
-                fr = np.maximum(0, fr - (255.0-sat))
-                missing=parent.reflectors[self.iROI]
-                mu, sig, xy, immiss, _, _ = pupil.fit_gaussian(fr.copy(), parent.pupil_sigma,
-                                                               True, missing=missing)
+            # smooth in space
+            fr = gaussian_filter(img.astype(np.float32), 1)
+            #fr -= self.rmin
+            fr[~self.ellipse] = 255.0
+            fr = 255.0 - fr
+            fr = np.maximum(0, fr - (255.0-sat))
+            missing=parent.reflectors[self.iROI]
+            try:
+                mu, sig, xy, immiss = pupil.fit_gaussian(fr.copy(), parent.pupil_sigma, True, missing=missing)
                 fr[missing[0], missing[1]] = immiss
                 xy = xy[xy[:,0]>=0, :]
                 xy = xy[xy[:,0]<self.yrange.size, :]
@@ -314,18 +313,17 @@ class sROI():
                 parent.pROI.removeItem(parent.scatter)
                 xy = np.concatenate((mu[np.newaxis,:], xy), axis=0)
                 xy += 0.5
-
                 parent.scatter = pg.ScatterPlotItem(xy[:,1], xy[:,0], pen=self.color, symbol='+')
                 parent.pROI.addItem(parent.scatter)
                 parent.pROIimg.setImage(255-fr)
                 parent.pROIimg.setLevels([255-sat, 255])
-            if 0:
-                print('error')
+            except:
+                print('no pupil found')
                 parent.pROI.removeItem(parent.scatter)
                 parent.scatter = pg.ScatterPlotItem([0], [0], pen='k', symbol='+')
                 parent.pROI.addItem(parent.scatter)
-                parent.pROIimg.setImage(img)
-                parent.pROIimg.setLevels([0, sat])
+                parent.pROIimg.setImage(255-fr)
+                parent.pROIimg.setLevels([255-sat, 255])
             parent.pROI.setRange(xRange=(0, self.xrange.size), yRange=(0,self.yrange.size))
         elif self.rind==1 or self.rind==3:
             parent.pROI.removeItem(parent.scatter)
