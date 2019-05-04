@@ -304,7 +304,8 @@ class sROI():
                 fr = 255.0 - fr
                 fr = np.maximum(0, fr - (255.0-sat))
                 missing=parent.reflectors[self.iROI]
-                mu, sig, xy, immiss = pupil.fit_gaussian(fr.copy(), parent.pupil_sigma, True, missing=missing)
+                mu, sig, xy, immiss, _, _ = pupil.fit_gaussian(fr.copy(), parent.pupil_sigma,
+                                                               True, missing=missing)
                 fr[missing[0], missing[1]] = immiss
                 xy = xy[xy[:,0]>=0, :]
                 xy = xy[xy[:,0]<self.yrange.size, :]

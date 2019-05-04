@@ -409,7 +409,8 @@ def process_ROIs(video, cumframes, Ly, Lx, avgmotion, U, sbin=3, tic=None, rois=
             ivid.append(r['ivid'])
             if r['rind']==0:
                 pupind.append(i)
-                pups.append({'area': np.zeros((nframes,)), 'com': np.zeros((nframes,2))})
+                pups.append({'area': np.zeros((nframes,)), 'com': np.zeros((nframes,2)),
+                             'axdir': np.zeros((nframes,2,2)), 'axlen': np.zeros((nframes,2))})
                 pupreflector.append(roi.get_reflector(r['yrange'], r['xrange'], rROI=None, rdict=r['reflector']))
             elif r['rind']==1:
                 motind.append(i)
@@ -442,9 +443,12 @@ def process_ROIs(video, cumframes, Ly, Lx, avgmotion, U, sbin=3, tic=None, rois=
             for p in pupind:
                 imgp = img[ivid[p]][np.ix_(rois[p]['yrange'], rois[p]['xrange'])]
                 imgp[~rois[p]['ellipse']] = 255.0
-                com, area = pupil.process(imgp, rois[p]['saturation'], rois[p]['pupil_sigma'], pupreflector[k])
+                com, area, axdir, axlen = pupil.process(imgp, rois[p]['saturation'],
+                                                        rois[p]['pupil_sigma'], pupreflector[k])
                 pups[k]['com'][t:t+nt0,:] = com
                 pups[k]['area'][t:t+nt0] = area
+                pups[k]['axdir'][t:t+nt0,:,:] = axdir
+                pups[k]['axlen'][t:t+nt0,:] = axlen
                 k+=1
 
         if len(blind)>0:

@@ -69,17 +69,18 @@ def fit_gaussian(im, thres, do_xy, missing=None):
     # principal axis can only be 2x bigger than minor axis
     min_sv = sv.min()
     sv = min_sv * np.minimum(3, sv/min_sv)
-
+    sv = sv[::-1]
+    u = u[:,::-1]
     # compute pts surrounding ellipse
     if do_xy:
         n = 50 # Number of points around ellipse
         p = np.linspace(0, 2*np.pi, n)[:, np.newaxis]
         # Transformation
-        xy = np.concatenate((np.cos(p), np.sin(p)),axis=1) * (sv[::-1]**0.5) @ u[:,::-1]
+        xy = np.concatenate((np.cos(p), np.sin(p)),axis=1) * (sv**0.5) @ u
         xy += mu
     else:
         xy = []
-    return mu, sv, xy, im[mx,my]
+    return mu, sv, xy, im[mx,my], u, sv
 
 def process(img, saturation, pupil_sigma, pupreflector):
     ''' get pupil by fitting 2D gaussian
@@ -98,15 +99,21 @@ def process(img, saturation, pupil_sigma, pupreflector):
     nframes = img.shape[-1]
     com = np.nan*np.zeros((nframes,2))
     area = np.nan*np.zeros((nframes,))
+    axdir = np.nan*np.zeros((nframes,2,2))
+    axlen = np.nan*np.zeros((nframes,2))
     for n in range(nframes):
         try:
-            mu, sig, _, _ = fit_gaussian(img[:,:,n], pupil_sigma, False, missing=pupreflector)
+            mu, sig, _, _, u, sv = fit_gaussian(img[:,:,n], pupil_sigma, False, missing=pupreflector)
         except:
             mu = np.nan*np.zeros((2,))
             sig = np.nan*np.zeros((2,))
+            u   = np.nan*np.zeros((2,2))
+            sv   = np.nan*np.zeros((2,))
         com[n,:] = mu
         area[n] = np.pi * (sig[0] * sig[1]) ** 0.5
-    return com, area
+        axlen[n,:] = sv
+        axdir[n,:,:] = u
+    return com, area, axdir, axlen
 
 def smooth(area):
     ''' replace outliers in pupil area with smoothed pupil area'''
