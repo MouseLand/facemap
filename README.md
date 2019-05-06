@@ -20,21 +20,35 @@ For 2p imaging, you'll need a tighter filter around 850nm so you don't see the l
 
 ### PYTHON
 
-From a command line terminal, type:
+I recommend installing python 3 using **[Anaconda](https://www.anaconda.com/download/)** to be able to install the video readers without complications. You might need to use an anaconda prompt if you did not add anaconda to the path during install.
+
+Next, from a command line terminal / anaconda prompt, install the video libraries:
+~~~~
+conda install -c conda-forge ffmpeg 
+conda install av -c conda-forge
+~~~~
+
+Next we need to install [pims](http://soft-matter.github.io/pims/v0.4.1/install.html), which allows non-sequential indexing into videos. I recommend installing the development version -- this fixes some bugs on Windows with pyav:
+~~~~
+pip install git+https://github.com/soft-matter/pims.git
+~~~~
+
+Now that ffmpeg and pims are installed, install FaceMap (all the other dependencies should be installed automatically with this command):
 ~~~~
 pip install FaceMap
 ~~~~
-If this fails, you might not have Python 3 (or pip, or a recent enough version of pip). You'll need to install a distribution of Python like [Anaconda](https://www.anaconda.com/download/). Choose **Python 3.x** for your operating system. You might need to use an anaconda prompt if you did not add anaconda to the path. Try "pip install suite2p" again. If it still fails, there might be some interaction between pre-installed dependencies and the ones Suite2p needs. First thing to try is
+
+If it fails, there might be some interaction between pre-installed dependencies and the ones FaceMap needs. First thing to try is
 ~~~~
 python -m pip install --upgrade pip
 ~~~~
-And try "pip install FaceMap" again. If it still fails, install Anaconda, and use the Anaconda command prompt to have a clean environment. Alternatively, if you already have Anaconda, create a clean conda environment just for FaceMap with
+And try "pip install FaceMap" again. If it still fails, create a clean conda environment just for FaceMap with
 ~~~~
 conda create --name FaceMap
 (source) activate FaceMap
-pip install FaceMap
 ~~~~
-Omit the "source" on Windows. If you install in this way, you will need to "(source) activate FaceMap" every time you use FaceMap.
+
+and then install ffmpeg, pims and FaceMap in this environment. Note: omit the "source" on Windows. If you install in this way, you will need to "(source) activate FaceMap" every time you use FaceMap.
 
 To upgrade FaceMap (package [here](https://pypi.org/project/facemap/)), run:
 ~~~~
@@ -54,7 +68,7 @@ pip install matplotlib --upgrade
 
 If you are on Yosemite Mac OS, PyQt doesn't work, and you won't be able to install FaceMap. More recent versions of Mac OS are fine.
 
-The software has been heavily tested on Ubuntu 18.04, and less well tested on Windows 10 and Mac OS. Please post an issue if you have installation problems. Also, try to follow the instructions that `pip` provides if more drivers are needed to run `pims`.
+The software has been heavily tested on Ubuntu 18.04, and less well tested on Windows 10 and Mac OS. Please post an issue if you have installation problems. Also, try to follow the instructions that `pip` provides if more drivers are needed to run `ffmpeg` / `pims`.
 
 **Dependencies:**
 
