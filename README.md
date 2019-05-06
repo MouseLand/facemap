@@ -20,20 +20,20 @@ For 2p imaging, you'll need a tighter filter around 850nm so you don't see the l
 
 ### PYTHON
 
-I recommend installing python 3 using [Anaconda](https://www.anaconda.com/download/). You might need to use an anaconda prompt if you did not add anaconda to the path during install.
+I recommend installing python 3 using **[Anaconda](https://www.anaconda.com/download/)** to be able to install the video readers without complications. You might need to use an anaconda prompt if you did not add anaconda to the path during install.
 
-From a command line terminal / anaconda prompt, type:
+Next, from a command line terminal / anaconda prompt, install the video libraries:
 ~~~~
 conda install -c conda-forge ffmpeg 
 conda install av -c conda-forge
 ~~~~
 
-Next we need to install this python videoreader, [pims](http://soft-matter.github.io/pims/v0.4.1/install.html). I recommend installing the development version -- this fixes some bugs on Windows with pyav:
-~~~
+Next we need to install [pims](http://soft-matter.github.io/pims/v0.4.1/install.html), which allows non-sequential indexing into videos. I recommend installing the development version -- this fixes some bugs on Windows with pyav:
+~~~~
 pip install git+https://github.com/soft-matter/pims.git
-~~~
+~~~~
 
-Now that this is installed, install FaceMap (all the other dependencies should be installed automatically):
+Now that ffmpeg and pims are installed, install FaceMap (all the other dependencies should be installed automatically):
 ~~~~
 pip install FaceMap
 ~~~~
@@ -46,9 +46,9 @@ And try "pip install FaceMap" again. If it still fails, create a clean conda env
 ~~~~
 conda create --name FaceMap
 (source) activate FaceMap
-pip install FaceMap
 ~~~~
-Omit the "source" on Windows. If you install in this way, you will need to "(source) activate FaceMap" every time you use FaceMap.
+
+and then install ffmpeg, pims and FaceMap in this environment. Note: omit the "source" on Windows. If you install in this way, you will need to "(source) activate FaceMap" every time you use FaceMap.
 
 To upgrade FaceMap (package [here](https://pypi.org/project/facemap/)), run:
 ~~~~
