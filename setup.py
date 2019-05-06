@@ -5,7 +5,7 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name="facemap",
-    version="0.0.6",
+    version="0.0.7",
     author="Carsen Stringer",
     author_email="carsen.stringer@gmail.com",
     description="Processing motion SVDs of videos",
