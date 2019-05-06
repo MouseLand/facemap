@@ -28,12 +28,17 @@ conda install -c conda-forge ffmpeg
 conda install av -c conda-forge
 ~~~~
 
-Now that this is installed, install FaceMap:
+Next we need to install this python videoreader, [pims](http://soft-matter.github.io/pims/v0.4.1/install.html). I recommend installing the development version -- this fixes some bugs on Windows with pyav:
+~~~
+pip install git+https://github.com/soft-matter/pims.git
+~~~
+
+Now that this is installed, install FaceMap (all the other dependencies should be installed automatically):
 ~~~~
 pip install FaceMap
 ~~~~
 
-If it fails, there might be some interaction between pre-installed dependencies and the ones Suite2p needs. First thing to try is
+If it fails, there might be some interaction between pre-installed dependencies and the ones FaceMap needs. First thing to try is
 ~~~~
 python -m pip install --upgrade pip
 ~~~~
