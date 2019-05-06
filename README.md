@@ -25,6 +25,7 @@ I recommend installing python 3 using [Anaconda](https://www.anaconda.com/downlo
 From a command line terminal / anaconda prompt, type:
 ~~~~
 conda install -c conda-forge ffmpeg 
+conda install av -c conda-forge
 ~~~~
 
 Now that this is installed, install FaceMap:
