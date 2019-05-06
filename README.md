@@ -20,15 +20,23 @@ For 2p imaging, you'll need a tighter filter around 850nm so you don't see the l
 
 ### PYTHON
 
-From a command line terminal, type:
+I recommend installing python 3 using [Anaconda](https://www.anaconda.com/download/). You might need to use an anaconda prompt if you did not add anaconda to the path during install.
+
+From a command line terminal / anaconda prompt, type:
+~~~~
+conda install -c conda-forge ffmpeg 
+~~~~
+
+Now that this is installed, install FaceMap:
 ~~~~
 pip install FaceMap
 ~~~~
-If this fails, you might not have Python 3 (or pip, or a recent enough version of pip). You'll need to install a distribution of Python like [Anaconda](https://www.anaconda.com/download/). Choose **Python 3.x** for your operating system. You might need to use an anaconda prompt if you did not add anaconda to the path. Try "pip install suite2p" again. If it still fails, there might be some interaction between pre-installed dependencies and the ones Suite2p needs. First thing to try is
+
+If it fails, there might be some interaction between pre-installed dependencies and the ones Suite2p needs. First thing to try is
 ~~~~
 python -m pip install --upgrade pip
 ~~~~
-And try "pip install FaceMap" again. If it still fails, install Anaconda, and use the Anaconda command prompt to have a clean environment. Alternatively, if you already have Anaconda, create a clean conda environment just for FaceMap with
+And try "pip install FaceMap" again. If it still fails, create a clean conda environment just for FaceMap with
 ~~~~
 conda create --name FaceMap
 (source) activate FaceMap
@@ -54,7 +62,7 @@ pip install matplotlib --upgrade
 
 If you are on Yosemite Mac OS, PyQt doesn't work, and you won't be able to install FaceMap. More recent versions of Mac OS are fine.
 
-The software has been heavily tested on Ubuntu 18.04, and less well tested on Windows 10 and Mac OS. Please post an issue if you have installation problems. Also, try to follow the instructions that `pip` provides if more drivers are needed to run `pims`.
+The software has been heavily tested on Ubuntu 18.04, and less well tested on Windows 10 and Mac OS. Please post an issue if you have installation problems. Also, try to follow the instructions that `pip` provides if more drivers are needed to run `ffmpeg` / `pims`.
 
 **Dependencies:**
 
