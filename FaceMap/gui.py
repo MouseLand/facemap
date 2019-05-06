@@ -583,7 +583,6 @@ class MainW(QtGui.QMainWindow):
                 else:
                     self.processed = False
 
-                self.ROIs = []
                 iROI=0
                 self.typestr = ['pupil', 'motSVD', 'blink', 'run']
 
@@ -602,12 +601,9 @@ class MainW(QtGui.QMainWindow):
                 else:
                     k=0
 
-                self.saturation = []
                 kt = [0,0,0,0]
                 # whether or not you can move the ROIs
                 moveable = not self.processed
-                self.rROI=[]
-                self.reflectors=[]
                 if proc['rois'] is not None:
                     for r in proc['rois']:
                         rind = r['rind']
@@ -657,7 +653,7 @@ class MainW(QtGui.QMainWindow):
                 self.kroi = k
 
                 # initialize plot
-                self.cframe = -1
+                self.cframe = 1
                 if self.processed:
                     for k in range(self.kroi):
                         self.cbs1[k].setEnabled(True)
@@ -707,7 +703,10 @@ class MainW(QtGui.QMainWindow):
             if len(self.ROIs)>0:
                 for r in self.ROIs[::-1]:
                     r.remove(self)
-
+            self.ROIs = []
+            self.rROI=[]
+            self.reflectors=[]
+            self.saturation = []
             self.iROI=0
             self.nROIs=0
             self.saturation=[]
