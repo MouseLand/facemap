@@ -72,12 +72,12 @@ The software has been heavily tested on Ubuntu 18.04, and less well tested on Wi
 
 **Dependencies:**
 
-FaceMap python relies on these awesome packages (which are automatically installed with pip if missing):
+FaceMap python relies on these awesome packages:
 - [ffmpeg](https://ffmpeg.org/)
 - [pims](http://soft-matter.github.io/pims/v0.4.1/install.html)
 - [pyqtgraph](http://pyqtgraph.org/)
 - [PyQt5](http://pyqt.sourceforge.net/Docs/PyQt5/)
-- [numpy](http://www.numpy.org/) (>=1.13.0, <1.16)
+- [numpy](http://www.numpy.org/) (>=1.13.0)
 - [scipy](https://www.scipy.org/)
 - [matplotlib](https://matplotlib.org/) (not for plotting (only using hsv_to_rgb function), should not conflict with PyQt5)
 
