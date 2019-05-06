@@ -33,7 +33,7 @@ Next we need to install [pims](http://soft-matter.github.io/pims/v0.4.1/install.
 pip install git+https://github.com/soft-matter/pims.git
 ~~~~
 
-Now that ffmpeg and pims are installed, install FaceMap (all the other dependencies should be installed automatically):
+Now that ffmpeg and pims are installed, install FaceMap (all the other dependencies should be installed automatically with this command):
 ~~~~
 pip install FaceMap
 ~~~~
