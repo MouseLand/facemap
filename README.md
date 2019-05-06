@@ -20,7 +20,7 @@ For 2p imaging, you'll need a tighter filter around 850nm so you don't see the l
 
 ### PYTHON
 
-I recommend installing python 3 using **[Anaconda](https://www.anaconda.com/download/)** to be able to install the video readers without complications. You might need to use an anaconda prompt if you did not add anaconda to the path during install.
+I recommend installing python 3 using **[Anaconda](https://www.anaconda.com/download/)** to be able to install the video libraries without complications. You might need to use an anaconda prompt if you did not add anaconda to the path during install.
 
 Next, from a command line terminal / anaconda prompt, install the video libraries:
 ~~~~
