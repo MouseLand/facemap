@@ -313,7 +313,8 @@ class sROI():
                 parent.pROI.removeItem(parent.scatter)
                 xy = np.concatenate((mu[np.newaxis,:], xy), axis=0)
                 xy += 0.5
-                parent.scatter = pg.ScatterPlotItem(xy[:,1], xy[:,0], pen=self.color, symbol='+')
+                pen = pg.mkPen(self.color, width=2)
+                parent.scatter = pg.ScatterPlotItem(xy[:,1], xy[:,0], pen=pen, symbol='+')
                 parent.pROI.addItem(parent.scatter)
                 parent.pROIimg.setImage(255-fr)
                 parent.pROIimg.setLevels([255-sat, 255])

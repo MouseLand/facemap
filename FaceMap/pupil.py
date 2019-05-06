@@ -73,7 +73,7 @@ def fit_gaussian(im, thres, do_xy, missing=None):
     u = u[:,::-1]
     # compute pts surrounding ellipse
     if do_xy:
-        n = 50 # Number of points around ellipse
+        n = 100 # Number of points around ellipse
         p = np.linspace(0, 2*np.pi, n)[:, np.newaxis]
         # Transformation
         xy = np.concatenate((np.cos(p), np.sin(p)),axis=1) * (sv**0.5) @ u
