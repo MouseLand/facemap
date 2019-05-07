@@ -1,10 +1,81 @@
 import pims
 import numpy as np
-from FaceMap import gui, roi, utils, pupil, running
+from FaceMap import utils, pupil, running
 import time
 import os
 import pdb
 from scipy import io
+
+def get_reflector(yrange, xrange, rROI=None, rdict=None):
+    reflectors = np.zeros((yrange.size, xrange.size), np.bool)
+    if rROI is not None and len(rROI)>0:
+        for r in rROI:
+            ellipse, ryrange, rxrange = r.ellipse.copy(), r.yrange.copy(), r.xrange.copy()
+            ix = np.logical_and(rxrange >= 0, rxrange < xrange.size)
+            ellipse = ellipse[:,ix]
+            rxrange = rxrange[ix]
+            iy = np.logical_and(ryrange >= 0, ryrange < yrange.size)
+            ellipse = ellipse[iy,:]
+            ryrange = ryrange[iy]
+            reflectors[np.ix_(ryrange, rxrange)] = np.logical_or(reflectors[np.ix_(ryrange, rxrange)], ellipse)
+    elif rdict is not None and len(rdict)>0:
+        for r in rdict:
+            ellipse, ryrange, rxrange = r['ellipse'].copy(), r['yrange'].copy(), r['xrange'].copy()
+            ix = np.logical_and(rxrange >= 0, rxrange < xrange.size)
+            ellipse = ellipse[:,ix]
+            rxrange = rxrange[ix]
+            iy = np.logical_and(ryrange >= 0, ryrange < yrange.size)
+            ellipse = ellipse[iy,:]
+            ryrange = ryrange[iy]
+            reflectors[np.ix_(ryrange, rxrange)] = np.logical_or(reflectors[np.ix_(ryrange, rxrange)], ellipse)
+    return reflectors.nonzero()
+
+def video_placement(Ly, Lx):
+    ''' Ly and Lx are lists of video sizes '''
+    npix = Ly * Lx
+    picked = np.zeros((Ly.size,), np.bool)
+    ly = 0
+    lx = 0
+    sy = np.zeros(Ly.shape, int)
+    sx = np.zeros(Lx.shape, int)
+    if Ly.size==2:
+        gridy = 1
+        gridx = 2
+    elif Ly.size==3:
+        gridy = 1
+        gridx = 2
+    else:
+        gridy = int(np.round(Ly.size**0.5 * 0.75))
+        gridx = int(np.ceil(Ly.size / gridy))
+    LY = 0
+    LX = 0
+    iy = 0
+    ix = 0
+    while (~picked).sum() > 0:
+        # place biggest movie first
+        npix0 = npix.copy()
+        npix0[picked] = 0
+        imax = np.argmax(npix0)
+        picked[imax] = 1
+        if iy==0:
+            ly = 0
+            rowmax=0
+        if ix==0:
+            lx = 0
+        sy[imax] = ly
+        sx[imax] = lx
+
+        ly+=Ly[imax]
+        rowmax = max(rowmax, Lx[imax])
+        if iy==gridy-1 or (~picked).sum()==0:
+            lx+=rowmax
+        LY = max(LY, ly)
+        iy+=1
+        if iy >= gridy:
+            iy = 0
+            ix += 1
+    LX = lx
+    return LY, LX, sy, sx
 
 def run(filenames, parent=None, proc=None, savepath=None):
     ''' uses filenames and processes fullSVD if no roi's specified '''
@@ -67,7 +138,7 @@ def run(filenames, parent=None, proc=None, savepath=None):
             sx = proc['sx']
 
     Lybin, Lxbin, iinds = binned_inds(Ly, Lx, sbin)
-    LYbin,LXbin,sybin,sxbin = gui.video_placement(Lybin, Lxbin)
+    LYbin,LXbin,sybin,sxbin = video_placement(Lybin, Lxbin)
 
     nroi = 0
     if rois is not None:
@@ -411,7 +482,7 @@ def process_ROIs(video, cumframes, Ly, Lx, avgmotion, U, sbin=3, tic=None, rois=
                 pupind.append(i)
                 pups.append({'area': np.zeros((nframes,)), 'com': np.zeros((nframes,2)),
                              'axdir': np.zeros((nframes,2,2)), 'axlen': np.zeros((nframes,2))})
-                pupreflector.append(roi.get_reflector(r['yrange'], r['xrange'], rROI=None, rdict=r['reflector']))
+                pupreflector.append(get_reflector(r['yrange'], r['xrange'], rROI=None, rdict=r['reflector']))
             elif r['rind']==1:
                 motind.append(i)
                 nroi+=1

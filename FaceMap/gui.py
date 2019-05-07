@@ -8,54 +8,9 @@ from FaceMap import facemap, roi
 from scipy.stats import zscore, skew
 from matplotlib import cm
 
+import pathlib
+
 istr = ['pupil', 'motSVD', 'blink', 'running']
-
-def video_placement(Ly, Lx):
-    ''' Ly and Lx are lists of video sizes '''
-    npix = Ly * Lx
-    picked = np.zeros((Ly.size,), np.bool)
-    ly = 0
-    lx = 0
-    sy = np.zeros(Ly.shape, int)
-    sx = np.zeros(Lx.shape, int)
-    if Ly.size==2:
-        gridy = 1
-        gridx = 2
-    elif Ly.size==3:
-        gridy = 1
-        gridx = 2
-    else:
-        gridy = int(np.round(Ly.size**0.5 * 0.75))
-        gridx = int(np.ceil(Ly.size / gridy))
-    LY = 0
-    LX = 0
-    iy = 0
-    ix = 0
-    while (~picked).sum() > 0:
-        # place biggest movie first
-        npix0 = npix.copy()
-        npix0[picked] = 0
-        imax = np.argmax(npix0)
-        picked[imax] = 1
-        if iy==0:
-            ly = 0
-            rowmax=0
-        if ix==0:
-            lx = 0
-        sy[imax] = ly
-        sx[imax] = lx
-
-        ly+=Ly[imax]
-        rowmax = max(rowmax, Lx[imax])
-        if iy==gridy-1 or (~picked).sum()==0:
-            lx+=rowmax
-        LY = max(LY, ly)
-        iy+=1
-        if iy >= gridy:
-            iy = 0
-            ix += 1
-    LX = lx
-    return LY, LX, sy, sx
 
 ### custom QDialog which makes a list of items you can include/exclude
 class ListChooser(QtGui.QDialog):
@@ -639,7 +594,10 @@ class MainW(QtGui.QMainWindow):
                             self.iROI = k-1
                         else:
                             self.iROI = k
-                        self.ROIs[-1].position(self)
+                        self.ROIs[-1].ellipse = r['ellipse']
+                        #self.ROIs[-1].position(self)
+                        self.sl[1].setValue(self.saturation[self.iROI] * 100 / 255)
+                        self.ROIs[self.iROI].plot(self)
                         if self.processed:
                             if k < 8:
                                 self.lbls[k].setText('%s%d'%(self.typestr[rind], kt[rind]))
@@ -676,6 +634,10 @@ class MainW(QtGui.QMainWindow):
             for fs in self.filelist:
                 vs = []
                 for f in fs:
+                    #if f[:2]=='X:':
+                    #    f = pathlib.PureWindowsPath(f).as_posix()[3:]
+                    #    f = os.path.join('/home/carsen/nas/' + f)
+                    #    print(f)
                     vs.append(pims.Video(f))
                 v.append(vs)
                 iframes.append(len(v[-1][0]))
@@ -737,7 +699,7 @@ class MainW(QtGui.QMainWindow):
                 Ly = np.array(self.Ly.copy())
                 Lx = np.array(self.Lx.copy())
 
-                LY, LX, sy, sx = video_placement(Ly, Lx)
+                LY, LX, sy, sx = facemap.video_placement(Ly, Lx)
                 print(LY, LX)
                 self.vmap = -1 * np.ones((LY,LX), np.int32)
                 for i in range(Ly.size):

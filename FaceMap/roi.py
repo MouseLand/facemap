@@ -105,30 +105,6 @@ class reflectROI():
         parent.sl[1].setValue(parent.saturation[self.iROI] * 100 / 255)
         parent.ROIs[self.iROI].plot(parent)
 
-def get_reflector(yrange, xrange, rROI=None, rdict=None):
-    reflectors = np.zeros((yrange.size, xrange.size), np.bool)
-    if rROI is not None and len(rROI)>0:
-        for r in rROI:
-            ellipse, ryrange, rxrange = r.ellipse.copy(), r.yrange.copy(), r.xrange.copy()
-            ix = np.logical_and(rxrange >= 0, rxrange < xrange.size)
-            ellipse = ellipse[:,ix]
-            rxrange = rxrange[ix]
-            iy = np.logical_and(ryrange >= 0, ryrange < yrange.size)
-            ellipse = ellipse[iy,:]
-            ryrange = ryrange[iy]
-            reflectors[np.ix_(ryrange, rxrange)] = np.logical_or(reflectors[np.ix_(ryrange, rxrange)], ellipse)
-    elif rdict is not None and len(rdict)>0:
-        for r in rdict:
-            ellipse, ryrange, rxrange = r['ellipse'].copy(), r['yrange'].copy(), r['xrange'].copy()
-            ix = np.logical_and(rxrange >= 0, rxrange < xrange.size)
-            ellipse = ellipse[:,ix]
-            rxrange = rxrange[ix]
-            iy = np.logical_and(ryrange >= 0, ryrange < yrange.size)
-            ellipse = ellipse[iy,:]
-            ryrange = ryrange[iy]
-            reflectors[np.ix_(ryrange, rxrange)] = np.logical_or(reflectors[np.ix_(ryrange, rxrange)], ellipse)
-    return reflectors.nonzero()
-
 class sROI():
     def __init__(self, rind, rtype, iROI, moveable=True,
                  parent=None, saturation=None, color=None, pos=None,
@@ -257,7 +233,7 @@ class sROI():
             #ifr = ifr.mean(axis=-1)
             #self.rmin = ifr[np.ix_(np.arange(0,ifr.shape[0],1,int), self.yrange, self.xrange)].min()
             self.rmin = 0
-            parent.reflectors[self.iROI] = get_reflector(parent.ROIs[self.iROI].yrange,
+            parent.reflectors[self.iROI] = facemap.get_reflector(parent.ROIs[self.iROI].yrange,
                                                          parent.ROIs[self.iROI].xrange,
                                                          rROI=parent.rROI[self.iROI])
         parent.sl[1].setValue(parent.saturation[self.iROI] * 100 / 255)
