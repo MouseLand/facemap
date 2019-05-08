@@ -24,7 +24,7 @@ I recommend installing python 3 using **[Anaconda](https://www.anaconda.com/down
 
 Next, from a command line terminal / anaconda prompt, install the video libraries:
 ~~~~
-conda install -c conda-forge ffmpeg 
+conda install -c conda-forge ffmpeg
 conda install av -c conda-forge
 ~~~~
 
@@ -93,11 +93,7 @@ The matlab version needs to be downloaded/cloned from github (no install require
 
 ### PYTHON
 
-Here is a youtube video showing how to process and move around the GUI (click on picture)
-<div align="center">
-  <a href="https://youtu.be/Rq8fEQ-DOm4"><img src="figs/videoscreenshot.png" width="75%" alt="GUI tutorial"></a>
-</div>
-
+<img src="figs/face_fast.gif" width="100%" alt="face gif">
 
 Run the following command in a terminal
 ```

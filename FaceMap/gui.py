@@ -637,6 +637,9 @@ class MainW(QtGui.QMainWindow):
                     #if f[:2]=='X:':
                     #    f = pathlib.PureWindowsPath(f).as_posix()[3:]
                     #    f = os.path.join('/home/carsen/nas/' + f)
+                    #elif f[:33]=='/groups/pachitariu/pachitariulab/':
+                    #    f = pathlib.PureWindowsPath(f).as_posix()[32:]
+                    #    f = os.path.join('/home/carsen/dm11/' + f)
                     #    print(f)
                     vs.append(pims.Video(f))
                 v.append(vs)
