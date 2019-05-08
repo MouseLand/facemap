@@ -106,8 +106,14 @@ Choose a type of ROI to add and then click "add ROI" to add it to the view. The 
 By default, the "Compute multivideo SVD" box is unchecked. If you check it, then the motion SVD is computed across ALL videos - all videos are concatenated at each timepoint, and the SVD of this matrix of ALL_PIXELS x timepoints is computed. If you have just one video acquired at a time, then it is the SVD of this video.
 
 <div align="center">
-<img src="figs/guipreprocess.png" width="80%" alt="gui screenshot" >
+<img src="figs/multivideo_fast.gif" width="100%" alt="multivideo gif" >
 </div>
+
+Once processing starts, the interface will no longer be clickable and all information about processing will be in the terminal in which you opened FaceMap:
+<div align="center">
+<img src="figs/terminal.png" width="50%" alt="terminal" >
+</div>
+
 
 ### Batch processing (python only)
 
