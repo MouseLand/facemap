@@ -98,7 +98,7 @@ class reflectROI():
         self.xrange = xrange
         self.yrange = yrange
 
-        parent.reflectors[self.iROI] = get_reflector(parent.ROIs[self.iROI].yrange,
+        parent.reflectors[self.iROI] = facemap.get_reflector(parent.ROIs[self.iROI].yrange,
                                                      parent.ROIs[self.iROI].xrange,
                                                      parent.rROI[self.iROI])
 
