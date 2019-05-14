@@ -190,17 +190,23 @@ def run(filenames, parent=None, proc=None, savepath=None):
     V, pups, blinks, runs = process_ROIs(video, cumframes, Ly, Lx, avgmotion, U, sbin, tic, rois, fullSVD)
 
     # smooth pupil and blinks and running
+    print('smoothing ...')
     for p in pups:
         if 'area' in p:
-            p['area_smooth'] = pupil.smooth(p['area'].copy())
+            p['area_smooth'],_ = pupil.smooth(p['area'].copy())
             p['com_smooth'] = p['com'].copy()
-            p['com_smooth'][:,0] = pupil.smooth(p['com_smooth'][:,0].copy())
-            p['com_smooth'][:,1] = pupil.smooth(p['com_smooth'][:,1].copy())
+            p['com_smooth'][:,0],_ = pupil.smooth(p['com_smooth'][:,0].copy())
+            p['com_smooth'][:,1],_ = pupil.smooth(p['com_smooth'][:,1].copy())
     for b in blinks:
-        b = pupil.smooth(b.copy())
+        b,_ = pupil.smooth(b.copy())
     for r in runs:
-        r[:,0] = pupil.smooth(r[:,0].copy())
-        r[:,1] = pupil.smooth(r[:,1].copy())
+        r[:,0],_ = pupil.smooth(r[:,0].copy())
+        r[:,1],_ = pupil.smooth(r[:,1].copy())
+
+    #V_smooth = []
+    #for m in V:
+    #    V_smooth.append(np.zeros(m.shape, np.float32))
+    #    for ic in range(m.shape[1]):
 
     print('computed projection at %1.2fs'%(time.time() - tic))
 

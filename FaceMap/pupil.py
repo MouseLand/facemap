@@ -145,4 +145,4 @@ def smooth(area, win=30):
     ireplace = adiff > thres
     area[ireplace] = marea[ireplace]
 
-    return area
+    return area, ireplace
