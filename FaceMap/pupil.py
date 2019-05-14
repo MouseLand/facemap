@@ -68,7 +68,7 @@ def fit_gaussian(im, thres, do_xy, missing=None):
     # enforce some circularity on pupil
     # principal axis can only be 2x bigger than minor axis
     min_sv = sv.min()
-    sv = min_sv * np.minimum(3, sv/min_sv)
+    sv = min_sv * np.minimum(4, sv/min_sv)
     sv = sv[::-1]
     u = u[:,::-1]
     # compute pts surrounding ellipse
@@ -115,11 +115,11 @@ def process(img, saturation, pupil_sigma, pupreflector):
         axdir[n,:,:] = u
     return com, area, axdir, axlen
 
-def smooth(area):
+def smooth(area, win=30):
     ''' replace outliers in pupil area with smoothed pupil area'''
     ''' also replace nan's with smoothed pupil area '''
     ''' smoothed pupil area (marea) is a median filter with window 30 '''
-    win = 30 # usually recordings are @ >=30Hz
+    ''' win = 30  usually recordings are @ >=30Hz '''
     nt = area.size
     marea = np.zeros((win, nt))
     winhalf = int(win/2)
