@@ -203,10 +203,17 @@ def run(filenames, parent=None, proc=None, savepath=None):
         r[:,0],_ = pupil.smooth(r[:,0].copy())
         r[:,1],_ = pupil.smooth(r[:,1].copy())
 
-    #V_smooth = []
-    #for m in V:
-    #    V_smooth.append(np.zeros(m.shape, np.float32))
-    #    for ic in range(m.shape[1]):
+    V_smooth = []
+    for vm in V:
+        m = vm.copy()
+        ms,ireplace = pupil.smooth(m[:,0].copy())#, win=50)
+        ireplace[np.logical_or(ms>ms.std()*4, ms<ms.std()*-4)] = True
+        print(ireplace.sum())
+        inds = ireplace.nonzero()[0][:,np.newaxis] + np.arange(-50,51,1,int)[np.newaxis,:]
+        inds[inds<0] = 0
+        inds[inds>=m.shape[0]] = m.shape[0]-1
+        m[ireplace,:] = np.nanmedian(m[inds,:], axis=1)
+        V_smooth.append(m)
 
     print('computed projection at %1.2fs'%(time.time() - tic))
 
@@ -217,7 +224,7 @@ def run(filenames, parent=None, proc=None, savepath=None):
             'sybin': sybin, 'sxbin': sxbin, 'LYbin': LYbin, 'LXbin': LXbin,
             'avgframe': avgframe, 'avgmotion': avgmotion,
             'avgframe_reshape': avgframe_reshape, 'avgmotion_reshape': avgmotion_reshape,
-            'motSVD': V, 'motMask': U, 'motMask_reshape': U_reshape,
+            'motSVD': V_smooth, 'motSVD_orig': V, 'motMask': U, 'motMask_reshape': U_reshape,
             'pupil': pups, 'running': runs, 'blink': blinks, 'rois': rois
             }
 
@@ -488,7 +495,11 @@ def process_ROIs(video, cumframes, Ly, Lx, avgmotion, U, sbin=3, tic=None, rois=
                 pupind.append(i)
                 pups.append({'area': np.zeros((nframes,)), 'com': np.zeros((nframes,2)),
                              'axdir': np.zeros((nframes,2,2)), 'axlen': np.zeros((nframes,2))})
-                pupreflector.append(get_reflector(r['yrange'], r['xrange'], rROI=None, rdict=r['reflector']))
+                if 'reflector' in r:
+                    pupreflector.append(get_reflector(r['yrange'], r['xrange'], rROI=None, rdict=r['reflector']))
+                else:
+                    pupreflector.append(np.array([]))
+
             elif r['rind']==1:
                 motind.append(i)
                 nroi+=1
