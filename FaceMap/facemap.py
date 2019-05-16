@@ -205,7 +205,6 @@ def run(filenames, parent=None, proc=None, savepath=None):
 
     #V_smooth = []
     for m in V:
-        m = vm.copy()
         ms,ireplace = pupil.smooth(m[:,0].copy())#, win=50)
         ireplace[np.logical_or(ms>ms.std()*4, ms<ms.std()*-4)] = True
         print(ireplace.sum())
@@ -224,7 +223,7 @@ def run(filenames, parent=None, proc=None, savepath=None):
             'sybin': sybin, 'sxbin': sxbin, 'LYbin': LYbin, 'LXbin': LXbin,
             'avgframe': avgframe, 'avgmotion': avgmotion,
             'avgframe_reshape': avgframe_reshape, 'avgmotion_reshape': avgmotion_reshape,
-            'motSVD': V_smooth, 'motSVD_orig': V, 'motMask': U, 'motMask_reshape': U_reshape,
+            'motSVD': V, 'motMask': U, 'motMask_reshape': U_reshape,
             'pupil': pups, 'running': runs, 'blink': blinks, 'rois': rois
             }
 
