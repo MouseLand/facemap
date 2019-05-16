@@ -203,8 +203,8 @@ def run(filenames, parent=None, proc=None, savepath=None):
         r[:,0],_ = pupil.smooth(r[:,0].copy())
         r[:,1],_ = pupil.smooth(r[:,1].copy())
 
-    V_smooth = []
-    for vm in V:
+    #V_smooth = []
+    for m in V:
         m = vm.copy()
         ms,ireplace = pupil.smooth(m[:,0].copy())#, win=50)
         ireplace[np.logical_or(ms>ms.std()*4, ms<ms.std()*-4)] = True
@@ -213,7 +213,7 @@ def run(filenames, parent=None, proc=None, savepath=None):
         inds[inds<0] = 0
         inds[inds>=m.shape[0]] = m.shape[0]-1
         m[ireplace,:] = np.nanmedian(m[inds,:], axis=1)
-        V_smooth.append(m)
+        #V_smooth.append(m)
 
     print('computed projection at %1.2fs'%(time.time() - tic))
 
