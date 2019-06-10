@@ -7,6 +7,7 @@ import pims
 from FaceMap import facemap, roi
 from scipy.stats import zscore, skew
 from matplotlib import cm
+from natsort import natsorted
 
 import pathlib
 
@@ -502,7 +503,7 @@ class MainW(QtGui.QMainWindow):
                 print('single camera')
         else:
             self.filelist = [self.filelist]
-
+        self.filelist = natsorted(self.filelist)
         print(self.filelist)
 
 
@@ -706,8 +707,7 @@ class MainW(QtGui.QMainWindow):
                 print(LY, LX)
                 self.vmap = -1 * np.ones((LY,LX), np.int32)
                 for i in range(Ly.size):
-                    self.vmap[np.ix_(np.arange(sy[i], sy[i]+Ly[i], 1, int),
-                                     np.arange(sx[i], sx[i]+Lx[i], 1, int))] = i
+                    self.vmap[sy[i]:sy[i]+Ly[i], sx[i]:sx[i]+Lx[i]] = i
                 self.sy = sy
                 self.sx = sx
                 self.LY = LY
@@ -858,9 +858,8 @@ class MainW(QtGui.QMainWindow):
         for i in range(len(self.imgs)):
             self.imgs[i][:,:,:,2] = im[i]
             self.img[i] = self.imgs[i][:,:,:,1].copy()
-            self.fullimg[np.ix_(np.arange(self.sy[i], self.sy[i]+self.Ly[i], 1, int),
-                                np.arange(self.sx[i], self.sx[i]+self.Lx[i], 1, int),
-                                np.arange(0, 3, 1, int))] = self.img[i]#(self.img[i].astype(np.float32) - self.srange[i][0]) / (self.img[i] - self.srange[i][1]) * 255
+            self.fullimg[self.sy[i]:self.sy[i]+self.Ly[i],
+                         self.sx[i]:self.sx[i]+self.Lx[i]] = self.img[i]#(self.img[i].astype(np.float32) - self.srange[i][0]) / (self.img[i] - self.srange[i][1]) * 255
 
         if len(self.ROIs) > 0:
             self.ROIs[self.iROI].plot(self)

@@ -3,31 +3,11 @@
 # ops.yrange, xrange are ranges to use for rectangular section of movie
 from scipy.fftpack import next_fast_len
 import numpy as np
-import numpy.fft as fft
+from numpy.fft import ifftshift
+from mkl_fft import fft2, ifft2
+from numba import vectorize, float32, complex64
 
-try:
-    import mkl_fft
-    HAS_MKL=True
-except ImportError:
-    HAS_MKL=False
-
-def fft2(data, s=None):
-    if s==None:
-        s=(data.shape[-2], data.shape[-1])
-    if HAS_MKL:
-        data = mkl_fft.fft2(data,shape=s,axes=(-2,-1))
-    else:
-        data = fft.fft2(data, s, axes=(-2,-1))
-    return data
-
-def ifft2(data, s=None):
-    if s==None:
-        s=(data.shape[-2], data.shape[-1])
-    if HAS_MKL:
-        data = mkl_fft.ifft2(data, shape=s, axes=(-2,-1))
-    else:
-        data = fft.ifft2(data, s, axes=(-2,-1))
-    return data
+eps0 = 1e-20
 
 def spatial_taper(sig, Ly, Lx):
     ''' spatial taper  on edges with gaussian of std sig '''
@@ -54,46 +34,63 @@ def gaussian_fft(sig, Ly, Lx):
     hgy = np.exp(-np.square(yy/sig) / 2)
     hgg = hgy * hgx
     hgg /= hgg.sum()
-    fhg = np.real(fft.fft2(fft.ifftshift(hgg))); # smoothing filter in Fourier domain
+    fhg = np.real(fft2(ifftshift(hgg))); # smoothing filter in Fourier domain
     return fhg
+
+@vectorize(['complex64(int16, float32)', 'complex64(float32, float32)'], nopython=True, target = 'parallel')
+def multiplytype(x,y):
+    return np.complex64(np.float32(x)*y)
+
+@vectorize([complex64(complex64, complex64)], nopython=True, target = 'parallel')
+def apply_dotnorm(Y, cfRefImg):
+    x  = Y / (eps0 + np.abs(Y))
+    x = x*cfRefImg
+    return x
+
+@vectorize([complex64(complex64)], nopython=True, target = 'parallel')
+def phase_norm(x):
+    return x / (eps0 + np.abs(x))
+
+def my_clip(X, lcorr):
+    x00 = X[:,  :lcorr+1, :lcorr+1]
+    x11 = X[:,  -lcorr:, -lcorr:]
+    x01 = X[:,  :lcorr+1, -lcorr:]
+    x10 = X[:,  -lcorr:, :lcorr+1]
+    return x00, x01, x10, x11
 
 def process(data):
     ''' computes movement using phase correlation  '''
     nt, Ly, Lx = data.shape
     ly = int(np.ceil(Ly * 0.4))
     lx = int(np.ceil(Lx * 0.4))
-
-    data -= data.mean(axis=-1).mean(axis=-1)[:,np.newaxis,np.newaxis]
-    data  = data.astype(np.float32)
+    lcorr = max(ly,lx)
 
     # taper edges
-    maskMul = spatial_taper((Ly*Lx)**0.5*0.01, Ly, Lx)
-    data *= maskMul
+    maskMul = spatial_taper((Ly*Lx)**0.5*0.01, Ly, Lx).astype(np.float32)
 
     # spatial filter
-    lyy, lxx = next_fast_len(Ly), next_fast_len(Lx)
-    fhg = gaussian_fft(2, lyy, lxx)
+    fhg = gaussian_fft(2, Ly, Lx)
 
-    data = fft2(data, s=(lyy,lxx))
+    # shifts and corrmax
+    ymax = np.zeros((nt-1,), np.int32)
+    xmax = np.zeros((nt-1,), np.int32)
+    #cmax = np.zeros((nimg,), np.float32)
 
-    eps0 = 1e-20
-    data /= (eps0 + np.abs(data))
+    # taper and fft data
+    X = multiplytype(data, maskMul)
+    X -= X.mean(axis=-1).mean(axis=-1)[:,np.newaxis,np.newaxis]
+    for t in range(nt):
+        fft2(X[t], overwrite_x=True)
+    # phase correlation with previous frame
+    X = phase_norm(X)
+    X = X[:-1] * np.conj(X[1:]) * fhg
+    for t in range(nt-1):
+        ifft2(X[t], overwrite_x=True)
+    x00, x01, x10, x11 = my_clip(X, lcorr)
+    cc = np.real(np.block([[x11, x10], [x01, x00]]))
 
-    cc = data[:-1] * np.conj(data[1:]) * fhg
-
-    cc = np.real(ifft2(cc))
-    cc = fft.fftshift(cc, axes=(1,2))
-
-    yc = int(np.floor(cc.shape[1]/2))
-    xc = int(np.floor(cc.shape[2]/2))
-    yr = np.arange(yc - ly, yc + ly + 1, 1, int)
-    xr = np.arange(xc - lx, xc + lx + 1, 1, int)
-
-    cc = cc[np.ix_(np.arange(0, nt-1, 1, int), yr, xr)]
-    cc = np.reshape(cc, (nt-1, -1))
-
-    ix = np.argmax(cc, axis=1)
-    ymax, xmax = np.unravel_index(ix, (2*ly+1, 2*lx+1))
-    ymax, xmax = ymax-ly, xmax-lx
-
+    for t in range(nt-1):
+        ymax[t], xmax[t] = np.unravel_index(np.argmax(cc[t], axis=None), (2*lcorr+1, 2*lcorr+1))
+        #cmax[t] = cc[t, ymax[t], xmax[t]]
+    ymax, xmax = ymax-lcorr, xmax-lcorr
     return ymax, xmax
