@@ -10,8 +10,10 @@ dependencies:
   - numba>=0.43.1
   - matplotlib
   - scipy
+  - scikit-image
   - pip:
     - PyQt5
     - pyqtgraph
     - natsort
     - pims
+    - FaceMap

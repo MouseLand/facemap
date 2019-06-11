@@ -1,10 +1,12 @@
 import pims
 import numpy as np
 from FaceMap import utils, pupil, running
+from numba import vectorize,uint8,float32
 import time
 import os
 import pdb
 from scipy import io
+import av
 
 def get_reflector(yrange, xrange, rROI=None, rdict=None):
     reflectors = np.zeros((yrange.size, xrange.size), np.bool)
@@ -104,28 +106,38 @@ def roi_to_dict(ROIs, rROI=None):
 
     return rois
 
-def get_frames(video, cframes, cumframes):
+def get_frames_pims(imall, video, cframes, cumframes):
     nframes = cumframes[-1]
     cframes = np.maximum(0, np.minimum(nframes-1, cframes))
     cframes = np.arange(cframes[0], cframes[-1]+1).astype(int)
     ivids = (cframes[np.newaxis,:] >= cumframes[1:,np.newaxis]).sum(axis=0)
-    imall = []
     for ii in range(len(video[0])):
+        nk = 0
         for n in np.unique(ivids):
-            #print(cframes[ivids==n], cumframes[n])
             cfr = cframes[ivids==n]
-            im = np.array(video[n][ii][cfr[0]-cumframes[n] : cfr[-1]-cumframes[n]+1])
-            if np.ndim(im)<4:
-                im = im[np.newaxis, :, :, :]
-            if n==np.unique(ivids)[0]:
-                img = im
-            else:
-                img = np.concatenate((img, im), axis=0)
-        if img.ndim > 3:
-            img = img[:,:,:,0]
-        img = np.transpose(img.copy(), (1,2,0))#.astype(np.float32)
-        imall.append(img)
-    return imall
+            nk += int(cfr[-1] - cfr[0] + 1)
+            imall[ii] = np.array(video[n][ii][cfr[0]-cumframes[n]:cfr[-1]-cumframes[n]+1])[:,:,:,0].transpose((1,2,0))
+    if nk < imall[0].shape[-1]:
+        for ii,im in enumerate(imall):
+            imall[ii] = im[:,:,:nk].copy()
+
+def get_frames(imall, containers, cframes, cumframes):
+    cframes = np.arange(cframes[0], min(cframes[-1], cumframes[-1])).astype(int)
+    ivids = (cframes[np.newaxis,:] >= cumframes[1:,np.newaxis]).sum(axis=0)
+    for ii in range(len(containers[0])):
+        nk = 0
+        for n in np.unique(ivids):
+            cfr = cframes[ivids==n]
+            k=0
+            for frame in containers[n][ii].decode(video=0):
+                imall[ii][:,:,nk] = frame.to_ndarray(format='rgb24')[:,:,0]
+                k+=1
+                nk+=1
+                if k==cfr[-1]-cfr[0]+1:
+                    break
+    if nk < imall[0].shape[-1]:
+        for ii,im in enumerate(imall):
+            imall[ii] = im[:,:,:nk].copy()
 
 def binned_inds(Ly, Lx, sbin):
     Lyb = np.zeros((len(Ly),), np.int32)
@@ -139,6 +151,10 @@ def binned_inds(Ly, Lx, sbin):
         ix += Lyb[n]*Lxb[n]
     return Lyb, Lxb, ir
 
+@vectorize(['float32(uint8)'], nopython=True, target = 'parallel')
+def ftype(x):
+    return np.float32(x)
+
 def spatial_bin(im, sbin, Lyb, Lxb):
     imbin = im.astype(np.float32)
     if sbin > 1:
@@ -146,9 +162,15 @@ def spatial_bin(im, sbin, Lyb, Lxb):
     imbin = np.reshape(imbin, (Lyb*Lxb, -1))
     return imbin
 
-def subsampled_mean(video, cumframes, Ly, Lx, sbin=3):
+def imall_init(nfr, Ly, Lx):
+    imall = []
+    for n in range(len(Ly)):
+        imall.append(np.zeros((Ly[n],Lx[n],nfr), 'uint8'))
+    return imall
+
+def subsampled_mean(containers, cumframes, Ly, Lx, sbin=3):
     # grab up to 2000 frames to average over for mean
-    # v is a list of videos loaded with pims
+    # v is a list of containerss loaded with av
     # cumframes are the cumulative frames across videos
     # Ly, Lx are the sizes of the videos
     # sbin is the spatial binning
@@ -162,15 +184,16 @@ def subsampled_mean(video, cumframes, Ly, Lx, sbin=3):
 
     # binned Ly and Lx and their relative inds in concatenated movies
     Lyb, Lxb, ir = binned_inds(Ly, Lx, sbin)
+    imall = imall_init(nt0, Ly, Lx)
 
     avgframe  = np.zeros(((Lyb * Lxb).sum(),), np.float32)
     avgmotion = np.zeros(((Lyb * Lxb).sum(),), np.float32)
     ns = 0
     for n in range(nsegs):
         t = tf[n]
-        img = get_frames(video, np.arange(t,t+nt0), cumframes)
+        get_frames_pims(imall, containers, np.arange(t,t+nt0), cumframes)
         # bin
-        for n,im in enumerate(img):
+        for n,im in enumerate(imall):
             imbin = spatial_bin(im, sbin, Lyb[n], Lxb[n])
             # add to averages
             avgframe[ir[n]] += imbin.mean(axis=-1)
@@ -187,11 +210,11 @@ def subsampled_mean(video, cumframes, Ly, Lx, sbin=3):
         avgmotion0.append(avgmotion[ir[n]])
     return avgframe0, avgmotion0
 
-def compute_SVD(video, cumframes, Ly, Lx, avgmotion, ncomps=500, sbin=3, rois=None, fullSVD=True):
+def compute_SVD(containers, cumframes, Ly, Lx, avgmotion, ncomps=500, sbin=3, rois=None, fullSVD=True):
     # compute the SVD over frames in chunks, combine the chunks and take a mega-SVD
     # number of components kept from SVD is ncomps
     # the pixels are binned in spatial bins of size sbin
-    # v is a list of videos loaded with pims
+    # v is a list of containerss loaded with av
     # cumframes are the cumulative frames across videos
     sbin = max(1, sbin)
     nframes = cumframes[-1]
@@ -208,6 +231,7 @@ def compute_SVD(video, cumframes, Ly, Lx, avgmotion, ncomps=500, sbin=3, rois=No
 
     # binned Ly and Lx and their relative inds in concatenated movies
     Lyb, Lxb, ir = binned_inds(Ly, Lx, sbin)
+    img = imall_init(nt0, Ly, Lx)
 
     if fullSVD:
         U = [np.zeros(((Lyb*Lxb).sum(), nsegs*nc), np.float32)]
@@ -235,7 +259,7 @@ def compute_SVD(video, cumframes, Ly, Lx, avgmotion, ncomps=500, sbin=3, rois=No
     for n in range(nsegs):
         tic=time.time()
         t = tf[n]
-        img = get_frames(video, np.arange(t,t+nt0), cumframes)
+        get_frames_pims(img, containers, np.arange(t,t+nt0), cumframes)
         if fullSVD:
             imall = np.zeros(((Lyb*Lxb).sum(), nt0-1), np.float32)
         for ii,im in enumerate(img):
@@ -289,11 +313,11 @@ def compute_SVD(video, cumframes, Ly, Lx, avgmotion, ncomps=500, sbin=3, rois=No
                 U[nr] = usv[0]
     return U
 
-def process_ROIs(video, cumframes, Ly, Lx, avgmotion, U, sbin=3, tic=None, rois=None, fullSVD=True):
+def process_ROIs(containers, cumframes, Ly, Lx, avgmotion, U, sbin=3, tic=None, rois=None, fullSVD=True):
     # project U onto each frame in the video and compute the motion energy
     # also compute pupil on single frames on non binned data
     # the pixels are binned in spatial bins of size sbin
-    # video is a list of videos loaded with pims
+    # containers is a list of videos loaded with av
     # cumframes are the cumulative frames across videos
     if tic is None:
         tic=time.time()
@@ -344,28 +368,31 @@ def process_ROIs(video, cumframes, Ly, Lx, avgmotion, U, sbin=3, tic=None, rois=
     # compute in chunks of 500
     nt0 = 500
     nsegs = int(np.ceil(nframes / nt0))
+    img = imall_init(nt0, Ly, Lx)
     # binned Ly and Lx and their relative inds in concatenated movies
     Lyb, Lxb, ir = binned_inds(Ly, Lx, sbin)
     imend = []
     for ii in range(len(Ly)):
         imend.append([])
+    t=0
+    nt1=0
     for n in range(nsegs):
-        t = n*nt0
-        img = get_frames(video, np.arange(t,t+nt0), cumframes)
-        nt0 = img[0].shape[-1]
+        t += nt1
+        get_frames(img, containers, [t, min(cumframes[-1],t+nt0)], cumframes)
+        nt1 = img[0].shape[-1]
         # compute pupil
         if len(pupind)>0:
             k=0
             for p in pupind:
                 imgp = img[ivid[p]][rois[p]['yrange'][0]:rois[p]['yrange'][-1]+1,
                                     rois[p]['xrange'][0]:rois[p]['xrange'][-1]+1]
-                imgp[~rois[p]['ellipse']] = 255.0
-                com, area, axdir, axlen = pupil.process(imgp, rois[p]['saturation'],
+                imgp[~rois[p]['ellipse']] = 255
+                com, area, axdir, axlen = pupil.process(imgp.astype(np.float32).copy(), rois[p]['saturation'],
                                                         rois[p]['pupil_sigma'], pupreflector[k])
-                pups[k]['com'][t:t+nt0,:] = com
-                pups[k]['area'][t:t+nt0] = area
-                pups[k]['axdir'][t:t+nt0,:,:] = axdir
-                pups[k]['axlen'][t:t+nt0,:] = axlen
+                pups[k]['com'][t:t+nt1,:] = com
+                pups[k]['area'][t:t+nt1] = area
+                pups[k]['axdir'][t:t+nt1,:,:] = axdir
+                pups[k]['axlen'][t:t+nt1,:] = axlen
                 k+=1
 
         if len(blind)>0:
@@ -384,18 +411,21 @@ def process_ROIs(video, cumframes, Ly, Lx, avgmotion, U, sbin=3, tic=None, rois=
             for r in runind:
                 imr = img[ivid[r]][rois[r]['yrange'][0]:rois[r]['yrange'][-1]+1,
                                    rois[r]['xrange'][0]:rois[r]['xrange'][-1]+1]
-                if n>0:
-                    imr = np.concatenate((rend[k][:,:,np.newaxis], imr), axis=-1)
-                else:
-                    if k==0:
-                        rend=[]
-                    rend.append(imr[:,:,-1])
                 imr = np.transpose(imr, (2,0,1)).copy()
+                # append last frame from previous set
+                if n>0:
+                    imr = np.concatenate((rend[k][np.newaxis,:,:],imr), axis=0)
+                # save last frame
+                if k==0:
+                    rend=[]
+                rend.append(imr[-1].copy())
+
+                # compute phase correaltion between consecutive frames
                 dy, dx = running.process(imr)
                 if n>0:
-                    runs[k][t:t+nt0] = np.concatenate((dy[:,np.newaxis], dx[:,np.newaxis]),axis=1)
+                    runs[k][t:t+nt1] = np.concatenate((dy[:,np.newaxis], dx[:,np.newaxis]),axis=1)
                 else:
-                    runs[k][t:t+nt0-1] = np.concatenate((dy[:,np.newaxis], dx[:,np.newaxis]),axis=1)
+                    runs[k][t+1:t+nt1] = np.concatenate((dy[:,np.newaxis], dx[:,np.newaxis]),axis=1)
                 k+=1
 
         # bin and get motion
@@ -472,7 +502,15 @@ def run(filenames, parent=None, proc=None, savepath=None):
     Lxs = []
     rois=None
     if parent is not None:
+        filenames = parent.filenames
         video = parent.video
+        containers = []
+        for fs in filenames:
+            cs = []
+            for f in fs:
+                cs.append(av.open(f))
+                cs[-1].streams.video[0].thread_type = 'AUTO'
+            containers.append(cs)
         cumframes = parent.cumframes
         nframes = parent.nframes
         iframes = parent.iframes
@@ -486,15 +524,20 @@ def run(filenames, parent=None, proc=None, savepath=None):
         sx = parent.sx
     else:
         video=[]
+        containers = []
         nframes = 0
         iframes = []
         cumframes = [0]
         k=0
         for fs in filenames:
             vs = []
+            cs = []
             for f in fs:
                 vs.append(pims.Video(f))
+                cs.append(av.open(f))
+                cs[-1].streams.video[0].thread_type = 'AUTO'
             video.append(vs)
+            containers.append(cs)
             iframes.append(len(video[-1][0]))
             cumframes.append(cumframes[-1] + len(video[-1][0]))
             nframes += len(video[-1][0])
@@ -571,7 +614,7 @@ def run(filenames, parent=None, proc=None, savepath=None):
 
     # project U onto all movie frames
     # and compute pupil (if selected)
-    V, pups, blinks, runs = process_ROIs(video, cumframes, Ly, Lx, avgmotion, U, sbin, tic, rois, fullSVD)
+    V, pups, blinks, runs = process_ROIs(containers, cumframes, Ly, Lx, avgmotion, U, sbin, tic, rois, fullSVD)
 
     # smooth pupil and blinks and running
     print('smoothing ...')
@@ -583,9 +626,9 @@ def run(filenames, parent=None, proc=None, savepath=None):
             p['com_smooth'][:,1],_ = pupil.smooth(p['com_smooth'][:,1].copy())
     for b in blinks:
         b,_ = pupil.smooth(b.copy())
-    for r in runs:
-        r[:,0],_ = pupil.smooth(r[:,0].copy())
-        r[:,1],_ = pupil.smooth(r[:,1].copy())
+    #for r in runs:
+    #    r[:,0],_ = pupil.smooth(r[:,0].copy())
+    #    r[:,1],_ = pupil.smooth(r[:,1].copy())
 
     #V_smooth = []
     for m in V:

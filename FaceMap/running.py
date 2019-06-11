@@ -5,7 +5,7 @@ from scipy.fftpack import next_fast_len
 import numpy as np
 from numpy.fft import ifftshift
 from mkl_fft import fft2, ifft2
-from numba import vectorize, float32, complex64
+from numba import vectorize, float32, complex64, uint8, int16
 
 eps0 = 1e-20
 
@@ -37,9 +37,9 @@ def gaussian_fft(sig, Ly, Lx):
     fhg = np.real(fft2(ifftshift(hgg))); # smoothing filter in Fourier domain
     return fhg
 
-@vectorize(['complex64(int16, float32)', 'complex64(float32, float32)'], nopython=True, target = 'parallel')
+@vectorize(['complex64(uint8, complex64)', 'complex64(float32, complex64)'], nopython=True, target = 'parallel')
 def multiplytype(x,y):
-    return np.complex64(np.float32(x)*y)
+    return np.complex64(x)*y
 
 @vectorize([complex64(complex64, complex64)], nopython=True, target = 'parallel')
 def apply_dotnorm(Y, cfRefImg):
@@ -47,9 +47,11 @@ def apply_dotnorm(Y, cfRefImg):
     x = x*cfRefImg
     return x
 
-@vectorize([complex64(complex64)], nopython=True, target = 'parallel')
-def phase_norm(x):
-    return x / (eps0 + np.abs(x))
+@vectorize([complex64(complex64,complex64)], nopython=True, target = 'parallel')
+def phase_norm(x,y):
+    x = x / (eps0 + np.abs(x))
+    x = x*y
+    return x
 
 def my_clip(X, lcorr):
     x00 = X[:,  :lcorr+1, :lcorr+1]
@@ -58,15 +60,29 @@ def my_clip(X, lcorr):
     x10 = X[:,  -lcorr:, :lcorr+1]
     return x00, x01, x10, x11
 
+def spatial_smooth(data,N):
+    ''' spatially smooth data using cumsum over axis=1,2 with window N'''
+    pad = np.zeros((data.shape[0], int(N/2), data.shape[2]))
+    dsmooth = np.concatenate((pad, data, pad), axis=1)
+    pad = np.zeros((dsmooth.shape[0], dsmooth.shape[1], int(N/2)))
+    dsmooth = np.concatenate((pad, dsmooth, pad), axis=2)
+    # in X
+    cumsum = np.cumsum(dsmooth, axis=1)
+    dsmooth = (cumsum[:, N:, :] - cumsum[:, :-N, :]) / float(N)
+    # in Y
+    cumsum = np.cumsum(dsmooth, axis=2)
+    dsmooth = (cumsum[:, :, N:] - cumsum[:, :, :-N]) / float(N)
+    return dsmooth
+
 def process(data):
     ''' computes movement using phase correlation  '''
     nt, Ly, Lx = data.shape
-    ly = int(np.ceil(Ly * 0.4))
-    lx = int(np.ceil(Lx * 0.4))
-    lcorr = max(ly,lx)
+    ly = int(np.floor(Ly * 0.4))
+    lx = int(np.floor(Lx * 0.4))
+    lcorr = min(ly,lx)
 
     # taper edges
-    maskMul = spatial_taper((Ly*Lx)**0.5*0.01, Ly, Lx).astype(np.float32)
+    maskMul = spatial_taper((Ly*Lx)**0.5*0.01, Ly, Lx).astype(np.complex64)
 
     # spatial filter
     fhg = gaussian_fft(2, Ly, Lx)
@@ -76,19 +92,24 @@ def process(data):
     xmax = np.zeros((nt-1,), np.int32)
     #cmax = np.zeros((nimg,), np.float32)
 
+    #maskOffset = X[1:].mean() * (1. - maskMul)
+
     # taper and fft data
-    X = multiplytype(data, maskMul)
+    X = data.astype(np.float32)
+    #data -= data.mean(axis=-1, dtype=np.uint8).mean(axis=-1, dtype=np.uint8)[:,np.newaxis,np.newaxis]
     X -= X.mean(axis=-1).mean(axis=-1)[:,np.newaxis,np.newaxis]
+    X = multiplytype(X, maskMul)
+    #X -= X.mean(axis=-1).mean(axis=-1)[:,np.newaxis,np.newaxis]
     for t in range(nt):
         fft2(X[t], overwrite_x=True)
     # phase correlation with previous frame
-    X = phase_norm(X)
-    X = X[:-1] * np.conj(X[1:]) * fhg
+    X = phase_norm(X,fhg.astype(np.complex64))
+    Xout = X[1:] * np.conj(X[:-1])
     for t in range(nt-1):
-        ifft2(X[t], overwrite_x=True)
-    x00, x01, x10, x11 = my_clip(X, lcorr)
+        ifft2(Xout[t], overwrite_x=True)
+    x00, x01, x10, x11 = my_clip(Xout, lcorr)
     cc = np.real(np.block([[x11, x10], [x01, x00]]))
-
+    #cc = spatial_smooth(cc, 2)
     for t in range(nt-1):
         ymax[t], xmax[t] = np.unravel_index(np.argmax(cc[t], axis=None), (2*lcorr+1, 2*lcorr+1))
         #cmax[t] = cc[t, ymax[t], xmax[t]]
