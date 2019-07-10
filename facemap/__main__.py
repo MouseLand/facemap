@@ -1,6 +1,6 @@
 import numpy as np
 import time, os
-from FaceMap import gui
+from facemap import gui,process
 from scipy import stats
 import argparse
 
@@ -24,6 +24,6 @@ if __name__ == '__main__':
         ops = np.load(args.ops)
         ops = ops.item()
     if len(args.movie)>0:
-        FaceMap.run(movie, ops)
+        process.run(movie, ops)
     else:
         gui.run()

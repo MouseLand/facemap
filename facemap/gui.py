@@ -4,7 +4,7 @@ from PyQt5 import QtGui, QtCore
 import pyqtgraph as pg
 from pyqtgraph import GraphicsScene
 import pims
-from FaceMap import facemap, roi
+from facemap import process, roi, utils
 from scipy.stats import zscore, skew
 from matplotlib import cm
 from natsort import natsorted
@@ -703,7 +703,7 @@ class MainW(QtGui.QMainWindow):
                 Ly = np.array(self.Ly.copy())
                 Lx = np.array(self.Lx.copy())
 
-                LY, LX, sy, sx = facemap.video_placement(Ly, Lx)
+                LY, LX, sy, sx = utils.video_placement(Ly, Lx)
                 print(LY, LX)
                 self.vmap = -1 * np.ones((LY,LX), np.int32)
                 for i in range(Ly.size):
@@ -908,14 +908,14 @@ class MainW(QtGui.QMainWindow):
             savepath = None
         print(savepath)
         if len(self.ROIs)>0:
-            rois = facemap.roi_to_dict(self.ROIs, self.rROI)
+            rois = utils.roi_to_dict(self.ROIs, self.rROI)
         else:
             rois = None
         proc = {'Ly':self.Ly, 'Lx':self.Lx, 'sy': self.sy, 'sx': self.sx, 'LY':self.LY, 'LX':self.LX,
                 'sbin': ops['sbin'], 'fullSVD': ops['fullSVD'], 'rois': rois,
                 'save_mat': ops['save_mat'], 'save_path': ops['save_path'],
                 'filenames': self.filenames, 'iframes': self.iframes}
-        savename = facemap.save(proc, savepath=savepath)
+        savename = process.save(proc, savepath=savepath)
         self.batchlist.append(savename)
         basename,filename = os.path.split(savename)
         filename, ext = os.path.splitext(filename)
@@ -926,7 +926,7 @@ class MainW(QtGui.QMainWindow):
         files = self.batchlist
         for f in files:
             proc = np.load(f, allow_pickle=True).item()
-            savename = facemap.run(proc['filenames'], parent=None, proc=proc, savepath=proc['save_path'])
+            savename = process.run(proc['filenames'], parent=None, proc=proc, savepath=proc['save_path'])
         if len(files)==1:
             self.openProc(savename)
 
@@ -940,7 +940,7 @@ class MainW(QtGui.QMainWindow):
         else:
             savepath = None
         print(savepath)
-        savename = facemap.run(self.filenames, self, savepath=savepath)
+        savename = process.run(self.filenames, self, savepath=savepath)
         self.openProc(savename)
 
     def plot_processed(self):

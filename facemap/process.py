@@ -1,110 +1,14 @@
 import pims
 import numpy as np
-from FaceMap import utils, pupil, running
+from facemap import utils, pupil, running
 from numba import vectorize,uint8,float32
 import time
 import os
 import pdb
 from scipy import io
+from scipy.ndimage import gaussian_filter
 import av
 
-def get_reflector(yrange, xrange, rROI=None, rdict=None):
-    reflectors = np.zeros((yrange.size, xrange.size), np.bool)
-    if rROI is not None and len(rROI)>0:
-        for r in rROI:
-            ellipse, ryrange, rxrange = r.ellipse.copy(), r.yrange.copy(), r.xrange.copy()
-            ix = np.logical_and(rxrange >= 0, rxrange < xrange.size)
-            ellipse = ellipse[:,ix]
-            rxrange = rxrange[ix]
-            iy = np.logical_and(ryrange >= 0, ryrange < yrange.size)
-            ellipse = ellipse[iy,:]
-            ryrange = ryrange[iy]
-            reflectors[np.ix_(ryrange, rxrange)] = np.logical_or(reflectors[np.ix_(ryrange, rxrange)], ellipse)
-    elif rdict is not None and len(rdict)>0:
-        for r in rdict:
-            ellipse, ryrange, rxrange = r['ellipse'].copy(), r['yrange'].copy(), r['xrange'].copy()
-            ix = np.logical_and(rxrange >= 0, rxrange < xrange.size)
-            ellipse = ellipse[:,ix]
-            rxrange = rxrange[ix]
-            iy = np.logical_and(ryrange >= 0, ryrange < yrange.size)
-            ellipse = ellipse[iy,:]
-            ryrange = ryrange[iy]
-            reflectors[np.ix_(ryrange, rxrange)] = np.logical_or(reflectors[np.ix_(ryrange, rxrange)], ellipse)
-    return reflectors.nonzero()
-
-def video_placement(Ly, Lx):
-    ''' Ly and Lx are lists of video sizes '''
-    npix = Ly * Lx
-    picked = np.zeros((Ly.size,), np.bool)
-    ly = 0
-    lx = 0
-    sy = np.zeros(Ly.shape, int)
-    sx = np.zeros(Lx.shape, int)
-    if Ly.size==2:
-        gridy = 1
-        gridx = 2
-    elif Ly.size==3:
-        gridy = 1
-        gridx = 2
-    else:
-        gridy = int(np.round(Ly.size**0.5 * 0.75))
-        gridx = int(np.ceil(Ly.size / gridy))
-    LY = 0
-    LX = 0
-    iy = 0
-    ix = 0
-    while (~picked).sum() > 0:
-        # place biggest movie first
-        npix0 = npix.copy()
-        npix0[picked] = 0
-        imax = np.argmax(npix0)
-        picked[imax] = 1
-        if iy==0:
-            ly = 0
-            rowmax=0
-        if ix==0:
-            lx = 0
-        sy[imax] = ly
-        sx[imax] = lx
-
-        ly+=Ly[imax]
-        rowmax = max(rowmax, Lx[imax])
-        if iy==gridy-1 or (~picked).sum()==0:
-            lx+=rowmax
-        LY = max(LY, ly)
-        iy+=1
-        if iy >= gridy:
-            iy = 0
-            ix += 1
-    LX = lx
-    return LY, LX, sy, sx
-
-def multivideo_reshape(X, LY, LX, sy, sx, Ly, Lx, iinds):
-    ''' reshape X matrix pixels x n matrix into LY x LX - embed each video at sy, sx'''
-    ''' iinds are indices of each video in concatenated array'''
-    X_reshape = np.zeros((LY,LX,X.shape[-1]), np.float32)
-    for i in range(len(Ly)):
-        X_reshape[sy[i]:sy[i]+Ly[i],
-                  sx[i]:sx[i]+Lx[i]] = np.reshape(X[iinds[i]], (Ly[i],Lx[i],X.shape[-1]))
-    return X_reshape
-
-def roi_to_dict(ROIs, rROI=None):
-    rois = []
-    for i,r in enumerate(ROIs):
-        rois.append({'rind': r.rind, 'rtype': r.rtype, 'iROI': r.iROI, 'ivid': r.ivid, 'color': r.color,
-                    'yrange': r.yrange, 'xrange': r.xrange, 'saturation': r.saturation})
-        if hasattr(r, 'pupil_sigma'):
-            rois[i]['pupil_sigma'] = r.pupil_sigma
-        if hasattr(r, 'ellipse'):
-            rois[i]['ellipse'] = r.ellipse
-        if rROI is not None:
-            if len(rROI[i]) > 0:
-                rois[i]['reflector'] = []
-                for rr in rROI[i]:
-                    rdict = {'yrange': rr.yrange, 'xrange': rr.xrange, 'ellipse': rr.ellipse}
-                    rois[i]['reflector'].append(rdict)
-
-    return rois
 
 def get_frames_pims(imall, video, cframes, cumframes):
     nframes = cumframes[-1]
@@ -348,7 +252,7 @@ def process_ROIs(containers, cumframes, Ly, Lx, avgmotion, U, sbin=3, tic=None, 
                 pups.append({'area': np.zeros((nframes,)), 'com': np.zeros((nframes,2)),
                              'axdir': np.zeros((nframes,2,2)), 'axlen': np.zeros((nframes,2))})
                 if 'reflector' in r:
-                    pupreflector.append(get_reflector(r['yrange'], r['xrange'], rROI=None, rdict=r['reflector']))
+                    pupreflector.append(utils.get_reflector(r['yrange'], r['xrange'], rROI=None, rdict=r['reflector']))
                 else:
                     pupreflector.append(np.array([]))
 
@@ -386,13 +290,17 @@ def process_ROIs(containers, cumframes, Ly, Lx, avgmotion, U, sbin=3, tic=None, 
             for p in pupind:
                 imgp = img[ivid[p]][rois[p]['yrange'][0]:rois[p]['yrange'][-1]+1,
                                     rois[p]['xrange'][0]:rois[p]['xrange'][-1]+1]
+                #imgp = gaussian_filter(imgp.astype(np.float32), [1,1], axis=(0,1))
+                #imgp = gaussian_filter1d(imgp, 1, axis=1)
                 imgp[~rois[p]['ellipse']] = 255
-                com, area, axdir, axlen = pupil.process(imgp.astype(np.float32).copy(), rois[p]['saturation'],
+                print(rois[p]['saturation'])
+                com, area, axdir, axlen = pupil.process(imgp.astype(np.float32), rois[p]['saturation'],
                                                         rois[p]['pupil_sigma'], pupreflector[k])
                 pups[k]['com'][t:t+nt1,:] = com
                 pups[k]['area'][t:t+nt1] = area
                 pups[k]['axdir'][t:t+nt1,:,:] = axdir
                 pups[k]['axlen'][t:t+nt1,:] = axlen
+                #print(area)
                 k+=1
 
         if len(blind)>0:
@@ -515,7 +423,7 @@ def run(filenames, parent=None, proc=None, savepath=None):
         nframes = parent.nframes
         iframes = parent.iframes
         sbin = parent.sbin
-        rois = roi_to_dict(parent.ROIs, parent.rROI)
+        rois = utils.roi_to_dict(parent.ROIs, parent.rROI)
         Ly = parent.Ly
         Lx = parent.Lx
         fullSVD = parent.checkBox.isChecked()
@@ -565,7 +473,7 @@ def run(filenames, parent=None, proc=None, savepath=None):
             sx = proc['sx']
 
     Lybin, Lxbin, iinds = binned_inds(Ly, Lx, sbin)
-    LYbin,LXbin,sybin,sxbin = video_placement(Lybin, Lxbin)
+    LYbin,LXbin,sybin,sxbin = utils.video_placement(Lybin, Lxbin)
 
     nroi = 0
     if rois is not None:
@@ -584,10 +492,10 @@ def run(filenames, parent=None, proc=None, savepath=None):
     tic = time.time()
     # compute average frame and average motion across videos (binned by sbin)
     avgframe, avgmotion = subsampled_mean(video, cumframes, Ly, Lx, sbin)
-    avgframe_reshape = multivideo_reshape(np.hstack(avgframe)[:,np.newaxis],
+    avgframe_reshape = utils.multivideo_reshape(np.hstack(avgframe)[:,np.newaxis],
                                           LYbin,LXbin,sybin,sxbin,Lybin,Lxbin,iinds)
     avgframe_reshape = np.squeeze(avgframe_reshape)
-    avgmotion_reshape = multivideo_reshape(np.hstack(avgmotion)[:,np.newaxis],
+    avgmotion_reshape = utils.multivideo_reshape(np.hstack(avgmotion)[:,np.newaxis],
                                            LYbin,LXbin,sybin,sxbin,Lybin,Lxbin,iinds)
     avgmotion_reshape = np.squeeze(avgmotion_reshape)
     print('computed subsampled mean at %1.2fs'%(time.time() - tic))
@@ -599,7 +507,7 @@ def run(filenames, parent=None, proc=None, savepath=None):
         print('computed subsampled SVD at %1.2fs'%(time.time() - tic))
         U_reshape = U.copy()
         if fullSVD:
-            U_reshape[0] = multivideo_reshape(U_reshape[0], LYbin,LXbin,sybin,sxbin,Lybin,Lxbin,iinds)
+            U_reshape[0] = utils.multivideo_reshape(U_reshape[0], LYbin,LXbin,sybin,sxbin,Lybin,Lxbin,iinds)
         if nroi>0:
             k=1
             for r in rois:
@@ -631,14 +539,14 @@ def run(filenames, parent=None, proc=None, savepath=None):
     #    r[:,1],_ = pupil.smooth(r[:,1].copy())
 
     #V_smooth = []
-    for m in V:
-        ms,ireplace = pupil.smooth(m[:,0].copy())#, win=50)
-        ireplace[np.logical_or(ms>ms.std()*4, ms<ms.std()*-4)] = True
-        print(ireplace.sum())
-        inds = ireplace.nonzero()[0][:,np.newaxis] + np.arange(-50,51,1,int)[np.newaxis,:]
-        inds[inds<0] = 0
-        inds[inds>=m.shape[0]] = m.shape[0]-1
-        m[ireplace,:] = np.nanmedian(m[inds,:], axis=1)
+    #for m in V:
+    #    ms,ireplace = pupil.smooth(m[:,0].copy())#, win=50)
+    #    ireplace[np.logical_or(ms>ms.std()*4, ms<ms.std()*-4)] = True
+    #    print(ireplace.sum())
+    #    inds = ireplace.nonzero()[0][:,np.newaxis] + np.arange(-50,51,1,int)[np.newaxis,:]
+    #    inds[inds<0] = 0
+    #    inds[inds>=m.shape[0]] = m.shape[0]-1
+    #    m[ireplace,:] = np.nanmedian(m[inds,:], axis=1)
         #V_smooth.append(m)
 
     print('computed projection at %1.2fs'%(time.time() - tic))

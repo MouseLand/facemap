@@ -7,7 +7,7 @@ from PyQt5 import QtGui, QtCore
 import pyqtgraph as pg
 from pyqtgraph import GraphicsScene
 import pims
-from FaceMap import facemap, pupil
+from facemap import utils, pupil
 from scipy.stats import zscore, skew
 from scipy.ndimage import gaussian_filter
 from matplotlib import cm
@@ -98,7 +98,7 @@ class reflectROI():
         self.xrange = xrange
         self.yrange = yrange
 
-        parent.reflectors[self.iROI] = facemap.get_reflector(parent.ROIs[self.iROI].yrange,
+        parent.reflectors[self.iROI] = utils.get_reflector(parent.ROIs[self.iROI].yrange,
                                                      parent.ROIs[self.iROI].xrange,
                                                      parent.rROI[self.iROI])
 
@@ -233,7 +233,7 @@ class sROI():
             #ifr = ifr.mean(axis=-1)
             #self.rmin = ifr[np.ix_(np.arange(0,ifr.shape[0],1,int), self.yrange, self.xrange)].min()
             self.rmin = 0
-            parent.reflectors[self.iROI] = facemap.get_reflector(parent.ROIs[self.iROI].yrange,
+            parent.reflectors[self.iROI] = utils.get_reflector(parent.ROIs[self.iROI].yrange,
                                                          parent.ROIs[self.iROI].xrange,
                                                          rROI=parent.rROI[self.iROI])
         parent.sl[1].setValue(parent.saturation[self.iROI] * 100 / 255)
@@ -262,7 +262,7 @@ class sROI():
         img = parent.imgs[self.ivid].copy()
         if img.ndim > 3:
             img = img.mean(axis=-2)
-        img = img[np.ix_(self.yrange, self.xrange, np.arange(0,3))]
+        img = img[self.yrange[0]:self.yrange[-1]+1, self.xrange[0]:self.xrange[-1]+1]
         sat = parent.saturation[self.iROI]
         self.saturation = sat
 
