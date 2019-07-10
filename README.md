@@ -1,4 +1,4 @@
-# FaceMap <img src="FaceMap/mouse.png" width="200" title="lilmouse" alt="lilmouse" align="right" vspace = "50">
+# FaceMap <img src="facemap/mouse.png" width="200" title="lilmouse" alt="lilmouse" align="right" vspace = "50">
 
 GUI for processing videos of rodents, implemented in python and MATLAB. Works for grayscale and RGB movies. Can process multi-camera videos. Some example movies to test the GUI on are located [here](https://drive.google.com/drive/folders/1fOkIXyEsxO-lDGZLy0gCKf1d7OjnUcnQ?usp=sharing). You can save the output from both the python and matlab versions as a matlab file with a checkbox in the GUI (if you'd like to use the python version - it has a better GUI).
 
@@ -35,33 +35,33 @@ pip install git+https://github.com/soft-matter/pims.git
 
 Now that ffmpeg and pims are installed, install FaceMap (all the other dependencies should be installed automatically with this command):
 ~~~~
-pip install FaceMap
+pip install facemap
 ~~~~
 
 If it fails, there might be some interaction between pre-installed dependencies and the ones FaceMap needs. First thing to try is
 ~~~~
 python -m pip install --upgrade pip
 ~~~~
-And try "pip install FaceMap" again. If it still fails, create a clean conda environment just for FaceMap with
+And try "pip install facemap" again. If it still fails, create a clean conda environment just for FaceMap with
 ~~~~
-conda create --name FaceMap
-(source) activate FaceMap
+conda create --name facemap
+(source) activate facemap
 ~~~~
 
-and then install ffmpeg, pims and FaceMap in this environment. Note: omit the "source" on Windows. If you install in this way, you will need to "(source) activate FaceMap" every time you use FaceMap.
+and then install ffmpeg, av, pims and facemap in this environment. Note: omit the "source" on Windows. If you install in this way, you will need to "(source) activate facemap" every time you use FaceMap.
 
 To upgrade FaceMap (package [here](https://pypi.org/project/facemap/)), run:
 ~~~~
-pip install FaceMap --upgrade
+pip install facemap --upgrade
 ~~~~
 
-If when running `python -m FaceMap`, you receive the error: `No module named PyQt5.sip`, then try uninstalling and reinstalling pyqt5 (and/or creating a specific environment just for FaceMap)
+If when running `python -m facemap`, you receive the error: `No module named PyQt5.sip`, then try uninstalling and reinstalling pyqt5 (and/or creating a specific environment just for FaceMap)
 ~~~
 pip uninstall pyqt5 pyqt5-tools
 pip install pyqt5 pyqt5-tools pyqt5.sip
 ~~~
 
-If when running `python -m FaceMap`, you receive an error associated with **matplotlib**, try upgrading it:
+If when running `python -m facemap`, you receive an error associated with **matplotlib**, try upgrading it:
 ~~~
 pip install matplotlib --upgrade
 ~~~
@@ -97,7 +97,7 @@ The matlab version needs to be downloaded/cloned from github (no install require
 
 Run the following command in a terminal
 ```
-python -m FaceMap
+python -m facemap
 ```
 The following window should appear. The upper left "file" button loads single files, the upper middle "folder" button loads whole folders (from which you can select movies), and the upper right "folder" button loads processed files ("_proc.npy" files). Load a video or a group of videos (see below for file formats for simultaneous videos). The video(s) will pop up in the left side of the GUI. You can zoom in and out with the mouse wheel, and you can drag by holding down the mouse. Double-click to return to the original, full view.
 
@@ -113,6 +113,12 @@ Once processing starts, the interface will no longer be clickable and all inform
 <div align="center">
 <img src="figs/terminal.png" width="50%" alt="terminal" >
 </div>
+
+If you want to open the GUI with a movie file specified and/or save path specified, the following command will allow this:
+~~~
+python -m facemap --movie '/home/carsen/movie.avi' --savedir '/media/carsen/SSD/'
+~~~
+Note this will only work if you only have one file that you need to load (can't have multiple in series / multiple views).
 
 
 ### Batch processing (python only)
@@ -165,7 +171,7 @@ Note: if you have many simultaneous videos / overall pixels (e.g. 2000 x 2000) y
 
 The minimum pixel value is subtracted from the ROI. Use the saturation bar to reduce the background of the eye. The algorithm zeros out any pixels less than the saturation level (I recommend a *very* low value - so most pixels are white in the GUI).
 
-Next it finds the pixel with the largest magnitude. It draws a box around that area (1/2 the size of the ROI) and then finds the center-of-mass of that region. It then centers the box on that area. It fits a multivariate gaussian to the pixels in the box using maximum likelihood (see [pupil.py](FaceMap/pupil.py) or [fitMVGaus.m](matlab/utils/fitMVGaus.m)).
+Next it finds the pixel with the largest magnitude. It draws a box around that area (1/2 the size of the ROI) and then finds the center-of-mass of that region. It then centers the box on that area. It fits a multivariate gaussian to the pixels in the box using maximum likelihood (see [pupil.py](facemap/pupil.py) or [fitMVGaus.m](matlab/utils/fitMVGaus.m)).
 
 After a Gaussian is fit, it zeros out pixels whose squared distance from the center (normalized by the standard deviation of the Gaussian fit) is greater than 2 * sigma^2 where sigma is set by the user in the GUI (default sigma = 2.5). It now performs the fit again with these points erased, and repeats this process 4 more times. The pupil is then defined as an ellipse sigma standard deviations away from the center-of-mass of the gaussian. This is plotted with '+' around the ellipse and with one '+' at the center.
 
@@ -186,7 +192,7 @@ You may want to ignore frames in which the animal is blinking if you are looking
 
 The motion SVDs (small ROIs / multivideo) are computed on the movie downsampled in space by the spatial downsampling input box in the GUI (default 4 pixels). Note the saturation set in this window is NOT used for any processing.
 
-The motion *M* is defined as the abs(current_frame - previous_frame), and the average motion energy across frames is computed using a subset of frames (*avgmot*) (at least 1000 frames - set at line 45 in [subsampledMean.m](matlab/subsampledMean.m) or line 183 in [facemap.py](FaceMap/facemap.py)). Then the singular vectors of the motion energy are computed on chunks of data, also from a subset of frames (15 chunks of 1000 frames each). Let *F* be the chunk of frames [pixels x time]. Then
+The motion *M* is defined as the abs(current_frame - previous_frame), and the average motion energy across frames is computed using a subset of frames (*avgmot*) (at least 1000 frames - set at line 45 in [subsampledMean.m](matlab/subsampledMean.m) or line 183 in [process.py](facemap/process.py)). Then the singular vectors of the motion energy are computed on chunks of data, also from a subset of frames (15 chunks of 1000 frames each). Let *F* be the chunk of frames [pixels x time]. Then
 ```
 uMot = [];
 for j = 1:nchunks
@@ -215,7 +221,7 @@ We found that these extracted singular vectors explained up to half of the total
 
 ### Running computation
 
-The phase-correlation between consecutive frames (in running ROI) are computed in the fourier domain (see [running.py](/FaceMap/running.py) or [processRunning.m](/matlab/running/processRunning.m)). The XY position of maximal correlation gives the amount of shift between the two consecutive frames. Depending on how fast the movement is frame-to-frame you may want at least a 50x50 pixel ROI to compute this.
+The phase-correlation between consecutive frames (in running ROI) are computed in the fourier domain (see [running.py](/facemap/running.py) or [processRunning.m](/matlab/running/processRunning.m)). The XY position of maximal correlation gives the amount of shift between the two consecutive frames. Depending on how fast the movement is frame-to-frame you may want at least a 50x50 pixel ROI to compute this.
 
 ### Multivideo SVD ROIs
 
