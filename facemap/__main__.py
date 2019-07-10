@@ -17,13 +17,24 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Movie files')
     parser.add_argument('--ops', default=[], type=str, help='options')
     parser.add_argument('--movie', default=[], type=str, help='moviefile')
+    parser.add_argument('--savedir', default=[], type=str, help='savedir')
     args = parser.parse_args()
+
+    if len(args.movie)>0:
+        moviefile = args.movie
+    else:
+        moviefile = None
+    if len(args.savedir)>0:
+        savedir = args.savedir
+    else:
+        savedir = None
 
     ops = {}
     if len(args.ops)>0:
         ops = np.load(args.ops)
         ops = ops.item()
-    if len(args.movie)>0:
-        process.run(movie, ops)
+        if len(args.movie)>0:
+            process.run(args.movie, ops)
     else:
-        gui.run()
+        gui.run(moviefile, savedir)
+        

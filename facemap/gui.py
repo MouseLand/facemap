@@ -66,7 +66,7 @@ class Slider(QtGui.QSlider):
         parent.win.show()
 
 class MainW(QtGui.QMainWindow):
-    def __init__(self):
+    def __init__(self, moviefile=None, savedir=None):
         super(MainW, self).__init__()
         icon_path = os.path.join(
             os.path.dirname(os.path.realpath(__file__)), "mouse.png"
@@ -394,6 +394,12 @@ class MainW(QtGui.QMainWindow):
         self.win.show()
         self.show()
         self.processed = False
+        if moviefile is not None:
+            self.load_movies([[moviefile]])
+        if savedir is not None:
+            self.save_path = savedir
+            self.savelabel.setText(savedir)
+
         #self.load_movies([["/media/carsen/DATA2/grive/sample_movies/2016-09-29_11_M160907_MP028_eye.mj2"]])
         #self.load_movies([["/home/carsen/Downloads/2017-08-04_1_M170714_MP032_eye.mj2"]])
         #self.load_movies([["/media/carsen/SSD/sample_movies/mouse_face.mp4"]])
@@ -1063,7 +1069,7 @@ class MainW(QtGui.QMainWindow):
         self.process.setEnabled(status)
         self.saverois.setEnabled(status)
 
-def run():
+def run(moviefile=None,savedir=None):
     # Always start by initializing Qt (only once per application)
     app = QtGui.QApplication(sys.argv)
     icon_path = os.path.join(
@@ -1077,7 +1083,7 @@ def run():
     app_icon.addFile(icon_path, QtCore.QSize(96, 96))
     app_icon.addFile(icon_path, QtCore.QSize(256, 256))
     app.setWindowIcon(app_icon)
-    GUI = MainW()
+    GUI = MainW(moviefile,savedir)
     #p = GUI.palette()
     ret = app.exec_()
     # GUI.save_gui_data()
