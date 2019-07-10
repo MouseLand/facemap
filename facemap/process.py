@@ -293,7 +293,6 @@ def process_ROIs(containers, cumframes, Ly, Lx, avgmotion, U, sbin=3, tic=None, 
                 #imgp = gaussian_filter(imgp.astype(np.float32), [1,1], axis=(0,1))
                 #imgp = gaussian_filter1d(imgp, 1, axis=1)
                 imgp[~rois[p]['ellipse']] = 255
-                print(rois[p]['saturation'])
                 com, area, axdir, axlen = pupil.process(imgp.astype(np.float32), rois[p]['saturation'],
                                                         rois[p]['pupil_sigma'], pupreflector[k])
                 pups[k]['com'][t:t+nt1,:] = com

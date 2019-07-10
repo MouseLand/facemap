@@ -281,7 +281,8 @@ class sROI():
             missing=parent.reflectors[self.iROI]
             try:
                 mu, sig, xy, immiss, _, _ = pupil.fit_gaussian(fr.copy(), parent.pupil_sigma, True, missing=missing)
-                fr[missing[0], missing[1]] = immiss
+                if len(missing)>0:
+                    fr[missing[0], missing[1]] = immiss
                 xy = xy[xy[:,0]>=0, :]
                 xy = xy[xy[:,0]<self.yrange.size, :]
                 xy = xy[xy[:,1]>=0, :]

@@ -84,7 +84,7 @@ def fit_gaussian(im, thres, do_xy, missing=None):
     if missing is not None and len(missing) > 0:
         imout = im[mx,my]
     else:
-        imout = im
+        imout = []
     return mu, sv, xy, imout, u, sv
 
 def process(img, saturation, pupil_sigma, pupreflector):
@@ -106,8 +106,6 @@ def process(img, saturation, pupil_sigma, pupreflector):
             imgf = gaussian_filter(img[:,:,n], 1)
             imgf = 255.0 - imgf
             imgf = np.maximum(0, imgf - (255.0 - saturation))
-            if n==1:
-                print(imgf.nonzero()[0].size)
             mu, sig, _, _, u, sv = fit_gaussian(imgf, pupil_sigma, False, missing=pupreflector)
         except:
             mu = np.nan*np.zeros((2,))
