@@ -273,7 +273,8 @@ class sROI():
             parent.reflector.setEnabled(True)
             img = img.mean(axis=-1)
             # smooth in space
-            fr = gaussian_filter(img.astype(np.float32), 1)
+            fr = img.astype(np.float32)
+            #fr = gaussian_filter(img.astype(np.float32), 1)
             #fr -= self.rmin
             fr[~self.ellipse] = 255.0
             fr = 255.0 - fr
