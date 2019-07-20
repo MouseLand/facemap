@@ -20,46 +20,31 @@ For 2p imaging, you'll need a tighter filter around 850nm so you don't see the l
 
 ### PYTHON
 
-I recommend installing python 3 using **[Anaconda](https://www.anaconda.com/download/)** to be able to install the video libraries without complications. You might need to use an anaconda prompt if you did not add anaconda to the path during install.
+This package only supports python 3 using **[Anaconda](https://www.anaconda.com/download/)**.
 
-Next, from a command line terminal / anaconda prompt, install the video libraries:
-~~~~
-conda install -c conda-forge ffmpeg
-conda install av -c conda-forge
-~~~~
+1. Download the `environment.yml` file from the repository
+2. Open an anaconda prompt / command prompt with `conda` for **python 3** in the path
+3. Run `conda env create -f environment.yml`
+4. To activate this new environment, run `conda activate facemap`
+5. You should see `(facemap)` on the left side of the terminal line. Now run `python -m facemap` and you're all set.
 
-Next we need to install [pims](http://soft-matter.github.io/pims/v0.4.1/install.html), which allows non-sequential indexing into videos. I recommend installing the development version -- this fixes some bugs on Windows with pyav:
-~~~~
-pip install git+https://github.com/soft-matter/pims.git
-~~~~
-
-Now that ffmpeg and pims are installed, install FaceMap (all the other dependencies should be installed automatically with this command):
-~~~~
-pip install facemap
-~~~~
-
-If it fails, there might be some interaction between pre-installed dependencies and the ones FaceMap needs. First thing to try is
-~~~~
-python -m pip install --upgrade pip
-~~~~
-And try "pip install facemap" again. If it still fails, create a clean conda environment just for FaceMap with
-~~~~
-conda create --name facemap
-(source) activate facemap
-~~~~
-
-and then install ffmpeg, av, pims and facemap in this environment. Note: omit the "source" on Windows. If you install in this way, you will need to "(source) activate facemap" every time you use FaceMap.
-
-To upgrade FaceMap (package [here](https://pypi.org/project/facemap/)), run:
+To upgrade FaceMap (package [here](https://pypi.org/project/facemap/)), within the environment run:
 ~~~~
 pip install facemap --upgrade
 ~~~~
 
-If when running `python -m facemap`, you receive the error: `No module named PyQt5.sip`, then try uninstalling and reinstalling pyqt5 (and/or creating a specific environment just for FaceMap)
+**Common issues**
+
+If when running `python -m facemap`, you receive the error: `No module named PyQt5.sip`, then try uninstalling and reinstalling pyqt5
 ~~~
 pip uninstall pyqt5 pyqt5-tools
 pip install pyqt5 pyqt5-tools pyqt5.sip
 ~~~
+
+If you have frame reading errors try the following command for [pims](http://soft-matter.github.io/pims/v0.4.1/install.html), which allows non-sequential indexing into videos:
+~~~~
+pip install git+https://github.com/soft-matter/pims.git
+~~~~
 
 If when running `python -m facemap`, you receive an error associated with **matplotlib**, try upgrading it:
 ~~~
