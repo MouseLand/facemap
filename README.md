@@ -20,7 +20,7 @@ For 2p imaging, you'll need a tighter filter around 850nm so you don't see the l
 
 ### PYTHON
 
-This package only supports python 3 using **[Anaconda](https://www.anaconda.com/download/)**.
+This package only supports python 3 installed with **[Anaconda](https://www.anaconda.com/download/)**.
 
 1. Download the `environment.yml` file from the repository
 2. Open an anaconda prompt / command prompt with `conda` for **python 3** in the path
