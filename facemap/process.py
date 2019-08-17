@@ -440,7 +440,10 @@ def run(filenames, parent=None, proc=None, savepath=None):
             vs = []
             cs = []
             for f in fs:
-                vs.append(pims.Video(f))
+                try:
+                    vs.append(pims.Video(f))
+                except:
+                    vs.append(pims.PyAVReaderIndexed(f))
                 cs.append(av.open(f))
                 cs[-1].streams.video[0].thread_type = 'AUTO'
             video.append(vs)

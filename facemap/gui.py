@@ -641,14 +641,11 @@ class MainW(QtGui.QMainWindow):
             for fs in self.filelist:
                 vs = []
                 for f in fs:
-                    #if f[:2]=='X:':
-                    #    f = pathlib.PureWindowsPath(f).as_posix()[3:]
-                    #    f = os.path.join('/home/carsen/nas/' + f)
-                    #elif f[:33]=='/groups/pachitariu/pachitariulab/':
-                    #    f = pathlib.PureWindowsPath(f).as_posix()[32:]
-                    #    f = os.path.join('/home/carsen/dm11/' + f)
-                    #    print(f)
-                    vs.append(pims.Video(f))
+                    try:
+                        vs.append(pims.Video(f))
+                    except:
+                        print('pyavreaderindexed used - may be slower (try installing pims github version)')
+                        vs.append(pims.PyAVReaderIndexed(f))
                 v.append(vs)
                 iframes.append(len(v[-1][0]))
                 cumframes.append(cumframes[-1] + len(v[-1][0]))
