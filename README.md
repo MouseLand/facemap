@@ -52,6 +52,7 @@ If you have **big** files or if you have **frame reading errors** try the follow
 ~~~~
 pip install git+https://github.com/soft-matter/pims.git
 ~~~~
+You will need to have git installed for this.
 
 ### Common issues
 
