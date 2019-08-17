@@ -44,14 +44,8 @@ If this fails, try manual install below.
 conda install -c conda-forge ffmpeg
 conda install av -c conda-forge
 ~~~~
-2. Install pims. I recommend installing the development version -- this fixes some bugs on Windows with pyav:
-~~~~
-pip install git+https://github.com/soft-matter/pims.git
-~~~~
-3. If (2) doesn't work, this command will install pims along with the other dependencies for facemap AND facemap:
-~~~~
-pip install facemap
-~~~~
+2. Install facemap and its other dependencies: `pip install facemap`
+
 If this step fails, there might be some interaction between pre-installed dependencies and the ones FaceMap needs. First thing to try is
 ~~~~
 python -m pip install --upgrade pip
@@ -59,16 +53,16 @@ python -m pip install --upgrade pip
 
 ### Common issues
 
+If you have **frame reading errors** try the following command for [pims](http://soft-matter.github.io/pims/v0.4.1/install.html), which allows non-sequential indexing into videos:
+~~~~
+pip install git+https://github.com/soft-matter/pims.git
+~~~~
+
 If when running `python -m facemap`, you receive the error: `No module named PyQt5.sip`, then try uninstalling and reinstalling pyqt5
 ~~~
 pip uninstall pyqt5 pyqt5-tools
 pip install pyqt5 pyqt5-tools pyqt5.sip
 ~~~
-
-If you have frame reading errors try the following command for [pims](http://soft-matter.github.io/pims/v0.4.1/install.html), which allows non-sequential indexing into videos:
-~~~~
-pip install git+https://github.com/soft-matter/pims.git
-~~~~
 
 If when running `python -m facemap`, you receive an error associated with **matplotlib**, try upgrading it:
 ~~~
