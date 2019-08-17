@@ -37,8 +37,6 @@ To upgrade FaceMap (package [here](https://pypi.org/project/facemap/)), within t
 pip install facemap --upgrade
 ~~~~
 
-If this fails, try manual install below.
-
 ### Manual installation of dependencies
 
 1. From a command line terminal / anaconda prompt, install the video libraries:
@@ -48,13 +46,16 @@ conda install av -c conda-forge
 ~~~~
 2. Install facemap and its other dependencies: `pip install facemap`
 
+### NEXT (EVERYONE)
 
-### Common issues
-
-If you have **frame reading errors** try the following command for [pims](http://soft-matter.github.io/pims/v0.4.1/install.html), which allows non-sequential indexing into videos:
+If you have **big** files or if you have **frame reading errors** try the following command for [pims](http://soft-matter.github.io/pims/v0.4.1/install.html), which allows non-sequential indexing into videos:
 ~~~~
 pip install git+https://github.com/soft-matter/pims.git
 ~~~~
+You will need to have git installed for this.
+
+### Common issues
+
 
 If you have pip issues, there might be some interaction between pre-installed dependencies and the ones FaceMap needs. First thing to try is
 ~~~~
