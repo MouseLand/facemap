@@ -22,7 +22,7 @@ For 2p imaging, you'll need a tighter filter around 850nm so you don't see the l
 
 This package only supports python 3 installed with **[Anaconda](https://www.anaconda.com/download/)**.
 
-**Linux users**: `sudo apt install ffmpeg` FIRST
+**Linux users** run this first: `sudo apt-get install ffmpeg`
 
 ### Using the environment.yml file (try this FIRST)
 
