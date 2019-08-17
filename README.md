@@ -39,17 +39,14 @@ pip install facemap --upgrade
 
 ### Manual installation of dependencies
 
-1. From a command line terminal / anaconda prompt, install the video libraries:
-~~~~
-conda install -c conda-forge ffmpeg
-conda install av -c conda-forge
-~~~~
+1. From a command line terminal / anaconda prompt, install the video libraries: `conda install av -c conda-forge`
 2. Install other conda dependencies (they may be already installed in base anaconda but try these commands)
 ~~~~
 conda install -c numba numba
 conda install -c conda-forge mkl_fft
 ~~~~
 3. Install facemap and the rest of its dependencies: `pip install facemap`
+4. Now try to run `python -m facemap` and if you see missing dependencies, try to pip install them or post issues.
 
 ### NEXT (EVERYONE)
 
@@ -58,13 +55,6 @@ If you have **big** files or if you have **frame reading errors** try the follow
 pip install git+https://github.com/soft-matter/pims.git
 ~~~~
 You will need to have git installed for this.
-
-### TRY IT OUT
-
-Run
-~~~~
-python -m facemap
-~~~~
 
 ### Common issues
 
