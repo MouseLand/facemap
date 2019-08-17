@@ -22,6 +22,8 @@ For 2p imaging, you'll need a tighter filter around 850nm so you don't see the l
 
 This package only supports python 3 installed with **[Anaconda](https://www.anaconda.com/download/)**.
 
+**Linux users**: `sudo apt install ffmpeg` FIRST
+
 ### Using the environment.yml file (try this FIRST)
 
 1. Download the `environment.yml` file from the repository
@@ -46,10 +48,6 @@ conda install av -c conda-forge
 ~~~~
 2. Install facemap and its other dependencies: `pip install facemap`
 
-If this step fails, there might be some interaction between pre-installed dependencies and the ones FaceMap needs. First thing to try is
-~~~~
-python -m pip install --upgrade pip
-~~~~
 
 ### Common issues
 
@@ -57,6 +55,12 @@ If you have **frame reading errors** try the following command for [pims](http:/
 ~~~~
 pip install git+https://github.com/soft-matter/pims.git
 ~~~~
+
+If you have pip issues, there might be some interaction between pre-installed dependencies and the ones FaceMap needs. First thing to try is
+~~~~
+python -m pip install --upgrade pip
+~~~~
+
 
 If when running `python -m facemap`, you receive the error: `No module named PyQt5.sip`, then try uninstalling and reinstalling pyqt5
 ~~~
