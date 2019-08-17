@@ -54,8 +54,14 @@ pip install git+https://github.com/soft-matter/pims.git
 ~~~~
 You will need to have git installed for this.
 
-### Common issues
+### TRY IT OUT
 
+Run
+~~~~
+python -m facemap
+~~~~
+
+### Common issues
 
 If you have pip issues, there might be some interaction between pre-installed dependencies and the ones FaceMap needs. First thing to try is
 ~~~~
