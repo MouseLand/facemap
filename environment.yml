@@ -17,5 +17,5 @@ dependencies:
     - PyQt5
     - pyqtgraph
     - natsort
-    - git+https://github.com/soft-matter/pims.git
+    - pims
     - facemap
