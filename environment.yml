@@ -15,6 +15,7 @@ dependencies:
   - scikit-image
   - pip:
     - PyQt5
+    - PyQt5.sip
     - pyqtgraph
     - natsort
     - pims
