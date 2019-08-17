@@ -22,6 +22,8 @@ For 2p imaging, you'll need a tighter filter around 850nm so you don't see the l
 
 This package only supports python 3 installed with **[Anaconda](https://www.anaconda.com/download/)**.
 
+**Using the environment.yml file (try this FIRST)**
+
 1. Download the `environment.yml` file from the repository
 2. Open an anaconda prompt / command prompt with `conda` for **python 3** in the path
 3. Run `conda env create -f environment.yml`
@@ -31,6 +33,28 @@ This package only supports python 3 installed with **[Anaconda](https://www.anac
 To upgrade FaceMap (package [here](https://pypi.org/project/facemap/)), within the environment run:
 ~~~~
 pip install facemap --upgrade
+~~~~
+
+If this fails, try manual install below.
+
+**Manual installation of dependencies**
+
+1. From a command line terminal / anaconda prompt, install the video libraries:
+~~~~
+conda install -c conda-forge ffmpeg
+conda install av -c conda-forge
+~~~~
+2. Install pims. I recommend installing the development version -- this fixes some bugs on Windows with pyav:
+~~~~
+pip install git+https://github.com/soft-matter/pims.git
+~~~~
+3. If (2) doesn't work, this command will install pims along with the other dependencies for facemap AND facemap:
+~~~~
+pip install facemap
+~~~~
+If this step fails, there might be some interaction between pre-installed dependencies and the ones FaceMap needs. First thing to try is
+~~~~
+python -m pip install --upgrade pip
 ~~~~
 
 **Common issues**
