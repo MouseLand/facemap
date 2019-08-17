@@ -1,4 +1,6 @@
 name: facemap
+channels:
+  - conda-forge
 dependencies:
   - python>3.5
   - pip
@@ -15,5 +17,5 @@ dependencies:
     - PyQt5
     - pyqtgraph
     - natsort
-    - pims
-    - FaceMap
+    - git+https://github.com/soft-matter/pims.git
+    - facemap

@@ -1,8 +1,8 @@
 # FaceMap <img src="facemap/mouse.png" width="200" title="lilmouse" alt="lilmouse" align="right" vspace = "50">
 
-GUI for processing videos of rodents, implemented in python and MATLAB. Works for grayscale and RGB movies. Can process multi-camera videos. Some example movies to test the GUI on are located [here](https://drive.google.com/drive/folders/1fOkIXyEsxO-lDGZLy0gCKf1d7OjnUcnQ?usp=sharing). You can save the output from both the python and matlab versions as a matlab file with a checkbox in the GUI (if you'd like to use the python version - it has a better GUI).
+GUI for processing videos of rodents, implemented in python and MATLAB. Works for grayscale and RGB movies. Can process multi-camera videos. Some example movies to test the GUI on are located [here](https://drive.google.com/open?id=1cRWCDl8jxWToz50dCX1Op-dHcAC-ttto). You can save the output from both the python and matlab versions as a matlab file with a checkbox in the GUI (if you'd like to use the python version - it has a better GUI).
 
-## Data acquisition info
+# Data acquisition info
 
 IR ILLUMINATION:
 
@@ -16,50 +16,59 @@ We use [ptgrey cameras](https://www.ptgrey.com/flea3-13-mp-mono-usb3-vision-vita
 
 For 2p imaging, you'll need a tighter filter around 850nm so you don't see the laser shining through the mouse's eye/head, for example [this](https://www.thorlabs.de/thorproduct.cfm?partnumber=FB850-40). Depending on your lenses you'll need to figure out the right adapter(s) for such a filter. For our 10x lens above, you might need all of these:  [adapter1](https://www.edmundoptics.com/optics/optical-filters/optical-filter-accessories/M52-to-M46-Filter-Thread-Adapter/), [adapter2](https://www.thorlabs.de/thorproduct.cfm?partnumber=SM2A53), [adapter3](https://www.thorlabs.de/thorproduct.cfm?partnumber=SM2A6), [adapter4](https://www.thorlabs.de/thorproduct.cfm?partnumber=SM1L03).
 
-## Installation
+# Installation
 
-### PYTHON
+## PYTHON
 
-I recommend installing python 3 using **[Anaconda](https://www.anaconda.com/download/)** to be able to install the video libraries without complications. You might need to use an anaconda prompt if you did not add anaconda to the path during install.
+This package only supports python 3 installed with **[Anaconda](https://www.anaconda.com/download/)**.
 
-Next, from a command line terminal / anaconda prompt, install the video libraries:
-~~~~
-conda install -c conda-forge ffmpeg
-conda install av -c conda-forge
-~~~~
+### Using the environment.yml file (try this FIRST)
 
-Next we need to install [pims](http://soft-matter.github.io/pims/v0.4.1/install.html), which allows non-sequential indexing into videos. I recommend installing the development version -- this fixes some bugs on Windows with pyav:
-~~~~
-pip install git+https://github.com/soft-matter/pims.git
-~~~~
+1. Download the `environment.yml` file from the repository
+2. Open an anaconda prompt / command prompt with `conda` for **python 3** in the path
+3. Run `conda env create -f environment.yml`
+4. To activate this new environment, run `conda activate facemap`
+5. You should see `(facemap)` on the left side of the terminal line. Now run `python -m facemap` and you're all set.
 
-Now that ffmpeg and pims are installed, install FaceMap (all the other dependencies should be installed automatically with this command):
-~~~~
-pip install facemap
-~~~~
-
-If it fails, there might be some interaction between pre-installed dependencies and the ones FaceMap needs. First thing to try is
-~~~~
-python -m pip install --upgrade pip
-~~~~
-And try "pip install facemap" again. If it still fails, create a clean conda environment just for FaceMap with
-~~~~
-conda create --name facemap
-(source) activate facemap
-~~~~
-
-and then install ffmpeg, av, pims and facemap in this environment. Note: omit the "source" on Windows. If you install in this way, you will need to "(source) activate facemap" every time you use FaceMap.
-
-To upgrade FaceMap (package [here](https://pypi.org/project/facemap/)), run:
+To upgrade FaceMap (package [here](https://pypi.org/project/facemap/)), within the environment run:
 ~~~~
 pip install facemap --upgrade
 ~~~~
 
-If when running `python -m facemap`, you receive the error: `No module named PyQt5.sip`, then try uninstalling and reinstalling pyqt5 (and/or creating a specific environment just for FaceMap)
+If this fails, try manual install below.
+
+### Manual installation of dependencies
+
+1. From a command line terminal / anaconda prompt, install the video libraries:
+~~~~
+conda install -c conda-forge ffmpeg
+conda install av -c conda-forge
+~~~~
+2. Install pims. I recommend installing the development version -- this fixes some bugs on Windows with pyav:
+~~~~
+pip install git+https://github.com/soft-matter/pims.git
+~~~~
+3. If (2) doesn't work, this command will install pims along with the other dependencies for facemap AND facemap:
+~~~~
+pip install facemap
+~~~~
+If this step fails, there might be some interaction between pre-installed dependencies and the ones FaceMap needs. First thing to try is
+~~~~
+python -m pip install --upgrade pip
+~~~~
+
+### Common issues
+
+If when running `python -m facemap`, you receive the error: `No module named PyQt5.sip`, then try uninstalling and reinstalling pyqt5
 ~~~
 pip uninstall pyqt5 pyqt5-tools
 pip install pyqt5 pyqt5-tools pyqt5.sip
 ~~~
+
+If you have frame reading errors try the following command for [pims](http://soft-matter.github.io/pims/v0.4.1/install.html), which allows non-sequential indexing into videos:
+~~~~
+pip install git+https://github.com/soft-matter/pims.git
+~~~~
 
 If when running `python -m facemap`, you receive an error associated with **matplotlib**, try upgrading it:
 ~~~
@@ -70,7 +79,7 @@ If you are on Yosemite Mac OS, PyQt doesn't work, and you won't be able to insta
 
 The software has been heavily tested on Ubuntu 18.04, and less well tested on Windows 10 and Mac OS. Please post an issue if you have installation problems. Also, try to follow the instructions that `pip` provides if more drivers are needed to run `ffmpeg` / `pims`.
 
-**Dependencies:**
+### Dependencies
 
 FaceMap python relies on these awesome packages:
 - [ffmpeg](https://ffmpeg.org/)
@@ -81,7 +90,7 @@ FaceMap python relies on these awesome packages:
 - [scipy](https://www.scipy.org/)
 - [matplotlib](https://matplotlib.org/) (not for plotting (only using hsv_to_rgb function), should not conflict with PyQt5)
 
-### MATLAB
+## MATLAB
 
 The matlab version needs to be downloaded/cloned from github (no install required). It works in Matlab 2014b and above - please submit issues if it's not working. The Image Processing Toolbox is necessary to use the GUI. For GPU functionality, the Parallel Processing Toolbox is required. If you don't have the Parallel Processing Toolbox, uncheck the box next to "use GPU" in the GUI before processing.
 
@@ -89,9 +98,9 @@ The matlab version needs to be downloaded/cloned from github (no install require
 
 '.mj2','.mp4','.mkv','.avi','.mpeg','.mpg','.asf'
 
-## Start processing! *HOW TO GUI*
+# Start processing! *HOW TO GUI*
 
-### PYTHON
+## PYTHON
 
 <img src="figs/face_fast.gif" width="100%" alt="face gif">
 
@@ -125,7 +134,7 @@ Note this will only work if you only have one file that you need to load (can't 
 
 Load a video or a set of videos and draw your ROIs and choose your processing settings. Then click **save ROIs**. This will save a *_proc.npy file in the folder in the specified **save folder**. The name of this proc file will be listed below **process batch** (this button will also activate). You can then repeat this process: load the video(s), draw ROIs, choose settings, and click **save ROIs**. Then to process all the listed *_proc.npy files click **process batch**.
 
-### MATLAB
+## MATLAB
 
 To start the GUI, run the command `MovieGUI` in this folder. The following window should appear. After you click an ROI button and draw an area, you have to **double-click** inside the drawn box to confirm it. To compute the SVD across multiple simultaneously acquired videos you need to use the "multivideo SVD" options to draw ROI's on each video one at a time.
 
@@ -133,7 +142,7 @@ To start the GUI, run the command `MovieGUI` in this folder. The following windo
 <img src="figs/GUIscreenshot.png" width="80%" alt="gui screenshot" >
 </div>
 
-### Default starting folder
+## Default starting folder
 
 **python**: wherever you run `python -m FaceMap`
 
@@ -143,7 +152,7 @@ To start the GUI, run the command `MovieGUI` in this folder. The following windo
 
 If you choose a folder instead of a single file, it will assemble a list of all video files in that folder and also all videos 1 folder down. The MATLAB GUI will ask *"would you like to process all movies?"*. If you say no, then a list of movies to choose from will appear. By default the python version shows you a list of movies. If you choose no movies in the python version then it's assumed you want to process ALL of them.
 
-### Processing movies captured simultaneously (multiple camera setups)
+## Processing movies captured simultaneously (multiple camera setups)
 
 Both GUIs will then ask *"are you processing multiple videos taken simultaneously?"*. If you say yes, then the script will look if across movies the **FIRST FOUR** letters of the filename vary. If the first four letters of two movies are the same, then the GUI assumed that they were acquired *sequentially* not *simultaneously*.
 
@@ -165,9 +174,9 @@ Note: if you have many simultaneous videos / overall pixels (e.g. 2000 x 2000) y
 
 **MATLAB**: after the file choosing process is over, you will see all the movies in the drop down menu (by filename). You can switch between them and inspect how well an ROI works for each of the movies.
 
-## ROI types
+# ROI types
 
-### Pupil computation
+## Pupil computation
 
 The minimum pixel value is subtracted from the ROI. Use the saturation bar to reduce the background of the eye. The algorithm zeros out any pixels less than the saturation level (I recommend a *very* low value - so most pixels are white in the GUI).
 
@@ -183,12 +192,12 @@ This raw pupil area trace is post-processed (see [smoothPupil.m](pupil/smoothPup
 
 ![pupil](/figs/pupilfilter.png?raw=true "pupil filtering")
 
-### Blink computation
+## Blink computation
 
 You may want to ignore frames in which the animal is blinking if you are looking at pupil size. The blink area is the number of pixels above the saturation level that you set (all non-white pixels).
 
 
-### Motion SVD
+## Motion SVD
 
 The motion SVDs (small ROIs / multivideo) are computed on the movie downsampled in space by the spatial downsampling input box in the GUI (default 4 pixels). Note the saturation set in this window is NOT used for any processing.
 
@@ -219,11 +228,11 @@ Example motion masks *uMotMask* and traces *motSVD*:
 
 We found that these extracted singular vectors explained up to half of the total explainable variance in neural activity in visual cortex and in other forebrain areas. See our [paper](https://science.sciencemag.org/content/364/6437/eaav7893) for more details.
 
-### Running computation
+## Running computation
 
 The phase-correlation between consecutive frames (in running ROI) are computed in the fourier domain (see [running.py](/facemap/running.py) or [processRunning.m](/matlab/running/processRunning.m)). The XY position of maximal correlation gives the amount of shift between the two consecutive frames. Depending on how fast the movement is frame-to-frame you may want at least a 50x50 pixel ROI to compute this.
 
-### Multivideo SVD ROIs
+## Multivideo SVD ROIs
 
 **PYTHON**: Check box "Compute multivideo SVD" to compute the SVD of all pixels in all videos.
 
@@ -233,7 +242,7 @@ The phase-correlation between consecutive frames (in running ROI) are computed i
 
 The motion energy is then computed from these non-red pixels.
 
-## Output of processing
+# Output of processing
 
 The GUIs create one file for all videos (saved in current folder), the npy file has name "videofile_proc.npy" and the mat file has name "videofile_proc.mat".
 
@@ -300,6 +309,6 @@ These *_proc.npy* files can be loaded into the GUI (and will automatically be lo
 
 an ROI is [1x4]: [y0 x0 Ly Lx]
 
-### Motion SVD Masks in MATLAB
+## Motion SVD Masks in MATLAB
 
 Use the script [plotSVDmasks.m](figs/plotSVDmasks.m) to easily view motion masks from the multivideo SVD. The motion masks from the smaller ROIs have been reshaped to be [xpixels x ypixels x components].
