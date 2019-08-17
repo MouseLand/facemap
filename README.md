@@ -44,7 +44,12 @@ pip install facemap --upgrade
 conda install -c conda-forge ffmpeg
 conda install av -c conda-forge
 ~~~~
-2. Install facemap and its other dependencies: `pip install facemap`
+2. Install other conda dependencies (they may be already installed in base anaconda but try these commands)
+~~~~
+conda install -c numba numba
+conda install -c conda-forge mkl_fft
+~~~~
+3. Install facemap and the rest of its dependencies: `pip install facemap`
 
 ### NEXT (EVERYONE)
 
