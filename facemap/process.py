@@ -367,7 +367,7 @@ def process_ROIs(containers, cumframes, Ly, Lx, avgmotion, U, sbin=3, tic=None, 
                 if nroi > 0 and wmot.size>0:
                     wmot=np.array(wmot).astype(int)
                     imbin = np.reshape(imbin, (Lyb[ii], Lxb[ii], -1))
-                    avgmotion[ii] = np.reshape(avgmotion, (Lyb[ii], Lxb[ii]))
+                    avgmotion[ii] = np.reshape(avgmotion[ii], (Lyb[ii], Lxb[ii]))
                     wroi = motind[wmot]
                     for i in range(wroi.size):
                         lilbin = imbin[rois[wroi[i]]['yrange_bin'][0]:rois[wroi[i]]['yrange_bin'][-1]+1,
