@@ -242,8 +242,10 @@ def process_ROIs(containers, cumframes, Ly, Lx, avgmotion, U, sbin=3, tic=None, 
     if fullSVD:
         ncomps = U[0].shape[-1]
         V = [np.zeros((nframes, ncomps), np.float32)]
+        M = [np.zeros((nframes), np.float32)]
     else:
         V = [np.zeros((0,1), np.float32)]
+        M = [np.zeros((0,), np.float32)]
     if rois is not None:
         for i,r in enumerate(rois):
             ivid.append(r['ivid'])
@@ -260,6 +262,8 @@ def process_ROIs(containers, cumframes, Ly, Lx, avgmotion, U, sbin=3, tic=None, 
                 motind.append(i)
                 nroi+=1
                 V.append(np.zeros((nframes, U[nroi].shape[1]), np.float32))
+                M.append(np.zeros((nframes,), np.float32))
+
             elif r['rind']==2:
                 blind.append(i)
                 blinks.append(np.zeros((nframes,)))
@@ -357,16 +361,20 @@ def process_ROIs(containers, cumframes, Ly, Lx, avgmotion, U, sbin=3, tic=None, 
                     imend[ii] = imbin[:,-1]
                     # compute motion energy
                     imbin = np.abs(np.diff(imbin, axis=-1))
-                    imbin -= avgmotion[ii][:,np.newaxis]
                     if fullSVD:
-                        imall[ir[ii]] = imbin
+                        M[t:t+imbin.shape[-1]] += imbin.sum(axis=(0,1))
+                        imall[ir[ii]] = imbin - avgmotion[ii][:,np.newaxis]
                 if nroi > 0 and wmot.size>0:
                     wmot=np.array(wmot).astype(int)
                     imbin = np.reshape(imbin, (Lyb[ii], Lxb[ii], -1))
+                    avgmotion[ii] = np.reshape(avgmotion, (Lyb[ii], Lxb[ii]))
                     wroi = motind[wmot]
                     for i in range(wroi.size):
                         lilbin = imbin[rois[wroi[i]]['yrange_bin'][0]:rois[wroi[i]]['yrange_bin'][-1]+1,
                                        rois[wroi[i]]['xrange_bin'][0]:rois[wroi[i]]['xrange_bin'][-1]+1]
+                        M[wmot[i]+1][t:t+lilbin.shape[-1]] = lilbin.sum(axis=(0,1))
+                        lilbin -= avgmotion[ii][rois[wroi[i]]['yrange_bin'][0]:rois[wroi[i]]['yrange_bin'][-1]+1,
+                                       rois[wroi[i]]['xrange_bin'][0]:rois[wroi[i]]['xrange_bin'][-1]+1][...,np.newaxis]
                         lilbin = np.reshape(lilbin, (-1, lilbin.shape[-1]))
                         vproj = lilbin.T @ U[wmot[i]+1]
                         if n==0:
@@ -381,7 +389,7 @@ def process_ROIs(containers, cumframes, Ly, Lx, avgmotion, U, sbin=3, tic=None, 
         if n%20==0:
             print('segment %d / %d, time %1.2f'%(n+1, nsegs, time.time() - tic))
 
-    return V, pups, blinks, runs
+    return V, M, pups, blinks, runs
 
 def save(proc, savepath=None):
     # save ROIs and traces
@@ -524,7 +532,7 @@ def run(filenames, parent=None, proc=None, savepath=None):
 
     # project U onto all movie frames
     # and compute pupil (if selected)
-    V, pups, blinks, runs = process_ROIs(containers, cumframes, Ly, Lx, avgmotion, U, sbin, tic, rois, fullSVD)
+    V, M, pups, blinks, runs = process_ROIs(containers, cumframes, Ly, Lx, avgmotion, U, sbin, tic, rois, fullSVD)
 
     # smooth pupil and blinks and running
     print('smoothing ...')
@@ -560,6 +568,7 @@ def run(filenames, parent=None, proc=None, savepath=None):
             'sybin': sybin, 'sxbin': sxbin, 'LYbin': LYbin, 'LXbin': LXbin,
             'avgframe': avgframe, 'avgmotion': avgmotion,
             'avgframe_reshape': avgframe_reshape, 'avgmotion_reshape': avgmotion_reshape,
+            'motion': M,
             'motSVD': V, 'motMask': U, 'motMask_reshape': U_reshape,
             'pupil': pups, 'running': runs, 'blink': blinks, 'rois': rois
             }

@@ -463,11 +463,15 @@ class MainW(QtGui.QMainWindow):
             extensions = ['*.mj2','*.mp4','*.mkv','*.avi','*.mpeg','*.mpg','*.asf']
             fileName = []
             for extension in extensions:
-                fileName.extend(glob.glob(folderName+"/"+extension))
-            for f in glob.glob(folderName+'/*/'):
+                files = glob.glob(folderName+"/"+extension)
+                files = [folderName+"/"+os.path.split(f)[-1] for f in files]
+                fileName.extend(files)
+            for folder in glob.glob(folderName+'/*/'):
                 for extension in extensions:
-                    fileName.extend(glob.glob(f+"/"+extension))
-            print(fileName[0])
+                    files = glob.glob(os.path.join(folderName,folder,extension))
+                    files = [folderName+"/"+folder+"/"+os.path.split(f)[-1] for f in files]
+                    fileName.extend(files)
+            print(fileName)
             if len(fileName) > 1:
                 self.choose_files(fileName)
                 self.load_movies()
