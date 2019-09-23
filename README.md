@@ -206,8 +206,7 @@ The motion *M* is defined as the abs(current_frame - previous_frame), and the av
 uMot = [];
 for j = 1:nchunks
   M = abs(diff(F,1,2));
-  M = M - avgmot;
-  [u,~,~] = svd(M);
+  [u,~,~] = svd(M - avgmot);
   uMot = cat(2, uMot, u);
 end
 [uMot,~,~] = svd(uMot);
@@ -217,8 +216,7 @@ uMotMask = normc(uMot(:, 1:500)); % keep 500 components
 ```
 for j = 1:nchunks
   M = abs(diff(F,1,2));
-  M = M - avgmot;
-  motSVD0 = M' * uMotMask;
+  motSVD0 = (M - avgmot)' * uMotMask;
   motSVD((j-1)*nt + [1:nt],:) = motSVD0;
 end
 ```
@@ -227,6 +225,8 @@ Example motion masks *uMotMask* and traces *motSVD*:
 <img src="figs/exsvds.png" width="50%" alt="example SVDs">
 
 We found that these extracted singular vectors explained up to half of the total explainable variance in neural activity in visual cortex and in other forebrain areas. See our [paper](https://science.sciencemag.org/content/364/6437/eaav7893) for more details.
+
+In the python version, we also compute the average of *M* across all pixels in each motion ROI and that is returned as the **motion**. The first **motion** field is non-empty if "multivideo SVD" is on, and in that case it is the average motion energy across all pixels in all views.
 
 ## Running computation
 
@@ -260,6 +260,7 @@ The GUIs create one file for all videos (saved in current folder), the npy file 
 - **avgmotion**: list of average motions for each video from a subset of frames (binned by sbin)
 - **avgmotion_reshape**: average motion reshaped to be y-pixels x x-pixels
 - **iframes**: array containing number of frames in each consecutive video
+- **motion**: list of absolute motion energies across time - first is "multivideo" motion energy (empty if not computed)
 - **motSVD**: list of motion SVDs - first is "multivideo SVD" (empty if not computed) - each is nframes x components
 - **motMask**: list of motion masks for each motion SVD - each motMask is pixels x components
 - **motMask_reshape**: motion masks reshaped to be y-pixels x x-pixels x components
