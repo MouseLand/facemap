@@ -482,6 +482,7 @@ class MainW(QtGui.QMainWindow):
         result = LC.exec_()
         if len(self.filelist)==0:
             self.filelist=fileName
+        self.filelist = natsorted(self.filelist)
         if len(self.filelist)>1:
             dm = QtGui.QMessageBox.question(
                 self,
@@ -511,6 +512,11 @@ class MainW(QtGui.QMainWindow):
                 self.filelist = files
             else:
                 print('single camera')
+                files = self.filelist.copy()
+                self.filelist = []
+                for f in files:
+                    self.filelist.append([f])
+
         else:
             self.filelist = [self.filelist]
         self.filelist = natsorted(self.filelist)
