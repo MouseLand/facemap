@@ -194,11 +194,18 @@ class MainW(QtGui.QMainWindow):
                         self.get_prev_image()
                     elif event.key() == QtCore.Qt.Key_D:
                         self.get_next_image()
+                    elif event.key() == QtCore.Qt.Key_Up:
+                        self.BrushChoose.setCurrentIndex(max(self.BrushChoose.currentIndex()-1, 0))
+                        self.brush_choose()
+                    elif event.key() == QtCore.Qt.Key_Down:
+                        self.BrushChoose.setCurrentIndex(min(self.BrushChoose.currentIndex()+1, 3))
+                        self.brush_choose()
                 self.update_plot()
             elif event.modifiers() == QtCore.Qt.ControlModifier:
                 if event.key() == QtCore.Qt.Key_Z:
                     if self.nmasks > 0:
                         self.clear_all()
+                        self.save_sets()
 
     def get_files(self):
         images = []
@@ -278,7 +285,7 @@ class MainW(QtGui.QMainWindow):
         self.masks = []
         self.nmasks = 0
         # -- set menus to default -- #
-        self.BrushChoose.setCurrentIndex(1)
+        #self.BrushChoose.setCurrentIndex(1)
         self.CHCheckBox.setChecked(False)
 
         # -- zero out image stack -- #
@@ -407,7 +414,7 @@ class MainW(QtGui.QMainWindow):
     def save_sets(self):
         base = os.path.splitext(self.filename)[0]
         np.save(base + '_manual.npy',
-                    {'img': image,
+                    {'img': self.stack,
                      'masks': self.masks,
                      'filename': self.filename})
         #print(self.point_sets)

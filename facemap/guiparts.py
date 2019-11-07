@@ -113,9 +113,9 @@ class ImageDraw(pg.ImageItem):
             if ev.button()==QtCore.Qt.RightButton and self.parent.loaded and self.parent.nmasks < 2:
                 if not self.parent.in_stroke:
                     ev.accept()
+                    self.parent.in_stroke = True
                     self.create_start(ev.pos())
                     self.parent.stroke_appended = False
-                    self.parent.in_stroke = True
                     self.drawAt(ev.pos(), ev)
                 else:
                     ev.accept()
