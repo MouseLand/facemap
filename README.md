@@ -102,6 +102,8 @@ The matlab version needs to be downloaded/cloned from github (no install require
 
 ## PYTHON
 
+([video](https://www.youtube.com/watch?v=Rq8fEQ-DOm4) with old install instructions)
+
 <img src="figs/face_fast.gif" width="100%" alt="face gif">
 
 Run the following command in a terminal
