@@ -172,6 +172,8 @@ class MainW(QtGui.QMainWindow):
         self.ModelButton.clicked.connect(self.compute_model)
         self.l0.addWidget(self.ModelButton, 1,10,1,1)
         self.ModelButton.setEnabled(False)
+        self.imgLR = False
+        self.saturation = [0,255]
 
     def keyPressEvent(self, event):
         if self.loaded:
@@ -228,12 +230,14 @@ class MainW(QtGui.QMainWindow):
         images, idx = self.get_files()
         idx = (idx-1)%len(images)
         #print(images[idx-1])
+        self.imgLR = True
         self.load_images(filename=images[idx])
 
     def get_next_image(self):
         images, idx = self.get_files()
         idx = (idx+1)%len(images)
         #print(images[idx+1])
+        self.imgLR = True
         self.load_images(filename=images[idx])
 
     def dragEnterEvent(self, event):
@@ -294,7 +298,6 @@ class MainW(QtGui.QMainWindow):
                         np.array([0,0,255, self.opacity]),
                         np.array([255,0,0, self.opacity])])
         self.Ly, self.Lx = 512,512
-        self.saturation = [0,255]
         self.currentZ = 0
         self.stack = np.zeros((self.Ly,self.Lx))
         self.layers = 0*np.ones((self.Ly,self.Lx,4), np.uint8)
@@ -449,7 +452,8 @@ class MainW(QtGui.QMainWindow):
         self.layers[:,:,-1] = 0 # set transparent
         self.maskpix = np.zeros(image.shape[:2], np.int32)
         self.medians = []
-        self.compute_saturation()
+        if not self.imgLR:
+            self.compute_saturation()
 
     def load_manual(self, filename=None, image=None, image_file=None):
         if filename is None:
