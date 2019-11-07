@@ -287,13 +287,14 @@ class MainW(QtGui.QMainWindow):
         self.loaded = False
         self.current_point_set = []
         self.masks = []
+        self.outlines = []
         self.nmasks = 0
         # -- set menus to default -- #
         #self.BrushChoose.setCurrentIndex(1)
         self.CHCheckBox.setChecked(False)
 
         # -- zero out image stack -- #
-        self.opacity = 100 # how opaque masks should be
+        self.opacity = 200 # how opaque masks should be
         self.colors = np.array([np.array([255,255,255,0]),
                         np.array([0,0,255, self.opacity]),
                         np.array([255,0,0, self.opacity])])
@@ -327,6 +328,7 @@ class MainW(QtGui.QMainWindow):
         self.maskpix = 0*np.ones((self.Ly,self.Lx), np.int32)
         self.nmasks = 0
         self.masks = []
+        self.outlines = []
         print('removed masks')
         self.ClearButton.setEnabled(False)
         self.update_plot()
@@ -364,9 +366,7 @@ class MainW(QtGui.QMainWindow):
     def remove_stroke(self, delete_points=True):
         #self.current_stroke = get_unique_points(self.current_stroke)
         stroke = np.array(self.stroke)
-        print((self.layers[:,-1]==128).sum())
         self.layers = self.colors[self.maskpix]
-        print((self.layers[:,-1]==128).sum())
         if delete_points:
             self.point_set = []
             self.stroke = []
@@ -378,13 +378,11 @@ class MainW(QtGui.QMainWindow):
             self.remove_stroke(delete_points=False)
             pts = self.outline_to_mask(self.point_set)
         if pts is not None:
-            if self.nmasks == 0:
-                self.maskpix[pts[:,0], pts[:,1]] = int(self.nmasks+1)
-            else:
-                nlab = self.maskpix[pts[:,0], pts[:,1]]==0
-                self.maskpix[pts[nlab,0], pts[nlab,1]] = int(self.nmasks+1)
+            outline, pts = pts
+            self.maskpix[outline[:,0], outline[:,1]] = int(self.nmasks+1)
             self.layers = self.colors[self.maskpix]
             self.masks.append(pts)
+            self.outlines.append(outline)
             self.ClearButton.setEnabled(True)
             self.nmasks+=1
             if save:
@@ -395,7 +393,7 @@ class MainW(QtGui.QMainWindow):
 
 
     def outline_to_mask(self, points):
-        try:
+        if 1:
             vr = points[:,0]
             vc = points[:,1]
             vr, vc = draw.polygon_perimeter(vr, vc, self.layers.shape)
@@ -404,21 +402,22 @@ class MainW(QtGui.QMainWindow):
             ac = np.append(ac, vc)
             pts = np.hstack((ar[:,np.newaxis], ac[:,np.newaxis]))
             pts = np.unique(pts, axis=0)
+            outline = np.hstack((vr[:,np.newaxis], vc[:,np.newaxis]))
             if pts.shape[0] < 5:
                 print('cell too small')
                 return None
             else:
-                return pts
-        except:
+                return outline, pts
+        else:
             print('ERROR: not a shape')
             return None
-        return median
 
     def save_sets(self):
         base = os.path.splitext(self.filename)[0]
         np.save(base + '_manual.npy',
                     {'img': self.stack,
                      'masks': self.masks,
+                     'outlines': self.outlines,
                      'filename': self.filename})
         #print(self.point_sets)
         print('--- %d masks saved'%(self.nmasks))
@@ -497,9 +496,9 @@ class MainW(QtGui.QMainWindow):
 
         self.initialize_images(image)
         self.masks = dat['masks']
-        print(len(self.masks))
+        self.outlines = dat['outlines']
         for n in range(len(self.masks)):
-            self.add_set(pts=self.masks[n], save=False)
+            self.add_set(pts=[self.outlines[n], self.masks[n]], save=False)
         self.loaded = True
         print('%d masks found'%(self.nmasks))
         self.enable_buttons()
