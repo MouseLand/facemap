@@ -206,7 +206,7 @@ class MainW(QtGui.QMainWindow):
             elif event.modifiers() == QtCore.Qt.ControlModifier:
                 if event.key() == QtCore.Qt.Key_Z:
                     if self.nmasks > 0:
-                        self.clear_all()
+                        self.remove_mask()
                         self.save_sets()
 
     def get_files(self):
@@ -371,6 +371,24 @@ class MainW(QtGui.QMainWindow):
             self.point_set = []
             self.stroke = []
         self.update_plot()
+
+
+    def remove_mask(self):
+        if self.nmasks==2:
+            self.maskpix = np.zeros((self.Ly,self.Lx), np.int32)
+            self.maskpix[self.outlines[0][:,0], self.outlines[0][:,1]] = 1
+            self.layers = self.colors[self.maskpix]
+        else:
+            self.maskpix = np.zeros((self.Ly,self.Lx), np.int32)
+            self.layers = np.zeros((self.Ly,self.Lx,4), np.uint8)
+        self.nmasks -= 1
+        del self.masks[-1]
+        del self.outlines[-1]
+        print('removed 1 mask')
+        if self.nmasks==0:
+            self.ClearButton.setEnabled(False)
+        self.update_plot()
+
 
     def add_set(self, pts=None, save=True):
         if pts is None and len(self.point_set) > 0:
