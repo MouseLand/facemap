@@ -439,7 +439,7 @@ class MainW(QtGui.QMainWindow):
                      'outlines': self.outlines,
                      'filename': self.filename})
         #print(self.point_sets)
-        print('--- %d masks saved'%(self.nmasks))
+        print('--- %d masks saved'%(len(self.masks)))
 
     def initialize_images(self, image):
         self.onechan=False
