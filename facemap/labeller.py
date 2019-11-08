@@ -384,6 +384,7 @@ class MainW(QtGui.QMainWindow):
         self.nmasks -= 1
         del self.masks[-1]
         del self.outlines[-1]
+        print(len(self.masks))
         print('removed 1 mask')
         if self.nmasks==0:
             self.ClearButton.setEnabled(False)
