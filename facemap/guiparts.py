@@ -4,6 +4,80 @@ from pyqtgraph import functions as fn
 from pyqtgraph import Point
 import numpy as np
 
+
+### custom QDialog which makes a list of items you can include/exclude
+class ListChooser(QtGui.QDialog):
+    def __init__(self, title, parent):
+        super(ListChooser, self).__init__(parent)
+        self.setGeometry(300,300,320,320)
+        self.setWindowTitle(title)
+        self.win = QtGui.QWidget(self)
+        layout = QtGui.QGridLayout()
+        self.win.setLayout(layout)
+        #self.setCentralWidget(self.win)
+        layout.addWidget(QtGui.QLabel('click to select videos (none selected => all used)'),0,0,1,1)
+        self.list = QtGui.QListWidget(parent)
+        for f in parent.filelist:
+            self.list.addItem(f)
+        layout.addWidget(self.list,1,0,7,4)
+        #self.list.resize(450,250)
+        self.list.setSelectionMode(QtGui.QAbstractItemView.MultiSelection)
+        done = QtGui.QPushButton('done')
+        done.clicked.connect(lambda: self.exit_list(parent))
+        layout.addWidget(done,8,0,1,1)
+
+    def exit_list(self, parent):
+        parent.filelist = []
+        items = self.list.selectedItems()
+        for i in range(len(items)):
+            parent.filelist.append(str(self.list.selectedItems()[i].text()))
+        self.accept()
+
+class Slider(QtGui.QSlider):
+    def __init__(self, bid, parent=None):
+        super(self.__class__, self).__init__()
+        initval = [99,99]
+        self.bid = bid
+        self.setOrientation(QtCore.Qt.Horizontal)
+        self.setMinimum(0)
+        self.setMaximum(100)
+        self.setValue(initval[bid])
+        self.setTickInterval(10)
+        self.valueChanged.connect(lambda: self.level_change(parent,bid))
+        self.setTracking(False)
+
+    def level_change(self, parent, bid):
+        parent.sat[bid] = float(self.value())/100 * 255
+        if bid==0:
+            parent.pimg.setLevels([0, parent.sat[bid]])
+        else:
+            #parent.pROIimg.setLevels([0, parent.sat[bid]])
+            parent.saturation[parent.iROI] = parent.sat[bid]
+            if len(parent.ROIs) > 0:
+                parent.ROIs[parent.iROI].plot(parent)
+        parent.win.show()
+
+
+class TextChooser(QtGui.QDialog):
+    def __init__(self,parent=None):
+        super(TextChooser, self).__init__(parent)
+        self.setGeometry(300,300,350,100)
+        self.setWindowTitle('folder path')
+        self.win = QtGui.QWidget(self)
+        layout = QtGui.QGridLayout()
+        self.win.setLayout(layout)
+        self.qedit = QtGui.QLineEdit('')
+        layout.addWidget(QtGui.QLabel('folder name (does not have to exist yet)'),0,0,1,3)
+        layout.addWidget(self.qedit,1,0,1,3)
+        done = QtGui.QPushButton('OK')
+        done.clicked.connect(self.exit)
+        layout.addWidget(done,2,1,1,1)
+
+    def exit(self):
+        self.folder = self.qedit.text()
+        self.accept()
+
+
 class RGBRadioButtons(QtGui.QButtonGroup):
     def __init__(self, parent=None, row=0, col=0):
         super(RGBRadioButtons, self).__init__()

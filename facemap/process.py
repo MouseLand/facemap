@@ -177,7 +177,7 @@ def compute_SVD(containers, cumframes, Ly, Lx, avgmotion, ncomps=500, sbin=3, ro
                 imbin = spatial_bin(im, sbin, Lyb[ii], Lxb[ii])
                 # compute motion energy
                 imbin = np.abs(np.diff(imbin, axis=0))
-                imbin -= avgmotion[ii][:,np.newaxis]
+                imbin -= avgmotion[ii]
                 if fullSVD:
                     imall[:, ir[ii]] = imbin
                 if nroi>0 and wmot.size>0:
@@ -309,7 +309,7 @@ def process_ROIs(containers, cumframes, Ly, Lx, avgmotion, U, sbin=3, tic=None, 
                 imgp = img[ivid[b]][:, rois[b]['yrange'][0]:rois[b]['yrange'][-1]+1,
                                        rois[b]['xrange'][0]:rois[b]['xrange'][-1]+1]
                 imgp[:, ~rois[b]['ellipse']] = 255.0
-                bl = np.maximum(0, (255 - imgp - (255-rois[b]['saturation']))).sum(axis=(1,2))
+                bl = np.maximum(0, (255 - imgp - (255-rois[b]['saturation']))).sum(axis=(-2,-1))
                 blinks[k][t:t+nt0] = bl
                 k+=1
 
@@ -356,10 +356,10 @@ def process_ROIs(containers, cumframes, Ly, Lx, avgmotion, U, sbin=3, tic=None, 
                         imbin = np.concatenate((imend[ii][np.newaxis,:], imbin), axis=0)
                     imend[ii] = imbin[-1]
                     # compute motion energy
-                    imbin = np.abs(np.diff(imbin, axis=-1))
+                    imbin = np.abs(np.diff(imbin, axis=0))
                     if fullSVD:
-                        M[t:t+imbin.shape[0]] += imbin.sum(axis=(1,2))
-                        imall[ir[ii]] = imbin - avgmotion[ii]
+                        M[t:t+imbin.shape[0]] += imbin.sum(axis=(-2,-1))
+                        imall[:, ir[ii]] = imbin - avgmotion[ii]
                 if nroi > 0 and wmot.size>0:
                     wmot=np.array(wmot).astype(int)
                     imbin = np.reshape(imbin, (-1, Lyb[ii], Lxb[ii]))
@@ -368,7 +368,7 @@ def process_ROIs(containers, cumframes, Ly, Lx, avgmotion, U, sbin=3, tic=None, 
                     for i in range(wroi.size):
                         lilbin = imbin[:, rois[wroi[i]]['yrange_bin'][0]:rois[wroi[i]]['yrange_bin'][-1]+1,
                                           rois[wroi[i]]['xrange_bin'][0]:rois[wroi[i]]['xrange_bin'][-1]+1]
-                        M[wmot[i]+1][t:t+lilbin.shape[0]] = lilbin.sum(axis=(1,2))
+                        M[wmot[i]+1][t:t+lilbin.shape[0]] = lilbin.sum(axis=(-2,-1))
                         lilbin -= avgmotion[ii][rois[wroi[i]]['yrange_bin'][0]:rois[wroi[i]]['yrange_bin'][-1]+1,
                                        rois[wroi[i]]['xrange_bin'][0]:rois[wroi[i]]['xrange_bin'][-1]+1]
                         lilbin = np.reshape(lilbin, (lilbin.shape[0], -1))
@@ -377,7 +377,7 @@ def process_ROIs(containers, cumframes, Ly, Lx, avgmotion, U, sbin=3, tic=None, 
                             vproj = np.concatenate((vproj[0,:][np.newaxis, :], vproj), axis=0)
                         V[wmot[i]+1][t:t+vproj.shape[0], :] = vproj
             if fullSVD:
-                vproj = imall.T @ U[0]
+                vproj = imall @ U[0]
                 if n==0:
                     vproj = np.concatenate((vproj[0,:][np.newaxis, :], vproj), axis=0)
                 V[0][t:t+vproj.shape[0], :] = vproj

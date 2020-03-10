@@ -221,7 +221,7 @@ class sROI():
         yrange = yrange[iy]
         ellipse = ellipse[iy, :]
         self.ellipse = ellipse
-
+        
         xrange -= parent.sx[ivid]
         yrange -= parent.sy[ivid]
         self.xrange = xrange
@@ -271,7 +271,8 @@ class sROI():
         parent.reflector.setEnabled(False)
         if self.rind==0:
             parent.reflector.setEnabled(True)
-            img = img.mean(axis=-1)
+            if img.ndim > 2:
+                img = img.mean(axis=-1)
             # smooth in space
             fr = img.astype(np.float32)
             #fr = gaussian_filter(img.astype(np.float32), 1)
@@ -283,6 +284,7 @@ class sROI():
             try:
                 mu, sig, _, _, xy, immiss = pupil.fit_gaussian(fr.copy(), parent.pupil_sigma,
                                                                 do_xy=True, missing=missing)
+                area = np.pi * (sig[0] * sig[1]) ** 0.5
                 if len(missing)>0:
                     fr[missing[0], missing[1]] = immiss
                 xy = xy[xy[:,0]>=0, :]
@@ -304,7 +306,36 @@ class sROI():
                 parent.pROI.addItem(parent.scatter)
                 parent.pROIimg.setImage(255-fr)
                 parent.pROIimg.setLevels([255-sat, 255])
+                area = np.nan
+                mu = [np.nan, np.nan]
             parent.pROI.setRange(xRange=(0, self.xrange.size), yRange=(0,self.yrange.size))
+            if parent.online_mode:
+                if parent.online_traces is None:
+                    parent.online_traces = np.zeros((3,0))
+                if parent.playButton.isChecked() and not parent.online_plotted:
+                    parent.online_traces = np.append(parent.online_traces, np.array([mu[0], mu[1], area])[:,np.newaxis], axis=1)
+                    traces = parent.online_traces.copy()
+                    nframes = traces.shape[-1]
+                    if nframes > 1:
+                        traces -= traces.mean(axis=-1)[:,np.newaxis]
+                        norm = traces.std(axis=-1)
+                        norm[np.logical_or(norm==0, np.isnan(norm))] = 1.0
+                        parent.p1.clear()
+                        pen = pg.mkPen(self.color, width=2)
+                        parent.p1.plot(traces[0] / norm[0] * 2, pen=pen)
+                        pen = pg.mkPen((155,255,155), width=1, style=QtCore.Qt.DashLine)
+                        parent.p1.plot(traces[1] / norm[1] * 2, pen=pen)
+                        pen = pg.mkPen((0,100,0), width=1, style=QtCore.Qt.DashLine)
+                        parent.p1.plot(traces[2] / norm[2] * 2, pen=pen)
+                        parent.p1.setRange(xRange=(0,nframes),
+                                        yRange=(-4, 4),
+                                        padding=0.0)
+                        parent.p1.setLimits(xMin=0,xMax=nframes)
+                        parent.p1.show()
+                        parent.win.show()
+                        parent.show()
+                        parent.online_plotted = True
+                #self.p2.setLimits(xMin=0,xMax=self.nframes)
         elif self.rind==1 or self.rind==3:
             parent.pROI.removeItem(parent.scatter)
             parent.scatter = pg.ScatterPlotItem([0], [0], pen='k', symbol='+')
