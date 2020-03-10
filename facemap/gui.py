@@ -400,13 +400,32 @@ class MainW(QtGui.QMainWindow):
             self.save_path = savedir
             self.savelabel.setText(savedir)
 
-        #self.load_movies([["/media/carsen/DATA2/grive/sample_movies/2016-09-29_11_M160907_MP028_eye.mj2"]])
-        #self.load_movies([["/home/carsen/Downloads/2017-08-04_1_M170714_MP032_eye.mj2"]])
-        #self.load_movies([["/media/carsen/SSD/sample_movies/mouse_face.mp4"]])
-        #self.openProc("/media/carsen/DATA1/FACES/data/mouse_face_proc.npy")
-        #self.openProc("/media/carsen/DATA1/2016-09-29_11_M160907_MP028_eye_proc.npy")
-        #self.openFile(["D:/cams5/mouse_face.mp4"])
-        # if not a combined recording, automatically open binary
+        self.filelist = [ ['D:/cams5/mouse_face.mp4'] ]
+        self.load_movies()
+
+    def reset(self):
+        if len(self.rROI)>0:
+            for r in self.rROI:
+                if len(r) > 0:
+                    for rr in r:
+                        rr.remove(self)
+        if len(self.ROIs)>0:
+            for r in self.ROIs[::-1]:
+                r.remove(self)
+        self.ROIs = []
+        self.rROI=[]
+        self.reflectors=[]
+        self.saturation = []
+        self.iROI=0
+        self.nROIs=0
+        self.saturation=[]
+        # clear checkboxes
+        for k in range(len(self.lbls)):
+            self.lbls[k].setText('')
+            self.cbs1[k].setEnabled(False)
+            self.cbs2[k].setEnabled(False)
+            self.cbs1[k].setChecked(False)
+            self.cbs2[k].setChecked(False)
 
     def pupil_sigma_change(self):
         self.pupil_sigma = float(self.sigmaBox.text())
@@ -557,7 +576,6 @@ class MainW(QtGui.QMainWindow):
 
                 iROI=0
                 self.typestr = ['pupil', 'motSVD', 'blink', 'run']
-
                 if self.processed:
                     self.col = []
                     if self.fullSVD:
@@ -578,16 +596,9 @@ class MainW(QtGui.QMainWindow):
                 moveable = not self.processed
                 if proc['rois'] is not None:
                     for r in proc['rois']:
-                        rind = r['rind']
-                        col = r['color']
-                        yr = r['yrange']
-                        xr = r['xrange']
-                        ivid = r['ivid']
                         dy = r['yrange'][-1] - r['yrange'][0]
                         dx = r['xrange'][-1] - r['xrange'][0]
-                        pos = [yr[0]+self.sy[ivid], xr[0]+self.sx[ivid], dy, dx]
-                        #if rind==0 or rind==2:
-                        #    pos[0] -= int(dx/2)
+                        pos = [r['yrange'][0]+self.sy[r['ivid']], r['xrange'][0]+self.sx[r['ivid']], dy, dx]
                         self.saturation.append(r['saturation'])
                         self.rROI.append([])
                         self.reflectors.append([])
@@ -597,14 +608,12 @@ class MainW(QtGui.QMainWindow):
                             self.sigmaBox.setText(str(r['pupil_sigma']))
                         else:
                             psig = None
-                        self.ROIs.append(roi.sROI(rind=rind, rtype=r['rtype'], iROI=r['iROI'], color=r['color'],
-                                         moveable=moveable, parent=self, saturation=r['saturation'], pupil_sigma= psig,
-                                         yrange=yr, xrange=xr, pos=pos, ivid=ivid))
+                        self.ROIs.append(roi.sROI(rind=r['rind'], rtype=r['rtype'], iROI=r['iROI'], color=r['color'],
+                                         moveable=moveable, parent=self, saturation=r['saturation'], pupil_sigma=psig,
+                                         yrange=r['yrange'], xrange=r['xrange'], pos=pos, ivid=r['ivid']))
                         if 'reflector' in r:
                             for i,rr in enumerate(r['reflector']):
-                                pos = [rr['yrange'][0], rr['xrange'][0],
-                                        rr['yrange'][-1]-rr['yrange'][0],
-                                        rr['xrange'][-1]-rr['xrange'][0]]
+                                pos = [rr['yrange'][0], rr['xrange'][0], rr['yrange'][-1]-rr['yrange'][0], rr['xrange'][-1]-rr['xrange'][0]]
                                 self.rROI[-1].append(roi.reflectROI(iROI=r['iROI'], wROI=i, pos=pos, parent=self,
                                                     yrange=rr['yrange'], xrange=rr['xrange'], ellipse=rr['ellipse']))
                         if self.fullSVD:
@@ -617,13 +626,13 @@ class MainW(QtGui.QMainWindow):
                         self.ROIs[self.iROI].plot(self)
                         if self.processed:
                             if k < 8:
-                                self.lbls[k].setText('%s%d'%(self.typestr[rind], kt[rind]))
-                                r,g,b = str(int(r['color'][0])), str(int(r['color'][1])), str(int(r['color'][2]))
-                                self.lbls[k].setStyleSheet("color: rgb(%s,%s,%s);"%(r,g,b))
-                                self.wroi[k] = kt[rind]
-                                kt[rind]+=1
-                                self.proctype[k] = rind + 1
-                                self.col.append(col)
+                                self.lbls[k].setText('%s%d'%(self.typestr[r['rind']], kt[r['rind']]))
+                                self.lbls[k].setStyleSheet("color: rgb(%s,%s,%s);"%
+                                                            (str(int(r['color'][0])), str(int(r['color'][1])), str(int(r['color'][2]))))
+                                self.wroi[k] = kt[r['rind']]
+                                kt[r['rind']]+=1
+                                self.proctype[k] = r['rind'] + 1
+                                self.col.append(r['color'])
                         k+=1
                 self.kroi = k
 
@@ -674,28 +683,7 @@ class MainW(QtGui.QMainWindow):
             print(e)
             good = False
         if good:
-            if len(self.rROI)>0:
-                for r in self.rROI:
-                    if len(r) > 0:
-                        for rr in r:
-                            rr.remove(self)
-            if len(self.ROIs)>0:
-                for r in self.ROIs[::-1]:
-                    r.remove(self)
-            self.ROIs = []
-            self.rROI=[]
-            self.reflectors=[]
-            self.saturation = []
-            self.iROI=0
-            self.nROIs=0
-            self.saturation=[]
-            # clear checkboxes
-            for k in range(len(self.lbls)):
-                self.lbls[k].setText('')
-                self.cbs1[k].setEnabled(False)
-                self.cbs2[k].setEnabled(False)
-                self.cbs1[k].setChecked(False)
-                self.cbs2[k].setChecked(False)
+            self.reset()
             self.video = v
             self.filenames = self.filelist
             self.nframes = nframes
@@ -732,14 +720,6 @@ class MainW(QtGui.QMainWindow):
             for i in range(len(self.Ly)):
                 self.imgs.append(np.zeros((self.Ly[i], self.Lx[i], 3, 3)))
                 self.img.append(np.zeros((self.Ly[i], self.Lx[i], 3)))
-            #self.srange = []
-            # get scaling from 100 random frames in the first video
-            #for n in range(len(self.Ly)):
-            #    rperm = np.random.permutation(iframes[0])
-            #    frames = np.zeros((self.Ly[n],self.Lx[n], min(40, iframes[0]-1)))
-            #    for r in range(frames.shape[-1]):
-            #        frames[:,:,r] = np.array(self.video[0][n][rperm[r]]).mean(axis=-1)
-            #    self.srange.append(frames.mean() + frames.std()*np.array([-3,3]))
             self.movieLabel.setText(os.path.dirname(self.filenames[0][0]))
             self.frameDelta = int(np.maximum(5,self.nframes/200))
             self.frameSlider.setSingleStep(self.frameDelta)
@@ -980,10 +960,10 @@ class MainW(QtGui.QMainWindow):
                     self.traces2 = np.concatenate((self.traces2,tr), axis=0)
 
         self.p1.setRange(xRange=(0,self.nframes),
-                         yRange=(-8, 8),
+                         yRange=(-4, 4),
                           padding=0.0)
         self.p2.setRange(xRange=(0,self.nframes),
-                         yRange=(-8, 8),
+                         yRange=(-4, 4),
                           padding=0.0)
         self.p1.setLimits(xMin=0,xMax=self.nframes)
         self.p2.setLimits(xMin=0,xMax=self.nframes)
@@ -1021,7 +1001,8 @@ class MainW(QtGui.QMainWindow):
             else:
                 ir = wroi+1
             cmap = cm.get_cmap("hsv")
-            nc = min(4,self.motSVDs[ir].shape[1])
+            nc = min(10,self.motSVDs[ir].shape[1])
+            print(nc)
             cmap = (255 * cmap(np.linspace(0,0.2,nc))).astype(int)
             norm = (self.motSVDs[ir][:,0]).std()
             tr = (self.motSVDs[ir][:,:10]**2).sum(axis=1)**0.5 / norm
@@ -1032,6 +1013,7 @@ class MainW(QtGui.QMainWindow):
                 wp.plot(tr2,  pen=pen)
             pen = pg.mkPen(color)
             wp.plot(tr, pen=pen)
+            wp.setRange(yRange=(-3, 3))
         elif proctype==1:
             pup = self.pupil[wroi]
             pen = pg.mkPen(color, width=2)

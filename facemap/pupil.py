@@ -1,8 +1,8 @@
 import numpy as np
 from scipy.ndimage import gaussian_filter
 
-def fit_gaussian(im, thres, do_xy, missing=None):
-    ''' iterative fitting of pupil with gaussian @ sigma=thres '''
+def fit_gaussian(im, sigma=2.0, do_xy=False, missing=None):
+    ''' iterative fitting of pupil with gaussian @ sigma '''
     ix,iy = im.nonzero()
     if missing is not None and len(missing) > 0:
         mx = missing[0]
@@ -25,14 +25,14 @@ def fit_gaussian(im, thres, do_xy, missing=None):
     ydist = iy - mu[1]
     xydist = np.concatenate((xdist[:,np.newaxis], ydist[:,np.newaxis]), axis=1)
     xy = xydist * lam[:,np.newaxis]**0.5
-    sigxy = xy.T @ xy
+    sigxy = xy.T @ xy + 0.01*np.eye(2)
     for k in range(5):
         # fill in NaN's
         dd = ((xydist @ np.linalg.inv(sigxy)) * xydist).sum(axis=1)
         dd=dd.flatten()
-        glam = dd[:ix0.size] <= 2*thres**2
+        glam = dd[:ix0.size] <= 2*sigma**2
         lam0[~glam] = 0
-        glam = dd[:ix0.size] <= thres**2
+        glam = dd[:ix0.size] <= sigma**2
         immed0 = np.median(lam0[glam])
         lam = lam0.copy()
         #print(immed0, mu, sigxy)
@@ -42,10 +42,10 @@ def fit_gaussian(im, thres, do_xy, missing=None):
             ydist = my - mu[1]
             mxy = np.concatenate((xdist[:,np.newaxis], ydist[:,np.newaxis]), axis=1)
             dd = ((mxy @ np.linalg.inv(sigxy)) * mxy).sum(axis=1)
-            # within thres?
+            # within sigma?
             #im[mx,my] = np.exp(-dd) * 2 * immed0
-            ithr = dd <= 1.15 * thres**2
-            im[mx[ithr], my[ithr]] = immed0 * 1 #* np.exp(-dd[ithr]) / np.exp(-dd[ithr]).mean()
+            ithr = dd <= 1.15 * sigma**2
+            im[mx[ithr], my[ithr]] = immed0 * 1
             im[mx[~ithr], my[~ithr]] = 0
             ix = np.concatenate((ix0,mx), axis=0)
             iy = np.concatenate((iy0,my), axis=0)
@@ -60,11 +60,11 @@ def fit_gaussian(im, thres, do_xy, missing=None):
         ydist = iy - mu[1]
         xydist = np.concatenate((xdist[:,np.newaxis], ydist[:,np.newaxis]), axis=1)
         xy = xydist * lam[:,np.newaxis]**0.5
-        sigxy = xy.T @ xy
+        sigxy = xy.T @ xy + 0.01*np.eye(2)
 
     mu = np.array(mu)
 
-    sv, u = np.linalg.eig(thres**2 * sigxy)
+    sv, u = np.linalg.eig(sigma**2 * sigxy)
     sv = np.real(sv)
     # enforce some circularity on pupil
     # principal axis can only be 2x bigger than minor axis
@@ -85,17 +85,19 @@ def fit_gaussian(im, thres, do_xy, missing=None):
         imout = im[mx,my]
     else:
         imout = []
-    return mu, sv, xy, imout, u, sv
+    return mu, sv, u, sv, xy, imout
 
-def process(img, saturation, pupil_sigma, pupreflector):
+def process(img, saturation, pupil_sigma=2.0, reflector=None,
+            smooth_time=0, smooth_space=0):
     ''' get pupil by fitting 2D gaussian
         (only uses pixels darker than saturation) '''
 
     # smooth in time by two bins
-    cumsum = np.cumsum(img, axis=-1)
-    img[:,:,1:-1] = (cumsum[:, :, 2:] - cumsum[:, :, :-2]) / float(2)
+    if smooth_time > 0:
+        cumsum = np.cumsum(img, axis=0)
+        img[smooth_time:-smooth_time] = (cumsum[2*smooth_time:] - cumsum[:-2*smooth_time]) / float(2)
 
-    nframes = img.shape[-1]
+    nframes = img.shape[0]
     com = np.nan*np.zeros((nframes,2))
     area = np.nan*np.zeros((nframes,))
     axdir = np.nan*np.zeros((nframes,2,2))
@@ -103,19 +105,22 @@ def process(img, saturation, pupil_sigma, pupreflector):
     for n in range(nframes):
         try:
             # smooth in space by 1 pixel
-            imgf = gaussian_filter(img[:,:,n], 1)
-            imgf = 255.0 - imgf
-            imgf = np.maximum(0, imgf - (255.0 - saturation))
-            mu, sig, _, _, u, sv = fit_gaussian(imgf, pupil_sigma, False, missing=pupreflector)
+            im0 = img[n].copy()
+            if smooth_space > 0:
+                im0 = gaussian_filter(im0, smooth_space)
+            im0 = 255.0 - im0
+            im0 = np.maximum(0, im0 - (255.0 - saturation))
+            mu, sig, u, sv, _, _ = fit_gaussian(im0, pupil_sigma,
+                                                do_xy=False, missing=reflector)
         except:
             mu = np.nan*np.zeros((2,))
             sig = np.nan*np.zeros((2,))
             u   = np.nan*np.zeros((2,2))
             sv   = np.nan*np.zeros((2,))
-        com[n,:] = mu
+        com[n] = mu
         area[n] = np.pi * (sig[0] * sig[1]) ** 0.5
-        axlen[n,:] = sv
-        axdir[n,:,:] = u
+        axlen[n] = sv
+        axdir[n] = u
     return com, area, axdir, axlen
 
 def smooth(area, win=30):
