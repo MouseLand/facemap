@@ -185,7 +185,7 @@ def compute_SVD(containers, cumframes, Ly, Lx, avgmotion, ncomps=500, sbin=3, ro
                     wmot=np.array(wmot).astype(int)
                     wroi = motind[wmot]
                     for i in range(wroi.size):
-                        lilbin = imbin[rois[wroi[i]]['yrange_bin'][0]:rois[wroi[i]]['yrange_bin'][-1]+1,
+                        lilbin = imbin[:, rois[wroi[i]]['yrange_bin'][0]:rois[wroi[i]]['yrange_bin'][-1]+1,
                                        rois[wroi[i]]['xrange_bin'][0]:rois[wroi[i]]['xrange_bin'][-1]+1]
                         lilbin = np.reshape(lilbin, (lilbin.shape[0], -1))
                         ncb = min(nc, lilbin.shape[-1])
@@ -359,7 +359,7 @@ def process_ROIs(containers, cumframes, Ly, Lx, avgmotion, U, sbin=3, tic=None, 
                     imbin = np.abs(np.diff(imbin, axis=0))
                     if fullSVD:
                         M[t:t+imbin.shape[0]] += imbin.sum(axis=(-2,-1))
-                        imall[:, ir[ii]] = imbin - avgmotion[ii]
+                        imall[:, ir[ii]] = imbin - avgmotion[ii].flatten()
                 if nroi > 0 and wmot.size>0:
                     wmot=np.array(wmot).astype(int)
                     imbin = np.reshape(imbin, (-1, Lyb[ii], Lxb[ii]))
@@ -397,12 +397,12 @@ def save(proc, savepath=None):
     print(savename)
     np.save(savename, proc)
     if proc['save_mat']:
+        if 'save_path' in proc and proc['save_path'] is None:
+            proc['save_path'] = ''
         savenamemat = os.path.join(basename, ("%s_proc.mat"%filename))
         print(savenamemat)
         if proc['rois'] is None:
             proc['rois'] = 0
-        import pdb 
-        pdb.set_trace()
         io.savemat(savenamemat, {'proc': proc})
     return savename
 
