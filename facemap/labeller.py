@@ -16,7 +16,6 @@ import matplotlib.pyplot as plt
 import copy
 import mxnet as mx
 from mxnet import nd
-import cv2
 from glob import glob
 from natsort import natsorted
 import argparse

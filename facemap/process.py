@@ -399,6 +399,10 @@ def save(proc, savepath=None):
     if proc['save_mat']:
         savenamemat = os.path.join(basename, ("%s_proc.mat"%filename))
         print(savenamemat)
+        if proc['rois'] is None:
+            proc['rois'] = 0
+        import pdb 
+        pdb.set_trace()
         io.savemat(savenamemat, {'proc': proc})
     return savename
 

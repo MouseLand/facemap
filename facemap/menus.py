@@ -1,6 +1,6 @@
 from PyQt5 import QtGui, QtCore
 import pyqtgraph as pg
-from . import guiparts, io, online
+from . import guiparts, io
 
 def mainmenu(parent):
     main_menu = parent.menuBar()
@@ -30,14 +30,14 @@ def mainmenu(parent):
     file_menu.addAction(openFolder)
     file_menu.addAction(loadProc)
     
-def onlinemenu(parent):
-    # make mainmenu!
-    main_menu = parent.menuBar()
-    online_menu = main_menu.addMenu("&Online")
-    chooseFolder = QtGui.QAction("Choose folder with frames", parent)
-    chooseFolder.setShortcut("Ctrl+O")
-    chooseFolder.triggered.connect(lambda: online.choose_folder(parent))
-    parent.addAction(chooseFolder)
-    online_menu.addAction(chooseFolder)    
-    parent.online_mode = False
+#def onlinemenu(parent):
+#    # make mainmenu!
+#    main_menu = parent.menuBar()
+#    online_menu = main_menu.addMenu("&Online")
+#    chooseFolder = QtGui.QAction("Choose folder with frames", parent)
+#    chooseFolder.setShortcut("Ctrl+O")
+#    chooseFolder.triggered.connect(lambda: online.choose_folder(parent))
+#    parent.addAction(chooseFolder)
+#    online_menu.addAction(chooseFolder)    
+#    parent.online_mode = False
 

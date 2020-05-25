@@ -12,10 +12,9 @@ dependencies:
   - numba>=0.43.1
   - matplotlib
   - scipy
+  - pyqt
   - pip:
-    - PyQt5
-    - PyQt5.sip
-    - pyqtgraph
+    - pyqtgraph==0.11.0rc0
     - natsort
     - pims
     - facemap

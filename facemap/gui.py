@@ -9,7 +9,7 @@ from matplotlib import cm
 from natsort import natsorted
 import pathlib
 
-from . import process, roi, utils, io, menus, guiparts, online
+from . import process, roi, utils, io, menus, guiparts
 
 istr = ['pupil', 'motSVD', 'blink', 'running']
 
@@ -53,7 +53,8 @@ class MainW(QtGui.QMainWindow):
         self.save_path = self.ops['save_path']
 
         menus.mainmenu(self)
-        menus.onlinemenu(self)
+        self.online_mode=False
+        #menus.onlinemenu(self)
 
         self.cwidget = QtGui.QWidget(self)
         self.setCentralWidget(self.cwidget)
@@ -522,7 +523,7 @@ class MainW(QtGui.QMainWindow):
                 self.plot_scatter()
         else:
             self.online_plotted = False
-            online.get_frame(self)
+            #online.get_frame(self)
 
         if len(self.ROIs) > 0:
             self.ROIs[self.iROI].plot(self)
