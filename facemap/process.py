@@ -399,11 +399,20 @@ def save(proc, savepath=None):
     if proc['save_mat']:
         if 'save_path' in proc and proc['save_path'] is None:
             proc['save_path'] = ''
+
+        d2 = {}
+        for k in proc.keys():
+            if isinstance(proc[k], list) and len(proc[k])>0 and isinstance(proc[k][0], np.ndarray):
+                for i in range(len(proc[k])):
+                    d2[k+'_%d'%i] = proc[k][i]
+            else:
+                d2[k] = proc[k]
         savenamemat = os.path.join(basename, ("%s_proc.mat"%filename))
         print(savenamemat)
         if proc['rois'] is None:
             proc['rois'] = 0
-        io.savemat(savenamemat, {'proc': proc})
+        io.savemat(savenamemat, d2)
+        del d2
     return savename
 
 def run(filenames, parent=None, proc=None, savepath=None):
@@ -416,6 +425,7 @@ def run(filenames, parent=None, proc=None, savepath=None):
     Lys = []
     Lxs = []
     rois=None
+    sy,sx=0,0
     if parent is not None:
         filenames = parent.filenames
         video = parent.video
@@ -556,8 +566,9 @@ def run(filenames, parent=None, proc=None, savepath=None):
             'avgframe_reshape': avgframe_reshape, 'avgmotion_reshape': avgmotion_reshape,
             'motion': M,
             'motSVD': V, 'motMask': U, 'motMask_reshape': U_reshape,
-            'pupil': pups, 'running': runs, 'blink': blinks, 'rois': rois
-            }
+            'pupil': pups, 'running': runs, 'blink': blinks, 'rois': rois,
+            'sy': sy, 'sx': sx
+            } 
 
     # save processing
     savename = save(proc, savepath)
