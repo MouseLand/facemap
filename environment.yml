@@ -14,7 +14,7 @@ dependencies:
   - scipy
   - pyqt
   - pip:
+    - pims
     - pyqtgraph==0.11.0rc0
     - natsort
-    - pims
     - facemap

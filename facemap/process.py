@@ -285,7 +285,7 @@ def process_ROIs(containers, cumframes, Ly, Lx, avgmotion, U, sbin=3, tic=None, 
     nt1=0
     for n in range(nsegs):
         t += nt1
-        get_frames(img, containers, [t, min(cumframes[-1],t+nt0)], cumframes)
+        get_frames_pims(img, containers, [t, min(cumframes[-1],t+nt0)], cumframes)
         nt1 = img[0].shape[0]
         # compute pupil
         if len(pupind)>0:
@@ -542,7 +542,7 @@ def run(filenames, parent=None, proc=None, savepath=None):
 
     # project U onto all movie frames
     # and compute pupil (if selected)
-    V, M, pups, blinks, runs = process_ROIs(containers, cumframes, Ly, Lx, avgmotion, U, sbin, tic, rois, fullSVD)
+    V, M, pups, blinks, runs = process_ROIs(video, cumframes, Ly, Lx, avgmotion, U, sbin, tic, rois, fullSVD)
 
     # smooth pupil and blinks and running
     print('smoothing ...')
