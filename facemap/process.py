@@ -19,8 +19,9 @@ def get_frames_pims(imall, video, cframes, cumframes):
         nk = 0
         for n in np.unique(ivids):
             cfr = cframes[ivids==n]
-            nk += int(cfr[-1] - cfr[0] + 1)
-            imall[ii] = np.array(video[n][ii][cfr[0]-cumframes[n]:cfr[-1]-cumframes[n]+1])[:,:,:,0]
+            im = np.array(video[n][ii][cfr[0]-cumframes[n]:cfr[-1]-cumframes[n]+1])[:,:,:,0]
+            imall[ii][nk:nk+im.shape[0]] = im
+            nk += im.shape[0]
     if nk < imall[0].shape[0]:
         for ii,im in enumerate(imall):
             imall[ii] = im[:nk].copy()
@@ -158,13 +159,13 @@ def compute_SVD(containers, cumframes, Ly, Lx, avgmotion, ncomps=500, sbin=3, ro
     motind = np.array(motind)
 
     ns = 0
-    img = imall_init(nt0, Ly, Lx)
     for n in range(nsegs):
         tic=time.time()
+        img = imall_init(nt0, Ly, Lx)
         t = tf[n]
         get_frames_pims(img, containers, np.arange(t,t+nt0), cumframes)
         if fullSVD:
-            imall = np.zeros((nt0-1, (Lyb*Lxb).sum()), np.float32)
+            imall = np.zeros((img[0].shape[0]-1, (Lyb*Lxb).sum()), np.float32)
         for ii,im in enumerate(img):
             usevid=False
             if fullSVD:
@@ -275,7 +276,6 @@ def process_ROIs(containers, cumframes, Ly, Lx, avgmotion, U, sbin=3, tic=None, 
     # compute in chunks of 500
     nt0 = 500
     nsegs = int(np.ceil(nframes / nt0))
-    img = imall_init(nt0, Ly, Lx)
     # binned Ly and Lx and their relative inds in concatenated movies
     Lyb, Lxb, ir = binned_inds(Ly, Lx, sbin)
     imend = []
@@ -285,7 +285,8 @@ def process_ROIs(containers, cumframes, Ly, Lx, avgmotion, U, sbin=3, tic=None, 
     nt1=0
     for n in range(nsegs):
         t += nt1
-        get_frames_pims(img, containers, [t, min(cumframes[-1],t+nt0)], cumframes)
+        img = imall_init(nt0, Ly, Lx)
+        get_frames_pims(img, containers, np.arange(t, min(cumframes[-1],t+nt0)), cumframes)
         nt1 = img[0].shape[0]
         # compute pupil
         if len(pupind)>0:
