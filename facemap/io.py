@@ -1,9 +1,10 @@
-import os
+import os, glob
 import pims
 import numpy as np
 from PyQt5 import QtGui, QtCore
 import pyqtgraph as pg
 from . import guiparts, roi
+from natsort import natsorted
 
 def open_file(parent, file_name=None):
     if file_name is None:
@@ -34,12 +35,12 @@ def open_folder(parent, folder_name=None):
                 file_name.extend(files)
         print(file_name)
         if len(file_name) > 1:
-            parent.choose_files(file_name)
+            choose_files(parent, file_name)
             load_movies(parent)
 
 def choose_files(parent, file_name):
     parent.filelist = file_name
-    LC=ListChooser('Choose movies', parent)
+    LC=guiparts.ListChooser('Choose movies', parent)
     result = LC.exec_()
     if len(parent.filelist)==0:
         parent.filelist=file_name
