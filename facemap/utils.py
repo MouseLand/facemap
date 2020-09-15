@@ -1,6 +1,76 @@
 import numpy as np
 from scipy.sparse.linalg import eigsh
+import cv2
 
+def get_frames(imall, filenames, cframes, cumframes, Ly, Lx):
+    ''' Uses cv2 to pull videos specified by cframes from the video 
+        Function changes a variable (imall) in place 
+        note: cframes must be continuous
+    Parameters:-(Input) imall: all frames (im)
+                (Input) filenames: a 2D list of video files
+                (Input) cframes: list of frames to pull
+                (Input) cumframes: list of total frame size for each cam/view
+                (Input) Ly: list of dimension x for each cam/view
+                (Input) Lx: list of dimension y for each cam/view
+                (Output) returns null
+    '''
+    nframes = cumframes[-1] #total number of frames
+    cframes = np.maximum(0, np.minimum(nframes-1, cframes))
+    cframes = np.arange(cframes[0], cframes[-1]+1).astype(int)
+    ivids = (cframes[np.newaxis,:] >= cumframes[1:,np.newaxis]).sum(axis=0)
+    for ii in range(len(filenames[0])): #for each video in the list
+        nk = 0
+        for n in np.unique(ivids):
+            cfr = cframes[ivids==n]
+            
+            start = cfr[0]-cumframes[n]
+            end = cfr[-1]-cumframes[n]+1
+            nt0 = end-start
+            
+            capture = cv2.VideoCapture(filenames[n][ii])
+            capture.set(cv2.CAP_PROP_POS_FRAMES, start)
+            im = np.zeros((nt0, Ly[ii], Lx[ii]))
+            fc = 0
+            ret = True
+            
+            while (fc < nt0 and ret):
+                ret, frame = capture.read()
+                if ret:
+                    im[fc,:,:] = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+                else:
+                    print('img load failed, replacing with prev..')
+                    im[fc,:,:] = im[fc-1,:,:]
+                fc += 1
+            
+            imall[ii][nk:nk+im.shape[0]] = im
+            nk += im.shape[0]
+            capture.release()
+            
+    if nk < imall[0].shape[0]:
+        for ii,im in enumerate(imall):
+            imall[ii] = im[:nk].copy()
+
+def get_frame_details(filenames):
+    '''  
+    Uses cv2 to open video files and obtain their details
+    Parameters:-(Input) filenames: a 2D list of video files
+                (Output) cumframes: list of total frame size for each cam/view
+                (Output) Ly: list of dimension x for each cam/view
+                (Output) Lx: list of dimension y for each cam/view
+    '''
+    cumframes = [0]
+    for fs in filenames: #for each video in the list
+        Ly = []
+        Lx = []
+        for n,f in enumerate(fs):   #for each cam/view 
+            cap = cv2.VideoCapture(f)
+            framecount = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+            Lx.append(int(cap.get(cv2.CAP_PROP_FRAME_WIDTH)))
+            Ly.append(int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT)))
+            cap.release()
+        cumframes.append(cumframes[-1]+framecount)
+    cumframes = np.array(cumframes).astype(int)
+    return cumframes, Ly, Lx
 
 def multivideo_reshape(X, LY, LX, sy, sx, Ly, Lx, iinds):
     ''' reshape X matrix pixels x n matrix into LY x LX - embed each video at sy, sx'''
