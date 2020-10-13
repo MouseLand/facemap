@@ -1,8 +1,6 @@
 import numpy as np
 from scipy.sparse.linalg import eigsh
 import cv2
-import time
-from sklearn.decomposition import PCA
 
 def get_frames(imall, containers, cframes, cumframes, Ly, Lx):
     nframes = cumframes[-1] #total number of frames

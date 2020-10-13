@@ -388,7 +388,7 @@ def run(filenames, parent=None, proc=None, savepath=None):
     ''' proc can be a saved ROI file from GUI '''
     ''' savepath is the folder in which to save _proc.npy '''
     start = time.time()
-    print('Processing videos...using updated version')
+    print('Processing videos...')
     # grab files
     rois=None
     sy,sx=0,0
