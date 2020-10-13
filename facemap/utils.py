@@ -1,10 +1,20 @@
 import numpy as np
 from scipy.sparse.linalg import eigsh
 import cv2
-import time
 from sklearn.decomposition import PCA
 
 def get_frames(imall, containers, cframes, cumframes, Ly, Lx):
+    ''' Uses cv2 to pull videos specified by cframes from the video 
+        Function changes a variable (imall) in place 
+        note: cframes must be continuous
+    Parameters:-(Input) imall: all frames (im)
+                (Input) filenames: a 2D list of video files
+                (Input) cframes: list of frames to pull
+                (Input) cumframes: list of total frame size for each cam/view
+                (Input) Ly: list of dimension x for each cam/view
+                (Input) Lx: list of dimension y for each cam/view
+                (Output) returns null
+    '''
     nframes = cumframes[-1] #total number of frames
     cframes = np.maximum(0, np.minimum(nframes-1, cframes))
     cframes = np.arange(cframes[0], cframes[-1]+1).astype(int)
@@ -48,6 +58,7 @@ def close_videos(containers):
         for j in range(len((containers[0]))):   #for each cam/view 
             cap = containers[i][j]
             cap.release()
+
 
 def get_frame_details(filenames):
     '''  
