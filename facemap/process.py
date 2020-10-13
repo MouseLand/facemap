@@ -6,8 +6,6 @@ import os
 import pdb
 from scipy import io
 from scipy.ndimage import gaussian_filter
-import av
-from scipy.sparse.linalg import eigsh
 
 def binned_inds(Ly, Lx, sbin):
     Lyb = np.zeros((len(Ly),), np.int32)
@@ -38,7 +36,7 @@ def imall_init(nfr, Ly, Lx):
         imall.append(np.zeros((nfr,Ly[n],Lx[n]), 'uint8'))
     return imall
 
-def subsampled_mean(filenames, cumframes, Ly, Lx, sbin=3):
+def subsampled_mean(containers, cumframes, Ly, Lx, sbin=3):
     # grab up to 2000 frames to average over for mean
     # v is a list of containers loaded with av
     # cumframes are the cumulative frames across videos
@@ -51,16 +49,17 @@ def subsampled_mean(filenames, cumframes, Ly, Lx, sbin=3):
     nsegs = int(np.floor(nf / nt0))
     # what times to sample
     tf = np.floor(np.linspace(0, nframes - nt0, nsegs)).astype(int)
-    
     # binned Ly and Lx and their relative inds in concatenated movies
     Lyb, Lxb, ir = binned_inds(Ly, Lx, sbin)
     imall = imall_init(nt0, Ly, Lx)
+
     avgframe  = np.zeros(((Lyb * Lxb).sum(),), np.float32)
     avgmotion = np.zeros(((Lyb * Lxb).sum(),), np.float32)
     ns = 0
+    
     for n in range(nsegs):
         t = tf[n]
-        utils.get_frames(imall, filenames, np.arange(t,t+nt0), cumframes, Ly, Lx)
+        utils.get_frames(imall, containers, np.arange(t,t+nt0), cumframes, Ly, Lx)
         # bin
         for n,im in enumerate(imall):
             imbin = spatial_bin(im, sbin, Lyb[n], Lxb[n])
@@ -69,7 +68,6 @@ def subsampled_mean(filenames, cumframes, Ly, Lx, sbin=3):
             imbin = np.abs(np.diff(imbin, axis=0))
             avgmotion[ir[n]] += imbin.mean(axis=0)
         ns+=1
-
     avgframe /= float(ns)
     avgmotion /= float(ns)
     avgframe0 = []
@@ -79,17 +77,18 @@ def subsampled_mean(filenames, cumframes, Ly, Lx, sbin=3):
         avgmotion0.append(avgmotion[ir[n]])
     return avgframe0, avgmotion0
 
-def compute_SVD(filenames, cumframes, Ly, Lx, avgmotion, ncomps=500, sbin=3, rois=None, fullSVD=True):
+def compute_SVD(containers, cumframes, Ly, Lx, avgmotion, ncomps=500, sbin=3, rois=None, fullSVD=True):
     # compute the SVD over frames in chunks, combine the chunks and take a mega-SVD
     # number of components kept from SVD is ncomps
     # the pixels are binned in spatial bins of size sbin
+    # v is a list of containerss loaded with av
     # cumframes are the cumulative frames across videos
     sbin = max(1, sbin)
     nframes = cumframes[-1]
 
     # load in chunks of up to 1000 frames
     nt0 = min(1000, nframes)
-    nsegs = int(min(np.floor(15000 / nt0), np.floor(nframes / nt0))) #orig 15000
+    nsegs = int(min(np.floor(15000 / nt0), np.floor(nframes / nt0)))
     nc = int(250) # <- how many PCs to keep in each chunk
     nc = min(nc, nt0-1)
     if nsegs==1:
@@ -123,10 +122,9 @@ def compute_SVD(filenames, cumframes, Ly, Lx, avgmotion, ncomps=500, sbin=3, roi
 
     ns = 0
     for n in range(nsegs):
-        tic=time.time()
         img = imall_init(nt0, Ly, Lx)
         t = tf[n]
-        utils.get_frames(img, filenames, np.arange(t,t+nt0), cumframes, Ly, Lx)
+        utils.get_frames(img, containers, np.arange(t,t+nt0), cumframes, Ly, Lx)
         if fullSVD:
             imall = np.zeros((img[0].shape[0]-1, (Lyb*Lxb).sum()), np.float32)
         for ii,im in enumerate(img):
@@ -141,11 +139,7 @@ def compute_SVD(filenames, cumframes, Ly, Lx, avgmotion, ncomps=500, sbin=3, roi
                 imbin = spatial_bin(im, sbin, Lyb[ii], Lxb[ii])
                 # compute motion energy
                 imbin = np.abs(np.diff(imbin, axis=0))
-                try:
-                    imbin -= avgmotion[ii]
-                except:
-                    print(n)
-                    return imbin, avgmotion, ii
+                imbin -= avgmotion[ii]
                 if fullSVD:
                     imall[:, ir[ii]] = imbin
                 if nroi>0 and wmot.size>0:
@@ -184,7 +178,7 @@ def compute_SVD(filenames, cumframes, Ly, Lx, avgmotion, ncomps=500, sbin=3, roi
                 U[nr] = usv[0]
     return U
 
-def process_ROIs(filenames, cumframes, Ly, Lx, avgmotion, U, sbin=3, tic=None, rois=None, fullSVD=True):
+def process_ROIs(containers, cumframes, Ly, Lx, avgmotion, U, sbin=3, tic=None, rois=None, fullSVD=True):
     # project U onto each frame in the video and compute the motion energy
     # also compute pupil on single frames on non binned data
     # the pixels are binned in spatial bins of size sbin
@@ -253,7 +247,7 @@ def process_ROIs(filenames, cumframes, Ly, Lx, avgmotion, U, sbin=3, tic=None, r
     for n in range(nsegs):
         t += nt1
         img = imall_init(nt0, Ly, Lx)
-        utils.get_frames(img, filenames, np.arange(t, min(cumframes[-1],t+nt0)), cumframes, Ly, Lx)
+        utils.get_frames(img, containers, np.arange(t,t+nt0), cumframes, Ly, Lx)
         nt1 = img[0].shape[0]
         # compute pupil
         if len(pupind)>0:
@@ -268,7 +262,6 @@ def process_ROIs(filenames, cumframes, Ly, Lx, avgmotion, U, sbin=3, tic=None, r
                 pups[k]['area'][t:t+nt1] = area
                 pups[k]['axdir'][t:t+nt1,:,:] = axdir
                 pups[k]['axlen'][t:t+nt1,:] = axlen
-                #print(area)
                 k+=1
 
         if len(blind)>0:
@@ -395,12 +388,13 @@ def run(filenames, parent=None, proc=None, savepath=None):
     ''' proc can be a saved ROI file from GUI '''
     ''' savepath is the folder in which to save _proc.npy '''
     start = time.time()
-    print('Processing videos...')
+    print('Processing videos...using updated version')
     # grab files
     rois=None
     sy,sx=0,0
     if parent is not None:
         filenames = parent.filenames
+        _, _, _, containers = utils.get_frame_details(filenames)
         cumframes = parent.cumframes
         sbin = parent.sbin
         rois = utils.roi_to_dict(parent.ROIs, parent.rROI)
@@ -411,7 +405,7 @@ def run(filenames, parent=None, proc=None, savepath=None):
         sy = parent.sy
         sx = parent.sx
     else:
-        cumframes, Ly, Lx = utils.get_frame_details(filenames)
+        cumframes, Ly, Lx, containers = utils.get_frame_details(filenames)
         if proc is None:
             sbin = 4
             fullSVD = True
@@ -440,8 +434,7 @@ def run(filenames, parent=None, proc=None, savepath=None):
 
     tic = time.time()
     # compute average frame and average motion across videos (binned by sbin)
-    avgframe, avgmotion = subsampled_mean(filenames, cumframes, Ly, Lx, sbin)
-    
+    avgframe, avgmotion = subsampled_mean(containers, cumframes, Ly, Lx, sbin)  
     avgframe_reshape = utils.multivideo_reshape(np.hstack(avgframe)[:,np.newaxis],
                                           LYbin,LXbin,sybin,sxbin,Lybin,Lxbin,iinds)
     avgframe_reshape = np.squeeze(avgframe_reshape)
@@ -453,7 +446,7 @@ def run(filenames, parent=None, proc=None, savepath=None):
     ncomps = 500
     if fullSVD or nroi>0:
         # compute SVD from frames subsampled across videos and return spatial components
-        U = compute_SVD(filenames, cumframes, Ly, Lx, avgmotion, ncomps, sbin, rois, fullSVD)
+        U = compute_SVD(containers, cumframes, Ly, Lx, avgmotion, ncomps, sbin, rois, fullSVD)
         print('computed subsampled SVD at %0.2fs'%(time.time() - tic))
         U_reshape = U.copy()
         if fullSVD:
@@ -469,13 +462,13 @@ def run(filenames, parent=None, proc=None, savepath=None):
     else:
         U = []
         U_reshape = []
-
+   
     # project U onto all movie frames
     # and compute pupil (if selected)
-    V, M, pups, blinks, runs = process_ROIs(filenames, cumframes, Ly, Lx, avgmotion, U, sbin, tic, rois, fullSVD)
+    V, M, pups, blinks, runs = process_ROIs(containers, cumframes, Ly, Lx, avgmotion, U, sbin, tic, rois, fullSVD)
 
     # smooth pupil and blinks and running
-    print('smoothing ...')
+    print('Smoothing ...')
     for p in pups:
         if 'area' in p:
             p['area_smooth'],_ = pupil.smooth(p['area'].copy())
@@ -486,7 +479,6 @@ def run(filenames, parent=None, proc=None, savepath=None):
         b,_ = pupil.smooth(b.copy())
 
     print('computed projection at %0.2fs'%(time.time() - tic))
-
     proc = {
             'filenames': filenames, 'save_path': savepath, 'Ly': Ly, 'Lx': Lx,
             'sbin': sbin, 'fullSVD': fullSVD, 'save_mat': save_mat,
@@ -499,8 +491,10 @@ def run(filenames, parent=None, proc=None, savepath=None):
             'pupil': pups, 'running': runs, 'blink': blinks, 'rois': rois,
             'sy': sy, 'sx': sx
             } 
+    
     # save processing
     savename = save(proc, savepath)
+    utils.close_videos(containers)
     print('run time %0.2fs'%(time.time() - start))
-    
+
     return savename

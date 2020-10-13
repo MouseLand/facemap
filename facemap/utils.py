@@ -1,38 +1,29 @@
 import numpy as np
 from scipy.sparse.linalg import eigsh
 import cv2
+import time
+from sklearn.decomposition import PCA
 
-def get_frames(imall, filenames, cframes, cumframes, Ly, Lx):
-    ''' Uses cv2 to pull videos specified by cframes from the video 
-        Function changes a variable (imall) in place 
-        note: cframes must be continuous
-    Parameters:-(Input) imall: all frames (im)
-                (Input) filenames: a 2D list of video files
-                (Input) cframes: list of frames to pull
-                (Input) cumframes: list of total frame size for each cam/view
-                (Input) Ly: list of dimension x for each cam/view
-                (Input) Lx: list of dimension y for each cam/view
-                (Output) returns null
-    '''
+def get_frames(imall, containers, cframes, cumframes, Ly, Lx):
     nframes = cumframes[-1] #total number of frames
     cframes = np.maximum(0, np.minimum(nframes-1, cframes))
     cframes = np.arange(cframes[0], cframes[-1]+1).astype(int)
+    # Check frames exist in which video (for multiple videos, one view)
     ivids = (cframes[np.newaxis,:] >= cumframes[1:,np.newaxis]).sum(axis=0)
-    for ii in range(len(filenames[0])): #for each video in the list
+    
+    for ii in range(len(containers[0])): #for each view in the list
         nk = 0
         for n in np.unique(ivids):
             cfr = cframes[ivids==n]
-            
             start = cfr[0]-cumframes[n]
             end = cfr[-1]-cumframes[n]+1
             nt0 = end-start
-            
-            capture = cv2.VideoCapture(filenames[n][ii])
-            capture.set(cv2.CAP_PROP_POS_FRAMES, start)
+            capture = containers[n][ii]
+            if int(capture.get(cv2.CAP_PROP_POS_FRAMES)) != start:
+                capture.set(cv2.CAP_PROP_POS_FRAMES, start)
             im = np.zeros((nt0, Ly[ii], Lx[ii]))
             fc = 0
             ret = True
-            
             while (fc < nt0 and ret):
                 ret, frame = capture.read()
                 if ret:
@@ -41,14 +32,22 @@ def get_frames(imall, filenames, cframes, cumframes, Ly, Lx):
                     print('img load failed, replacing with prev..')
                     im[fc,:,:] = im[fc-1,:,:]
                 fc += 1
-            
             imall[ii][nk:nk+im.shape[0]] = im
             nk += im.shape[0]
-            capture.release()
-            
+    
     if nk < imall[0].shape[0]:
         for ii,im in enumerate(imall):
             imall[ii] = im[:nk].copy()
+
+def close_videos(containers):
+    ''' Method is called to close all videos/containers open for reading 
+    using openCV.
+    Parameters:-(Input) containers: a 2D list of pointers to videos captured by openCV
+                (Output) N/A'''
+    for i in range(len(containers)): #for each video in the list
+        for j in range(len((containers[0]))):   #for each cam/view 
+            cap = containers[i][j]
+            cap.release()
 
 def get_frame_details(filenames):
     '''  
@@ -57,20 +56,24 @@ def get_frame_details(filenames):
                 (Output) cumframes: list of total frame size for each cam/view
                 (Output) Ly: list of dimension x for each cam/view
                 (Output) Lx: list of dimension y for each cam/view
+                (Output) containers: a 2D list of pointers to videos that are open
     '''
     cumframes = [0]
+    containers = []
     for fs in filenames: #for each video in the list
         Ly = []
         Lx = []
+        cs = []
         for n,f in enumerate(fs):   #for each cam/view 
             cap = cv2.VideoCapture(f)
+            cs.append(cap)
             framecount = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
             Lx.append(int(cap.get(cv2.CAP_PROP_FRAME_WIDTH)))
             Ly.append(int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT)))
-            cap.release()
+        containers.append(cs)
         cumframes.append(cumframes[-1]+framecount)
     cumframes = np.array(cumframes).astype(int)
-    return cumframes, Ly, Lx
+    return cumframes, Ly, Lx, containers
 
 def multivideo_reshape(X, LY, LX, sy, sx, Ly, Lx, iinds):
     ''' reshape X matrix pixels x n matrix into LY x LX - embed each video at sy, sx'''
@@ -173,6 +176,8 @@ def video_placement(Ly, Lx):
 
 
 def svdecon(X, k=100):
+    np.random.seed(0)   # Fix seed to get same output for eigsh
+    v0 = np.random.uniform(-1,1,size=min(X.shape)) 
     NN, NT = X.shape
     if NN>NT:
         COV = (X.T @ X)/NT
@@ -180,7 +185,7 @@ def svdecon(X, k=100):
         COV = (X @ X.T)/NN
     if k==0:
         k = np.minimum(COV.shape) - 1
-    Sv, U = eigsh(COV, k = k)
+    Sv, U = eigsh(COV, k = k, v0=v0)
     U, Sv = np.real(U), np.abs(Sv)
     U, Sv = U[:, ::-1], Sv[::-1]**.5
     if NN>NT:
