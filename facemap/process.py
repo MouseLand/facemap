@@ -412,8 +412,9 @@ def run(filenames, parent=None, proc=None, savepath=None):
         sx = parent.sx
     else:
         cumframes, Ly, Lx = utils.get_frame_details(filenames)
+        print(cumframes, Ly, Lx)
         if proc is None:
-            sbin = 4
+            sbin = 1
             fullSVD = True
             save_mat = False
             rois=None

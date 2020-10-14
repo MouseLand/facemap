@@ -1,6 +1,166 @@
 import numpy as np
 from scipy.sparse.linalg import eigsh
 import cv2
+from scipy.ndimage import gaussian_filter1d
+from scipy.interpolate import interp1d
+from scipy.linalg import eigh
+from sklearn.decomposition import PCA
+
+def bin1d(X, tbin):
+    """ bin over first axis of data with bin tbin """
+    size = list(X.shape)
+    X = X[:size[0]//tbin*tbin].reshape((size[0]//tbin, tbin, -1)).mean(axis=1)
+    size[0] = X.shape[0]
+    return X.reshape(size)
+
+def split_testtrain(n_t, frac=0.25):
+    ''' this returns indices of testing data and training data '''
+    n_segs = int(min(20, n_t/4)) #usu want 20 segs, but might not have enough frames for that
+    n_len = int(n_t/n_segs)
+    ninds = np.linspace(0, n_t - n_len, n_segs).astype(int)
+    itest = (ninds[:,np.newaxis] + np.arange(0,n_len * frac,1,int)).flatten()
+    itrain = np.ones(n_t,np.bool)
+    itrain[itest] = 0
+    
+    return itest, itrain
+
+
+def rrr_prediction(X, Y, rank=None, lam=0):
+    """ predict Y from X using regularized reduced rank regression 
+    
+    returns prediction accuracy on test data + model params
+    
+    """
+    n_t, n_feats = Y.shape
+    itest, itrain =  split_testtrain(n_t)
+    A,B = reduced_rank_regression(X[itrain], Y[itrain], rank=rank, lam=lam)
+    rank = A.shape[1]
+    corrf = np.zeros((rank, n_feats))
+    varexpf = np.zeros((rank, n_feats))
+    varexp = np.zeros(rank)
+    for r in range(rank):
+        Y_pred_test = X[itest] @ B[:,:r+1] @ A[:,:r+1].T
+        Y_test_var = (Y[itest]**2).mean(axis=0)
+        corrf[r] = ((Y[itest] * Y_pred_test).mean(axis=0) / 
+                    (Y_test_var**0.5 * Y_pred_test.std(axis=0)))
+        residual = ((Y[itest] - Y_pred_test)**2).mean(axis=0)
+        varexpf[r] = 1 - residual / Y_test_var
+        varexp[r] = 1 - residual.mean() / Y_test_var.mean()
+
+    return A,B,varexp,varexpf,corrf
+
+def rrr_ridge_prediction(X, Y, B, lam=0):
+    """ predict Y from X @ B using ridge regression
+
+    B is obtained from rrr
+    
+    returns prediction accuracy on test data + model params
+    
+    """
+    n_t, n_feats = Y.shape
+    itest, itrain =  split_testtrain(n_t)
+    rank = B.shape[1]
+    corrf = np.zeros((rank, n_feats))
+    varexpf = np.zeros((rank, n_feats))
+    varexp = np.zeros(rank)
+    for r in range(rank):
+        A = ridge_regression(X[itrain] @ B[:,:r+1], Y[itrain], lam=lam)
+        Y_pred_test = X[itest] @ B[:,:r+1] @ A
+        Y_test_var = (Y[itest]**2).mean(axis=0)
+        corrf[r] = ((Y[itest] * Y_pred_test).mean(axis=0) / 
+                    (Y_test_var**0.5 * Y_pred_test.std(axis=0)))
+        residual = ((Y[itest] - Y_pred_test)**2).mean(axis=0)
+        varexpf[r] = 1 - residual / Y_test_var
+        varexp[r] = 1 - residual.mean() / Y_test_var.mean()
+
+    return A,varexp,varexpf,corrf
+
+def ridge_regression(X, Y, lam=0):
+    """ predict Y from X using regularized reduced rank regression 
+        
+        *** subtract mean from X and Y before predicting
+    
+        Prediction:
+        >>> Y_pred = X @ A
+
+        Parameters
+        ----------
+
+        X : 2D array, input data (n_samples, n_features)
+        
+        Y : 2D array, data to predict (n_samples, n_predictors)
+        
+        Returns
+        --------
+
+        A : 2D array - prediction matrix 1 (n_predictors, rank)
+    """
+    CXX = (X.T @ X + lam * np.eye(X.shape[1])) / X.shape[0]
+    CXY = (X.T @ Y) / X.shape[0]
+    A = np.linalg.solve(CXX, CXY)
+    return A
+
+def reduced_rank_regression(X, Y, rank=None, lam=0):
+    """ predict Y from X using regularized reduced rank regression 
+        
+        *** subtract mean from X and Y before predicting
+        
+        if rank is None, returns A and B of full-rank (minus one) prediction
+        
+        Prediction:
+        >>> Y_pred = X @ B @ A.T
+        
+        Parameters
+        ----------
+
+        X : 2D array, input data (n_samples, n_features)
+        
+        Y : 2D array, data to predict (n_samples, n_predictors)
+        
+        Returns
+        --------
+
+        A : 2D array - prediction matrix 1 (n_predictors, rank)
+        
+        B : 2D array - prediction matrix 2 (n_features, rank)
+        
+    """
+    min_dim = min(Y.shape[1], min(X.shape[0], X.shape[1])) - 1
+    if rank is None:
+        rank = min_dim
+    else:
+        rank = min(min_dim, rank)
+
+    # make covariance matrices
+    CXX = (X.T @ X + lam * np.eye(X.shape[1])) / X.shape[0]
+    CYX = (Y.T @ X) / X.shape[0]
+
+    # compute inverse square root of matrix
+    s, u = eigh(CXX)
+    #u = model.components_.T
+    #s = model.singular_values_**2
+    CXXMH = (u * (s + lam)**-0.5) @ u.T
+
+    # project into prediction space
+    M = CYX @ CXXMH
+    
+    # do svd of prediction projection
+    model = PCA(n_components=rank).fit(M)
+    c = model.components_.T
+    s = model.singular_values_
+    A = M @ c
+    B = CXXMH @ c
+    
+    return A, B
+
+def resample_frames(data, torig, tout):
+    ''' resample data at times torig at times tout '''
+    ''' data is components x time '''
+    fs = torig.size / tout.size # relative sampling rate
+    data = gaussian_filter1d(data, np.ceil(fs/4), axis=1)
+    f = interp1d(torig, data, kind='linear', axis=-1, fill_value='extrapolate')
+    dout = f(tout)
+    return dout
 
 def get_frames(imall, filenames, cframes, cumframes, Ly, Lx):
     ''' Uses cv2 to pull videos specified by cframes from the video 
@@ -71,6 +231,27 @@ def get_frame_details(filenames):
         cumframes.append(cumframes[-1]+framecount)
     cumframes = np.array(cumframes).astype(int)
     return cumframes, Ly, Lx
+
+def get_skipping_frames(imall, filenames, cframes, cumframes):
+    nframes = cumframes[-1] #total number of frames
+    cframes = np.maximum(0, np.minimum(nframes-1, cframes))
+    cframes = np.arange(cframes[0], cframes[-1]+1).astype(int)
+    ivids = (cframes[np.newaxis,:] >= cumframes[1:,np.newaxis]).sum(axis=0)
+    i=0
+    for ii in range(len(filenames[0])):
+        for n in np.unique(ivids):
+            cfr = cframes[ivids==n]
+            ifr = cfr - cumframes[n]
+            capture = cv2.VideoCapture(filenames[n][ii])
+            for iframe in ifr:
+                capture.set(cv2.CAP_PROP_POS_FRAMES, iframe)
+                ret,frame = capture.read()
+                if ret:
+                    imall[ii][i] = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+                    i+=1
+                else:
+                    break
+            capture.release()
 
 def multivideo_reshape(X, LY, LX, sy, sx, Ly, Lx, iinds):
     ''' reshape X matrix pixels x n matrix into LY x LX - embed each video at sy, sx'''
