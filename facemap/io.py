@@ -3,7 +3,7 @@ import pims
 import numpy as np
 from PyQt5 import QtGui, QtCore
 import pyqtgraph as pg
-from . import guiparts, roi
+from . import guiparts, roi, utils
 from natsort import natsorted
 
 def open_file(parent, file_name=None):
