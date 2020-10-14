@@ -179,23 +179,22 @@ def get_frames(imall, containers, cframes, cumframes, Ly, Lx):
             capture = containers[n][ii]
             if int(capture.get(cv2.CAP_PROP_POS_FRAMES)) != start:
                 capture.set(cv2.CAP_PROP_POS_FRAMES, start)
-            im = np.zeros((nt0, Ly[ii], Lx[ii]))
             fc = 0
             ret = True
             while (fc < nt0 and ret):
                 ret, frame = capture.read()
                 if ret:
-                    im[fc,:,:] = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+                    imall[ii][nk+fc] = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY) 
                 else:
                     print('img load failed, replacing with prev..')
-                    im[fc,:,:] = im[fc-1,:,:]
-                fc += 1
-            imall[ii][nk:nk+im.shape[0]] = im
-            nk += im.shape[0]
+                    imall[ii][nk+fc] = imall[ii][nk+fc-1] 
+                fc += 1    
+            nk += nt0
     
     if nk < imall[0].shape[0]:
         for ii,im in enumerate(imall):
             imall[ii] = im[:nk].copy()
+
 
 def close_videos(containers):
     ''' Method is called to close all videos/containers open for reading 
