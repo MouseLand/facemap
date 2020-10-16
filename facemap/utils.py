@@ -24,7 +24,6 @@ def split_testtrain(n_t, frac=0.25):
     
     return itest, itrain
 
-
 def rrr_prediction(X, Y, rank=None, lam=0):
     """ predict Y from X using regularized reduced rank regression 
     
@@ -162,7 +161,7 @@ def resample_frames(data, torig, tout):
     dout = f(tout)
     return dout
 
-def get_frames(imall, containers, cframes, cumframes, Ly, Lx):
+def get_frames(imall, containers, cframes, cumframes):
     nframes = cumframes[-1] #total number of frames
     cframes = np.maximum(0, np.minimum(nframes-1, cframes))
     cframes = np.arange(cframes[0], cframes[-1]+1).astype(int)

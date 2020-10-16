@@ -3,11 +3,11 @@ import numpy as np
 from PyQt5 import QtGui, QtCore
 import pyqtgraph as pg
 from pyqtgraph import GraphicsScene
-import pims
 from scipy.stats import zscore, skew
 from matplotlib import cm
 from natsort import natsorted
 import pathlib
+import cv2
 
 from . import process, roi, utils, io, menus, guiparts
 
@@ -501,7 +501,15 @@ class MainW(QtGui.QMainWindow):
             ivid = 0
         img = []
         for vs in self.video[ivid]:
-            img.append(np.array(vs[cframe - self.cumframes[ivid]]))
+            frame_ind = cframe - self.cumframes[ivid]
+            capture = vs
+            if int(capture.get(cv2.CAP_PROP_POS_FRAMES)) != frame_ind:
+                capture.set(cv2.CAP_PROP_POS_FRAMES, frame_ind)
+            ret, frame = capture.read()
+            if ret:
+                img.append(frame)
+            else:
+                print("Error reading frame:", frame_ind)    
         return img
 
     def next_frame(self):
