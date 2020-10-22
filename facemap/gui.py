@@ -71,6 +71,9 @@ class MainW(QtGui.QMainWindow):
         # --- cells image
         self.win = pg.GraphicsLayoutWidget()
         self.win.move(600,0)
+        #self.showFullScreen()
+        #screen = QtGui.QDesktopWidget().screenGeometry()
+        #print(screen.width(), screen.height())  
         self.win.resize(1000,500)
         self.l0.addWidget(self.win,1,3,37,15)
         layout = self.win.ci.layout
@@ -99,7 +102,7 @@ class MainW(QtGui.QMainWindow):
 
         # saturation sliders
         self.sl = []
-        txt = ["saturation", 'saturation']
+        txt = ["Saturation:", "Saturation:"]
         self.sat = [255,255]
         for j in range(2):
             self.sl.append(guiparts.Slider(j, self))
@@ -107,8 +110,20 @@ class MainW(QtGui.QMainWindow):
             qlabel = QtGui.QLabel(txt[j])
             qlabel.setStyleSheet('color: white;')
             self.l0.addWidget(qlabel,0,6+5*j,1,1)
+            
+        # Add label to indicate saturation level    
+        self.saturationLevelLabel = QtGui.QLabel(str(self.sl[0].value()))
+        self.saturationLevelLabel.setStyleSheet("color: white;")
+        self.l0.addWidget(self.saturationLevelLabel,0,7+5*0,1,3)
+        self.roiSaturationLevelLabel = QtGui.QLabel(str(self.sl[1].value()))
+        self.roiSaturationLevelLabel.setStyleSheet("color: white;")
+        self.l0.addWidget(self.roiSaturationLevelLabel,0,7+5*j,1,3)
 
-        self.reflector = QtGui.QPushButton('add corneal reflection')
+        self.sl[0].valueChanged.connect(self.setSaturationLabel)        
+        self.sl[1].valueChanged.connect(self.setROISaturationLabel)
+        
+        # Reflector
+        self.reflector = QtGui.QPushButton('Add corneal reflection')
         self.l0.addWidget(self.reflector, 1, 8+5*j, 1, 2)
         self.reflector.setEnabled(False)
         self.reflector.clicked.connect(self.add_reflectROI)
@@ -162,6 +177,12 @@ class MainW(QtGui.QMainWindow):
         #self.filelist = [ ['/media/carsen/DATA1/FACES/171030/test1.mp4'] ]
         #io.load_movies(self)
 
+    def setSaturationLabel(self):
+        self.saturationLevelLabel.setText(str(self.sl[0].value()))
+
+    def setROISaturationLabel(self):
+        self.roiSaturationLevelLabel.setText(str(self.sl[1].value()))
+
     def make_buttons(self):
         # create frame slider
         binLabel = QtGui.QLabel("SVD spatial bin:")
@@ -181,11 +202,19 @@ class MainW(QtGui.QMainWindow):
         self.l0.addWidget(self.sigmaBox, 10, 0, 1, 3)
         self.pupil_sigma = float(self.sigmaBox.text())
         self.sigmaBox.returnPressed.connect(self.pupil_sigma_change)
-        self.frameLabel = QtGui.QLabel("Current frame:")
+        self.frameLabel = QtGui.QLabel("Frame:")
         self.frameLabel.setStyleSheet("color: white;")
-        self.frameNumber = QtGui.QLabel("0")
-        self.frameNumber.setStyleSheet("color: white;")
-        self.frameSlider = QtGui.QSlider(QtCore.Qt.Horizontal)
+        self.totalFrameLabel = QtGui.QLabel("Total frames:")
+        self.totalFrameLabel.setStyleSheet("color: white;")
+        #self.frameNumber = QtGui.QLabel("0")
+        #self.frameNumber.setStyleSheet("color: white;")
+        self.setFrame = QtGui.QLineEdit()
+        self.setFrame.setMaxLength(10)
+        self.setFrame.setFixedWidth(50)
+        self.setFrame.textChanged[str].connect(self.setFrameChanged)
+        self.totalFrameNumber = QtGui.QLabel("0")             #########
+        self.totalFrameNumber.setStyleSheet("color: white;")             #########
+        self.frameSlider = QtGui.QSlider(QtCore.Qt.Horizontal)      
         #self.frameSlider.setTickPosition(QtGui.QSlider.TicksBelow)
         self.frameSlider.setTickInterval(5)
         self.frameSlider.setTracking(False)
@@ -291,8 +320,11 @@ class MainW(QtGui.QMainWindow):
 
         self.l0.addWidget(QtGui.QLabel(''),istretch,0,1,3)
         self.l0.setRowStretch(istretch,1)
-        self.l0.addWidget(self.frameLabel, istretch+13,0,1,3)
-        self.l0.addWidget(self.frameNumber, istretch+14,0,1,3)
+        self.l0.addWidget(self.frameLabel, istretch+12,0,1,3)
+        #self.l0.addWidget(self.frameNumber, istretch+14,0,1,3)
+        self.l0.addWidget(self.setFrame, istretch+12,1,2,2)    
+        self.l0.addWidget(self.totalFrameLabel, istretch+14,0,1,3)
+        self.l0.addWidget(self.totalFrameNumber, istretch+14,2,1,3)
         self.l0.addWidget(self.frameSlider, istretch+15,3,1,15)
 
         # plotting boxes
@@ -330,6 +362,10 @@ class MainW(QtGui.QMainWindow):
         ll.setStyleSheet("color: gray;")
         self.l0.addWidget(ll, istretch+3+k+1,0,1,4)
         self.updateFrameSlider()
+
+    def setFrameChanged(self, text):
+        self.cframe = int(float(self.setFrame.text()))
+        self.jump_to_frame()
 
     def reset(self):
         if len(self.rROI)>0:
@@ -473,6 +509,7 @@ class MainW(QtGui.QMainWindow):
         self.frameSlider.setMaximum(self.nframes-1)
         self.frameSlider.setMinimum(0)
         self.frameLabel.setEnabled(True)
+        self.totalFrameLabel.setEnabled(True)
         self.frameSlider.setEnabled(True)
 
     def updateButtons(self):
@@ -514,7 +551,7 @@ class MainW(QtGui.QMainWindow):
             if ret:
                 img.append(frame)
             else:
-                print("Error reading frame:", frame_ind)    
+                print("Error reading frame")    
         return img
 
     def next_frame(self):
@@ -543,7 +580,9 @@ class MainW(QtGui.QMainWindow):
 
         self.pimg.setImage(self.fullimg)
         self.pimg.setLevels([0,self.sat[0]])
-        self.frameNumber.setText(str(self.cframe))
+        self.setFrame.setText(str(self.cframe))
+        #self.frameNumber.setText(str(self.cframe))
+        self.totalFrameNumber.setText(str(self.nframes))
         self.win.show()
         self.show()
 
