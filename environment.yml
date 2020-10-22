@@ -14,3 +14,4 @@ dependencies:
     - pyqtgraph==0.11.0rc0
     - natsort
     - opencv_python_headless
+    - facemap
