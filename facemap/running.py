@@ -4,7 +4,12 @@
 from scipy.fftpack import next_fast_len
 import numpy as np
 from numpy.fft import ifftshift
-from mkl_fft import fft2, ifft2
+try:
+    from mkl_fft import fft2, ifft2
+except:
+    from scipy.fftpack import fft2, ifft2
+    print('mkl_fft not installed - running ROI computation will be slower, to solve')
+    print('>>> conda install mkl_fft')
 from numba import vectorize, float32, complex64, uint8, int16
 
 eps0 = 1e-20
