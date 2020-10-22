@@ -5,15 +5,16 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name="facemap",
-    version="0.1.5",
-    author="Carsen Stringer",
+    version="0.2.0",
+    author="Carsen Stringer & Atika Syeda & Renee Tung",
     author_email="carsen.stringer@gmail.com",
     description="Processing motion SVDs of videos",
     long_description=long_description,
     long_description_content_type="text/markdown",
     url="https://github.com/MouseLand/FaceMap",
     packages=setuptools.find_packages(),
-    install_requires = ['ffmpeg','pyqtgraph==0.11.0rc0', 'PyQt5', 'PyQt5.sip', 'numpy>=1.13.0', 'scipy','matplotlib','pims','natsort'],
+    install_requires = ['pyqtgraph==0.11.0rc0', 'PyQt5', 'PyQt5.sip', 
+                        'numpy>=1.13.0', 'scipy', 'numba', 'natsort'],
     include_package_data=True,
     classifiers=(
         "Programming Language :: Python :: 3",

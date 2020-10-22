@@ -4,7 +4,10 @@ import cv2
 from scipy.ndimage import gaussian_filter1d
 from scipy.interpolate import interp1d
 from scipy.linalg import eigh
-from sklearn.decomposition import PCA
+try:
+    from sklearn.decomposition import PCA
+except:
+    print('no sklearn for reduced rank')
 
 def bin1d(X, tbin):
     """ bin over first axis of data with bin tbin """
