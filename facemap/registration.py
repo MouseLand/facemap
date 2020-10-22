@@ -10,7 +10,7 @@ import sklearn.cluster
 import time
 import skimage.transform 
 import skimage.registration
-import facemap as fm
+from . import utils, process
 
 
 
@@ -18,12 +18,21 @@ import facemap as fm
 MOTION TRACES
 '''
 
-def get_newV(vidfile, U_new, crop_vals, tform='none', nframes='none'):
+
+def imall_init(nfr, Ly, Lx):
+    imall = []
+    for n in range(len(Ly)):
+        imall.append(np.zeros((nfr,Ly[n],Lx[n]), 'uint8'))
+    return imall
+
+def get_newV(filenames, U_new, crop_vals, tform='none', nframes='none'):
     ''' recalculates V after warping U, up to nframes frames '''
+    if U_new.ndim==3:
+        U_new = U_new.reshape(-1, U_new.shape[-1])
     start = time.time()
-    cumframes, Ly_old, Lx_old = fm.grab_videos_cv2([vidfile])
+    cumframes, Ly_old, Lx_old = utils.get_frame_details(filenames)
     Ly_old = Ly_old[0]; Lx_old = Lx_old[0]
-    _, avgmotion = fm.subsampled_mean_cv2([vidfile], cumframes, [Ly_old], [Lx_old], sbin=1)
+    _, avgmotion = process.subsampled_mean(filenames, cumframes, [Ly_old], [Lx_old], sbin=1)
     avgmotion = np.reshape(avgmotion[0],(Ly_old,Lx_old))
     
     V_new = np.zeros([cumframes[-1],U_new.shape[1]])
@@ -33,7 +42,7 @@ def get_newV(vidfile, U_new, crop_vals, tform='none', nframes='none'):
         nt= int(np.ceil(nframes/chunk_len))
     for i in range(nt):
         cframes = range(i*chunk_len,i*chunk_len+chunk_len)
-        this_V = calc_newV(vidfile, cumframes, avgmotion, U_new, Ly_old, Lx_old, crop_vals, cframes, tform)
+        this_V = calc_newV(filenames, cumframes, avgmotion, U_new, Ly_old, Lx_old, crop_vals, cframes, tform)
         V_new[i*chunk_len:i*chunk_len+len(this_V),:] = this_V
     
         if i%20 == 0:
@@ -45,7 +54,7 @@ def get_newV(vidfile, U_new, crop_vals, tform='none', nframes='none'):
     return V_new
 
 
-def calc_newV(vidfile, cumframes, avgmotion, U_new, Ly_old, Lx_old, crop_vals, cframes,
+def calc_newV(filenames, cumframes, avgmotion, U_new, Ly_old, Lx_old, crop_vals, cframes,
               tform='none'):
     ''' this function calculates post-warp V for the chunk of times specified by cframes '''
     ''' note: remember first frame of V is a filler '''
@@ -61,11 +70,12 @@ def calc_newV(vidfile, cumframes, avgmotion, U_new, Ly_old, Lx_old, crop_vals, c
     
     # let's get X
     firstframe=0
-    imall = fm.imall_init(cframes.shape[0],[Ly_old],[Lx_old])
+    imall = imall_init(cframes.shape[0],[Ly_old],[Lx_old])
     if cframes[0] == -1: #this is the first frame
         cframes = cframes[1:]
         firstframe = 1
-    fm.get_frames_cv2(imall, [vidfile], cframes, cumframes, [Ly_old], [Lx_old])
+    utils.get_frames(imall, filenames, cframes, cumframes, [Ly_old], [Lx_old])
+    #fm.get_frames_cv2(imall, [vidfile], cframes, cumframes, [Ly_old], [Lx_old])
     motion = np.abs(np.diff(imall[0],axis=0))
     X = motion - avgmotion
     
@@ -94,7 +104,7 @@ def calc_newV(vidfile, cumframes, avgmotion, U_new, Ly_old, Lx_old, crop_vals, c
 EIGENFACES
 '''
 
-def get_warped_Us(vidname0, other_vidnames,plot=0, use_rep=0):
+def get_warped_Us(reference_files, other_vidnames,plot=0, use_rep=0):
     '''
 
     Parameters
@@ -117,19 +127,13 @@ def get_warped_Us(vidname0, other_vidnames,plot=0, use_rep=0):
     warp_info = []
     V_orig = []
     
-    # calculate a reference image if there isn't one specified (note: have never tried, don't know if relevant)
-    if vidname0 == 'none':
-        refvid,_,_ = find_smallest_vid(other_vidnames)
-        if len(refvid) == 1:
-            print('{} is reference video'.format(refvid[0]))
-            vidname0 = refvid[0]
-            other_vidnames = other_vidnames.remove(refvid[0])
-        else:
-            print('no smallest image; no reference chosen')
-            return 0
     
     # now get data for the reference image
-    vid0 = fm.get_datafile([vidname0])[0]
+    vidname0, proc0 = reference_files[0], reference_files[1]
+    vidname1, proc1 = other_vidnames[0][0], other_vidnames[0][1]
+    vid0 = np.load(proc0,  allow_pickle=True).item()
+    vid1 = np.load(proc1,  allow_pickle=True).item()
+
     Ly0 = vid0['Ly'][0]
     Lx0 = vid0['Lx'][0]
     vid0_avg = z_score_im(vid0['avgframe'][0], Ly0, Lx0, return_im=1)
@@ -140,12 +144,11 @@ def get_warped_Us(vidname0, other_vidnames,plot=0, use_rep=0):
     V_orig.append(vid0_V)
     del vid0
     
-    crop_data = np.zeros((len(other_vidnames)+1,4)) #space for xl,xr,yl,yr
+    crop_data = np.zeros((2,4)) #space for xl,xr,yl,yr
     idx = 1
     # now do the warping for the other videos
-    for vidname1 in other_vidnames:
+    for k in range(1):
         #load these individually so don't load in too much data at once
-        vid1 = fm.get_datafile([vidname1])[0]
         Ly1 = vid1['Ly'][0]
         Lx1 = vid1['Lx'][0]
         
@@ -170,10 +173,11 @@ def get_warped_Us(vidname0, other_vidnames,plot=0, use_rep=0):
         crop_data[idx,:] = np.array([xl,xr,yl,yr], dtype=int)
         
         # adjust the reference image to this crop
-        vid0_U_crop = np.reshape(vid0_U,(Ly0,Lx0,-500))
+        vid0_U_crop = np.reshape(vid0_U,(Ly0,Lx0,500))
         vid0_U_crop = vid0_U_crop[yl:yr+1,xl:xr+1,:]
         vid0_U_crop = z_score_U(vid0_U_crop, Ly_crop, Lx_crop, return_im=0)
         vid0_U_crop /= (vid0_U_crop**2).sum(axis=0)
+        vid0_U_crop = np.reshape(vid0_U_crop,(Ly_crop,Lx_crop,500))
         if len(other_vidnames) == 1:
             warpedU[0] = vid0_U_crop # replace 1st idx with cropped one
             crop_vals = crop_data[idx,:]
@@ -182,6 +186,7 @@ def get_warped_Us(vidname0, other_vidnames,plot=0, use_rep=0):
         vid1_U_warped = warp_U(vid1_U, Ly0, Lx0, rigid_tform, crop_data[idx,:], warp_mat)
         vid1_U_warped = z_score_U(vid1_U_warped, Ly_crop, Lx_crop, return_im=0)
         vid1_U_warped /= (vid1_U_warped**2).sum(axis=0)
+        vid1_U_warped = np.reshape(vid1_U_warped,(Ly_crop,Lx_crop,500))
         warpedU.append(vid1_U_warped)
         
         this_warp = {
@@ -244,7 +249,7 @@ def get_warped_Us(vidname0, other_vidnames,plot=0, use_rep=0):
             warpedU[i] = U / (U**2).sum(axis=0)
     
     
-    return warpedU, warp_info, crop_vals, V_orig
+    return warpedU, warp_info, crop_data, V_orig
 
 
 def warp_U(U, Ly, Lx, rigid_tform, crop_data, warp_mat):
@@ -672,7 +677,7 @@ def get_rep_image(vidname, avgframe, V, Ly, Lx, cutoff = 0.0002, plot=0):
     
     # let's get these resting images
     imall = imall_init(len(times),[Ly],[Lx]) # let's assume max is 3 clusters
-    get_skipping_frames_cv2(imall, [vidname], times)
+    utils.get_skipping_frames(imall, [[vidname]], times, np.array([0, V.shape[1]]))
     
     _,rep_image = best_rep_combo(avgframe[np.newaxis,:,:], imall[0],plot=plot)
     

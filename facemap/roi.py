@@ -6,11 +6,9 @@ import numpy as np
 from PyQt5 import QtGui, QtCore
 import pyqtgraph as pg
 from pyqtgraph import GraphicsScene
-import pims
 from facemap import utils, pupil
 from scipy.stats import zscore, skew
 from scipy.ndimage import gaussian_filter
-from matplotlib import cm
 
 colors = np.array([[0,200,50],[180,0,50],[40,100,250],[150,50,150]])
 
