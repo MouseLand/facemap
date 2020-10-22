@@ -165,6 +165,17 @@ def resample_frames(data, torig, tout):
     return dout
 
 def get_frames(imall, containers, cframes, cumframes):
+    ''' Uses cv2 to pull videos specified by cframes from the video 
+        Function changes a variable (imall) in place 
+        note: cframes must be continuous
+    Parameters:-(Input) imall: all frames (im)
+                (Input) filenames: a 2D list of video files
+                (Input) cframes: list of frames to pull
+                (Input) cumframes: list of total frame size for each cam/view
+                (Input) Ly: list of dimension x for each cam/view
+                (Input) Lx: list of dimension y for each cam/view
+                (Output) returns null
+    '''
     nframes = cumframes[-1] #total number of frames
     cframes = np.maximum(0, np.minimum(nframes-1, cframes))
     cframes = np.arange(cframes[0], cframes[-1]+1).astype(int)
@@ -192,11 +203,10 @@ def get_frames(imall, containers, cframes, cumframes):
                     imall[ii][nk+fc] = imall[ii][nk+fc-1] 
                 fc += 1    
             nk += nt0
-    
+              
     if nk < imall[0].shape[0]:
         for ii,im in enumerate(imall):
             imall[ii] = im[:nk].copy()
-
 
 def close_videos(containers):
     ''' Method is called to close all videos/containers open for reading 
