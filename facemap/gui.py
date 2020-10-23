@@ -4,12 +4,15 @@ from PyQt5 import QtGui, QtCore
 import pyqtgraph as pg
 from pyqtgraph import GraphicsScene
 from scipy.stats import zscore, skew
-from matplotlib import cm
 from natsort import natsorted
 import pathlib
 import cv2
+import colorsys
 
 from . import process, roi, utils, io, menus, guiparts
+
+h,s,v = np.linspace(0,1,100), np.ones(100), np.ones(100)
+hsv_cmap = np.array([np.array(colorsys.hsv_to_rgb(hi,si,vi)) for hi,si,vi in zip(h,s,v)])
 
 istr = ['pupil', 'motSVD', 'blink', 'running']
 
@@ -724,9 +727,8 @@ class MainW(QtGui.QMainWindow):
                 ir = 0
             else:
                 ir = wroi+1
-            cmap = cm.get_cmap("hsv")
             nc = min(10,self.motSVDs[ir].shape[1])
-            cmap = (255 * cmap(np.linspace(0,0.2,nc))).astype(int)
+            cmap = (255 * hsv_cmap[np.linspace(0,20,nc).astype(int)]).astype(int)
             norm = (self.motSVDs[ir][:,0]).std()
             tr = (self.motSVDs[ir][:,:10]**2).sum(axis=1)**0.5 / norm
             for c in np.arange(0,nc,1,int)[::-1]:
