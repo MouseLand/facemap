@@ -1,15 +1,18 @@
+import os
+import cv2
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.cm
 import scipy.stats
 from scipy.ndimage import filters
 from math import pi
-import skimage.transform 
-import skimage.registration
 import sklearn.cluster
 import time
 import skimage.transform 
 import skimage.registration
+from scipy.ndimage import gaussian_filter
+import pdb
+
 from . import utils, process
 
 
@@ -18,6 +21,78 @@ from . import utils, process
 MOTION TRACES
 '''
 
+def run_movie_proc(filename, save_path=None):
+    """ compute movie masks and movie SVDs for single movie"""
+    cumframes, Ly, Lx, containers = utils.get_frame_details([[filename]])        
+    avgframe, avgmotion = process.subsampled_mean(containers, cumframes, Ly, Lx, 1)
+    nframes = cumframes[-1]
+
+    # load in chunks of up to 1000 frames
+    nt0 = min(1000, nframes)
+    nsegs = int(min(np.floor(15000 / nt0), np.floor(nframes / nt0)))
+    nc = int(250) # <- how many PCs to keep in each chunk
+    nc = min(nc, nt0-1)
+    if nsegs==1:
+        nc = min(ncomps, nt0-1)
+    # what times to sample
+    tf = np.floor(np.linspace(0, nframes-nt0-1, nsegs)).astype(int)
+    Lyb, Lxb = Ly[0], Lx[0]
+    U = np.zeros((Lyb*Lxb, nsegs*nc), np.float32)
+    ni = [0]
+    ns = 0
+
+    for n in range(nsegs):
+        img = [np.zeros((nt0, Lyb, Lxb), np.float32)]
+        t = tf[n]
+        utils.get_frames(img, containers, np.arange(t,t+nt0), cumframes, Ly, Lx)
+        ii = 0
+        imall = img[ii].reshape(-1, Lyb*Lxb)
+        imall -= avgframe[ii]
+        ncb = min(nc, imall.shape[-1])
+        usv  = utils.svdecon(imall.T, k=ncb)
+        ncb = usv[0].shape[-1]
+        U[:, ni[0]:ni[0]+ncb] = usv[0] * usv[1]
+        ni[0] += ncb
+        ns+=1
+        if ns%5==0:
+            print(ns)
+
+    U = U[:, :ni[0]]
+    ncomps = 500
+    usv = utils.svdecon(U, k = min(ncomps, U.shape[1]-1))
+    U = usv[0]
+
+    print('U computed')
+
+    # compute in chunks of 500
+    nt0 = 500
+    nsegs = int(np.ceil(nframes / nt0))
+    t,nt1 = 0,0
+    V = np.zeros((nframes, ncomps), np.float32)
+    for n in range(nsegs):
+        t += nt1
+        img = [np.zeros((nt0, Lyb, Lxb), np.float32)]
+        utils.get_frames(img, containers, np.arange(t,t+nt0), cumframes, Ly, Lx)
+        nt1 = img[0].shape[0]
+        
+        imall = img[ii].reshape(-1, Lyb*Lxb)
+        imall -= avgframe[ii]
+        vproj = imall @ U
+        V[t:t+vproj.shape[0], :] = vproj
+
+    print('V computed')
+
+    if save_path is None:
+        froot = os.path.splitext(filename)[0]
+        np.save(froot+'_proc.npy', {'avgframe': avgframe, 'movMask': [U], 
+                                    'movSVD': [V], 'Ly': Ly, 'Lx': Lx})
+    else:
+        froot = os.path.splitext(os.path.split(filename)[-1])[0]
+        np.save(os.path.join(save_path, froot+'_proc.npy'), {'avgframe': avgframe, 'movMask': [U], 
+                                    'movSVD': [V], 'Ly': Ly, 'Lx': Lx})
+        
+
+
 
 def imall_init(nfr, Ly, Lx):
     imall = []
@@ -25,10 +100,41 @@ def imall_init(nfr, Ly, Lx):
         imall.append(np.zeros((nfr,Ly[n],Lx[n]), 'uint8'))
     return imall
 
-def get_newV(filenames, U_new, crop_vals, tform='none', nframes='none'):
+def get_newV_movie(filenames, U_new, crop_vals, tform='none', nframes='none'):
     ''' recalculates V after warping U, up to nframes frames '''
     if U_new.ndim==3:
         U_new = U_new.reshape(-1, U_new.shape[-1])
+    start = time.time()
+    cumframes, Ly_old, Lx_old, containers = utils.get_frame_details(filenames)
+    Ly_old = Ly_old[0]; Lx_old = Lx_old[0]
+    avgframe,_ = process.subsampled_mean(containers, cumframes, [Ly_old], [Lx_old], sbin=1)
+    avgframe = np.reshape(avgframe[0],(Ly_old,Lx_old))
+    
+    V_new = np.zeros([cumframes[-1],U_new.shape[1]])
+    chunk_len = 1000
+    nt = int(np.ceil(cumframes[-1]/chunk_len)) #how many chunks (including last incomplete one)
+    if not isinstance(nframes,str):
+        nt= int(np.ceil(nframes/chunk_len))
+    for i in range(nt):
+        cframes = range(i*chunk_len,i*chunk_len+chunk_len)
+        this_V = calc_newV(containers, cumframes, avgframe, U_new, 
+                            Ly_old, Lx_old, 
+                            crop_vals, cframes, 
+                            False, tform)
+        V_new[i*chunk_len:i*chunk_len+len(this_V),:] = this_V
+    
+        if i%100 == 0:
+            print('Projection {} of {}, time {}s'.format(i+1,nt,(time.time() - start)))
+    
+    if not isinstance(nframes,str):
+        V_new = V_new[:nframes,:]
+    
+    return V_new
+
+def get_newV(filenames, U_new, crop_vals, tform='none', nframes='none'):
+    ''' recalculates V after warping U, up to nframes frames '''
+    if U_new.ndim==3:
+        U = U_new.reshape(-1, U_new.shape[-1])
     start = time.time()
     cumframes, Ly_old, Lx_old = utils.get_frame_details(filenames)
     Ly_old = Ly_old[0]; Lx_old = Lx_old[0]
@@ -54,7 +160,8 @@ def get_newV(filenames, U_new, crop_vals, tform='none', nframes='none'):
     return V_new
 
 
-def calc_newV(filenames, cumframes, avgmotion, U_new, Ly_old, Lx_old, crop_vals, cframes,
+def calc_newV(containers, cumframes, avgf, U_new, Ly_old, Lx_old, 
+                crop_vals, cframes, motion=True,
               tform='none'):
     ''' this function calculates post-warp V for the chunk of times specified by cframes '''
     ''' note: remember first frame of V is a filler '''
@@ -66,7 +173,7 @@ def calc_newV(filenames, cumframes, avgmotion, U_new, Ly_old, Lx_old, crop_vals,
     # cframes adjustments
     nframes = cumframes[-1]
     cframes = np.maximum(0, np.minimum(nframes-1, cframes)) #make sure not going over video time
-    cframes = np.arange(cframes[0]-1, cframes[-1]+1).astype(int) #add onto the beginning to take diff
+    cframes = np.arange(cframes[0]-1*motion, cframes[-1]+1).astype(int) #add onto the beginning to take diff
     
     # let's get X
     firstframe=0
@@ -74,25 +181,24 @@ def calc_newV(filenames, cumframes, avgmotion, U_new, Ly_old, Lx_old, crop_vals,
     if cframes[0] == -1: #this is the first frame
         cframes = cframes[1:]
         firstframe = 1
-    utils.get_frames(imall, filenames, cframes, cumframes, [Ly_old], [Lx_old])
+    utils.get_frames(imall, containers, cframes, cumframes, [Ly_old], [Lx_old])
     #fm.get_frames_cv2(imall, [vidfile], cframes, cumframes, [Ly_old], [Lx_old])
-    motion = np.abs(np.diff(imall[0],axis=0))
-    X = motion - avgmotion
+    if motion:
+        X = np.abs(np.diff(imall[0],axis=0))
+    else:
+        X = imall[0].astype(np.float32)
+    X -= avgf
     
-    # now rigid trim
-    if not isinstance(tform,str): #only apply if not the reference image
-        # for bringing X into the right position to be cropped
-        for j in range(X.shape[0]):
-            X[j,:,:] = skimage.transform.warp(X[j,:,:],tform.inverse)
-    X = X[:,yl:yr+1,xl:xr+1] #trim to rigid
+    # trim
+    X = X[:,yl:yr+1,xl:xr+1]
     
-    X = np.reshape(X,(-1,Ly*Lx))
+    X = np.reshape(X,(X.shape[0],-1))
     X = np.transpose(X, (1,0)).astype(np.float32)
 
     # calculate new V
     V_new = X.T @ U_new
     
-    if firstframe:
+    if firstframe and motion:
         V_new = np.insert(V_new,0,V_new[0,:],axis=0)
     
     return V_new
@@ -103,6 +209,181 @@ def calc_newV(filenames, cumframes, avgmotion, U_new, Ly_old, Lx_old, crop_vals,
 '''
 EIGENFACES
 '''
+
+
+def warp_U(U, Ly, Lx, rigid_tform, crop_data, warp_mat):
+    '''
+    
+    Parameters
+    ----------
+    U : U to be warped
+    Ly : Ly of image
+    Lx : Lx of image
+    rigid_tform : scikit-image AffineTransform object for rigid transformations
+    warp_mat : Ly x Lx warp matrix; output of the get_warp_mat function
+
+    Returns
+    -------
+    U_warp : Warped U matrix
+
+    '''
+    
+    U_ims = z_score_U(U, Ly, Lx, return_im=1)
+    xl,xr,yl,yr = np.array(crop_data,dtype=int)
+    Ly_new = yr - yl + 1
+    Lx_new = xr - xl + 1
+    U_warp = np.zeros((Ly_new, Lx_new, U_ims.shape[2]))
+
+    for i in range(U_ims.shape[2]):
+        U_im = skimage.transform.warp(U_ims[:,:,i], rigid_tform, preserve_range=True) #rigid transform
+        U_im = U_im[yl:yr+1,xl:xr+1]
+        U_warp[:,:,i] = skimage.transform.warp(U_im, warp_mat, mode='constant', preserve_range=True) #nonrigid
+    
+    # get indices in original
+    Y, X = np.meshgrid(np.arange(0, Ly, 1, int), np.arange(0, Lx, 1, int))
+    yout = skimage.transform.warp(Y, rigid_tform.inverse, order=0, preserve_range=True)
+    xout = skimage.transform.warp(X, rigid_tform.inverse, order=0, preserve_range=True)
+    crop_ref = np.array([xout.min(), xout.max(), yout.min(), yout.max()], int)
+    print(crop_ref)
+
+    return U_warp, crop_ref
+
+def transform_U(videos, procs, plot=0):
+    '''
+    for now assumes NO DOWNSAMPLING
+
+    Parameters
+    ----------
+    vidname0 : name of reference video (should have smallest Ly x Lx)
+        can set to 'none' to calculate the smallest video
+    other_vidnames : list of names of videos to align to
+    plot : option to plot a few steps of the morphing process and final U images
+    
+    Returns
+    -------
+    warpedU : list of U's (flat), first index is U of reference cropped to same size as the other U's
+    warp_info : list of dictionaries with information useful for reproducing warping outside of the function
+    crop_vals : final xl, xr, yl, yr values used to crop from original to warped size
+    
+    '''
+    
+    n_videos = len(videos)
+    
+    warpedU = []
+    warp_info = []
+    
+    # now get data for the reference image
+    reference_video_file, reference_proc_file = videos[0], procs[0]
+    cumframes, Ly0, Lx0, _ = utils.get_frame_details([[reference_video_file]])
+    Ly_ref, Lx_ref = Ly0[0], Lx0[0]
+    proc_ref = np.load(reference_proc_file, allow_pickle=True).item()
+    
+    avg_ref = z_score_im(proc_ref['avgframe'][0], Ly_ref, Lx_ref, return_im=1)
+    V_ref = proc_ref['movSVD'][0]
+    print('getting representative reference image')
+    repim_ref = get_rep_image(reference_video_file, avg_ref, V_ref, Ly_ref, Lx_ref, cutoff = 0.0002, plot=plot)
+    U_ref = z_score_U(proc_ref['movMask'][0], Ly_ref, Lx_ref, return_im=0)
+    warpedU.append(U_ref) #first idx will be U from the reference
+    warp_info.append([1, 1])
+    del proc_ref
+    
+    crop_align = np.zeros((n_videos,4), int) #space for xl,xr,yl,yr
+    crop_ref = np.zeros((n_videos,4), int) #space for xl,xr,yl,yr
+    
+    # now do the warping for the other videos
+    for k in range(1,n_videos):
+        print(videos[k])
+        #load these individually so don't load in too much data at once
+        proc_align = np.load(procs[k], allow_pickle=True).item()
+        Ly_align = proc_align['Ly'][0]
+        Lx_align = proc_align['Lx'][0]
+        avg_align = z_score_im(proc_align['avgframe'][0], Ly_align, Lx_align, return_im=1)
+        V_align = proc_align['movSVD'][0]
+        print('getting representative align-to image')
+        repim_align = get_rep_image(videos[k], avg_align, V_align, Ly_align, Lx_align, cutoff = 0.0002, plot=plot)
+        repim_align_orig = repim_align.copy()
+        U_orig = z_score_U(proc_align['movMask'][0], Ly_ref, Lx_ref, return_im=0)
+        del proc_align
+
+        # make sure sizes match, and if they don't, resize
+        yadd, xadd = 0, 0
+        if Ly_ref != Ly_align or Lx_ref != Lx_align:
+            print('{} has size {} x {} instead of {} x {}'.format(videos[k],Ly_align,Lx_align,Ly_ref,Lx_ref))
+            if Ly_ref > Ly_align:
+                repim_align  = np.concatenate((repim_align, np.zeros((Ly_ref-Ly_align, Lx_align), np.uint8)), axis=0)
+                yadd = Ly_ref-Ly_align
+            if Lx_ref > Lx_align:
+                repim_align  = np.concatenate((repim_align, np.zeros((Ly_ref, Lx_ref-Lx_align), np.uint8)), axis=1)
+                xadd = Lx_ref-Lx_align
+            print(repim_align.shape)
+            
+        # now calculate matrices for transformation (rigid, crop, then nonrigid)
+        rigid_tform, rigid_im_ref = get_rigid_warp_mat(repim_align, repim_ref)
+        print(rigid_im_ref.shape)
+        rigid_im_crop_ref, Lx_crop, Ly_crop, xl, xr, yl, yr = crop_image(rigid_im_ref, Ly_ref, Lx_ref)
+        print('cropped inds {}:{}, {}:{}'.format(yl, yr, xl, xr))
+        repim_align = repim_align[yl:yr+1,xl:xr+1]
+        nonrigid_tform = get_nonrigid_warp_mat(repim_align, rigid_im_crop_ref, plot=plot)
+        crop_align[k,:] = np.array([xl,xr,yl,yr], dtype=int)
+        
+        warp_info.append([[Ly_ref, Lx_ref], rigid_tform, nonrigid_tform])
+
+        # warp U's using matrices calculated above
+        U_align, crop_refk = warp_U(U_ref, Ly_ref, Lx_ref, rigid_tform, crop_align[k,:], nonrigid_tform)
+        U_align = z_score_U(U_align, Ly_crop, Lx_crop, return_im=0)
+        U_align = np.reshape(U_align, (Ly_crop,Lx_crop,500))
+        yadd = max(0, yadd - (Ly_ref - crop_align[k,3] - 1))
+        xadd = max(0, xadd - (Lx_ref - crop_align[k,1] - 1))
+        if yadd>0:
+            U_align = U_align[:-yadd]
+        if xadd>0:
+            U_align = U_align[:,:-xadd]
+        U_align /= (U_align**2).sum(axis=(0,1))
+        print(U_align.shape, repim_align_orig[yl:yr+1,xl:xr+1].shape)
+        warpedU.append(U_align)
+        crop_ref[k] = crop_refk
+        
+        # adjust the reference image to this crop
+        U_crop = np.reshape(U_ref.copy(), (Ly_ref,Lx_ref,500))
+        xl, xr, yl, yr = crop_ref[k]
+        U_crop = U_crop[yl:yr+1,xl:xr+1,:]
+        Ly_crop_ref, Lx_crop_ref = U_crop.shape[:2]
+        U_crop = z_score_U(U_crop, Ly_crop_ref, Lx_crop_ref, return_im=0)
+        U_crop /= (U_crop**2).sum(axis=0)
+        U_crop = np.reshape(U_crop, (Ly_crop_ref, Lx_crop_ref, 500))
+        #if len(other_vidnames) == 1:
+        #    warpedU[0] = vid0_U_crop # replace 1st idx with cropped one
+        #    crop_vals = crop_data[idx,:]
+        
+        # plot the warped and unwarped U's for comparison
+        if plot:
+            plt.figure(figsize=(12,9))
+            U0_im = np.reshape(U_ref,(Ly_ref,Lx_ref,-1))
+            U1_im = np.reshape(U_orig,(Ly_align,Lx_align,-1))
+            for i in range(0,12,4):
+                ax=plt.subplot(3,4,i+1)
+                ax.imshow(U0_im[:,:,i])#, vmin=-2, vmax=2)
+                ax.set_title('reference mask')
+                ax.axis('off')
+                ax=plt.subplot(3,4,i+2)
+                ax.imshow(U_crop[:,:,i])#, vmin=-2, vmax=2)
+                ax.set_title('reference mask cropped')
+                ax.axis('off')
+                #ax=plt.subplot(3,4,i+2)
+                #ax.imshow(repim_align)
+                ax=plt.subplot(3,4,i+3)
+                ax.imshow(U_align[:,:,i])#, vmin=-2, vmax=2)
+                ax.set_title('reference mask warped')
+                ax.axis('off')
+                ax=plt.subplot(3,4,i+4)
+                ax.imshow(U1_im[:,:,i])#, vmin=-2, vmax=2)
+                ax.set_title('mask1')
+                ax.axis('off')
+            plt.suptitle('{} movie masks warped to {} axes'.format(reference_video_file, videos[1]))
+            plt.show()
+    return warpedU, warp_info, crop_align, crop_ref
+
+    
 
 def get_warped_Us(reference_files, other_vidnames,plot=0, use_rep=0):
     '''
@@ -167,6 +448,7 @@ def get_warped_Us(reference_files, other_vidnames,plot=0, use_rep=0):
         
         # now calculate matrices for transformation (rigid, crop, then nonrigid)
         rigid_tform, vid1_avg_rigid = get_rigid_warp_mat(vid0_repim, vid1_repim)
+        print(vid1_avg_rigid.shape)
         vid1_avg_rigid_crop,Lx_crop,Ly_crop,xl,xr,yl,yr = crop_image(vid1_avg_rigid, Ly1, Lx1)
         vid0_avg_crop = vid0_repim[yl:yr+1,xl:xr+1]
         warp_mat = get_nonrigid_warp_mat(vid0_avg_crop, vid1_avg_rigid_crop,plot=plot)
@@ -205,82 +487,25 @@ def get_warped_Us(reference_files, other_vidnames,plot=0, use_rep=0):
             U1_im = np.reshape(vid1_U,(Ly1,Lx1,-1))
             for i in range(0,12,4):
                 ax=plt.subplot(3,4,i+1)
-                ax.imshow(U0_im[:,:,i], vmin=-2, vmax=2)
+                ax.imshow(U0_im[:,:,i])#, vmin=-2, vmax=2)
                 ax.set_title('mask0')
                 ax.axis('off')
                 ax=plt.subplot(3,4,i+2)
-                ax.imshow(vid0_U_crop[:,:,i], vmin=-2, vmax=2)
+                ax.imshow(vid0_U_crop[:,:,i])#, vmin=-2, vmax=2)
                 ax.set_title('mask0 cropped')
                 ax.axis('off')
                 ax=plt.subplot(3,4,i+3)
-                ax.imshow(vid1_U_warped[:,:,i], vmin=-2, vmax=2)
+                ax.imshow(vid1_U_warped[:,:,i])#, vmin=-2, vmax=2)
                 ax.set_title('mask1 warped')
                 ax.axis('off')
                 ax=plt.subplot(3,4,i+4)
-                ax.imshow(U1_im[:,:,i], vmin=-2, vmax=2)
+                ax.imshow(U1_im[:,:,i])#, vmin=-2, vmax=2)
                 ax.set_title('mask1')
                 ax.axis('off')
             plt.suptitle('{} motion masks warped to {} axes'.format(vidname1,vidname0))
             plt.show()
     
-    
-    if len(other_vidnames) > 1: #get all images to the same size if there's more than one video
-        xl = np.amax(crop_data[:,0]); xr = np.amin(crop_data[:,1])
-        yl = np.amax(crop_data[:,2]); yr = np.amin(crop_data[:,3])
-        crop_vals = np.array([xl,xr,yl,yr], dtype=int)
-        Lx_crop = xr-xl+1; Ly_crop = yr-yl+1
-        
-        # adjust the reference image to this crop
-        vid0_U_crop = np.reshape(vid0_U,(Ly0,Lx0,-500))
-        vid0_U_crop = vid0_U_crop[yl:yr+1,xl:xr+1,:]
-        vid0_U_crop = z_score_U(vid0_U_crop, Ly_crop, Lx_crop, return_im=0)
-        vid0_U_crop /= (vid0_U_crop**2).sum(axis=0)
-        warpedU[0] = vid0_U_crop #first idx will be U from the reference
-        
-        for i, U in  enumerate(warpedU): # now adjust cropping of the other warped U's
-            if i == 0:
-                continue
-            xl_adj = xl - crop_data[i,0]; xr_adj = crop_data[i,1] - xr
-            yl_adj = yl - crop_data[i,2]; yr_adj = crop_data[i,3] - yr
-            U = np.reshape(U,(crop_data[i,3]-crop_data[i,2]+1, crop_data[i,1]-crop_data[i,0]+1,-1))
-            U = U[yl_adj:U.shape[0]-yr_adj, xl_adj:U.shape[1]-xr_adj, -1] 
-            U = np.reshape(U, (Ly_crop*Lx_crop,-1)) 
-            U = z_score_U(U, Ly_crop, Lx_crop, return_im=0)
-            warpedU[i] = U / (U**2).sum(axis=0)
-    
-    
     return warpedU, warp_info, crop_data, V_orig
-
-
-def warp_U(U, Ly, Lx, rigid_tform, crop_data, warp_mat):
-    '''
-    
-    Parameters
-    ----------
-    U : U to be warped
-    Ly : Ly of image
-    Lx : Lx of image
-    rigid_tform : scikit-image AffineTransform object for rigid transformations
-    warp_mat : Ly x Lx warp matrix; output of the get_warp_mat function
-
-    Returns
-    -------
-    U_warp : Warped U matrix
-
-    '''
-    
-    U_ims = z_score_U(U, Ly, Lx, return_im=1)
-    xl,xr,yl,yr = np.array(crop_data,dtype=int)
-    Ly_new = yr - yl + 1
-    Lx_new = xr - xl + 1
-    U_warp = np.zeros((Ly_new, Lx_new, U_ims.shape[2]))
-    for i in range(U_ims.shape[2]):
-        U_im = skimage.transform.warp(U_ims[:,:,i], rigid_tform.inverse) #rigid transform
-        U_im = U_im[yl:yr+1,xl:xr+1]
-        U_warp[:,:,i] = skimage.transform.warp(U_im, warp_mat, mode='constant') #nonrigid
-    
-    return U_warp
-
 
 '''
 CALCULATE WARPING
@@ -313,7 +538,7 @@ def get_nonrigid_warp_mat(im0, im1, plot=0, num_warp=5, num_iter=10, tol=0.0001,
                                                  indexing = 'ij')
             this_warp_mat = np.array([row_coords + v, col_coords + u])
             
-            this_im1w = skimage.transform.warp(im1.copy(),this_warp_mat,mode='constant')
+            this_im1w = skimage.transform.warp(im1.copy(),this_warp_mat,mode='constant')#, preserve_range=True)
             this_im1w = z_score_im(this_im1w, Ly, Lx)
             this_sse = np.sum((this_im1w-im0_z)**2)
             if this_sse < lowest_sse:
@@ -337,16 +562,19 @@ def get_nonrigid_warp_mat(im0, im1, plot=0, num_warp=5, num_iter=10, tol=0.0001,
     
             
     if plot:
-        plt.figure(figsize=(16,4))
+        plt.figure(figsize=(12,3))
         ax1 = plt.subplot(131)
         ax1.imshow(im0_z,vmin=-2,vmax=2)
-        ax1.set_title('im0 cropped')
+        ax1.set_title('align-to image cropped')
+        ax1.axis('off')
         ax2 = plt.subplot(132)
         ax2.imshow(im1w,vmin=-2,vmax=2)
-        ax2.set_title('im1 post-rigid and -nonrigid transform')
+        ax2.set_title('reference image post-rigid and -nonrigid transform')
+        ax2.axis('off')
         ax3 = plt.subplot(133)
         ax3.imshow(z_score_im(im1,Ly,Lx),vmin=-2,vmax=2)
-        ax3.set_title('im1 post-rigid transform')
+        ax3.set_title('reference image post-rigid transform')
+        ax3.axis('off')
     
     return warp_mat
 
@@ -374,7 +602,7 @@ def get_nonrigid_warp_mat_input(im0, im1, plot=0, attachment=8,tightness=0.5,num
     
     # evaluate accuracy of warping
     im0 = z_score_im(im0, Ly, Lx)
-    im1w = skimage.transform.warp(im1,warp_mat,mode='constant')
+    im1w = skimage.transform.warp(im1,warp_mat,mode='constant', preserve_range=True)
     im1w = z_score_im(im1w, Ly, Lx)
     sse = np.sum((im1w-im0)**2)
     im_overlap = np.zeros([Ly,Lx,3])
@@ -389,7 +617,7 @@ def get_nonrigid_warp_mat_input(im0, im1, plot=0, attachment=8,tightness=0.5,num
     
             
     if plot:
-        plt.figure(figsize=(16,4))
+        plt.figure(figsize=(8,3))
         ax1 = plt.subplot(131)
         ax1.imshow(im0,vmin=-2,vmax=2)
         ax1.set_title('im0 cropped')
@@ -406,7 +634,7 @@ def get_nonrigid_warp_mat_input(im0, im1, plot=0, attachment=8,tightness=0.5,num
     return warp_mat
 
 
-def get_rigid_warp_mat(im0, im1, degshift=1, scaleshift=0.05, plot=0):
+def get_rigid_warp_mat(im_align, im_ref, degshift=1, scaleshift=0.05, plot=0):
     '''
     Parameters
     ----------
@@ -422,43 +650,70 @@ def get_rigid_warp_mat(im0, im1, degshift=1, scaleshift=0.05, plot=0):
         transformation (or rather, use its inverse)
     im1_new : This is image1 transformed using tform
     '''
-    
+    im_ref_orig = im_ref.copy()
+    scales = []
+    tforms = []
+    Ly_align, Lx_align = im_align.shape
+    Ly_ref, Lx_ref = im_ref.shape
+    scale = find_scalingfactor(im_align, im_ref, scaleshift=scaleshift)
+    scales.append(scale)
+    if scale>1.0:
+        im_align = cv2.resize(im_align, (int(Lx_align*scale), int(Ly_align*scale)))
+        Ly_align, Lx_align = im_align.shape
+    else:
+        im_ref = cv2.resize(im_ref, (int(Lx_ref/scale), int(Ly_ref/scale)))
+        Ly_ref, Lx_ref = im_ref.shape
+    yp1 = max(0, Ly_align - Ly_ref)
+    xp1 = max(0, Lx_align - Lx_ref)
+    im_ref = np.pad(im_ref, ((yp1//2,yp1//2+yp1%2), (xp1//2,xp1//2+xp1%2)))
+    yp0 = max(0, Ly_ref - Ly_align)
+    xp0 = max(0, Lx_ref - Lx_align)
+    im_align = np.pad(im_align, ((yp0//2,yp0//2+yp0%2), (xp0//2,xp0//2+xp0%2)))
+    print(im_align.shape, im_ref.shape)    
+
     num_rotations = int(360/degshift)
     mag = np.zeros(num_rotations)
     shifts = []
-    for i in range(num_rotations):
-        im1_r = skimage.transform.rotate(im1,angle=i*degshift)
-
-        im_product = np.fft.fft2(im0) * np.fft.fft2(im1_r).conj()
-        xcorr = np.fft.fftshift(np.fft.ifft2(im_product))
+    fim_align = np.fft.fft2(im_align)
+    angles = np.arange(-15, 16, degshift)
+    for i,ang in enumerate(angles):
+        im_r = skimage.transform.rotate(im_ref, angle=ang)
+        fim_r = np.fft.fft2(im_r)
+        im_product = fim_align * fim_r.conj()
+        xcorr = np.fft.fftshift(np.fft.ifft2(im_product)).real
+        #xcorr = gaussian_filter(xcorr.real, 5)
 
         maxima = np.unravel_index(np.argmax(xcorr), xcorr.shape) # this is in y,x
-        mag[i] = xcorr.real[maxima]
+        mag[i] = xcorr[maxima]
         shifts.append(np.array(maxima, dtype=np.float64)) #this is still in y,x
 
-    midpoints = np.array([np.floor(axis_size / 2) for axis_size in im0.shape])
+    midpoints = np.array([np.floor(axis_size / 2) for axis_size in im_align.shape])
 
     max_idx = np.argmax(mag.real)
-    angle = max_idx * degshift
+    angle = angles[max_idx]
     shift = shifts[max_idx] - midpoints
     shift = np.flip(shift) #this is in x,y
 
     print(f"value for CCW rotation (degrees): {angle}")
-    print(f"value for translation (x,y): {shift}")
-    
-    #for scaling
-    tform = skimage.transform.AffineTransform(translation=shift, rotation=(angle*(-pi/180)))
-    im1_noscale = skimage.transform.warp(im1,tform.inverse)
-    scale = find_scalingfactor(im0,im1_noscale,scaleshift=scaleshift)
+    print(f"value for translation (y,x): {shift}")
 
     #now apply transformations together
-    tform = skimage.transform.AffineTransform(translation=shift, scale=[scale,scale], rotation=(angle*(-pi/180)))
-    im1_new = skimage.transform.warp(im1,tform.inverse)
+    tform = skimage.transform.AffineTransform(translation=-1*shift, rotation=(angle*(pi/180)))
+    #im_ref = skimage.transform.warp(im_ref, tform)
+    matrix = tform.params @ np.array([[scale, 0, -xp1//2], [0, scale, -yp1//2], [0, 0, 1.]])
+    tform = skimage.transform.AffineTransform(matrix = matrix)
+    im_ref_new = skimage.transform.warp(im_ref_orig, tform)#, preserve_range=True)
+
+    # get indices in original
+    Y, X = np.meshgrid(np.arange(0, Ly_ref, 1, int), np.arange(0, Lx_ref, 1, int))
+    yout = skimage.transform.warp(Y, tform, order=0, preserve_range=True)
+    xout = skimage.transform.warp(X, tform, order=0, preserve_range=True)
+    crop_inds = np.array([xout.min(), xout.max(), yout.min(), yout.max()], int)
     
     if plot:
-        plot_transformed_img(im0,im1,im1_new,shift=shift,angle=angle,scale=scale)
+        plot_transformed_img(im_align, im_ref_orig, im_ref,shift=shift,angle=angle,scale=scale)
     
-    return tform, im1_new
+    return tform, im_ref_new#, crop_inds #, im_align, im_ref
 
 
 def find_scalingfactor(im0, im1, scaleshift=.05):
@@ -475,7 +730,7 @@ def find_scalingfactor(im0, im1, scaleshift=.05):
 
     '''
     Ly,Lx = im0.shape
-    scales = np.arange(scaleshift,2,scaleshift)
+    scales = np.arange(0.65,1.4,scaleshift)
     mag = np.zeros(len(scales))
     for i in range(len(scales)):
         im1_fullscale = skimage.transform.rescale(im1,scale=scales[i],mode='constant')
@@ -493,11 +748,11 @@ def find_scalingfactor(im0, im1, scaleshift=.05):
             im1_s = im1_fullscale
 
         im_product = np.fft.fft2(im0) * np.fft.fft2(im1_s).conj()
-        xcorr = np.fft.fftshift(np.fft.ifft2(im_product))
-
+        xcorr = np.fft.fftshift(np.fft.ifft2(im_product)).real
+        xcorr = gaussian_filter(xcorr, 3)
         #maxima = np.unravel_index(np.argmax(xcorr), xcorr.shape) # this is in y,x
         #mag[i] = xcorr[maxima]
-        mag[i] = xcorr.real[int(Ly/2),int(Lx/2)]
+        mag[i] = xcorr[int(Ly/2),int(Lx/2)]
 
     max_idx = np.argmax(mag.real)
     scalingfactor = scales[max_idx]
@@ -555,12 +810,12 @@ CHANGING IMAGE SIZES
 
 def crop_image(im, Ly, Lx, plot=0):
     ''' this function could probably be improved, but currently crops off some of the edge padding '''
-    colsizes = np.where(np.count_nonzero(im,axis=0) > 0)[0]
-    rowsizes = np.where(np.count_nonzero(im,axis=1) > 0)[0]
+    #pdb.set_trace()
+    colsizes = np.where(np.count_nonzero(im,axis=0)==0)[0]
+    rowsizes = np.where(np.count_nonzero(im,axis=1)==0)[0]
     xlen = colsizes.shape[0]
     ylen = rowsizes.shape[0]
-
-    if xlen < ylen: # do x first
+    if xlen > ylen: # do x first
         x_crop, Lx_crop, xl, xr = crop_x(im,Lx,Ly)
         im_cr, Ly_crop, yl, yr = crop_y(x_crop,Lx_crop,Ly,plot=plot)
     else: # do y first
@@ -573,7 +828,8 @@ def crop_image(im, Ly, Lx, plot=0):
 def crop_x(im,Lx,Ly,plot=0):
     ''' this crops out fully-zero edges (columns) '''
     colsizes = np.count_nonzero(im,axis=0)
-    x_nonzero = np.where(colsizes!=0)
+    x_nonzero = np.where(colsizes>0)[0]
+    
     xl = int(np.amin(x_nonzero))
     xr = int(np.amax(x_nonzero))
 
@@ -589,7 +845,8 @@ def crop_x(im,Lx,Ly,plot=0):
 def crop_y(im,Lx,Ly,plot=0):
     ''' this crops out fully-zero edges (rows) '''
     rowsizes = np.count_nonzero(im,axis=1)
-    y_nonzero = np.where(rowsizes!=0)
+    y_nonzero = np.where(rowsizes>0)[0]
+    
     yl = int(np.amin(y_nonzero))
     yr = int(np.amax(y_nonzero))
 
@@ -668,11 +925,11 @@ def get_rep_image(vidname, avgframe, V, Ly, Lx, cutoff = 0.0002, plot=0):
     sums = np.sum(np.abs(V_z),axis = 0)
     sums = scipy.stats.zscore(sums)
     
-    trest = (np.abs(sums) < .0002) == 1
-    while sum(trest) < 100:
-        cutoff += 0.0001
-        trest = (np.abs(V_z)<cutoff).sum(axis=0)==V_z.shape[0]
-        print(cutoff, sum(trest))
+    trest = sums < np.percentile(sums, 0.1)
+    #while sum(trest) < 100:
+    #    cutoff += 0.0001
+    #    trest = (np.abs(V_z)<cutoff).sum(axis=0)==V_z.shape[0]
+    #    print(cutoff, sum(trest))
     times = np.where(trest==True)[0]
     
     # let's get these resting images
@@ -701,10 +958,10 @@ def best_rep_combo(imall0, imall1, plot=0):
     i,j = np.unravel_index(np.argmax(magnitude),magnitude.shape)
     
     if plot:
-        plt.figure(figsize=(16,4))
+        plt.figure(figsize=(8,3))
         plt.subplot(121)
         plt.imshow(imall0[i,:,:])
-        plt.title('image 0')
+        plt.title('mean image')
         plt.axis('off')
         plt.subplot(122)
         plt.imshow(M1_cent)

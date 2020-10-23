@@ -15,7 +15,7 @@ def bin1d(X, tbin):
 
 def split_testtrain(n_t, frac=0.25):
     ''' this returns indices of testing data and training data '''
-    n_segs = int(min(20, n_t/4)) #usu want 20 segs, but might not have enough frames for that
+    n_segs = int(min(10, n_t/4)) #usu want 20 segs, but might not have enough frames for that
     n_len = int(n_t/n_segs)
     ninds = np.linspace(0, n_t - n_len, n_segs).astype(int)
     itest = (ninds[:,np.newaxis] + np.arange(0,n_len * frac,1,int)).flatten()
@@ -187,8 +187,7 @@ def get_frames(imall, containers, cframes, cumframes, Ly, Lx):
                 if ret:
                     im[fc,:,:] = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
                 else:
-                    print('img load failed, replacing with prev..')
-                    im[fc,:,:] = im[fc-1,:,:]
+                    print('img load failed, breaking')
                 fc += 1
             imall[ii][nk:nk+im.shape[0]] = im
             nk += im.shape[0]
@@ -207,7 +206,7 @@ def close_videos(containers):
             cap = containers[i][j]
             cap.release()
 
-def get_frame_details(filenames):
+def get_frame_details(filenames, close_videos=False):
     '''  
     Uses cv2 to open video files and obtain their details
     Parameters:-(Input) filenames: a 2D list of video files
@@ -228,15 +227,17 @@ def get_frame_details(filenames):
             framecount = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
             Lx.append(int(cap.get(cv2.CAP_PROP_FRAME_WIDTH)))
             Ly.append(int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT)))
+            if close_videos:
+                cap.release()
         containers.append(cs)
         cumframes.append(cumframes[-1]+framecount)
     cumframes = np.array(cumframes).astype(int)
     return cumframes, Ly, Lx, containers
+    
 
 def get_skipping_frames(imall, filenames, cframes, cumframes):
     nframes = cumframes[-1] #total number of frames
     cframes = np.maximum(0, np.minimum(nframes-1, cframes))
-    cframes = np.arange(cframes[0], cframes[-1]+1).astype(int)
     ivids = (cframes[np.newaxis,:] >= cumframes[1:,np.newaxis]).sum(axis=0)
     i=0
     for ii in range(len(filenames[0])):
