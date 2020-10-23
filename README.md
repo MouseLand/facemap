@@ -20,11 +20,9 @@ For 2p imaging, you'll need a tighter filter around 850nm so you don't see the l
 
 ## PYTHON
 
-This package only supports python 3 installed with **[Anaconda](https://www.anaconda.com/download/)**.
+This package only supports python 3. We recommend installing python 3 with **[Anaconda](https://www.anaconda.com/download/)**.
 
-**Linux users** run this first: `sudo apt-get install ffmpeg`
-
-### Using the environment.yml file (try this FIRST)
+### Using the environment.yml file (recommended)
 
 1. Download the `environment.yml` file from the repository
 2. Open an anaconda prompt / command prompt with `conda` for **python 3** in the path
@@ -37,24 +35,17 @@ To upgrade FaceMap (package [here](https://pypi.org/project/facemap/)), within t
 pip install facemap --upgrade
 ~~~~
 
-### Manual installation of dependencies
+### Using pip package
 
-1. From a command line terminal / anaconda prompt, install the video libraries: `conda install av -c conda-forge`
-2. Install other conda dependencies (they may be already installed in base anaconda but try these commands)
+Run the following
+~~~
+pip install facemap
+~~~
+
+If you are using running ROIs, you will want to install mkl_fft via conda:
 ~~~~
-conda install -c numba numba
 conda install -c conda-forge mkl_fft
 ~~~~
-3. Install facemap and the rest of its dependencies: `pip install facemap`
-4. Now try to run `python -m facemap` and if you see missing dependencies, try to pip install them or post issues.
-
-### NEXT (EVERYONE)
-
-If you have **big** files or if you have **frame reading errors** try the following command for [pims](http://soft-matter.github.io/pims/v0.4.1/install.html), which allows non-sequential indexing into videos:
-~~~~
-pip install git+https://github.com/soft-matter/pims.git
-~~~~
-You will need to have git installed for this.
 
 ### Common issues
 
@@ -63,32 +54,26 @@ If you have pip issues, there might be some interaction between pre-installed de
 python -m pip install --upgrade pip
 ~~~~
 
-
 If when running `python -m facemap`, you receive the error: `No module named PyQt5.sip`, then try uninstalling and reinstalling pyqt5
 ~~~
 pip uninstall pyqt5 pyqt5-tools
 pip install pyqt5 pyqt5-tools pyqt5.sip
 ~~~
 
-If when running `python -m facemap`, you receive an error associated with **matplotlib**, try upgrading it:
-~~~
-pip install matplotlib --upgrade
-~~~
-
 If you are on Yosemite Mac OS, PyQt doesn't work, and you won't be able to install FaceMap. More recent versions of Mac OS are fine.
 
-The software has been heavily tested on Ubuntu 18.04, and less well tested on Windows 10 and Mac OS. Please post an issue if you have installation problems. Also, try to follow the instructions that `pip` provides if more drivers are needed to run `ffmpeg` / `pims`.
+The software has been heavily tested on Ubuntu 18.04, and less well tested on Windows 10 and Mac OS. Please post an issue if you have installation problems.
 
 ### Dependencies
 
 FaceMap python relies on these awesome packages:
-- [ffmpeg](https://ffmpeg.org/)
-- [pims](http://soft-matter.github.io/pims/v0.4.1/install.html)
 - [pyqtgraph](http://pyqtgraph.org/)
 - [PyQt5](http://pyqt.sourceforge.net/Docs/PyQt5/)
 - [numpy](http://www.numpy.org/) (>=1.13.0)
 - [scipy](https://www.scipy.org/)
-- [matplotlib](https://matplotlib.org/) (not for plotting (only using hsv_to_rgb function), should not conflict with PyQt5)
+- [opencv](https://opencv.org/)
+- [numba](http://numba.pydata.org/numba-doc/latest/user/5minguide.html)
+- [natsort](https://natsort.readthedocs.io/en/master/)
 
 ## MATLAB
 

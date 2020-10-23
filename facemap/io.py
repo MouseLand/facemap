@@ -1,5 +1,4 @@
 import os, glob
-import pims
 import numpy as np
 from PyQt5 import QtGui, QtCore
 import pyqtgraph as pg
@@ -100,7 +99,7 @@ def open_proc(parent, file_name=None):
     if good:
         v = []
         nframes = 0
-        iframes = []
+        #iframes = []
         good = load_movies(parent, filelist=parent.filenames)
         if good:
             if 'fullSVD' in proc:
@@ -194,31 +193,8 @@ def load_movies(parent, filelist=None):
     if filelist is not None:
         parent.filelist = filelist
     try:
-        v = []
-        nframes = 0
-        iframes = []
-        cumframes = [0]
-        k=0
-        for fs in parent.filelist:
-            vs = []
-            for f in fs:
-                try:
-                    vs.append(pims.Video(f))
-                except:
-                    print('pyavreaderindexed used - may be slower (try installing pims github version)')
-                    vs.append(pims.PyAVReaderIndexed(f))
-            v.append(vs)
-            iframes.append(len(v[-1][0]))
-            cumframes.append(cumframes[-1] + len(v[-1][0]))
-            nframes += len(v[-1][0])
-            if k==0:
-                Ly = []
-                Lx = []
-                for vs in v[-1]:
-                    fshape = vs.frame_shape
-                    Ly.append(fshape[0])
-                    Lx.append(fshape[1])
-            k+=1
+        cumframes, Ly, Lx, v = utils.get_frame_details(parent.filelist)  # v is containers/videos
+        nframes = cumframes[-1]
         good = True
     except Exception as e:
         print("ERROR: not a supported movie file")
@@ -229,7 +205,7 @@ def load_movies(parent, filelist=None):
         parent.video = v
         parent.filenames = parent.filelist
         parent.nframes = nframes
-        parent.iframes = np.array(iframes).astype(int)
+        #parent.iframes = np.array(iframes).astype(int)
         parent.cumframes = np.array(cumframes).astype(int)
         parent.Ly = Ly
         parent.Lx = Lx

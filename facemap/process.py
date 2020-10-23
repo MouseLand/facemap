@@ -59,7 +59,7 @@ def subsampled_mean(containers, cumframes, Ly, Lx, sbin=3):
     
     for n in range(nsegs):
         t = tf[n]
-        utils.get_frames(imall, containers, np.arange(t,t+nt0), cumframes, Ly, Lx)
+        utils.get_frames(imall, containers, np.arange(t,t+nt0), cumframes)
         # bin
         for n,im in enumerate(imall):
             imbin = spatial_bin(im, sbin, Lyb[n], Lxb[n])
@@ -124,7 +124,7 @@ def compute_SVD(containers, cumframes, Ly, Lx, avgmotion, ncomps=500, sbin=3, ro
     for n in range(nsegs):
         img = imall_init(nt0, Ly, Lx)
         t = tf[n]
-        utils.get_frames(img, containers, np.arange(t,t+nt0), cumframes, Ly, Lx)
+        utils.get_frames(img, containers, np.arange(t,t+nt0), cumframes)
         if fullSVD:
             imall = np.zeros((img[0].shape[0]-1, (Lyb*Lxb).sum()), np.float32)
         for ii,im in enumerate(img):
@@ -247,7 +247,7 @@ def process_ROIs(containers, cumframes, Ly, Lx, avgmotion, U, sbin=3, tic=None, 
     for n in range(nsegs):
         t += nt1
         img = imall_init(nt0, Ly, Lx)
-        utils.get_frames(img, containers, np.arange(t,t+nt0), cumframes, Ly, Lx)
+        utils.get_frames(img, containers, np.arange(t,t+nt0), cumframes)
         nt1 = img[0].shape[0]
         # compute pupil
         if len(pupind)>0:
