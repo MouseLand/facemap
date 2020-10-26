@@ -9,14 +9,16 @@ r_tol, a_tol = 1e-2, 1e-2
 def test_output_single_video(data_dir, video_names):
     v1, _ = video_names
     data_dir1, _ = data_dir
-    test_filenames = [data_dir1+video for video in v1]
-    #process.run(test_filenames)    
+    test_filenames = [[data_dir1+video for video in v1]]
+    process.run(test_filenames, savepath=os.getcwd()+"/tests/")    
 
     output_filename, _ = os.path.splitext(v1[0])
-    test_proc_filename = data_dir1+output_filename+"_proc.npy"
+    test_proc_filename = os.getcwd()+"/tests/"+output_filename+"_proc.npy"
     output = np.load(test_proc_filename,allow_pickle=True).item()
-    (print(output))
-    assert is_output_correct(output)
+    expected_proc_filename = os.getcwd()+"/tests/expected_output/singlevideo_proc.npy"
+    expected_output = np.load(expected_proc_filename,allow_pickle=True).item()
+    
+    assert is_output_correct(output, expected_output)
 
 def test_output_multivideo(data_dir, video_names):
     v1, v2 = video_names
@@ -24,23 +26,17 @@ def test_output_multivideo(data_dir, video_names):
     test1 = [data_dir1+video for video in v1]
     test2 = [data_dir2+video for video in v2]
     test_filenames = [test1, test2]
-    #process.run(test_filenames)    
+    process.run(test_filenames, savepath=os.getcwd()+"/tests/")    
 
     output_filename, _ = os.path.splitext(v1[0])
-    test_proc_filename = data_dir1+output_filename+"_proc.npy"
+    test_proc_filename = os.getcwd()+"/tests/"+output_filename+"_proc.npy"
     output = np.load(test_proc_filename,allow_pickle=True).item()
+    expected_proc_filename = os.getcwd()+"/tests/expected_output/multivideo_proc.npy"
+    expected_output = np.load(expected_proc_filename,allow_pickle=True).item()
 
     assert is_output_correct(output, single_video=False)
 
-def is_output_correct(test_output, single_video=True):
-    flag = single_video
-    expected_output = test_output #### remove/edit this line and correct following lines
-    '''
-    if flag:
-        expected_output = single_video_test_output
-    else:
-        expected_output = multivideo_test_output
-    '''
+def is_output_correct(test_output, expected_output):
     params_match = check_params(test_output, expected_output)
     frames_match = check_frames(test_output, expected_output)
     motion_match = check_motion

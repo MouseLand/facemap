@@ -4,8 +4,8 @@ from pathlib import Path
 
 @pytest.fixture()
 def video_names():
-    video1_names = ['cam1_G7c1_1.avi']
-    video2_names = ['cam1_G7c1_2.avi']
+    video1_names = ['scaled1.avi']
+    video2_names = ['scaled1_2.avi']
     return video1_names, video2_names
 
 @pytest.fixture()
