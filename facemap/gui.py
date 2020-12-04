@@ -4,15 +4,12 @@ from PyQt5 import QtGui, QtCore
 import pyqtgraph as pg
 from pyqtgraph import GraphicsScene
 from scipy.stats import zscore, skew
+from matplotlib import cm
 from natsort import natsorted
 import pathlib
 import cv2
-import colorsys
 
 from . import process, roi, utils, io, menus, guiparts
-
-h,s,v = np.linspace(0,1,100), np.ones(100), np.ones(100)
-hsv_cmap = np.array([np.array(colorsys.hsv_to_rgb(hi,si,vi)) for hi,si,vi in zip(h,s,v)])
 
 istr = ['pupil', 'motSVD', 'blink', 'running']
 
@@ -174,6 +171,15 @@ class MainW(QtGui.QMainWindow):
 
         #self.filelist = [ ['/media/carsen/DATA1/FACES/171030/test1.mp4'] ]
         #io.load_movies(self)
+
+        # Status bar
+        self.statusBar = QtGui.QStatusBar()
+        self.setStatusBar(self.statusBar)
+        self.progressBar = QtGui.QProgressBar()
+        self.statusBar.addPermanentWidget(self.progressBar)
+        self.progressBar.setGeometry(0, 0, 300, 25)
+        self.progressBar.setMaximum(100)
+        self.progressBar.hide()
 
     def setSaturationLabel(self):
         self.saturationLevelLabel.setText(str(self.sl[0].value()))
@@ -427,6 +433,16 @@ class MainW(QtGui.QMainWindow):
             msg.exec_()
             return
 
+    def update_status_bar(self, message, update_progress=False):
+        if update_progress:
+            self.statusBar.showMessage(message.split("|")[0])
+            self.progressBar.show()
+            progressBar_value = [int(s) for s in message.split("%")[0].split() if s.isdigit()]
+            self.progressBar.setValue(progressBar_value[0])
+        else: 
+            self.progressBar.hide()
+            self.statusBar.showMessage(message)
+
     def save_folder(self):
         folderName = QtGui.QFileDialog.getExistingDirectory(self,
                             "Choose save folder")
@@ -434,7 +450,6 @@ class MainW(QtGui.QMainWindow):
         if folderName:
             self.save_path = folderName
             self.savelabel.setText(folderName)
-
     
     def keyPressEvent(self, event):
         bid = -1
@@ -636,6 +651,7 @@ class MainW(QtGui.QMainWindow):
                 'save_mat': ops['save_mat'], 'save_path': ops['save_path'],
                 'filenames': self.filenames, 'iframes': self.iframes}
         savename = process.save(proc, savepath=savepath)
+        self.update_status_bar("File saved in "+savepath) #### 
         self.batchlist.append(savename)
         basename,filename = os.path.split(savename)
         filename, ext = os.path.splitext(filename)
@@ -644,7 +660,7 @@ class MainW(QtGui.QMainWindow):
 
     def process_batch(self):
         files = self.batchlist
-        for f in files:
+        for f in tqdm(files):
             proc = np.load(f, allow_pickle=True).item()
             savename = process.run(proc['filenames'], parent=None, proc=proc, savepath=proc['save_path'])
         if len(files)==1:
@@ -654,13 +670,13 @@ class MainW(QtGui.QMainWindow):
         self.sbin = int(self.binSpinBox.value())
         # save running parameters as defaults
         ops = self.save_ops()
-
         if len(self.save_path) > 0:
             savepath = self.save_path
         else:
             savepath = None
-        print(savepath)
-        savename = process.run(self.filenames, self, savepath=savepath)
+        print("Output will be saved in",savepath)
+        self.update_status_bar("Output will be saved in "+savepath) #### 
+        savename = process.run(self.filenames, QtGui, self, savepath=savepath)
         io.open_proc(self, file_name=savename)
 
     def plot_processed(self):
@@ -727,8 +743,9 @@ class MainW(QtGui.QMainWindow):
                 ir = 0
             else:
                 ir = wroi+1
+            cmap = cm.get_cmap("hsv")
             nc = min(10,self.motSVDs[ir].shape[1])
-            cmap = (255 * hsv_cmap[np.linspace(0,20,nc).astype(int)]).astype(int)
+            cmap = (255 * cmap(np.linspace(0,0.2,nc))).astype(int)
             norm = (self.motSVDs[ir][:,0]).std()
             tr = (self.motSVDs[ir][:,:10]**2).sum(axis=1)**0.5 / norm
             for c in np.arange(0,nc,1,int)[::-1]:
