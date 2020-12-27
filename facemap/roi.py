@@ -177,7 +177,7 @@ class sROI():
     def position(self, parent):
         if parent.iROI != self.iROI:
             if self.rind==0:
-                print('change to pupil')
+                #print('change to pupil')
                 for i in range(len(parent.rROI[self.iROI])):
                     parent.pROI.addItem(parent.rROI[self.iROI][i].ROI)
             elif parent.ROIs[parent.iROI].rind==0:
@@ -228,15 +228,17 @@ class sROI():
         self.ivid   = ivid
 
         if self.rind==0:
-            #ifr = np.array(parent.video[0][ivid][:50])
-            #ifr = ifr.mean(axis=-1)
-            #self.rmin = ifr[np.ix_(np.arange(0,ifr.shape[0],1,int), self.yrange, self.xrange)].min()
             self.rmin = 0
             parent.reflectors[self.iROI] = utils.get_reflector(parent.ROIs[self.iROI].yrange,
                                                          parent.ROIs[self.iROI].xrange,
                                                          rROI=parent.rROI[self.iROI])
         parent.sl[1].setValue(parent.saturation[self.iROI] * 100 / 255)
-        self.plot(parent)
+        
+        index = parent.clusteringVisComboBox.findText("ROI", QtCore.Qt.MatchFixedString)
+        if index >= 0:
+            parent.clusteringVisComboBox.setCurrentIndex(index)
+        parent.roiVisComboBox.setCurrentIndex(self.iROI+1)
+        parent.displayROI()#self.plot(parent)
 
     def remove(self, parent):
         parent.p0.removeItem(self.ROI)
@@ -255,6 +257,7 @@ class sROI():
         parent.pROI.removeItem(parent.scatter)
         parent.win.show()
         parent.show()
+        parent.updateROIVisComboBox()
 
     def plot(self, parent):
         parent.iROI = self.iROI

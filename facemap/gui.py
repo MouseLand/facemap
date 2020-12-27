@@ -8,6 +8,7 @@ from matplotlib import cm
 from natsort import natsorted
 import pathlib
 import cv2
+import pandas as pd
 
 from . import process, roi, utils, io, menus, guiparts
 
@@ -51,6 +52,7 @@ class MainW(QtGui.QMainWindow):
                         'save_path': '', 'save_mat': False}
 
         self.save_path = self.ops['save_path']
+        self.DLC_filepath = ""
 
         menus.mainmenu(self)
         self.online_mode=False
@@ -59,30 +61,23 @@ class MainW(QtGui.QMainWindow):
         self.cwidget = QtGui.QWidget(self)
         self.setCentralWidget(self.cwidget)
         self.l0 = QtGui.QGridLayout()
-        #layout = QtGui.QFormLayout()
         self.cwidget.setLayout(self.l0)
-        #self.p0 = pg.ViewBox(lockAspect=False,name='plot1',border=[100,100,100],invertY=True)
         self.win = pg.GraphicsLayoutWidget()
         # --- cells image
         self.win = pg.GraphicsLayoutWidget()
         self.win.move(600,0)
-        #self.showFullScreen()
-        #screen = QtGui.QDesktopWidget().screenGeometry()
-        #print(screen.width(), screen.height())  
         self.win.resize(1000,500)
         self.l0.addWidget(self.win,1,3,37,15)
         layout = self.win.ci.layout
 
         # A plot area (ViewBox + axes) for displaying the image
         self.p0 = self.win.addViewBox(lockAspect=True,row=0,col=0,invertY=True)
-        #self.p0.setMouseEnabled(x=False,y=False)
         self.p0.setMenuEnabled(False)
         self.pimg = pg.ImageItem()
         self.p0.addItem(self.pimg)
 
         # image ROI
         self.pROI = self.win.addViewBox(lockAspect=True,row=0,col=1,invertY=True)
-        #self.p0.setMouseEnabled(x=False,y=False)
         self.pROI.setMenuEnabled(False)
         self.pROIimg = pg.ImageItem()
         self.pROI.addItem(self.pROIimg)
@@ -97,42 +92,40 @@ class MainW(QtGui.QMainWindow):
 
         # saturation sliders
         self.sl = []
-        txt = ["Saturation:", "Saturation:"]
+        txt = ["Saturation:", "ROI Saturation:"]
         self.sat = [255,255]
         for j in range(2):
             self.sl.append(guiparts.Slider(j, self))
-            self.l0.addWidget(self.sl[j],1,6+5*j,1,2)
+            self.l0.addWidget(self.sl[j],1,4+3*j,1,2)#+5*j,1,2)
             qlabel = QtGui.QLabel(txt[j])
             qlabel.setStyleSheet('color: white;')
-            self.l0.addWidget(qlabel,0,6+5*j,1,1)
-            
+            self.l0.addWidget(qlabel,0,4+3*j,1,1)
+        self.sl[0].valueChanged.connect(self.setSaturationLabel)        
+        self.sl[1].valueChanged.connect(self.setROISaturationLabel)
+
         # Add label to indicate saturation level    
         self.saturationLevelLabel = QtGui.QLabel(str(self.sl[0].value()))
         self.saturationLevelLabel.setStyleSheet("color: white;")
-        self.l0.addWidget(self.saturationLevelLabel,0,7+5*0,1,3)
+        self.l0.addWidget(self.saturationLevelLabel,0,5,1,3)
         self.roiSaturationLevelLabel = QtGui.QLabel(str(self.sl[1].value()))
         self.roiSaturationLevelLabel.setStyleSheet("color: white;")
-        self.l0.addWidget(self.roiSaturationLevelLabel,0,7+5*j,1,3)
-
-        self.sl[0].valueChanged.connect(self.setSaturationLabel)        
-        self.sl[1].valueChanged.connect(self.setROISaturationLabel)
+        self.l0.addWidget(self.roiSaturationLevelLabel,0,8,1,3)
         
         # Reflector
         self.reflector = QtGui.QPushButton('Add corneal reflection')
-        self.l0.addWidget(self.reflector, 1, 8+5*j, 1, 2)
+        self.l0.addWidget(self.reflector, 2, 0, 1, 2)
         self.reflector.setEnabled(False)
         self.reflector.clicked.connect(self.add_reflectROI)
         self.rROI=[]
         self.reflectors=[]
 
+        # Plots
         self.p1 = self.win.addPlot(name='plot1',row=1,col=0,colspan=2, title='p1')
         self.p1.setMouseEnabled(x=True,y=False)
         self.p1.setMenuEnabled(False)
         self.p1.hideAxis('left')
         self.scatter1 = pg.ScatterPlotItem()
         self.p1.addItem(self.scatter1)
-        #self.p1.setLabel('bottom', 'plot1')
-        #self.p1.autoRange(padding=0.01)
         self.p2 = self.win.addPlot(name='plot2',row=2,col=0,colspan=2, title='p2')
         self.p2.setMouseEnabled(x=True,y=False)
         self.p2.setMenuEnabled(False)
@@ -143,13 +136,22 @@ class MainW(QtGui.QMainWindow):
         self.p2.setXLink("plot1")
         #self.p2.autoRange(padding=0.01)
         self.win.ci.layout.setRowStretchFactor(0,5)
-        self.movieLabel = QtGui.QLabel("No movie chosen")
-        self.movieLabel.setStyleSheet("color: white;")
-        self.movieLabel.setAlignment(QtCore.Qt.AlignCenter)
-        self.l0.addWidget(self.movieLabel,0,0,1,5)
+        #self.movieLabel = QtGui.QLabel("No movie chosen")
+        #self.movieLabel.setStyleSheet("color: white;")
+        #self.movieLabel.setAlignment(QtCore.Qt.AlignCenter)
+        #self.l0.addWidget(self.movieLabel,0,0,1,5)
         self.nframes = 0
         self.cframe = 0
         
+        ## DLC plot
+        self.DLCplot = self.win.addPlot(row=0, col=0, lockAspect=True, enableMouse=False)
+        #self.DLCplot.setAspectLocked(ratio=1)
+        self.DLCplot.invertY(True)
+        #self.DLCplot.hideAxis('left')
+        #self.DLCplot.hideAxis('bottom')
+        self.DLC_scatterplot = pg.ScatterPlotItem(hover=True)
+        self.DLC_scatterplot.sigClicked.connect(self.DLCPointsClicked)
+        self.DLC_scatterplot.sigHovered.connect(self.DLCPointsHovered)
         self.make_buttons()
 
         #self.updateButtons()
@@ -167,10 +169,7 @@ class MainW(QtGui.QMainWindow):
             self.load_movies([[moviefile]])
         if savedir is not None:
             self.save_path = savedir
-            self.savelabel.setText(savedir)
-
-        #self.filelist = [ ['/media/carsen/DATA1/FACES/171030/test1.mp4'] ]
-        #io.load_movies(self)
+            self.savelabel.setText("..."+savedir[-20:])
 
         # Status bar
         self.statusBar = QtGui.QStatusBar()
@@ -237,7 +236,9 @@ class MainW(QtGui.QMainWindow):
         self.savefolder.setFont(QtGui.QFont("Arial", 8, QtGui.QFont.Bold))
         self.savefolder.clicked.connect(self.save_folder)
         self.savefolder.setEnabled(False)
-        if len(self.save_path) > 0:
+        if len(self.save_path) > 25:
+            self.savelabel = QtGui.QLabel("..."+self.save_path[-25:])
+        elif len(self.save_path) > 0:
             self.savelabel = QtGui.QLabel(self.save_path)
         else:
             self.savelabel = QtGui.QLabel('same as video')
@@ -248,6 +249,18 @@ class MainW(QtGui.QMainWindow):
         self.saverois.clicked.connect(self.save_ROIs)
         self.saverois.setEnabled(False)
 
+        # DLC features
+        self.loadDLC = QtGui.QPushButton("Load DLC data")
+        self.loadDLC.setFont(QtGui.QFont("Arial", 8, QtGui.QFont.Bold))
+        self.loadDLC.clicked.connect(self.get_DLC_file)
+        self.loadDLC.setEnabled(False)
+        self.DLC_file_loaded = False
+        self.DLClabels_checkBox = QtGui.QCheckBox("Show/Hide DLC labels")
+        self.DLClabels_checkBox.setStyleSheet("color: gray;")
+        self.DLClabels_checkBox.stateChanged.connect(self.update_DLC_points)
+        self.DLClabels_checkBox.setEnabled(False)
+
+        # Process features
         self.batchlist=[]
         self.batchname=[]
         for k in range(6):
@@ -260,6 +273,7 @@ class MainW(QtGui.QMainWindow):
         self.processbatch.clicked.connect(self.process_batch)
         self.processbatch.setEnabled(False)
 
+        # Play/pause features
         iconSize = QtCore.QSize(30, 30)
         self.playButton = QtGui.QToolButton()
         self.playButton.setIcon(self.style().standardIcon(QtGui.QStyle.SP_MediaPlay))
@@ -267,47 +281,61 @@ class MainW(QtGui.QMainWindow):
         self.playButton.setToolTip("Play")
         self.playButton.setCheckable(True)
         self.playButton.clicked.connect(self.start)
-
         self.pauseButton = QtGui.QToolButton()
         self.pauseButton.setCheckable(True)
         self.pauseButton.setIcon(self.style().standardIcon(QtGui.QStyle.SP_MediaPause))
         self.pauseButton.setIconSize(iconSize)
         self.pauseButton.setToolTip("Pause")
         self.pauseButton.clicked.connect(self.pause)
-
         btns = QtGui.QButtonGroup(self)
         btns.addButton(self.playButton,0)
         btns.addButton(self.pauseButton,1)
         btns.setExclusive(True)
 
+        # Add ROI features
         self.comboBox = QtGui.QComboBox(self)
         self.comboBox.setFixedWidth(100)
-        self.comboBox.addItem("ROI type")
-        self.comboBox.addItem("pupil")
+        self.comboBox.addItem("Select ROI")
+        self.comboBox.addItem("Pupil")
         self.comboBox.addItem("motion SVD")
-        self.comboBox.addItem("blink")
-        self.comboBox.addItem("running")
+        self.comboBox.addItem("Blink")
+        self.comboBox.addItem("Running")
         self.newROI = 0
         self.comboBox.setCurrentIndex(0)
         #self.comboBox.currentIndexChanged.connect(self.mode_change)
-
-        self.addROI = QtGui.QPushButton("add ROI")
-        self.addROI.setFont(QtGui.QFont("Arial", 8, QtGui.QFont.Bold))
+        self.addROI = QtGui.QPushButton("Add ROI")
+        self.addROI.setFont(QtGui.QFont("Arial", 10, QtGui.QFont.Bold))
         self.addROI.clicked.connect(self.add_ROI)
+        self.addROI.setFixedWidth(70)
         self.addROI.setEnabled(False)
 
+        # Add clustering analysis/visualization features
+        self.clusteringVisComboBox = QtGui.QComboBox(self)
+        self.clusteringVisComboBox.setFixedWidth(200)
+        self.clusteringVisComboBox.addItem("--Select display--")
+        self.clusteringVisComboBox.addItem("ROI")
+        self.clusteringVisComboBox.addItem("UMAP")
+        self.clusteringVisComboBox.addItem("tSNE")
+        self.clusteringVisComboBox.currentIndexChanged.connect(self.VisComboBoxSelectionChange)
+        self.roiVisComboBox = QtGui.QComboBox(self)
+        self.roiVisComboBox.setFixedWidth(100)
+        self.l0.addWidget(self.roiVisComboBox, 0, 14, 1, 2)  
+        self.roiVisComboBox.hide()
+        self.roiVisComboBox.activated.connect(self.displayROI)
+
+        # Check boxes
         self.checkBox = QtGui.QCheckBox("Compute multivideo SVD")
         self.checkBox.setStyleSheet("color: gray;")
         if self.ops['fullSVD']:
             self.checkBox.toggle()
-
         self.save_mat = QtGui.QCheckBox("Save *.mat file")
         self.save_mat.setStyleSheet("color: gray;")
         if self.ops['save_mat']:
             self.save_mat.toggle()
 
-        self.l0.addWidget(self.comboBox, 1, 0, 1, 3)
-        self.l0.addWidget(self.addROI,2,0,1,3)
+        # Add features to window
+        self.l0.addWidget(self.comboBox,1,0,1,2)
+        self.l0.addWidget(self.addROI,1,1,1,1)
         self.l0.addWidget(self.checkBox, 11, 0, 1, 4)
         self.l0.addWidget(self.save_mat, 12, 0, 1, 3)
         self.l0.addWidget(self.savefolder, 13, 0, 1, 3)
@@ -315,24 +343,24 @@ class MainW(QtGui.QMainWindow):
         self.l0.addWidget(self.saverois, 15, 0, 1, 3)
         self.l0.addWidget(self.process,  16, 0, 1, 3)
         self.l0.addWidget(self.processbatch,  17, 0, 1, 3)
+        self.l0.addWidget(self.loadDLC, 18, 0, 1, 1)                    # DLC features
+        self.l0.addWidget(self.DLClabels_checkBox, 19, 0, 1, 4)        
+        self.l0.addWidget(self.clusteringVisComboBox, 0, 10, 1, 4)      # clustering visualization window features
         self.l0.addWidget(self.playButton,iplay,0,1,1)
         self.l0.addWidget(self.pauseButton,iplay,1,1,1)
-        #self.l0.addWidget(quitButton,0,1,1,1)
         self.playButton.setEnabled(False)
         self.pauseButton.setEnabled(False)
         self.pauseButton.setChecked(True)
-
         self.l0.addWidget(QtGui.QLabel(''),istretch,0,1,3)
         self.l0.setRowStretch(istretch,1)
         self.l0.addWidget(self.frameLabel, istretch+12,0,1,3)
-        #self.l0.addWidget(self.frameNumber, istretch+14,0,1,3)
         self.l0.addWidget(self.setFrame, istretch+12,1,2,2)    
         self.l0.addWidget(self.totalFrameLabel, istretch+14,0,1,3)
         self.l0.addWidget(self.totalFrameNumber, istretch+14,2,1,3)
         self.l0.addWidget(self.frameSlider, istretch+15,3,1,15)
 
         # plotting boxes
-        pl = QtGui.QLabel("after processing")
+        pl = QtGui.QLabel("Plot output")
         pl.setStyleSheet("color: gray;")
         self.l0.addWidget(pl, istretch+1, 0, 1, 3)
         pl = QtGui.QLabel("p1")
@@ -360,12 +388,45 @@ class MainW(QtGui.QMainWindow):
             self.lbls[-1].setStyleSheet("color: white;")
             self.l0.addWidget(self.lbls[-1], istretch+3+k, 2, 1, 1)
 
-        #self.l0.addWidget(QtGui.QLabel(''),17,2,1,1)
-        #self.l0.setRowStretch(16,2)
         ll = QtGui.QLabel('play/pause [SPACE]')
         ll.setStyleSheet("color: gray;")
         self.l0.addWidget(ll, istretch+3+k+1,0,1,4)
         self.updateFrameSlider()
+
+    def VisComboBoxSelectionChange(self):
+        visualization_request = self.clusteringVisComboBox.currentText()
+        if visualization_request == "ROI" and len(self.ROIs)>0:
+            self.updateROIVisComboBox()
+        elif visualization_request == "UMAP":
+            if len(self.ROIs)>0:
+                self.roiVisComboBox.hide()
+                self.pROIimg.clear()
+        elif visualization_request == "tSNE":
+            if len(self.ROIs)>0:
+                self.roiVisComboBox.hide()
+                self.pROIimg.clear()
+        else:
+            self.roiVisComboBox.hide()
+            self.pROIimg.clear()
+
+    def updateROIVisComboBox(self):
+        self.roiVisComboBox.clear()
+        self.pROIimg.clear()
+        self.roiVisComboBox.addItem("--Type--")
+        for i in range(len(self.ROIs)):
+            selected = self.ROIs[i]
+            self.roiVisComboBox.addItem(str(selected.iROI+1)+". "+selected.rtype)
+        if self.clusteringVisComboBox.currentText() == "ROI":
+            self.roiVisComboBox.show()
+
+    def displayROI(self):
+        self.roiVisComboBox.show()
+        roi_request = self.roiVisComboBox.currentText()
+        if roi_request != "--Type--":
+            roi_request_ind = int(roi_request.split(".")[0]) - 1
+            self.ROIs[int(roi_request_ind)].plot(self)
+        else:
+            self.pROIimg.clear()
 
     def setFrameChanged(self, text):
         self.cframe = int(float(self.setFrame.text()))
@@ -424,6 +485,7 @@ class MainW(QtGui.QMainWindow):
             self.rROI.append([])
             self.reflectors.append([])
             self.nROIs += 1
+            self.updateROIVisComboBox()
             self.ROIs[-1].position(self)
         else:
             msg = QtGui.QMessageBox(self)
@@ -449,8 +511,67 @@ class MainW(QtGui.QMainWindow):
         # load ops in same folder
         if folderName:
             self.save_path = folderName
-            self.savelabel.setText(folderName)
+            if len(folderName) >25:
+                self.savelabel.setText("..."+folderName[-25:])
+            else:
+                self.savelabel.setText(folderName)
+
+    def get_DLC_file(self):
+        filepath = QtGui.QFileDialog.getOpenFileName(self,
+                                "Choose DLC file", "", "DLC labels file (*.h5)")
+        if filepath[0]:
+            self.DLC_filepath = filepath[0]
+            self.DLC_file_loaded = True
+            self.update_status_bar("DLC file loaded: "+self.DLC_filepath)
+            self.load_DLC_points()
+
+    def load_DLC_points(self):
+        # Read DLC file
+        self.DLC_data = pd.read_hdf(self.DLC_filepath, 'df_with_missing')
+        all_labels = self.DLC_data.columns.get_level_values("bodyparts")
+        self.DLC_keypoints_labels = [all_labels[i] for i in sorted(np.unique(all_labels, return_index=True)[1])]#np.unique(self.DLC_data.columns.get_level_values("bodyparts"))
+        self.DLC_x_coord = self.DLC_data.T[self.DLC_data.columns.get_level_values("coords").values=="x"].values #size: key points x frames
+        self.DLC_y_coord = self.DLC_data.T[self.DLC_data.columns.get_level_values("coords").values=="y"].values #size: key points x frames
+
+        # Choose colors for each label: provide option for color blindness as well
+        self.colors = cm.get_cmap('gist_rainbow')(np.linspace(0, 1., len(self.DLC_keypoints_labels)))
+        self.colors *= 255
+        self.colors = self.colors.astype(int)
+        self.colors[:,-1] = 127
+        self.brushes = [pg.mkBrush(color=c) for c in self.colors]
     
+    def update_DLC_points(self):
+        if self.DLC_file_loaded and self.DLClabels_checkBox.isChecked():
+            self.statusBar.clearMessage()
+            self.DLCplot.addItem(self.DLC_scatterplot)
+            self.DLCplot.setRange(xRange=(0,self.LX), yRange=(0,self.LY), padding=0.0)
+            x = self.DLC_x_coord[:,self.cframe]
+            y = self.DLC_y_coord[:,self.cframe]
+            self.DLC_scatterplot.setData(x, y, size=10, symbol='o', brush=self.brushes, hoverable=True, hoverSize=15)
+
+        elif not self.DLC_file_loaded and self.DLClabels_checkBox.isChecked():
+            self.update_status_bar("Please upload a DLC (*.h5) file")
+        else:
+            self.statusBar.clearMessage()
+            self.DLC_scatterplot.clear()
+
+    def DLCPointsClicked(self, obj, points):
+        ## Can add functionality for clicking key points
+        return ""
+
+    def DLCPointsHovered(self, obj, ev):
+        point_hovered = np.where(self.DLC_scatterplot.data['hovered'])[0]
+        if point_hovered.shape[0] >= 1:         # Show tooltip only when hovering over a point i.e. no empty array
+            points = self.DLC_scatterplot.points()
+            vb = self.DLC_scatterplot.getViewBox()
+            if vb is not None and self.DLC_scatterplot.opts['tip'] is not None:
+                cutoff = 1                      # Display info of only one point when hovering over multiple points
+                tip = [self.DLC_scatterplot.opts['tip'](data = self.DLC_keypoints_labels[pt],x=points[pt].pos().x(), y=points[pt].pos().y())
+                        for pt in point_hovered[:cutoff]]
+                if len(point_hovered) > cutoff:
+                    tip.append('({} other...)'.format(len(point_hovered) - cutoff))
+                vb.setToolTip('\n\n'.join(tip))
+
     def keyPressEvent(self, event):
         bid = -1
         if self.playButton.isEnabled():
@@ -534,6 +655,14 @@ class MainW(QtGui.QMainWindow):
         self.savefolder.setEnabled(True)
         self.saverois.setEnabled(True)
 
+        # Enable DLC features for single video only
+        if len(self.img)==1:
+            self.loadDLC.setEnabled(True)
+            self.DLClabels_checkBox.setEnabled(True)
+        else:
+            self.loadDLC.setEnabled(False)
+            self.DLClabels_checkBox.setEnabled(False)
+
     def jump_to_frame(self):
         if self.playButton.isEnabled():
             self.cframe = np.maximum(0, np.minimum(self.nframes-1, self.cframe))
@@ -594,6 +723,7 @@ class MainW(QtGui.QMainWindow):
         self.pimg.setImage(self.fullimg)
         self.pimg.setLevels([0,self.sat[0]])
         self.setFrame.setText(str(self.cframe))
+        self.update_DLC_points()
         #self.frameNumber.setText(str(self.cframe))
         self.totalFrameNumber.setText(str(self.nframes))
         self.win.show()
@@ -609,11 +739,11 @@ class MainW(QtGui.QMainWindow):
             self.frameSlider.setEnabled(False)
             self.updateTimer.start(25)
         elif self.cframe < self.nframes - 1:
-            #print('playing')
             self.playButton.setEnabled(False)
             self.pauseButton.setEnabled(True)
             self.frameSlider.setEnabled(False)
             self.updateTimer.start(25)
+        self.update_DLC_points()
 
     def pause(self):
         self.updateTimer.stop()
@@ -622,7 +752,7 @@ class MainW(QtGui.QMainWindow):
         self.frameSlider.setEnabled(True)
         if self.online_mode:
             self.online_traces = None
-        #print('paused')
+        self.update_DLC_points()
 
     def save_ops(self):
         ops = {'sbin': self.sbin, 'pupil_sigma': float(self.sigmaBox.text()),

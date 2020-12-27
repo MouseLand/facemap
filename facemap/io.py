@@ -8,10 +8,9 @@ from natsort import natsorted
 def open_file(parent, file_name=None):
     if file_name is None:
         file_name = QtGui.QFileDialog.getOpenFileName(parent,
-                            "Open movie file")
+                            "Open movie file", "", "Movie files (*.h5 *.mj2 *.mp4 *.mkv *.avi *.mpeg *.mpg *.asf)")
     # load ops in same folder
     if file_name:
-        print(file_name[0])
         parent.filelist = [ [file_name[0]] ]
         load_movies(parent)
 
@@ -32,7 +31,6 @@ def open_folder(parent, folder_name=None):
                 files = glob.glob(os.path.join(folder_name,folder,extension))
                 files = [folder_name+"/"+folder+"/"+os.path.split(f)[-1] for f in files]
                 file_name.extend(files)
-        print(file_name)
         if len(file_name) > 1:
             choose_files(parent, file_name)
             load_movies(parent)
@@ -211,6 +209,9 @@ def load_movies(parent, filelist=None):
         parent.Lx = Lx
         parent.p1.clear()
         parent.p2.clear()
+        # Clear DLC variables when a new file is loaded
+        parent.DLCplot.removeItem(parent.DLC_scatterplot)
+        parent.DLC_file_loaded = False
         if len(parent.Ly)<2:
             parent.LY = parent.Ly[0]
             parent.LX = parent.Lx[0]
@@ -238,7 +239,9 @@ def load_movies(parent, filelist=None):
         for i in range(len(parent.Ly)):
             parent.imgs.append(np.zeros((parent.Ly[i], parent.Lx[i], 3, 3)))
             parent.img.append(np.zeros((parent.Ly[i], parent.Lx[i], 3)))
-        parent.movieLabel.setText(os.path.dirname(parent.filenames[0][0]))
+        #parent.movieLabel.setText(os.path.dirname(parent.filenames[0][0]))
+        print(os.path.dirname(parent.filenames[0][0]))
+        parent.update_status_bar(message="New file(s) loaded: ")
         parent.frameDelta = int(np.maximum(5,parent.nframes/200))
         parent.frameSlider.setSingleStep(parent.frameDelta)
         if parent.nframes > 0:
