@@ -238,7 +238,7 @@ class sROI():
         if index >= 0:
             parent.clusteringVisComboBox.setCurrentIndex(index)
         parent.roiVisComboBox.setCurrentIndex(self.iROI+1)
-        parent.displayROI()#self.plot(parent)
+        parent.display_ROI()#self.plot(parent)
 
     def remove(self, parent):
         parent.p0.removeItem(self.ROI)
@@ -257,7 +257,7 @@ class sROI():
         parent.pROI.removeItem(parent.scatter)
         parent.win.show()
         parent.show()
-        parent.updateROIVisComboBox()
+        parent.update_ROI_vis_comboBox()
 
     def plot(self, parent):
         parent.iROI = self.iROI

@@ -118,6 +118,8 @@ def open_proc(parent, file_name=None):
             if parent.processed:
                 parent.col = []
                 if parent.fullSVD:
+                    parent.cbs1[k].setText('fullSVD')
+                    parent.cbs2[k].setText('fullSVD')
                     parent.lbls[k].setText('fullSVD')
                     parent.lbls[k].setStyleSheet("color: white;")
                     parent.proctype[0] = 0
@@ -160,11 +162,12 @@ def open_proc(parent, file_name=None):
                     else:
                         parent.iROI = k
                     parent.ROIs[-1].ellipse = r['ellipse']
-                    #parent.ROIs[-1].position(parent)
                     parent.sl[1].setValue(parent.saturation[parent.iROI] * 100 / 255)
                     parent.ROIs[parent.iROI].plot(parent)
                     if parent.processed:
                         if k < 8:
+                            parent.cbs1[k].setText('%s%d'%(parent.typestr[r['rind']], kt[r['rind']]))
+                            parent.cbs2[k].setText('%s%d'%(parent.typestr[r['rind']], kt[r['rind']]))
                             parent.lbls[k].setText('%s%d'%(parent.typestr[r['rind']], kt[r['rind']]))
                             parent.lbls[k].setStyleSheet("color: rgb(%s,%s,%s);"%
                                                         (str(int(r['color'][0])), str(int(r['color'][1])), str(int(r['color'][2]))))
@@ -209,9 +212,6 @@ def load_movies(parent, filelist=None):
         parent.Lx = Lx
         parent.p1.clear()
         parent.p2.clear()
-        # Clear DLC variables when a new file is loaded
-        parent.DLCplot.removeItem(parent.DLC_scatterplot)
-        parent.DLC_file_loaded = False
         if len(parent.Ly)<2:
             parent.LY = parent.Ly[0]
             parent.LX = parent.Lx[0]
@@ -240,13 +240,12 @@ def load_movies(parent, filelist=None):
             parent.imgs.append(np.zeros((parent.Ly[i], parent.Lx[i], 3, 3)))
             parent.img.append(np.zeros((parent.Ly[i], parent.Lx[i], 3)))
         #parent.movieLabel.setText(os.path.dirname(parent.filenames[0][0]))
-        print(os.path.dirname(parent.filenames[0][0]))
-        parent.update_status_bar(message="New file(s) loaded: ")
+        parent.update_status_bar("New file(s) loaded: "+os.path.dirname(parent.filenames[0][0]))
         parent.frameDelta = int(np.maximum(5,parent.nframes/200))
         parent.frameSlider.setSingleStep(parent.frameDelta)
         if parent.nframes > 0:
-            parent.updateFrameSlider()
-            parent.updateButtons()
+            parent.update_frame_slider()
+            parent.update_buttons()
         parent.cframe = 1
         parent.loaded = True
         parent.processed = False
