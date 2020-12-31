@@ -355,6 +355,8 @@ class sROI():
             fr  = np.maximum(0, fr - (255.0-sat))
             parent.pROIimg.setImage(255-fr)
             parent.pROIimg.setLevels([255-sat, 255])
+        if parent.clusteringVisComboBox.currentText() != "ROI":
+            parent.pROIimg.clear()
         parent.pROI.setRange(xRange=(0,img.shape[1]),
                          yRange=(0, img.shape[0]),
                           padding=0.0)

@@ -141,13 +141,12 @@ class MainW(QtGui.QMainWindow):
         self.scatter2 = pg.ScatterPlotItem()
         self.p2.addItem(self.scatter1)
         self.p2.setXLink("plot1")
-        self.win.ci.layout.setRowStretchFactor(0,5)
+        self.win.ci.layout.setRowStretchFactor(0,4)
         self.nframes = 0
         self.cframe = 0
         
         ## DLC plot
         self.DLCplot = self.win.addPlot(row=0, col=0, lockAspect=True, enableMouse=False)
-        #self.DLCplot.setAspectLocked(ratio=1)
         self.DLCplot.invertY(True)
         self.DLCplot.hideAxis('left')
         self.DLCplot.hideAxis('bottom')
@@ -157,9 +156,12 @@ class MainW(QtGui.QMainWindow):
         self.make_buttons()
         
         self.ClusteringPlot = self.win.addPlot(row=0, col=1, lockAspect=True, enableMouse=False)
+        self.ClusteringPlot.hideAxis('left')
+        self.ClusteringPlot.hideAxis('bottom')
         self.clustering_scatterplot = pg.ScatterPlotItem(hover=True)
         #self.clustering_scatterplot.sigClicked.connect(lambda obj, ev: cluster.embeddedPointsClicked(obj, ev, self))
         self.clustering_scatterplot.sigHovered.connect(lambda obj, ev: cluster.embedded_points_hovered(obj, ev, self))
+        self.ClusteringPlot_legend = pg.LegendItem(labelTextSize='12pt', title="Cluster")
 
         self.updateTimer = QtCore.QTimer()
         self.updateTimer.timeout.connect(self.next_frame)
@@ -336,7 +338,7 @@ class MainW(QtGui.QMainWindow):
         self.data_clustering_combobox = QtGui.QComboBox(self)
         self.data_clustering_combobox.setFixedWidth(100)
         self.data_clustering_combobox.hide()
-        cluster.create_clustering_params(self)
+        cluster.create_clustering_widgets(self)
 
         # Check boxes
         self.checkBox = QtGui.QCheckBox("multivideo SVD")
@@ -367,10 +369,10 @@ class MainW(QtGui.QMainWindow):
         self.l0.addWidget(self.savelabel, 13, 0, 1, 2)
         self.l0.addWidget(self.loadDLC, 14, 0, 1, 1)                    # DLC features
         self.l0.addWidget(self.DLClabels_checkBox, 14, 1, 1, 1)        
-        self.l0.addWidget(self.clusteringVisComboBox, 0, 12, 1, 1)      # clustering visualization window features
-        self.l0.addWidget(self.data_clustering_combobox, 0, 13, 1, 2)      # clustering visualization window features
-        self.l0.addWidget(self.roiVisComboBox, 0, 13, 1, 2)  
-        self.l0.addWidget(self.run_clustering_button, 0, 15, 1, 1)      # clustering visualization window features
+        self.l0.addWidget(self.clusteringVisComboBox, 0, 11, 1, 1)      # clustering visualization window features
+        self.l0.addWidget(self.data_clustering_combobox, 0, 12, 1, 2)      # clustering visualization window features
+        self.l0.addWidget(self.roiVisComboBox, 0, 12, 1, 2)  
+        self.l0.addWidget(self.run_clustering_button, 0, 14, 1, 1)      # clustering visualization window features
         self.l0.addWidget(self.playButton,iplay,0,1,1)
         self.l0.addWidget(self.pauseButton,iplay,1,1,1)
         self.playButton.setEnabled(False)
@@ -428,7 +430,7 @@ class MainW(QtGui.QMainWindow):
         visualization_request = self.clusteringVisComboBox.currentText()
         if visualization_request == "ROI":
             cluster.disable_data_clustering_features(self)
-            cluster.hide_clustering_params(self)
+            cluster.hide_umap_param(self)
             if len(self.ROIs)>0:
                 self.update_ROI_vis_comboBox()
                 self.update_status_bar("")
@@ -448,6 +450,11 @@ class MainW(QtGui.QMainWindow):
         self.roiVisComboBox.hide()
         self.pROIimg.clear()
         self.ClusteringPlot.clear()
+        self.ClusteringPlot.hideAxis('left')
+        self.ClusteringPlot.hideAxis('bottom')
+        self.ClusteringPlot.removeItem(self.clustering_scatterplot)
+        self.ClusteringPlot_legend.setParentItem(None)
+        self.ClusteringPlot_legend.hide()
 
     def update_ROI_vis_comboBox(self):
         """
@@ -689,7 +696,8 @@ class MainW(QtGui.QMainWindow):
 
     def go_to_frame(self):
         self.cframe = int(self.frameSlider.value())
-        self.jump_to_frame()
+        self.setFrame.setText(str(self.cframe))
+        #self.jump_to_frame()
 
     def fitToWindow(self):
         self.movieLabel.setScaledContents(self.fitCheckBox.isChecked())
@@ -772,7 +780,7 @@ class MainW(QtGui.QMainWindow):
             self.online_plotted = False
             #online.get_frame(self)
 
-        if len(self.ROIs) > 0:
+        if len(self.ROIs) > 0 and self.clusteringVisComboBox.currentText() == "ROI":
             self.ROIs[self.iROI].plot(self)
 
         self.pimg.setImage(self.fullimg)

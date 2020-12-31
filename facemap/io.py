@@ -4,6 +4,7 @@ from PyQt5 import QtGui, QtCore
 import pyqtgraph as pg
 from . import guiparts, roi, utils
 from natsort import natsorted
+import pickle
 
 def open_file(parent, file_name=None):
     if file_name is None:
@@ -224,7 +225,6 @@ def load_movies(parent, filelist=None):
             Lx = np.array(parent.Lx.copy())
 
             LY, LX, sy, sx = utils.video_placement(Ly, Lx)
-            print(LY, LX)
             parent.vmap = -1 * np.ones((LY,LX), np.int32)
             for i in range(Ly.size):
                 parent.vmap[sy[i]:sy[i]+Ly[i], sx[i]:sx[i]+Lx[i]] = i
@@ -251,3 +251,24 @@ def load_movies(parent, filelist=None):
         parent.processed = False
         parent.jump_to_frame()
     return good
+
+def load_cluster_labels(parent):
+    try:
+        file_name = QtGui.QFileDialog.getOpenFileName(parent,
+                        "Select cluster labels file", "", "Cluster label files (*.npy *.pkl)")[0]
+        extension = file_name.split(".")[-1]
+        if extension == "npy":
+            parent.cluster_labels = np.load(file_name, allow_pickle=True)
+        elif extension == "pkl":
+            with open(file_name, 'rb') as f:
+                parent.cluster_labels = pickle.load(f)
+        else:
+            parent.cluster_labels = None
+    except Exception as e:
+        msg = QtGui.QMessageBox(parent)
+        msg.setIcon(QtGui.QMessageBox.Warning)
+        msg.setText("Error: not a supported filetype")
+        msg.setStandardButtons(QtGui.QMessageBox.Ok)
+        msg.exec_()
+        print(e)
+    
