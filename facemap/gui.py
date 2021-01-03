@@ -2,7 +2,6 @@ import sys, os, shutil, glob, time
 import numpy as np
 from PyQt5 import QtGui, QtCore
 import pyqtgraph as pg
-from pyqtgraph import GraphicsScene
 from scipy.stats import zscore, skew
 from matplotlib import cm
 from natsort import natsorted
@@ -10,7 +9,6 @@ import pathlib
 import cv2
 import pandas as pd
 from PyQt5.QtGui import QPixmap 
-
 from . import process, roi, utils, io, menus, guiparts, cluster
 
 istr = ['pupil', 'motSVD', 'blink', 'running']
@@ -160,8 +158,11 @@ class MainW(QtGui.QMainWindow):
         self.ClusteringPlot.hideAxis('bottom')
         self.clustering_scatterplot = pg.ScatterPlotItem(hover=True)
         #self.clustering_scatterplot.sigClicked.connect(lambda obj, ev: cluster.embeddedPointsClicked(obj, ev, self))
-        self.clustering_scatterplot.sigHovered.connect(lambda obj, ev: cluster.embedded_points_hovered(obj, ev, self))
+        self.clustering_scatterplot.sigHovered.connect(lambda obj, ev: self.cluster_model.embedded_points_hovered(obj, ev, parent=self))
         self.ClusteringPlot_legend = pg.LegendItem(labelTextSize='12pt', title="Cluster")
+        self.cluster_model = cluster.Cluster(parent=self)
+        self.is_cluster_labels_loaded = False
+        self.loaded_cluster_labels = None
 
         self.updateTimer = QtCore.QTimer()
         self.updateTimer.timeout.connect(self.next_frame)
@@ -245,12 +246,7 @@ class MainW(QtGui.QMainWindow):
         self.savefolder.setFont(QtGui.QFont("Arial", 10, QtGui.QFont.Bold))
         self.savefolder.clicked.connect(self.save_folder)
         self.savefolder.setEnabled(False)
-        if len(self.save_path) > 25:
-            self.savelabel = QtGui.QLabel("..."+self.save_path[-25:])
-        elif len(self.save_path) > 0:
-            self.savelabel = QtGui.QLabel(self.save_path)
-        else:
-            self.savelabel = QtGui.QLabel('same as video')
+        self.savelabel = QtGui.QLabel('same as video')
         self.savelabel.setStyleSheet("color: white;")
 
         self.saverois = QtGui.QPushButton('save ROIs')
@@ -333,12 +329,15 @@ class MainW(QtGui.QMainWindow):
         self.roiVisComboBox.activated.connect(self.display_ROI)
         self.run_clustering_button = QtGui.QPushButton("Run")
         self.run_clustering_button.setFont(QtGui.QFont("Arial", 10, QtGui.QFont.Bold))
-        self.run_clustering_button.clicked.connect(lambda clicked: cluster.run(clicked, self))
+        self.run_clustering_button.clicked.connect(lambda clicked: self.cluster_model.run(clicked, self))
         self.run_clustering_button.hide()
+        self.save_clustering_button = QtGui.QPushButton("Save")
+        self.save_clustering_button.setFont(QtGui.QFont("Arial", 10, QtGui.QFont.Bold))
+        self.save_clustering_button.clicked.connect(lambda clicked: self.cluster_model.save_dialog(clicked, self))
+        self.save_clustering_button.hide()
         self.data_clustering_combobox = QtGui.QComboBox(self)
         self.data_clustering_combobox.setFixedWidth(100)
         self.data_clustering_combobox.hide()
-        cluster.create_clustering_widgets(self)
 
         # Check boxes
         self.checkBox = QtGui.QCheckBox("multivideo SVD")
@@ -371,8 +370,9 @@ class MainW(QtGui.QMainWindow):
         self.l0.addWidget(self.DLClabels_checkBox, 14, 1, 1, 1)        
         self.l0.addWidget(self.clusteringVisComboBox, 0, 11, 1, 1)      # clustering visualization window features
         self.l0.addWidget(self.data_clustering_combobox, 0, 12, 1, 2)      # clustering visualization window features
-        self.l0.addWidget(self.roiVisComboBox, 0, 12, 1, 2)  
+        self.l0.addWidget(self.roiVisComboBox, 0, 12, 1, 2)              # ROI visualization window features
         self.l0.addWidget(self.run_clustering_button, 0, 14, 1, 1)      # clustering visualization window features
+        self.l0.addWidget(self.save_clustering_button, 0, 15, 1, 1)      # clustering visualization window features
         self.l0.addWidget(self.playButton,iplay,0,1,1)
         self.l0.addWidget(self.pauseButton,iplay,1,1,1)
         self.playButton.setEnabled(False)
@@ -429,26 +429,25 @@ class MainW(QtGui.QMainWindow):
         self.clear_visualization_window()
         visualization_request = self.clusteringVisComboBox.currentText()
         if visualization_request == "ROI":
-            cluster.disable_data_clustering_features(self)
-            cluster.hide_umap_param(self)
+            self.cluster_model.disable_data_clustering_features(self)
             if len(self.ROIs)>0:
                 self.update_ROI_vis_comboBox()
                 self.update_status_bar("")
             else:
                 self.update_status_bar("Please add ROIs for display")
         elif visualization_request == "UMAP" or visualization_request == "tSNE":
-            self.ClusteringPlot.addItem(self.clustering_scatterplot)#self.ClusteringPlot.clear()
             if self.processed:
-                cluster.enable_data_clustering_features(self)
+                self.cluster_model.enable_data_clustering_features(parent=self)
                 self.update_status_bar("")
             else:
                 self.update_status_bar("Please process ROIs or load data for clustering")
         else:
-            return
+            self.cluster_model.disable_data_clustering_features(self)
 
     def clear_visualization_window(self):
         self.roiVisComboBox.hide()
         self.pROIimg.clear()
+        self.pROI.removeItem(self.scatter)
         self.ClusteringPlot.clear()
         self.ClusteringPlot.hideAxis('left')
         self.ClusteringPlot.hideAxis('bottom')
@@ -461,7 +460,7 @@ class MainW(QtGui.QMainWindow):
         Update ROI selection combo box
         """
         self.roiVisComboBox.clear()
-        self.pROIimg.clear()
+        self.pROIimg.clear() 
         self.roiVisComboBox.addItem("--Type--")
         for i in range(len(self.ROIs)):
             selected = self.ROIs[i]
@@ -476,10 +475,12 @@ class MainW(QtGui.QMainWindow):
         self.roiVisComboBox.show()
         roi_request = self.roiVisComboBox.currentText()
         if roi_request != "--Type--":
+            self.pROI.addItem(self.scatter)
             roi_request_ind = int(roi_request.split(".")[0]) - 1
             self.ROIs[int(roi_request_ind)].plot(self)
         else:
             self.pROIimg.clear()
+            self.pROI.removeItem(self.scatter)
 
     def set_frame_changed(self, text):
         self.cframe = int(float(self.setFrame.text()))
@@ -503,7 +504,7 @@ class MainW(QtGui.QMainWindow):
         self.saturation=[]
         self.clear_visualization_window()
         # Clear clusters
-        cluster.disable_data_clustering_features(self)
+        self.cluster_model.disable_data_clustering_features(self)
         self.clusteringVisComboBox.setCurrentIndex(0)
         self.ClusteringPlot.clear()
         # Clear DLC variables when a new file is loaded
@@ -560,10 +561,12 @@ class MainW(QtGui.QMainWindow):
 
     def update_status_bar(self, message, update_progress=False):
         if update_progress:
-            self.statusBar.showMessage(message.split("|")[0])
             self.progressBar.show()
             progressBar_value = [int(s) for s in message.split("%")[0].split() if s.isdigit()]
             self.progressBar.setValue(progressBar_value[0])
+            frames_processed = np.floor((progressBar_value[0]/100)*float(self.totalFrameNumber.text()))
+            self.setFrame.setText(str(frames_processed))
+            self.statusBar.showMessage(message.split("|")[0])
         else: 
             self.progressBar.hide()
             self.statusBar.showMessage(message)
@@ -842,7 +845,7 @@ class MainW(QtGui.QMainWindow):
         proc = {'Ly':self.Ly, 'Lx':self.Lx, 'sy': self.sy, 'sx': self.sx, 'LY':self.LY, 'LX':self.LX,
                 'sbin': ops['sbin'], 'fullSVD': ops['fullSVD'], 'rois': rois,
                 'save_mat': ops['save_mat'], 'save_path': ops['save_path'],
-                'filenames': self.filenames, 'iframes': self.iframes}
+                'filenames': self.filenames}#, 'iframes': self.iframes}
         savename = process.save(proc, savepath=savepath)
         self.update_status_bar("File saved in "+savepath) #### 
         self.batchlist.append(savename)

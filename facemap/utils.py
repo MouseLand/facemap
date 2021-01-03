@@ -216,10 +216,9 @@ def get_frame_details(filenames):
                 (Output) Lx: list of dimension y for each cam/view
                 (Output) containers: a 2D list of pointers to videos that are open
     '''
-    print('Processing videos with cv2...')
     cumframes = [0]
     containers = []
-    for fs in tqdm(filenames): #for each video in the list
+    for fs in filenames: #for each video in the list
         Ly = []
         Lx = []
         cs = []

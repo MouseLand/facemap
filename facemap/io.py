@@ -240,7 +240,7 @@ def load_movies(parent, filelist=None):
             parent.imgs.append(np.zeros((parent.Ly[i], parent.Lx[i], 3, 3)))
             parent.img.append(np.zeros((parent.Ly[i], parent.Lx[i], 3)))
         #parent.movieLabel.setText(os.path.dirname(parent.filenames[0][0]))
-        parent.update_status_bar("New file(s) loaded: "+os.path.dirname(parent.filenames[0][0]))
+        parent.save_path = os.path.dirname(parent.filenames[0][0])
         parent.frameDelta = int(np.maximum(5,parent.nframes/200))
         parent.frameSlider.setSingleStep(parent.frameDelta)
         if parent.nframes > 0:
@@ -258,12 +258,14 @@ def load_cluster_labels(parent):
                         "Select cluster labels file", "", "Cluster label files (*.npy *.pkl)")[0]
         extension = file_name.split(".")[-1]
         if extension == "npy":
-            parent.cluster_labels = np.load(file_name, allow_pickle=True)
+            parent.loaded_cluster_labels = np.load(file_name, allow_pickle=True)
+            parent.is_cluster_labels_loaded = True
         elif extension == "pkl":
             with open(file_name, 'rb') as f:
-                parent.cluster_labels = pickle.load(f)
+                parent.loaded_cluster_labels = pickle.load(f)
+                parent.is_cluster_labels_loaded = True
         else:
-            parent.cluster_labels = None
+            return
     except Exception as e:
         msg = QtGui.QMessageBox(parent)
         msg.setIcon(QtGui.QMessageBox.Warning)
@@ -271,4 +273,10 @@ def load_cluster_labels(parent):
         msg.setStandardButtons(QtGui.QMessageBox.Ok)
         msg.exec_()
         print(e)
-    
+
+def save_clustering_output(output, parent):
+    filename, ext = parent.filenames[0][0].split(".")
+    filename = filename.split("/")[-1]    # Use video filename 
+    savename = os.path.join(parent.save_path, ("%s_facemap_clusters.npy"%filename))
+    np.save(savename, output)
+    parent.update_status_bar("Clustering output saved: "+savename)

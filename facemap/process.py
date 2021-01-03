@@ -72,11 +72,10 @@ def subsampled_mean(containers, cumframes, Ly, Lx, sbin=3, GUIobject=None, MainW
             imbin = np.abs(np.diff(imbin, axis=0))
             avgmotion[ir[n]] += imbin.mean(axis=0)
         ns+=1
-        message = s.getvalue().split('\x1b[A\n\r')[0].split('\r')[-1]
-        MainWindow.update_status_bar("Computing subsampled mean "+message, update_progress=True)
-        GUIobject.QApplication.processEvents()
-        #print("shape", len(message))
-        #print(message[-1], "message printing")
+        if MainWindow is not None and GUIobject is not None:
+            message = s.getvalue().split('\x1b[A\n\r')[0].split('\r')[-1]
+            MainWindow.update_status_bar("Computing subsampled mean "+message, update_progress=True)
+            GUIobject.QApplication.processEvents()
     avgframe /= float(ns)
     avgmotion /= float(ns)
     avgframe0 = []
@@ -165,11 +164,10 @@ def compute_SVD(containers, cumframes, Ly, Lx, avgmotion, ncomps=500, sbin=3, ro
                         ncb = usv[0].shape[-1]
                         U[wmot[i]+1][:, ni[wmot[i]+1]:ni[wmot[i]+1]+ncb] = usv[0]
                         ni[wmot[i]+1] += ncb
-        #if n%5==0:
-        #    print('SVD %d/%d chunks'%(n,nsegs))
-        message = w.getvalue().split('\x1b[A\n\r')[0].split('\r')[-1]
-        MainWindow.update_status_bar("Computing SVD "+message, update_progress=True)
-        GUIobject.QApplication.processEvents()
+        if MainWindow is not None and GUIobject is not None:
+            message = w.getvalue().split('\x1b[A\n\r')[0].split('\r')[-1]
+            MainWindow.update_status_bar("Computing SVD "+message, update_progress=True)
+            GUIobject.QApplication.processEvents()
         if fullSVD:
             ncb = min(nc, imall.shape[-1])
             usv  = utils.svdecon(imall.T, k=ncb)
@@ -357,11 +355,10 @@ def process_ROIs(containers, cumframes, Ly, Lx, avgmotion, U, sbin=3, tic=None, 
                     vproj = np.concatenate((vproj[0,:][np.newaxis, :], vproj), axis=0)
                 V[0][t:t+vproj.shape[0], :] = vproj
 
-        #if n%20==0:
-        #    print('segment %d / %d, time %1.2f'%(n+1, nsegs, time.time() - tic))
-        message = s.getvalue().split('\x1b[A\n\r')[0].split('\r')[-1]
-        MainWindow.update_status_bar("Computing projection "+message, update_progress=True)
-        GUIobject.QApplication.processEvents()
+        if MainWindow is not None and GUIobject is not None:
+            message = s.getvalue().split('\x1b[A\n\r')[0].split('\r')[-1]
+            MainWindow.update_status_bar("Computing projection "+message, update_progress=True)
+            GUIobject.QApplication.processEvents()
     return V, M, pups, blinks, runs
 
 def save(proc, savepath=None):
@@ -460,7 +457,6 @@ def run(filenames, GUIobject=None, parent=None, proc=None, savepath=None):
     tqdm.write('Computed subsampled mean at %0.2fs'%(time.time() - tic))
     parent.update_status_bar("Computed subsampled mean")
     GUIobject.QApplication.processEvents()
-    
 
     ncomps = 500
     if fullSVD or nroi>0:
