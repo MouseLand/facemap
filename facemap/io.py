@@ -82,7 +82,6 @@ def choose_files(parent, file_name):
     parent.filelist = natsorted(parent.filelist)
     print(parent.filelist)
 
-
 def open_proc(parent, file_name=None):
     if file_name is None:
         file_name = QtGui.QFileDialog.getOpenFileName(parent,
@@ -166,7 +165,7 @@ def open_proc(parent, file_name=None):
                     parent.sl[1].setValue(parent.saturation[parent.iROI] * 100 / 255)
                     parent.ROIs[parent.iROI].plot(parent)
                     if parent.processed:
-                        if k < 8:
+                        if k < 5:
                             parent.cbs1[k].setText('%s%d'%(parent.typestr[r['rind']], kt[r['rind']]))
                             parent.cbs2[k].setText('%s%d'%(parent.typestr[r['rind']], kt[r['rind']]))
                             parent.lbls[k].setText('%s%d'%(parent.typestr[r['rind']], kt[r['rind']]))
@@ -266,6 +265,27 @@ def load_cluster_labels(parent):
                 parent.is_cluster_labels_loaded = True
         else:
             return
+    except Exception as e:
+        msg = QtGui.QMessageBox(parent)
+        msg.setIcon(QtGui.QMessageBox.Warning)
+        msg.setText("Error: not a supported filetype")
+        msg.setStandardButtons(QtGui.QMessageBox.Ok)
+        msg.exec_()
+        print(e)
+
+def load_umap(parent):
+    try:
+        file_name = QtGui.QFileDialog.getOpenFileName(parent,
+                        "Select UMAP data file", "", "UMAP label files (*.npy *.pkl)")[0]
+        extension = file_name.split(".")[-1]
+        if extension == "npy":
+            embedded_data = np.load(file_name, allow_pickle=True)
+        elif extension == "pkl":
+            with open(file_name, 'rb') as f:
+                embedded_data = pickle.load(f)
+        else:
+            return
+        return embedded_data
     except Exception as e:
         msg = QtGui.QMessageBox(parent)
         msg.setIcon(QtGui.QMessageBox.Warning)

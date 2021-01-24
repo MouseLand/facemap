@@ -1,4 +1,4 @@
-from PyQt5 import QtGui, QtCore
+from PyQt5 import QtGui, QtCore, QtWidgets
 import pyqtgraph as pg
 from . import guiparts, io
 
@@ -27,10 +27,6 @@ def mainmenu(parent):
     helpContent.triggered.connect(lambda: launch_user_manual(parent))
     parent.addAction(helpContent)
 
-    about = QtGui.QAction("&About", parent)
-    about.triggered.connect(lambda: launch_about(parent))
-    parent.addAction(about)
-
     # make mainmenu!
     main_menu = parent.menuBar()
     file_menu = main_menu.addMenu("&File")
@@ -39,43 +35,33 @@ def mainmenu(parent):
     file_menu.addAction(loadProc)
     help_menu = main_menu.addMenu("&Help")
     help_menu.addAction(helpContent)
-    help_menu.addAction(about)
-
-def launch_about(parent):
-    widget = QtGui.QDialog(parent)
-    ui=Ui_Help()
-    ui.setupUi(widget)
-    widget.exec_()
 
 def launch_user_manual(parent):
-    widget = QtGui.QDialog(parent)
-    ui=Ui_Help()
-    ui.setupUi(widget)
-    widget.exec_()
-    
-class Ui_Help(object):
-    def setupUi(self, Help):
-        Help.setObjectName("Help")
-        Help.resize(400, 200)
-        icon = QtGui.QIcon()
-        icon.addPixmap(QtGui.QPixmap("logo.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
-        Help.setWindowIcon(icon)
-        self.gridLayoutWidget = QtGui.QWidget(Help)
-        self.gridLayoutWidget.setGeometry(QtCore.QRect(9, 9, 231, 81))
-        self.gridLayoutWidget.setObjectName("gridLayoutWidget")
-        self.gridLayout = QtGui.QGridLayout(self.gridLayoutWidget)
-        self.gridLayout.setContentsMargins(0, 0, 0, 0)
-        self.gridLayout.setObjectName("gridLayout")
+    w = Dialog(parent)
+    w.resize(640, 480)
+    w.show()
 
-        QtCore.QMetaObject.connectSlotsByName(Help)
-#def onlinemenu(parent):
-#    # make mainmenu!
-#    main_menu = parent.menuBar()
-#    online_menu = main_menu.addMenu("&Online")
-#    chooseFolder = QtGui.QAction("Choose folder with frames", parent)
-#    chooseFolder.setShortcut("Ctrl+O")
-#    chooseFolder.triggered.connect(lambda: online.choose_folder(parent))
-#    parent.addAction(chooseFolder)
-#    online_menu.addAction(chooseFolder)    
-#    parent.online_mode = False
+class DrawWidget(QtWidgets.QWidget):
+    def __init__(self, *args, **kwargs):
+        super(DrawWidget, self).__init__(*args, **kwargs)
+        self.setFixedSize(640, 480)
 
+    def paintEvent(self, event):
+        painter = QtGui.QPainter(self)
+        painter.setRenderHint(QtGui.QPainter.Antialiasing)
+        painter.setBrush(QtGui.QBrush(QtCore.Qt.black))
+        painter.setPen(QtCore.Qt.NoPen)
+        path = QtGui.QPainterPath()
+        path.addText(QtCore.QPoint(10, 50), QtGui.QFont("Times", 40, QtGui.QFont.Bold), "Facemap")
+        help_text = "Add help content here"
+        path.addText(QtCore.QPoint(10, 80), QtGui.QFont("Times", 14), help_text)
+        painter.drawPath(path)
+
+class Dialog(QtWidgets.QDialog):
+    def __init__(self, parent):
+        super(Dialog, self).__init__(parent)
+        scroll_area = QtWidgets.QScrollArea(widgetResizable=True)
+        draw_widget = DrawWidget()
+        scroll_area.setWidget(draw_widget)
+        lay = QtWidgets.QVBoxLayout(self)
+        lay.addWidget(scroll_area)

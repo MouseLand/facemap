@@ -65,16 +65,16 @@ class MainW(QtGui.QMainWindow):
         self.win = pg.GraphicsLayoutWidget()
         self.win.move(600,0)
         self.win.resize(1000,500)
-        self.l0.addWidget(self.win,1,2,37,15)
+        self.l0.addWidget(self.win,1,2,27,15)
         layout = self.win.ci.layout
 
         # Add logo
-        icon_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "mouse.png")
-        self.logo = QPixmap(icon_path).scaled(90, 70, QtCore.Qt.KeepAspectRatio, QtCore.Qt.SmoothTransformation)
-        self.logoLabel = QtGui.QLabel(self) 
-        self.logoLabel.setPixmap(self.logo) 
-        self.logoLabel.setScaledContents(True)
-        self.l0.addWidget(self.logoLabel,0,0,3,2)
+        #icon_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "mouse.png")
+        #self.logo = QPixmap(icon_path).scaled(90, 70, QtCore.Qt.KeepAspectRatio, QtCore.Qt.SmoothTransformation)
+        #self.logoLabel = QtGui.QLabel(self) 
+        #self.logoLabel.setPixmap(self.logo) 
+        #self.logoLabel.setScaledContents(True)
+        #self.l0.addWidget(self.logoLabel,0,0,3,2)
 
         # A plot area (ViewBox + axes) for displaying the image
         self.p0 = self.win.addViewBox(lockAspect=True,row=0,col=0,invertY=True)
@@ -119,7 +119,6 @@ class MainW(QtGui.QMainWindow):
         
         # Reflector
         self.reflector = QtGui.QPushButton('Add corneal reflection')
-        self.l0.addWidget(self.reflector, 5, 0, 1, 2)
         self.reflector.setEnabled(False)
         self.reflector.clicked.connect(self.add_reflectROI)
         self.rROI=[]
@@ -144,10 +143,10 @@ class MainW(QtGui.QMainWindow):
         self.cframe = 0
         
         ## DLC plot
-        self.DLCplot = self.win.addPlot(row=0, col=0, lockAspect=True, enableMouse=False)
-        self.DLCplot.invertY(True)
-        self.DLCplot.hideAxis('left')
-        self.DLCplot.hideAxis('bottom')
+        #self.DLCplot = self.win.addPlot(row=0, col=0, lockAspect=True, enableMouse=False)
+        #self.DLCplot.invertY(True)
+        #self.DLCplot.hideAxis('left')
+        #self.DLCplot.hideAxis('bottom')
         self.DLC_scatterplot = pg.ScatterPlotItem(hover=True)
         self.DLC_scatterplot.sigClicked.connect(self.DLC_points_clicked)
         self.DLC_scatterplot.sigHovered.connect(self.DLC_points_hovered)
@@ -201,10 +200,10 @@ class MainW(QtGui.QMainWindow):
         VideoLabel.setStyleSheet("color: white;")
         VideoLabel.setAlignment(QtCore.Qt.AlignCenter)
         VideoLabel.setFont(QtGui.QFont("Arial", 12, QtGui.QFont.Bold))
-        fileIOlabel = QtGui.QLabel("File I/O")
-        fileIOlabel.setStyleSheet("color: white;")
-        fileIOlabel.setAlignment(QtCore.Qt.AlignCenter)
-        fileIOlabel.setFont(QtGui.QFont("Arial", 12, QtGui.QFont.Bold))
+        #fileIOlabel = QtGui.QLabel("File I/O")
+        #fileIOlabel.setStyleSheet("color: white;")
+        #fileIOlabel.setAlignment(QtCore.Qt.AlignCenter)
+        #fileIOlabel.setFont(QtGui.QFont("Arial", 12, QtGui.QFont.Bold))
         SVDbinLabel = QtGui.QLabel("SVD spatial bin:")
         SVDbinLabel.setStyleSheet("color: gray;")
         self.binSpinBox = QtGui.QSpinBox()
@@ -233,8 +232,8 @@ class MainW(QtGui.QMainWindow):
         self.frameSlider.setTracking(False)
         self.frameSlider.valueChanged.connect(self.go_to_frame)
         self.frameDelta = 10
-        istretch = 23
-        iplay = istretch+15
+        istretch = 18
+        iplay = istretch+10
         iconSize = QtCore.QSize(20, 20)
 
         self.process = QtGui.QPushButton('process ROIs')
@@ -242,12 +241,13 @@ class MainW(QtGui.QMainWindow):
         self.process.clicked.connect(self.process_ROIs)
         self.process.setEnabled(False)
 
-        self.savefolder = QtGui.QPushButton("Set output folder \u2b07")
+        self.savefolder = QtGui.QPushButton("Output folder \u2b07")
         self.savefolder.setFont(QtGui.QFont("Arial", 10, QtGui.QFont.Bold))
         self.savefolder.clicked.connect(self.save_folder)
         self.savefolder.setEnabled(False)
         self.savelabel = QtGui.QLabel('same as video')
         self.savelabel.setStyleSheet("color: white;")
+        self.savelabel.setAlignment(QtCore.Qt.AlignCenter)
 
         self.saverois = QtGui.QPushButton('save ROIs')
         self.saverois.setFont(QtGui.QFont("Arial", 10, QtGui.QFont.Bold))
@@ -350,24 +350,25 @@ class MainW(QtGui.QMainWindow):
             self.save_mat.toggle()
 
         # Add features to window
-        self.l0.addWidget(VideoLabel,3,0,1,2)
-        self.l0.addWidget(self.comboBox,4,0,1,2)
-        self.l0.addWidget(self.addROI,4,1,1,1)
-        self.l0.addWidget(SVDbinLabel, 6, 0, 1, 2)
-        self.l0.addWidget(self.binSpinBox, 6, 1, 1, 2)
-        self.l0.addWidget(binLabel, 7, 0, 1, 1)
-        self.l0.addWidget(self.sigmaBox, 7, 1, 1, 1)
-        self.l0.addWidget(self.checkBox, 8, 0, 1, 1)
-        self.l0.addWidget(self.save_mat, 8, 1, 1, 1)
-        self.l0.addWidget(self.saverois, 9, 0, 1, 1)
-        self.l0.addWidget(self.process,  9, 1, 1, 1)
-        self.l0.addWidget(self.processbatch,  10, 0, 1, 2)
+        self.l0.addWidget(VideoLabel,0,0,1,2)
+        self.l0.addWidget(self.comboBox,1,0,1,2)
+        self.l0.addWidget(self.addROI,1,1,1,1)
+        self.l0.addWidget(self.reflector, 2, 0, 1, 2)
+        self.l0.addWidget(SVDbinLabel, 3, 0, 1, 2)
+        self.l0.addWidget(self.binSpinBox,3, 1, 1, 2)
+        self.l0.addWidget(binLabel, 4, 0, 1, 1)
+        self.l0.addWidget(self.sigmaBox, 4, 1, 1, 1)
+        self.l0.addWidget(self.checkBox, 5, 0, 1, 1)
+        self.l0.addWidget(self.save_mat, 5, 1, 1, 1)
+        self.l0.addWidget(self.saverois, 6, 0, 1, 1)
+        self.l0.addWidget(self.process,  6, 1, 1, 1)
+        self.l0.addWidget(self.processbatch, 7, 0, 1, 1)
 
-        self.l0.addWidget(fileIOlabel,11,0,1,2)
-        self.l0.addWidget(self.savefolder, 12, 0, 1, 2)
-        self.l0.addWidget(self.savelabel, 13, 0, 1, 2)
-        self.l0.addWidget(self.loadDLC, 14, 0, 1, 1)                    # DLC features
-        self.l0.addWidget(self.DLClabels_checkBox, 14, 1, 1, 1)        
+        #self.l0.addWidget(fileIOlabel,11,0,1,2)
+        self.l0.addWidget(self.savefolder, 7, 1, 1, 1)
+        self.l0.addWidget(self.savelabel, 8, 0, 1, 2)
+        self.l0.addWidget(self.loadDLC, 9, 0, 1, 1)                    # DLC features
+        self.l0.addWidget(self.DLClabels_checkBox, 9, 1, 1, 1)        
         self.l0.addWidget(self.clusteringVisComboBox, 0, 11, 1, 1)      # clustering visualization window features
         self.l0.addWidget(self.data_clustering_combobox, 0, 12, 1, 2)      # clustering visualization window features
         self.l0.addWidget(self.roiVisComboBox, 0, 12, 1, 2)              # ROI visualization window features
@@ -380,34 +381,34 @@ class MainW(QtGui.QMainWindow):
         self.pauseButton.setChecked(True)
         self.l0.addWidget(QtGui.QLabel(''),istretch,0,1,3)
         self.l0.setRowStretch(istretch,1)
-        self.l0.addWidget(self.frameLabel, istretch+12,0,1,1)
-        self.l0.addWidget(self.setFrame, istretch+12,1,2,2)    
-        self.l0.addWidget(self.totalFrameLabel, istretch+14,0,1,1)
-        self.l0.addWidget(self.totalFrameNumber, istretch+14,1,1,1)
-        self.l0.addWidget(self.frameSlider, istretch+15,2,1,15)
+        self.l0.addWidget(self.frameLabel, istretch+7,0,1,1)
+        self.l0.addWidget(self.setFrame, istretch+7,1,1,1)    
+        self.l0.addWidget(self.totalFrameLabel, istretch+8,0,1,1)
+        self.l0.addWidget(self.totalFrameNumber, istretch+8,1,1,1)
+        self.l0.addWidget(self.frameSlider, istretch+10,2,1,15)
 
         # plotting boxes
-        pl = QtGui.QLabel("Plot output")
-        pl.setStyleSheet("color: white")
-        pl.setAlignment(QtCore.Qt.AlignCenter)
-        self.l0.addWidget(pl, istretch+1, 0, 1, 2)
+        #pl = QtGui.QLabel("Plot output")
+        #pl.setStyleSheet("color: white")
+        #pl.setAlignment(QtCore.Qt.AlignCenter)
+        #self.l0.addWidget(pl, istretch+1, 0, 1, 2)
         pl = QtGui.QLabel("Plot 1")
         pl.setStyleSheet("color: gray;")
-        self.l0.addWidget(pl, istretch+2, 0, 1, 1)
+        self.l0.addWidget(pl, istretch, 0, 1, 1)
         pl = QtGui.QLabel("Plot 2")
         pl.setStyleSheet("color: gray;")
-        self.l0.addWidget(pl, istretch+2, 1, 1, 1)
+        self.l0.addWidget(pl, istretch, 1, 1, 1)
         pl = QtGui.QLabel("ROI")
         pl.setStyleSheet("color: gray;")
         #self.l0.addWidget(pl, istretch+2, 2, 1, 1)
         self.cbs1 = []
         self.cbs2 = []
         self.lbls = []
-        for k in range(8):
+        for k in range(5):
             self.cbs1.append(QtGui.QCheckBox(""))
-            self.l0.addWidget(self.cbs1[-1], istretch+3+k, 0, 1, 1)
+            self.l0.addWidget(self.cbs1[-1], istretch+1+k, 0, 1, 1)
             self.cbs2.append(QtGui.QCheckBox(""))
-            self.l0.addWidget(self.cbs2[-1], istretch+3+k, 1, 1, 1)
+            self.l0.addWidget(self.cbs2[-1], istretch+1+k, 1, 1, 1)
             self.cbs1[-1].toggled.connect(self.plot_processed)
             self.cbs2[-1].toggled.connect(self.plot_processed)
             self.cbs1[-1].setEnabled(False)
@@ -417,9 +418,9 @@ class MainW(QtGui.QMainWindow):
             self.lbls.append(QtGui.QLabel(''))
             self.lbls[-1].setStyleSheet("color: white;")
             #self.l0.addWidget(self.lbls[-1], istretch+3+k, 2, 1, 1)
-        ll = QtGui.QLabel('play/pause [SPACE]')
-        ll.setStyleSheet("color: gray;")
-        self.l0.addWidget(ll, istretch+3+k+1,0,1,1)
+        #ll = QtGui.QLabel('play/pause [SPACE]')
+        #ll.setStyleSheet("color: gray;")
+        #self.l0.addWidget(ll, istretch+3+k+1,0,1,1)
         self.update_frame_slider()
 
     def vis_combobox_selection_changed(self):
@@ -436,11 +437,11 @@ class MainW(QtGui.QMainWindow):
             else:
                 self.update_status_bar("Please add ROIs for display")
         elif visualization_request == "UMAP" or visualization_request == "tSNE":
-            if self.processed:
-                self.cluster_model.enable_data_clustering_features(parent=self)
-                self.update_status_bar("")
-            else:
-                self.update_status_bar("Please process ROIs or load data for clustering")
+            #if self.processed:
+            self.cluster_model.enable_data_clustering_features(parent=self)
+            self.update_status_bar("")
+            #else:
+                #self.update_status_bar("Please process ROIs or load data for clustering")
         else:
             self.cluster_model.disable_data_clustering_features(self)
 
@@ -508,7 +509,9 @@ class MainW(QtGui.QMainWindow):
         self.clusteringVisComboBox.setCurrentIndex(0)
         self.ClusteringPlot.clear()
         # Clear DLC variables when a new file is loaded
-        self.DLCplot.clear()
+        #self.DLCplot.clear()
+        self.DLC_scatterplot.clear()
+        #self.p0.clear()
         self.DLC_file_loaded = False
         # clear checkboxes
         for k in range(len(self.cbs1)):
@@ -609,8 +612,10 @@ class MainW(QtGui.QMainWindow):
     def update_DLC_points(self):
         if self.DLC_file_loaded and self.DLClabels_checkBox.isChecked():
             self.statusBar.clearMessage()
-            self.DLCplot.addItem(self.DLC_scatterplot)
-            self.DLCplot.setRange(xRange=(0,self.LX), yRange=(0,self.LY), padding=0.0)
+            self.p0.addItem(self.DLC_scatterplot)
+            self.p0.setRange(xRange=(0,self.LX), yRange=(0,self.LY), padding=0.0)
+            #self.DLCplot.addItem(self.DLC_scatterplot)
+            #self.DLCplot.setRange(xRange=(0,self.LX), yRange=(0,self.LY), padding=0.0)
             x = self.DLC_x_coord[:,self.cframe]
             y = self.DLC_y_coord[:,self.cframe]
             self.DLC_scatterplot.setData(x, y, size=10, symbol='o', brush=self.brushes, hoverable=True, hoverSize=15)

@@ -2,7 +2,7 @@ import umap
 import numpy as np
 from PyQt5 import QtGui, QtCore, QtWidgets
 import pyqtgraph as pg
-import pyqtgraph.opengl as gl
+#import pyqtgraph.opengl as gl
 from sklearn.cluster import MiniBatchKMeans
 import hdbscan
 from matplotlib import cm
@@ -54,6 +54,8 @@ class Cluster():
         parent.cluster_method_label.setStyleSheet("color: gray;")
         parent.cluster_method_label.setAlignment(QtCore.Qt.AlignCenter)
 
+        parent.load_umap_embedding_button = QtGui.QPushButton('Load emmbedding')
+
         parent.RadioGroup = QtGui.QButtonGroup()
         parent.load_cluster_labels_button = QtGui.QPushButton('Load')
         parent.loadlabels_radiobutton = QtGui.QRadioButton("Load labels")
@@ -78,7 +80,7 @@ class Cluster():
         parent.num_clusters.setFixedWidth(50)
         parent.num_clusters.setText(str(5))
 
-        istretch = 15
+        istretch = 10
         parent.l0.addWidget(parent.ClusteringLabel, istretch, 0, 1, 2)
         parent.l0.addWidget(parent.min_dist_label, istretch+1, 0, 1, 1)
         parent.l0.addWidget(parent.min_dist_value, istretch+1, 1, 1, 1)
@@ -86,26 +88,37 @@ class Cluster():
         parent.l0.addWidget(parent.n_neighbors_value, istretch+2, 1, 1, 1)
         parent.l0.addWidget(parent.n_components_label, istretch+3, 0, 1, 1)
         parent.l0.addWidget(parent.n_components_value, istretch+3, 1, 1, 1)
-        parent.l0.addWidget(parent.cluster_method_label, istretch+4, 0, 1, 2)
-        parent.l0.addWidget(parent.loadlabels_radiobutton, istretch+5, 0, 1, 1)
-        parent.l0.addWidget(parent.load_cluster_labels_button, istretch+5, 1, 1, 1)
-        parent.l0.addWidget(parent.kmeans_radiobutton, istretch+6, 0, 1, 1)
-        parent.l0.addWidget(parent.hdbscan_radiobutton, istretch+6, 1, 1, 1)
-        parent.l0.addWidget(parent.min_cluster_size_label, istretch+7, 0, 1, 1)
-        parent.l0.addWidget(parent.min_cluster_size, istretch+7, 1, 1, 1)
-        parent.l0.addWidget(parent.num_clusters_label, istretch+7, 0, 1, 1)
-        parent.l0.addWidget(parent.num_clusters, istretch+7, 1, 1, 1)
+        parent.l0.addWidget(parent.load_umap_embedding_button, istretch+4, 0, 1, 2)
+        parent.l0.addWidget(parent.cluster_method_label, istretch+5, 0, 1, 2)
+        parent.l0.addWidget(parent.loadlabels_radiobutton, istretch+6, 0, 1, 1)
+        parent.l0.addWidget(parent.load_cluster_labels_button, istretch+6, 1, 1, 1)
+        parent.l0.addWidget(parent.kmeans_radiobutton, istretch+7, 0, 1, 1)
+        parent.l0.addWidget(parent.hdbscan_radiobutton, istretch+7, 1, 1, 1)
+        parent.l0.addWidget(parent.min_cluster_size_label, istretch+8, 0, 1, 1)
+        parent.l0.addWidget(parent.min_cluster_size, istretch+8, 1, 1, 1)
+        parent.l0.addWidget(parent.num_clusters_label, istretch+8, 0, 1, 1)
+        parent.l0.addWidget(parent.num_clusters, istretch+8, 1, 1, 1)
 
         self.hide_umap_param(parent)
+        parent.load_umap_embedding_button.clicked.connect(lambda: self.load_umap(parent))
         parent.loadlabels_radiobutton.toggled.connect(lambda: self.show_cluster_method_param(parent))
         parent.kmeans_radiobutton.toggled.connect(lambda: self.show_cluster_method_param(parent))
         parent.hdbscan_radiobutton.toggled.connect(lambda: self.show_cluster_method_param(parent))
-        parent.load_cluster_labels_button.clicked.connect(lambda: io.load_cluster_labels(parent))
+        parent.load_cluster_labels_button.clicked.connect(lambda: self.load_cluster_labels(parent))
+
+    def load_umap(self, parent):
+        self.embedded_output = io.load_umap(parent)
+        self.plot_clustering_output(parent)
+
+    def load_cluster_labels(self, parent):
+        io.load_cluster_labels(parent)
+        self.plot_clustering_output(parent)
 
     def enable_data_clustering_features(self, parent):
         parent.data_clustering_combobox.clear()
         parent.ClusteringPlot.clear()
         # Add data to be used for clustering
+        """
         parent.data_clustering_combobox.addItem("-- Data --")
         data_types = ["motion SVD", "Running", "Pupil", "Blink"]
         data = [parent.motSVDs[0], parent.running, parent.pupil, parent.blink]
@@ -114,16 +127,17 @@ class Cluster():
                 parent.data_clustering_combobox.addItem(data_types[i])
         parent.data_clustering_combobox.setCurrentIndex(0)
         parent.data_clustering_combobox.show()
+        """
         parent.run_clustering_button.show()
 
         cluster_method = parent.clusteringVisComboBox.currentText() ######
         if cluster_method == "UMAP":
-            parent.data_clustering_combobox.show()
+            #parent.data_clustering_combobox.show()
             self.show_umap_param(parent)
         else:
             self.disable_data_clustering_features(parent)
         
-        if self.embedded_output is not None and parent.clusteringVisComboBox.currentText()==self.cluster_method:
+        if self.embedded_output is not None: #and parent.clusteringVisComboBox.currentText()==self.cluster_method:
             self.show_processed_data(parent)
 
     def show_processed_data(self, parent):
@@ -164,6 +178,7 @@ class Cluster():
         parent.kmeans_radiobutton.show()
         parent.hdbscan_radiobutton.show()
         self.show_cluster_method_param(parent)
+        parent.load_umap_embedding_button.show()
 
     def hide_umap_param(self, parent):
         parent.ClusteringLabel.hide()
@@ -182,6 +197,7 @@ class Cluster():
         parent.num_clusters.hide()
         parent.min_cluster_size_label.hide()
         parent.min_cluster_size.hide()
+        parent.load_umap_embedding_button.hide()
 
     def show_cluster_method_param(self, parent):
         if parent.loadlabels_radiobutton.isChecked():
@@ -301,6 +317,7 @@ class Cluster():
                         n_components=self.n_components).fit_transform(data) # cluster features/frames
 
     def plot_clustering_output(self, parent):
+        parent.ClusteringPlot.clear()
         num_feat = self.embedded_output.shape[0]
         num_comps = self.embedded_output.shape[1]
         is_cluster_colored = False
@@ -371,7 +388,7 @@ class Cluster():
                 if len(point_hovered) > cutoff:
                     tip.append('({} other...)'.format(len(point_hovered) - cutoff))
                 vb.setToolTip('\n\n'.join(tip))
-                frame = str(points[point_hovered[0]].data())
+                frame = str(points[point_hovered[np.random.randint(len(point_hovered))]].data())
                 parent.setFrame.setText(frame)                # display frame from one of the hovered points
 
     def save_dialog(self, clicked, parent):
