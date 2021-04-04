@@ -272,11 +272,13 @@ class MainW(QtGui.QMainWindow):
 
         # Process features
         self.batchlist=[]
+        """
         self.batchname=[]
         for k in range(6):
             self.batchname.append(QtGui.QLabel(''))
             self.batchname[-1].setStyleSheet("color: white;")
             self.l0.addWidget(self.batchname[-1],18+k,0,1,4)
+        """
 
         self.processbatch = QtGui.QPushButton(u"process batch \u2b07")
         self.processbatch.setFont(QtGui.QFont("Arial", 10, QtGui.QFont.Bold))
@@ -861,7 +863,7 @@ class MainW(QtGui.QMainWindow):
         self.batchlist.append(savename)
         basename,filename = os.path.split(savename)
         filename, ext = os.path.splitext(filename)
-        self.batchname[len(self.batchlist)-1].setText(filename)
+        #self.batchname[len(self.batchlist)-1].setText(filename)
         self.processbatch.setEnabled(True)
 
     def process_batch(self):
