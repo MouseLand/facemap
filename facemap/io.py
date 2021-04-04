@@ -12,7 +12,7 @@ def open_file(parent, file_name=None):
                             "Open movie file", "", "Movie files (*.h5 *.mj2 *.mp4 *.mkv *.avi *.mpeg *.mpg *.asf)")
     # load ops in same folder
     if file_name:
-        parent.filelist = [ [file_name[0]] ]
+        parent.filelist = [[file_name[0]]]
         load_movies(parent)
 
 def open_folder(parent, folder_name=None):
@@ -185,9 +185,10 @@ def open_proc(parent, file_name=None):
                     parent.cbs1[k].setEnabled(True)
                     parent.cbs2[k].setEnabled(True)
                 if parent.fullSVD:
+                    parent.cbs1[0].setEnabled(True)
                     parent.cbs1[0].setChecked(True)
+                    parent.cbs2[0].setEnabled(True)
                 parent.plot_processed()
-
             parent.next_frame()
 
 def load_movies(parent, filelist=None):
@@ -206,7 +207,6 @@ def load_movies(parent, filelist=None):
         parent.video = v
         parent.filenames = parent.filelist
         parent.nframes = nframes
-        #parent.iframes = np.array(iframes).astype(int)
         parent.cumframes = np.array(cumframes).astype(int)
         parent.Ly = Ly
         parent.Lx = Lx

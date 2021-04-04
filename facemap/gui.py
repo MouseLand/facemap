@@ -143,10 +143,6 @@ class MainW(QtGui.QMainWindow):
         self.cframe = 0
         
         ## DLC plot
-        #self.DLCplot = self.win.addPlot(row=0, col=0, lockAspect=True, enableMouse=False)
-        #self.DLCplot.invertY(True)
-        #self.DLCplot.hideAxis('left')
-        #self.DLCplot.hideAxis('bottom')
         self.DLC_scatterplot = pg.ScatterPlotItem(hover=True)
         self.DLC_scatterplot.sigClicked.connect(self.DLC_points_clicked)
         self.DLC_scatterplot.sigHovered.connect(self.DLC_points_hovered)
@@ -169,7 +165,6 @@ class MainW(QtGui.QMainWindow):
         self.updateTimer.timeout.connect(self.next_frame)
         self.cframe = 0
         self.loaded = False
-        self.Floaded = False
         self.wraw = False
         self.win.scene().sigMouseClicked.connect(self.plot_clicked)
         self.win.show()
@@ -327,7 +322,6 @@ class MainW(QtGui.QMainWindow):
         self.clusteringVisComboBox.addItem("--Select display--")
         self.clusteringVisComboBox.addItem("ROI")
         self.clusteringVisComboBox.addItem("UMAP")
-        self.clusteringVisComboBox.addItem("tSNE")
         self.clusteringVisComboBox.currentIndexChanged.connect(self.vis_combobox_selection_changed)
         self.clusteringVisComboBox.setFixedWidth(140)
         self.roiVisComboBox = QtGui.QComboBox(self)
@@ -443,7 +437,7 @@ class MainW(QtGui.QMainWindow):
                 self.update_status_bar("")
             else:
                 self.update_status_bar("Please add ROIs for display")
-        elif visualization_request == "UMAP" or visualization_request == "tSNE":
+        elif visualization_request == "UMAP":
             #if self.processed:
             self.cluster_model.enable_data_clustering_features(parent=self)
             self.update_status_bar("")
@@ -732,6 +726,8 @@ class MainW(QtGui.QMainWindow):
         self.process.setEnabled(True)
         self.savefolder.setEnabled(True)
         self.saverois.setEnabled(True)
+        self.checkBox.setChecked(True)
+        self.save_mat.setChecked(True)
 
         # Enable DLC features for single video only
         if len(self.img)==1:
@@ -810,7 +806,7 @@ class MainW(QtGui.QMainWindow):
     def start(self):
         if self.online_mode:
             self.online_traces = None 
-            self.p1.clear()
+            #self.p1.clear()
             self.p1.show()
             self.playButton.setEnabled(False)
             self.pauseButton.setEnabled(True)
@@ -849,7 +845,7 @@ class MainW(QtGui.QMainWindow):
             savepath = self.save_path
         else:
             savepath = None
-        print(savepath)
+        print("ROIs saved in:", savepath)
         if len(self.ROIs)>0:
             rois = utils.roi_to_dict(self.ROIs, self.rROI)
         else:
@@ -882,10 +878,10 @@ class MainW(QtGui.QMainWindow):
             savepath = self.save_path
         else:
             savepath = None
-        print("Output will be saved in",savepath)
-        self.update_status_bar("Output will be saved in "+savepath) #### 
         savename = process.run(self.filenames, QtGui, self, savepath=savepath)
         io.open_proc(self, file_name=savename)
+        print("Output saved in",savepath)
+        self.update_status_bar("Output saved in "+savepath) #### 
 
     def plot_processed(self):
         self.p1.clear()

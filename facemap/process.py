@@ -368,13 +368,14 @@ def save(proc, savepath=None):
     if savepath is not None:
         basename = savepath
     savename = os.path.join(basename, ("%s_proc.npy"%filename))
-    print('Processed file saved:',savename)
     np.save(savename, proc)
     if proc['save_mat']:
         if 'save_path' in proc and proc['save_path'] is None:
-            proc['save_path'] = ''
+            proc['save_path'] = basename
 
         d2 = {}
+        if proc['rois'] is None:
+            proc['rois'] = 0
         for k in proc.keys():
             if isinstance(proc[k], list) and len(proc[k])>0 and isinstance(proc[k][0], np.ndarray):
                 for i in range(len(proc[k])):
@@ -382,9 +383,6 @@ def save(proc, savepath=None):
             else:
                 d2[k] = proc[k]
         savenamemat = os.path.join(basename, ("%s_proc.mat"%filename))
-        print('Processed .mat file saved:',savenamemat)
-        if proc['rois'] is None:
-            proc['rois'] = 0
         io.savemat(savenamemat, d2)
         del d2
     return savename
