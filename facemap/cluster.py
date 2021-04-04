@@ -118,7 +118,6 @@ class Cluster():
         parent.data_clustering_combobox.clear()
         parent.ClusteringPlot.clear()
         # Add data to be used for clustering
-        """
         parent.data_clustering_combobox.addItem("-- Data --")
         data_types = ["motion SVD", "Running", "Pupil", "Blink"]
         data = [parent.motSVDs[0], parent.running, parent.pupil, parent.blink]
@@ -127,7 +126,7 @@ class Cluster():
                 parent.data_clustering_combobox.addItem(data_types[i])
         parent.data_clustering_combobox.setCurrentIndex(0)
         parent.data_clustering_combobox.show()
-        """
+ 
         parent.run_clustering_button.show()
 
         cluster_method = parent.clusteringVisComboBox.currentText() ######
@@ -255,6 +254,8 @@ class Cluster():
         colors = colors.astype(int)
         colors[:,-1] = 127
         brushes = [pg.mkBrush(color=c) for c in colors]
+        #if -1 in np.unique(self.cluster_labels):
+        #    brushes[0] = pg.mkBrush(color=(220,220,220))
         return brushes
 
     def reset(self, parent):
@@ -343,13 +344,17 @@ class Cluster():
                     legend_num_col, legend_num_row = [1, 1]
                 parent.ClusteringPlot_legend = pg.LegendItem(labelTextSize='12pt', horSpacing=12,
                                                             colCount=legend_num_col, rowCount=legend_num_row)
-                for cluster in range(max(self.cluster_labels)+1):
+                for i, cluster in enumerate(np.unique(self.cluster_labels)):#range(max(self.cluster_labels)+1):
                     ind = np.where(self.cluster_labels==cluster)[0]
                     data = self.embedded_output[ind,:]
-                    scatter_plots.append(pg.ScatterPlotItem(data[:,0], data[:,1], symbol='o', brush=brushes[cluster],
-                                                hoverable=True, hoverSize=15, data=ind, name=str(cluster)))
-                    parent.ClusteringPlot.addItem(scatter_plots[cluster])
-                    parent.ClusteringPlot_legend.addItem(scatter_plots[cluster], name=str(cluster))
+                    if cluster == -1:
+                        scatter_plots.append(pg.ScatterPlotItem(data[:,0], data[:,1], symbol='o', brush=pg.mkBrush(color=(0,1,1,1)),
+                                            hoverable=True, hoverSize=15, pen=(0,.0001,0,0), data=ind, name=str(i))) #pg.mkPen(pg.hsvColor(hue=.01,sat=.01,alpha=0.01))
+                    else:
+                        scatter_plots.append(pg.ScatterPlotItem(data[:,0], data[:,1], symbol='o', brush=brushes[i],
+                                            hoverable=True, hoverSize=15, data=ind, name=str(i)))
+                    parent.ClusteringPlot.addItem(scatter_plots[i])
+                    parent.ClusteringPlot_legend.addItem(scatter_plots[i], name=str(i))
                 # Add all points (transparent) to connect them to hovered function
                 parent.clustering_scatterplot.setData(self.embedded_output[:,0], self.embedded_output[:,1], symbol='o', brush=(0,0,0,0),
                                                 hoverable=True, hoverSize=15, pen=(0,0,0,0), data=np.arange(num_feat),name=name)
@@ -377,6 +382,8 @@ class Cluster():
         parent.save_clustering_button.show()
 
     def embedded_points_hovered(self, obj, ev, parent):
+        
+        """
         point_hovered = np.where(parent.clustering_scatterplot.data['hovered'])[0]
         if point_hovered.shape[0] >= 1:         # Show tooltip only when hovering over a point i.e. no empty array
             points = parent.clustering_scatterplot.points()
@@ -388,8 +395,36 @@ class Cluster():
                 if len(point_hovered) > cutoff:
                     tip.append('({} other...)'.format(len(point_hovered) - cutoff))
                 vb.setToolTip('\n\n'.join(tip))
-                frame = str(points[point_hovered[np.random.randint(len(point_hovered))]].data())
-                parent.setFrame.setText(frame)                # display frame from one of the hovered points
+                frame = str(points[point_hovered[0]].data())#np.random.randint(len(point_hovered))]].data())
+                parent.setFrame.setText(frame)  
+        """
+        if len(ev) > 0:
+            new = parent.clustering_scatterplot._maskAt(ev[0].pos())
+            points = parent.clustering_scatterplot.points()[new][::-1]#              # display frame from one of the hovered points
+            # Show information about hovered points in a tool tip
+            vb = parent.clustering_scatterplot.getViewBox()
+            if vb is not None and parent.clustering_scatterplot.opts['tip'] is not None:
+                cutoff = 2
+                tip = [parent.clustering_scatterplot.opts['tip'](x=pt.pos().x(), y=pt.pos().y(), data=pt.data())
+                        for pt in points[:cutoff]]
+                if len(points) > cutoff:
+                    tip.append('({} others...)'.format(len(points) - cutoff))
+                vb.setToolTip('\n\n'.join(tip))
+                frame = str(points[np.random.randint(len(points))].data())#np.random.randint(len(point_hovered))]].data())
+                parent.setFrame.setText(frame)
+
+    def mouse_moved_embedding(self, pos, parent):
+        if self.embedded_output is not None:
+            if parent.ClusteringPlot.sceneBoundingRect().contains(pos):
+                x = parent.ClusteringPlot.vb.mapSceneToView(pos).x()
+                y = parent.ClusteringPlot.vb.mapSceneToView(pos).y()
+                scatter_x = np.array([i.pos().x() for i in parent.clustering_scatterplot.points()])
+                scatter_y = np.array([i.pos().y() for i in parent.clustering_scatterplot.points()])
+                dists = (scatter_x - x)**2 + (scatter_y - y)**2
+                data = np.argmin(dists.flatten()).astype(int)
+                #data = parent.clustering_scatterplot.points()[parent.clustering_scatterplot._maskAt(pos)]
+                print(data)
+                parent.setFrame.setText(str(data))
 
     def save_dialog(self, clicked, parent):
         dialog = QtWidgets.QDialog()

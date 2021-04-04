@@ -162,7 +162,7 @@ def compute_SVD(containers, cumframes, Ly, Lx, avgmotion, ncomps=500, sbin=3, ro
                         ncb = min(nc, lilbin.shape[-1])
                         usv  = utils.svdecon(lilbin.T, k=ncb)
                         ncb = usv[0].shape[-1]
-                        U[wmot[i]+1][:, ni[wmot[i]+1]:ni[wmot[i]+1]+ncb] = usv[0]
+                        U[wmot[i]+1][:, ni[wmot[i]+1]:ni[wmot[i]+1]+ncb] = usv[0] * usv[1]#U[wmot[i]+1][:, ni[wmot[i]+1]:ni[wmot[i]+1]+ncb] = usv[0]
                         ni[wmot[i]+1] += ncb
         if MainWindow is not None and GUIobject is not None:
             message = w.getvalue().split('\x1b[A\n\r')[0].split('\r')[-1]

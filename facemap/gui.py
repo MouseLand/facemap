@@ -158,6 +158,8 @@ class MainW(QtGui.QMainWindow):
         self.clustering_scatterplot = pg.ScatterPlotItem(hover=True)
         #self.clustering_scatterplot.sigClicked.connect(lambda obj, ev: cluster.embeddedPointsClicked(obj, ev, self))
         self.clustering_scatterplot.sigHovered.connect(lambda obj, ev: self.cluster_model.embedded_points_hovered(obj, ev, parent=self))
+        #self.ClusteringPlot.scene().sigMouseMoved.connect(lambda pos: self.cluster_model.mouse_moved_embedding(pos, parent=self))
+
         self.ClusteringPlot_legend = pg.LegendItem(labelTextSize='12pt', title="Cluster")
         self.cluster_model = cluster.Cluster(parent=self)
         self.is_cluster_labels_loaded = False
@@ -601,24 +603,23 @@ class MainW(QtGui.QMainWindow):
         self.DLC_keypoints_labels = [all_labels[i] for i in sorted(np.unique(all_labels, return_index=True)[1])]#np.unique(self.DLC_data.columns.get_level_values("bodyparts"))
         self.DLC_x_coord = self.DLC_data.T[self.DLC_data.columns.get_level_values("coords").values=="x"].values #size: key points x frames
         self.DLC_y_coord = self.DLC_data.T[self.DLC_data.columns.get_level_values("coords").values=="y"].values #size: key points x frames
-
+        self.DLC_likelihood = self.DLC_data.T[self.DLC_data.columns.get_level_values("coords").values=="likelihood"].values #size: key points x frames
         # Choose colors for each label: provide option for color blindness as well
         self.colors = cm.get_cmap('gist_rainbow')(np.linspace(0, 1., len(self.DLC_keypoints_labels)))
         self.colors *= 255
         self.colors = self.colors.astype(int)
         self.colors[:,-1] = 127
-        self.brushes = [pg.mkBrush(color=c) for c in self.colors]
+        self.brushes = np.array([pg.mkBrush(color=c) for c in self.colors])
     
     def update_DLC_points(self):
         if self.DLC_file_loaded and self.DLClabels_checkBox.isChecked():
             self.statusBar.clearMessage()
             self.p0.addItem(self.DLC_scatterplot)
             self.p0.setRange(xRange=(0,self.LX), yRange=(0,self.LY), padding=0.0)
-            #self.DLCplot.addItem(self.DLC_scatterplot)
-            #self.DLCplot.setRange(xRange=(0,self.LX), yRange=(0,self.LY), padding=0.0)
-            x = self.DLC_x_coord[:,self.cframe]
-            y = self.DLC_y_coord[:,self.cframe]
-            self.DLC_scatterplot.setData(x, y, size=10, symbol='o', brush=self.brushes, hoverable=True, hoverSize=15)
+            filtered_keypoints = np.where(self.DLC_likelihood[:,self.cframe] > 0.9)[0]
+            x = self.DLC_x_coord[filtered_keypoints,self.cframe]
+            y = self.DLC_y_coord[filtered_keypoints,self.cframe]
+            self.DLC_scatterplot.setData(x, y, size=15, symbol='o', brush=self.brushes[filtered_keypoints], hoverable=True, hoverSize=15)
         elif not self.DLC_file_loaded and self.DLClabels_checkBox.isChecked():
             self.update_status_bar("Please upload a DLC (*.h5) file")
         else:
