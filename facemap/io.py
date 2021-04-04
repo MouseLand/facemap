@@ -4,15 +4,15 @@ from PyQt5 import QtGui, QtCore
 import pyqtgraph as pg
 from . import guiparts, roi, utils
 from natsort import natsorted
+import pickle
 
 def open_file(parent, file_name=None):
     if file_name is None:
         file_name = QtGui.QFileDialog.getOpenFileName(parent,
-                            "Open movie file")
+                            "Open movie file", "", "Movie files (*.h5 *.mj2 *.mp4 *.mkv *.avi *.mpeg *.mpg *.asf)")
     # load ops in same folder
     if file_name:
-        print(file_name[0])
-        parent.filelist = [ [file_name[0]] ]
+        parent.filelist = [[file_name[0]]]
         load_movies(parent)
 
 def open_folder(parent, folder_name=None):
@@ -32,7 +32,6 @@ def open_folder(parent, folder_name=None):
                 files = glob.glob(os.path.join(folder_name,folder,extension))
                 files = [folder_name+"/"+folder+"/"+os.path.split(f)[-1] for f in files]
                 file_name.extend(files)
-        print(file_name)
         if len(file_name) > 1:
             choose_files(parent, file_name)
             load_movies(parent)
@@ -83,7 +82,6 @@ def choose_files(parent, file_name):
     parent.filelist = natsorted(parent.filelist)
     print(parent.filelist)
 
-
 def open_proc(parent, file_name=None):
     if file_name is None:
         file_name = QtGui.QFileDialog.getOpenFileName(parent,
@@ -120,6 +118,8 @@ def open_proc(parent, file_name=None):
             if parent.processed:
                 parent.col = []
                 if parent.fullSVD:
+                    parent.cbs1[k].setText('fullSVD')
+                    parent.cbs2[k].setText('fullSVD')
                     parent.lbls[k].setText('fullSVD')
                     parent.lbls[k].setStyleSheet("color: white;")
                     parent.proctype[0] = 0
@@ -162,11 +162,12 @@ def open_proc(parent, file_name=None):
                     else:
                         parent.iROI = k
                     parent.ROIs[-1].ellipse = r['ellipse']
-                    #parent.ROIs[-1].position(parent)
                     parent.sl[1].setValue(parent.saturation[parent.iROI] * 100 / 255)
                     parent.ROIs[parent.iROI].plot(parent)
                     if parent.processed:
-                        if k < 8:
+                        if k < 5:
+                            parent.cbs1[k].setText('%s%d'%(parent.typestr[r['rind']], kt[r['rind']]))
+                            parent.cbs2[k].setText('%s%d'%(parent.typestr[r['rind']], kt[r['rind']]))
                             parent.lbls[k].setText('%s%d'%(parent.typestr[r['rind']], kt[r['rind']]))
                             parent.lbls[k].setStyleSheet("color: rgb(%s,%s,%s);"%
                                                         (str(int(r['color'][0])), str(int(r['color'][1])), str(int(r['color'][2]))))
@@ -184,9 +185,10 @@ def open_proc(parent, file_name=None):
                     parent.cbs1[k].setEnabled(True)
                     parent.cbs2[k].setEnabled(True)
                 if parent.fullSVD:
+                    parent.cbs1[0].setEnabled(True)
                     parent.cbs1[0].setChecked(True)
+                    parent.cbs2[0].setEnabled(True)
                 parent.plot_processed()
-
             parent.next_frame()
 
 def load_movies(parent, filelist=None):
@@ -205,7 +207,6 @@ def load_movies(parent, filelist=None):
         parent.video = v
         parent.filenames = parent.filelist
         parent.nframes = nframes
-        #parent.iframes = np.array(iframes).astype(int)
         parent.cumframes = np.array(cumframes).astype(int)
         parent.Ly = Ly
         parent.Lx = Lx
@@ -223,7 +224,6 @@ def load_movies(parent, filelist=None):
             Lx = np.array(parent.Lx.copy())
 
             LY, LX, sy, sx = utils.video_placement(Ly, Lx)
-            print(LY, LX)
             parent.vmap = -1 * np.ones((LY,LX), np.int32)
             for i in range(Ly.size):
                 parent.vmap[sy[i]:sy[i]+Ly[i], sx[i]:sx[i]+Lx[i]] = i
@@ -238,14 +238,65 @@ def load_movies(parent, filelist=None):
         for i in range(len(parent.Ly)):
             parent.imgs.append(np.zeros((parent.Ly[i], parent.Lx[i], 3, 3)))
             parent.img.append(np.zeros((parent.Ly[i], parent.Lx[i], 3)))
-        parent.movieLabel.setText(os.path.dirname(parent.filenames[0][0]))
+        #parent.movieLabel.setText(os.path.dirname(parent.filenames[0][0]))
+        parent.save_path = os.path.dirname(parent.filenames[0][0])
         parent.frameDelta = int(np.maximum(5,parent.nframes/200))
         parent.frameSlider.setSingleStep(parent.frameDelta)
         if parent.nframes > 0:
-            parent.updateFrameSlider()
-            parent.updateButtons()
+            parent.update_frame_slider()
+            parent.update_buttons()
         parent.cframe = 1
         parent.loaded = True
         parent.processed = False
         parent.jump_to_frame()
     return good
+
+def load_cluster_labels(parent):
+    try:
+        file_name = QtGui.QFileDialog.getOpenFileName(parent,
+                        "Select cluster labels file", "", "Cluster label files (*.npy *.pkl)")[0]
+        extension = file_name.split(".")[-1]
+        if extension == "npy":
+            parent.loaded_cluster_labels = np.load(file_name, allow_pickle=True)
+            parent.is_cluster_labels_loaded = True
+        elif extension == "pkl":
+            with open(file_name, 'rb') as f:
+                parent.loaded_cluster_labels = pickle.load(f)
+                parent.is_cluster_labels_loaded = True
+        else:
+            return
+    except Exception as e:
+        msg = QtGui.QMessageBox(parent)
+        msg.setIcon(QtGui.QMessageBox.Warning)
+        msg.setText("Error: not a supported filetype")
+        msg.setStandardButtons(QtGui.QMessageBox.Ok)
+        msg.exec_()
+        print(e)
+
+def load_umap(parent):
+    try:
+        file_name = QtGui.QFileDialog.getOpenFileName(parent,
+                        "Select UMAP data file", "", "UMAP label files (*.npy *.pkl)")[0]
+        extension = file_name.split(".")[-1]
+        if extension == "npy":
+            embedded_data = np.load(file_name, allow_pickle=True)
+        elif extension == "pkl":
+            with open(file_name, 'rb') as f:
+                embedded_data = pickle.load(f)
+        else:
+            return
+        return embedded_data
+    except Exception as e:
+        msg = QtGui.QMessageBox(parent)
+        msg.setIcon(QtGui.QMessageBox.Warning)
+        msg.setText("Error: not a supported filetype")
+        msg.setStandardButtons(QtGui.QMessageBox.Ok)
+        msg.exec_()
+        print(e)
+
+def save_clustering_output(output, parent):
+    filename, ext = parent.filenames[0][0].split(".")
+    filename = filename.split("/")[-1]    # Use video filename 
+    savename = os.path.join(parent.save_path, ("%s_facemap_clusters.npy"%filename))
+    np.save(savename, output)
+    parent.update_status_bar("Clustering output saved: "+savename)

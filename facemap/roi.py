@@ -9,6 +9,7 @@ from pyqtgraph import GraphicsScene
 from facemap import utils, pupil
 from scipy.stats import zscore, skew
 from scipy.ndimage import gaussian_filter
+from matplotlib import cm
 
 colors = np.array([[0,200,50],[180,0,50],[40,100,250],[150,50,150]])
 
@@ -176,7 +177,7 @@ class sROI():
     def position(self, parent):
         if parent.iROI != self.iROI:
             if self.rind==0:
-                print('change to pupil')
+                #print('change to pupil')
                 for i in range(len(parent.rROI[self.iROI])):
                     parent.pROI.addItem(parent.rROI[self.iROI][i].ROI)
             elif parent.ROIs[parent.iROI].rind==0:
@@ -227,15 +228,17 @@ class sROI():
         self.ivid   = ivid
 
         if self.rind==0:
-            #ifr = np.array(parent.video[0][ivid][:50])
-            #ifr = ifr.mean(axis=-1)
-            #self.rmin = ifr[np.ix_(np.arange(0,ifr.shape[0],1,int), self.yrange, self.xrange)].min()
             self.rmin = 0
             parent.reflectors[self.iROI] = utils.get_reflector(parent.ROIs[self.iROI].yrange,
                                                          parent.ROIs[self.iROI].xrange,
                                                          rROI=parent.rROI[self.iROI])
         parent.sl[1].setValue(parent.saturation[self.iROI] * 100 / 255)
-        self.plot(parent)
+        
+        index = parent.clusteringVisComboBox.findText("ROI", QtCore.Qt.MatchFixedString)
+        if index >= 0:
+            parent.clusteringVisComboBox.setCurrentIndex(index)
+        parent.roiVisComboBox.setCurrentIndex(self.iROI+1)
+        parent.display_ROI()#self.plot(parent)
 
     def remove(self, parent):
         parent.p0.removeItem(self.ROI)
@@ -254,6 +257,7 @@ class sROI():
         parent.pROI.removeItem(parent.scatter)
         parent.win.show()
         parent.show()
+        parent.update_ROI_vis_comboBox()
 
     def plot(self, parent):
         parent.iROI = self.iROI
@@ -263,6 +267,7 @@ class sROI():
         img = img[self.yrange[0]:self.yrange[-1]+1, self.xrange[0]:self.xrange[-1]+1]
         sat = parent.saturation[self.iROI]
         self.saturation = sat
+        parent.set_ROI_saturation_label(sat*100/255)
 
         self.pupil_sigma = parent.pupil_sigma
         #parent.pROI.addItem(pg.ScatterPlotItem([self.center[0]], [self.center[1]], pen='r', symbol='+'))
@@ -351,6 +356,8 @@ class sROI():
             fr  = np.maximum(0, fr - (255.0-sat))
             parent.pROIimg.setImage(255-fr)
             parent.pROIimg.setLevels([255-sat, 255])
+        if parent.clusteringVisComboBox.currentText() != "ROI":
+            parent.pROIimg.clear()
         parent.pROI.setRange(xRange=(0,img.shape[1]),
                          yRange=(0, img.shape[0]),
                           padding=0.0)

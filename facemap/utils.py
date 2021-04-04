@@ -4,10 +4,8 @@ import cv2
 from scipy.ndimage import gaussian_filter1d
 from scipy.interpolate import interp1d
 from scipy.linalg import eigh
-try:
-    from sklearn.decomposition import PCA
-except:
-    print('no sklearn for reduced rank')
+from sklearn.decomposition import PCA
+from tqdm import tqdm
 
 def bin1d(X, tbin):
     """ bin over first axis of data with bin tbin """
@@ -26,6 +24,7 @@ def split_testtrain(n_t, frac=0.25):
     itrain[itest] = 0
     
     return itest, itrain
+
 
 def rrr_prediction(X, Y, rank=None, lam=0):
     """ predict Y from X using regularized reduced rank regression 
@@ -165,17 +164,6 @@ def resample_frames(data, torig, tout):
     return dout
 
 def get_frames(imall, containers, cframes, cumframes):
-    ''' Uses cv2 to pull videos specified by cframes from the video 
-        Function changes a variable (imall) in place 
-        note: cframes must be continuous
-    Parameters:-(Input) imall: all frames (im)
-                (Input) filenames: a 2D list of video files
-                (Input) cframes: list of frames to pull
-                (Input) cumframes: list of total frame size for each cam/view
-                (Input) Ly: list of dimension x for each cam/view
-                (Input) Lx: list of dimension y for each cam/view
-                (Output) returns null
-    '''
     nframes = cumframes[-1] #total number of frames
     cframes = np.maximum(0, np.minimum(nframes-1, cframes))
     cframes = np.arange(cframes[0], cframes[-1]+1).astype(int)
@@ -203,10 +191,11 @@ def get_frames(imall, containers, cframes, cumframes):
                     imall[ii][nk+fc] = imall[ii][nk+fc-1] 
                 fc += 1    
             nk += nt0
-              
+    
     if nk < imall[0].shape[0]:
         for ii,im in enumerate(imall):
             imall[ii] = im[:nk].copy()
+
 
 def close_videos(containers):
     ''' Method is called to close all videos/containers open for reading 
@@ -243,6 +232,11 @@ def get_frame_details(filenames):
         cumframes.append(cumframes[-1]+framecount)
     cumframes = np.array(cumframes).astype(int)
     return cumframes, Ly, Lx, containers
+
+def get_cap_features(cap):
+    fps = cap.get(cv2.CAP_PROP_FPS)
+    nframes = cap.get(cv2.CAP_PROP_FRAME_COUNT)
+    return fps, nframes
 
 def get_skipping_frames(imall, filenames, cframes, cumframes):
     nframes = cumframes[-1] #total number of frames
