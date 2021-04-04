@@ -41,10 +41,10 @@ def imall_init(nfr, Ly, Lx):
 
 def subsampled_mean(containers, cumframes, Ly, Lx, sbin=3, GUIobject=None, MainWindow=None):
     # grab up to 2000 frames to average over for mean
-    # v is a list of containers loaded with av
+    # containers is a list of videos loaded with opencv
     # cumframes are the cumulative frames across videos
     # Ly, Lx are the sizes of the videos
-    # sbin is the spatial binning
+    # sbin is the size of spatial binning
     nframes = cumframes[-1]
     nf = min(1000, nframes)
     # load in chunks of up to 100 frames (for speed)
@@ -85,12 +85,15 @@ def subsampled_mean(containers, cumframes, Ly, Lx, sbin=3, GUIobject=None, MainW
         avgmotion0.append(avgmotion[ir[n]])
     return avgframe0, avgmotion0
 
-def compute_SVD(containers, cumframes, Ly, Lx, avgmotion, ncomps=500, sbin=3, rois=None, fullSVD=True, GUIobject=None, MainWindow=None):
+def compute_SVD(containers, cumframes, Ly, Lx, avgmotion, avgframe, ncomps=500, sbin=3, motSVD=True, movSVD=False,
+                rois=None, fullSVD=True, GUIobject=None, MainWindow=None):
     # compute the SVD over frames in chunks, combine the chunks and take a mega-SVD
     # number of components kept from SVD is ncomps
     # the pixels are binned in spatial bins of size sbin
-    # v is a list of containerss loaded with av
     # cumframes are the cumulative frames across videos
+    # flags for motSVD and movSVD indicate whether to compute SVD of raw frames and/or difference of frames over time
+    # Return:
+    #       U_all: dict containing motSVD and/or movSVD keys
     sbin = max(1, sbin)
     nframes = cumframes[-1]
 
@@ -129,65 +132,85 @@ def compute_SVD(containers, cumframes, Ly, Lx, avgmotion, ncomps=500, sbin=3, ro
     motind = np.array(motind)
 
     ns = 0
-    w= StringIO()
-    for n in tqdm(range(nsegs), file=w):
-        img = imall_init(nt0, Ly, Lx)
-        t = tf[n]
-        utils.get_frames(img, containers, np.arange(t,t+nt0), cumframes)
-        if fullSVD:
-            imall = np.zeros((img[0].shape[0]-1, (Lyb*Lxb).sum()), np.float32)
-        for ii,im in enumerate(img):
-            usevid=False
-            if fullSVD:
-                usevid=True
-            if nroi>0:
-                wmot = (ivid[motind]==ii).nonzero()[0]
-                if wmot.size>0:
-                    usevid=True
-            if usevid:
-                imbin = spatial_bin(im, sbin, Lyb[ii], Lxb[ii])
-                # compute motion energy
-                imbin = np.abs(np.diff(imbin, axis=0))
-                imbin -= avgmotion[ii]
+    w = StringIO()
+    process = False
+    U_all = {}
+    for svd_type in ["motSVD", "movSVD"]:
+        if svd_type == "motSVD" and motSVD:
+            process = True
+            subtract_frames = avgmotion
+        else if svd_type == "movSVD" and movSVD:
+            process = True
+            subtract_frames = avgframe
+        if process: 
+            for n in tqdm(range(nsegs), file=w):
+                img = imall_init(nt0, Ly, Lx)
+                t = tf[n]
+                utils.get_frames(img, containers, np.arange(t,t+nt0), cumframes)
+                    if fullSVD:
+                        imall = np.zeros((img[0].shape[0]-1, (Lyb*Lxb).sum()), np.float32)
+                    for ii,im in enumerate(img):
+                        usevid=False
+                        if fullSVD:
+                            usevid=True
+                        if nroi>0:
+                            wmot = (ivid[motind]==ii).nonzero()[0]
+                            if wmot.size>0:
+                                usevid=True
+                        if usevid:
+                            imbin = spatial_bin(im, sbin, Lyb[ii], Lxb[ii])
+                            if svd_type == "motSVD": # compute motion energy
+                                imbin = np.abs(np.diff(imbin, axis=0))
+                            else if svd_type == "movSVD": # for raw frame svd
+                                imbin = imbin[1:,:]
+                            imbin -= subtract_frames[ii]
+                            if fullSVD:
+                                imall[:, ir[ii]] = imbin
+                            if nroi>0 and wmot.size>0:
+                                imbin = np.reshape(imbin, (-1, Lyb[ii], Lxb[ii]))
+                                wmot = np.array(wmot).astype(int)
+                                wroi = motind[wmot]
+                                for i in range(wroi.size):
+                                    lilbin = imbin[:, rois[wroi[i]]['yrange_bin'][0]:rois[wroi[i]]['yrange_bin'][-1]+1,
+                                                rois[wroi[i]]['xrange_bin'][0]:rois[wroi[i]]['xrange_bin'][-1]+1]
+                                    lilbin = np.reshape(lilbin, (lilbin.shape[0], -1))
+                                    ncb = min(nc, lilbin.shape[-1])
+                                    usv  = utils.svdecon(lilbin.T, k=ncb)
+                                    ncb = usv[0].shape[-1]
+                                    U[wmot[i]+1][:, ni[wmot[i]+1]:ni[wmot[i]+1]+ncb] = usv[0] * usv[1]#U[wmot[i]+1][:, ni[wmot[i]+1]:ni[wmot[i]+1]+ncb] = usv[0]
+                                    ni[wmot[i]+1] += ncb
+                if MainWindow is not None and GUIobject is not None:
+                    message = w.getvalue().split('\x1b[A\n\r')[0].split('\r')[-1]
+                    MainWindow.update_status_bar("Computing {} ".format(svd_type)+message, update_progress=True)
+                    GUIobject.QApplication.processEvents()
                 if fullSVD:
-                    imall[:, ir[ii]] = imbin
-                if nroi>0 and wmot.size>0:
-                    imbin = np.reshape(imbin, (-1, Lyb[ii], Lxb[ii]))
-                    wmot=np.array(wmot).astype(int)
-                    wroi = motind[wmot]
-                    for i in range(wroi.size):
-                        lilbin = imbin[:, rois[wroi[i]]['yrange_bin'][0]:rois[wroi[i]]['yrange_bin'][-1]+1,
-                                       rois[wroi[i]]['xrange_bin'][0]:rois[wroi[i]]['xrange_bin'][-1]+1]
-                        lilbin = np.reshape(lilbin, (lilbin.shape[0], -1))
-                        ncb = min(nc, lilbin.shape[-1])
-                        usv  = utils.svdecon(lilbin.T, k=ncb)
-                        ncb = usv[0].shape[-1]
-                        U[wmot[i]+1][:, ni[wmot[i]+1]:ni[wmot[i]+1]+ncb] = usv[0] * usv[1]#U[wmot[i]+1][:, ni[wmot[i]+1]:ni[wmot[i]+1]+ncb] = usv[0]
-                        ni[wmot[i]+1] += ncb
-        if MainWindow is not None and GUIobject is not None:
-            message = w.getvalue().split('\x1b[A\n\r')[0].split('\r')[-1]
-            MainWindow.update_status_bar("Computing SVD "+message, update_progress=True)
-            GUIobject.QApplication.processEvents()
-        if fullSVD:
-            ncb = min(nc, imall.shape[-1])
-            usv  = utils.svdecon(imall.T, k=ncb)
-            ncb = usv[0].shape[-1]
-            U[0][:, ni[0]:ni[0]+ncb] = usv[0]
-            ni[0] += ncb
-        ns+=1
+                    ncb = min(nc, imall.shape[-1])
+                    usv  = utils.svdecon(imall.T, k=ncb)
+                    ncb = usv[0].shape[-1]
+                    U[0][:, ni[0]:ni[0]+ncb] = usv[0]
+                    ni[0] += ncb
+                ns+=1
+            U_all[svd_type] = U
+            process = False  # reset value when svd_type processed
 
     # take SVD of concatenated spatial PCs
     if ns > 1:
-        for nr in range(len(U)):
-            if nr==0 and fullSVD:
-                U[nr] = U[nr][:, :ni[0]]
-                usv = utils.svdecon(U[nr], k = min(ncomps, U[nr].shape[1]-1))
-                U[nr] = usv[0]
-            elif nr>0:
-                U[nr] = U[nr][:, :ni[nr]]
-                usv = utils.svdecon(U[nr], k = min(ncomps, U[nr].shape[1]-1))
-                U[nr] = usv[0]
-    return U
+        for svd_type in ["motSVD", "movSVD"]:
+            if svd_type == "motSVD" and motSVD:
+                U = U_all[svd_type]
+            else if svd_type == "movSVD" and movSVD:
+                U = U_all[svd_type]
+            for nr in range(len(U)):
+                if nr==0 and fullSVD:
+                    U[nr] = U[nr][:, :ni[0]]
+                    usv = utils.svdecon(U[nr], k = min(ncomps, U[nr].shape[1]-1))
+                    U[nr] = usv[0]
+                elif nr>0:
+                    U[nr] = U[nr][:, :ni[nr]]
+                    usv = utils.svdecon(U[nr], k = min(ncomps, U[nr].shape[1]-1))
+                    U[nr] = usv[0]
+            U_all[svd_type] = U
+    return U_all
 
 def process_ROIs(containers, cumframes, Ly, Lx, avgmotion, U, sbin=3, tic=None, rois=None, fullSVD=True, GUIobject=None, MainWindow=None):
     # project U onto each frame in the video and compute the motion energy
@@ -462,7 +485,7 @@ def run(filenames, GUIobject=None, parent=None, proc=None, savepath=None):
     if fullSVD or nroi>0:
         # compute SVD from frames subsampled across videos and return spatial components
         tqdm.write('Computing subsampled SVD...')
-        U = compute_SVD(containers, cumframes, Ly, Lx, avgmotion, ncomps, sbin, rois, fullSVD, GUIobject, parent)
+        U = compute_SVD(containers, cumframes, Ly, Lx, avgmotion, avgframe, ncomps, sbin, rois, fullSVD, GUIobject, parent)
         tqdm.write('Computed subsampled SVD at %0.2fs'%(time.time() - tic))
         if parent is not None:
             parent.update_status_bar("Computed subsampled SVD")
