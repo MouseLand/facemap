@@ -267,6 +267,7 @@ class sROI():
         img = img[self.yrange[0]:self.yrange[-1]+1, self.xrange[0]:self.xrange[-1]+1]
         sat = parent.saturation[self.iROI]
         self.saturation = sat
+        parent.set_ROI_saturation_label(sat*100/255)
 
         self.pupil_sigma = parent.pupil_sigma
         #parent.pROI.addItem(pg.ScatterPlotItem([self.center[0]], [self.center[1]], pen='r', symbol='+'))

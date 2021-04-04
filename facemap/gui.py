@@ -193,8 +193,11 @@ class MainW(QtGui.QMainWindow):
     def set_saturation_label(self):
         self.saturationLevelLabel.setText(str(self.sl[0].value()))
 
-    def set_ROI_saturation_label(self):
-        self.roiSaturationLevelLabel.setText(str(self.sl[1].value()))
+    def set_ROI_saturation_label(self, val=None):
+        if val is None:
+            self.roiSaturationLevelLabel.setText(str(self.sl[1].value()))
+        else:
+            self.roiSaturationLevelLabel.setText(str(int(val)))
 
     def make_buttons(self):
         # create frame slider
@@ -481,6 +484,7 @@ class MainW(QtGui.QMainWindow):
             self.pROI.addItem(self.scatter)
             roi_request_ind = int(roi_request.split(".")[0]) - 1
             self.ROIs[int(roi_request_ind)].plot(self)
+            #self.set_ROI_saturation_label(self.ROIs[int(roi_request_ind)].saturation)
         else:
             self.pROIimg.clear()
             self.pROI.removeItem(self.scatter)
@@ -851,7 +855,7 @@ class MainW(QtGui.QMainWindow):
         proc = {'Ly':self.Ly, 'Lx':self.Lx, 'sy': self.sy, 'sx': self.sx, 'LY':self.LY, 'LX':self.LX,
                 'sbin': ops['sbin'], 'fullSVD': ops['fullSVD'], 'rois': rois,
                 'save_mat': ops['save_mat'], 'save_path': ops['save_path'],
-                'filenames': self.filenames}#, 'iframes': self.iframes}
+                'filenames': self.filenames}
         savename = process.save(proc, savepath=savepath)
         self.update_status_bar("File saved in "+savepath) #### 
         self.batchlist.append(savename)
@@ -862,9 +866,9 @@ class MainW(QtGui.QMainWindow):
 
     def process_batch(self):
         files = self.batchlist
-        for f in tqdm(files):
+        for f in files:
             proc = np.load(f, allow_pickle=True).item()
-            savename = process.run(proc['filenames'], parent=None, proc=proc, savepath=proc['save_path'])
+            savename = process.run(proc['filenames'], GUIobject=QtGui, parent=self, proc=proc, savepath=proc['save_path'])
         if len(files)==1:
             io.open_proc(self, file_name=savename)
 

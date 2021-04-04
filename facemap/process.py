@@ -455,8 +455,10 @@ def run(filenames, GUIobject=None, parent=None, proc=None, savepath=None):
                                            LYbin,LXbin,sybin,sxbin,Lybin,Lxbin,iinds)
     avgmotion_reshape = np.squeeze(avgmotion_reshape)
     tqdm.write('Computed subsampled mean at %0.2fs'%(time.time() - tic))
-    parent.update_status_bar("Computed subsampled mean")
-    GUIobject.QApplication.processEvents()
+    if parent is not None:
+        parent.update_status_bar("Computed subsampled mean")
+    if GUIobject is not None:
+        GUIobject.QApplication.processEvents()
 
     ncomps = 500
     if fullSVD or nroi>0:
@@ -464,8 +466,10 @@ def run(filenames, GUIobject=None, parent=None, proc=None, savepath=None):
         tqdm.write('Computing subsampled SVD...')
         U = compute_SVD(containers, cumframes, Ly, Lx, avgmotion, ncomps, sbin, rois, fullSVD, GUIobject, parent)
         tqdm.write('Computed subsampled SVD at %0.2fs'%(time.time() - tic))
-        parent.update_status_bar("Computed subsampled SVD")
-        GUIobject.QApplication.processEvents()
+        if parent is not None:
+            parent.update_status_bar("Computed subsampled SVD")
+        if GUIobject is not None:
+            GUIobject.QApplication.processEvents()
         U_reshape = U.copy()
         if fullSVD:
             U_reshape[0] = utils.multivideo_reshape(U_reshape[0], LYbin,LXbin,sybin,sxbin,Lybin,Lxbin,iinds)
@@ -498,8 +502,10 @@ def run(filenames, GUIobject=None, parent=None, proc=None, savepath=None):
         b,_ = pupil.smooth(b.copy())
 
     tqdm.write('Computed projection at %0.2fs'%(time.time() - tic))
-    parent.update_status_bar("Computed projection")
-    GUIobject.QApplication.processEvents()
+    if parent is not None:
+        parent.update_status_bar("Computed projection")
+    if GUIobject is not None:
+        GUIobject.QApplication.processEvents()
 
     proc = {
             'filenames': filenames, 'save_path': savepath, 'Ly': Ly, 'Lx': Lx,
@@ -517,7 +523,10 @@ def run(filenames, GUIobject=None, parent=None, proc=None, savepath=None):
     # save processing
     savename = save(proc, savepath)
     utils.close_videos(containers)
-    parent.update_status_bar("Output saved in "+savepath)
-    print('run time %0.2fs'%(time.time() - start))
+    if parent is not None:
+        parent.update_status_bar("Output saved in "+savepath)
+    if GUIobject is not None:
+        GUIobject.QApplication.processEvents()
+    tqdm.write('run time %0.2fs'%(time.time() - start))
     
     return savename
