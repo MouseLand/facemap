@@ -232,7 +232,7 @@ class MainW(QtGui.QMainWindow):
         self.frameSlider.setTracking(False)
         self.frameSlider.valueChanged.connect(self.go_to_frame)
         self.frameDelta = 10
-        istretch = 18
+        istretch = 19
         iplay = istretch+10
         iconSize = QtCore.QSize(20, 20)
 
@@ -349,6 +349,11 @@ class MainW(QtGui.QMainWindow):
         self.save_mat.setStyleSheet("color: gray;")
         if self.ops['save_mat']:
             self.save_mat.toggle()
+        self.motSVD_checkbox = QtGui.QCheckBox("motSVD")
+        self.motSVD_checkbox.setStyleSheet("color: gray;")
+        self.motSVD_checkbox.setChecked(True)
+        self.movSVD_checkbox = QtGui.QCheckBox("movSVD")
+        self.movSVD_checkbox.setStyleSheet("color: gray;")
 
         # Add features to window
         self.l0.addWidget(VideoLabel,0,0,1,2)
@@ -359,17 +364,18 @@ class MainW(QtGui.QMainWindow):
         self.l0.addWidget(self.binSpinBox,3, 1, 1, 2)
         self.l0.addWidget(binLabel, 4, 0, 1, 1)
         self.l0.addWidget(self.sigmaBox, 4, 1, 1, 1)
-        self.l0.addWidget(self.checkBox, 5, 0, 1, 1)
-        self.l0.addWidget(self.save_mat, 5, 1, 1, 1)
-        self.l0.addWidget(self.saverois, 6, 0, 1, 1)
-        self.l0.addWidget(self.process,  6, 1, 1, 1)
-        self.l0.addWidget(self.processbatch, 7, 0, 1, 1)
+        self.l0.addWidget(self.motSVD_checkbox, 5, 0, 1, 1)
+        self.l0.addWidget(self.movSVD_checkbox, 5, 1, 1, 1)
+        self.l0.addWidget(self.checkBox, 6, 0, 1, 1)
+        self.l0.addWidget(self.save_mat, 6, 1, 1, 1)
+        self.l0.addWidget(self.saverois, 7, 0, 1, 1)
+        self.l0.addWidget(self.process,  7, 1, 1, 1)
+        self.l0.addWidget(self.processbatch, 8, 0, 1, 1)
 
-        #self.l0.addWidget(fileIOlabel,11,0,1,2)
-        self.l0.addWidget(self.savefolder, 7, 1, 1, 1)
-        self.l0.addWidget(self.savelabel, 8, 0, 1, 2)
-        self.l0.addWidget(self.loadDLC, 9, 0, 1, 1)                    # DLC features
-        self.l0.addWidget(self.DLClabels_checkBox, 9, 1, 1, 1)        
+        self.l0.addWidget(self.savefolder, 8, 1, 1, 1)
+        self.l0.addWidget(self.savelabel, 9, 0, 1, 2)
+        self.l0.addWidget(self.loadDLC, 10, 0, 1, 1)                    # DLC features
+        self.l0.addWidget(self.DLClabels_checkBox, 10, 1, 1, 1)        
         self.l0.addWidget(self.clusteringVisComboBox, 0, 11, 1, 1)      # clustering visualization window features
         self.l0.addWidget(self.data_clustering_combobox, 0, 12, 1, 2)      # clustering visualization window features
         self.l0.addWidget(self.roiVisComboBox, 0, 12, 1, 2)              # ROI visualization window features
@@ -438,11 +444,11 @@ class MainW(QtGui.QMainWindow):
             else:
                 self.update_status_bar("Please add ROIs for display")
         elif visualization_request == "UMAP":
-            #if self.processed:
-            self.cluster_model.enable_data_clustering_features(parent=self)
-            self.update_status_bar("")
-            #else:
-                #self.update_status_bar("Please process ROIs or load data for clustering")
+            if self.processed:
+                self.cluster_model.enable_data_clustering_features(parent=self)
+                self.update_status_bar("")
+            else:
+                self.update_status_bar("Please process ROIs or load data for clustering")
         else:
             self.cluster_model.disable_data_clustering_features(self)
 
@@ -863,12 +869,20 @@ class MainW(QtGui.QMainWindow):
         self.processbatch.setEnabled(True)
 
     def process_batch(self):
-        files = self.batchlist
-        for f in files:
-            proc = np.load(f, allow_pickle=True).item()
-            savename = process.run(proc['filenames'], GUIobject=QtGui, parent=self, proc=proc, savepath=proc['save_path'])
-        if len(files)==1:
-            io.open_proc(self, file_name=savename)
+        if self.motSVD_checkbox.isChecked() or self.movSVD_checkbox.isChecked():
+            files = self.batchlist
+            for f in files:
+                proc = np.load(f, allow_pickle=True).item()
+                savename = process.run(proc['filenames'], GUIobject=QtGui, parent=self, proc=proc, savepath=proc['save_path'])
+            if len(files)==1:
+                io.open_proc(self, file_name=savename)
+        else:
+            msg = QtGui.QMessageBox(self)
+            msg.setIcon(QtGui.QMessageBox.Warning)
+            msg.setText("Please check at least one of: motSVD, movSVD")
+            msg.setStandardButtons(QtGui.QMessageBox.Ok)
+            msg.exec_()
+            return
 
     def process_ROIs(self):
         self.sbin = int(self.binSpinBox.value())
@@ -878,10 +892,18 @@ class MainW(QtGui.QMainWindow):
             savepath = self.save_path
         else:
             savepath = None
-        savename = process.run(self.filenames, QtGui, self, savepath=savepath)
-        io.open_proc(self, file_name=savename)
-        print("Output saved in",savepath)
-        self.update_status_bar("Output saved in "+savepath) #### 
+        if self.motSVD_checkbox.isChecked() or self.movSVD_checkbox.isChecked():
+            savename = process.run(self.filenames, GUIobject=QtGui, parent=self, savepath=savepath)
+            io.open_proc(self, file_name=savename)
+            print("Output saved in",savepath)
+            self.update_status_bar("Output saved in "+savepath)
+        else: 
+            msg = QtGui.QMessageBox(self)
+            msg.setIcon(QtGui.QMessageBox.Warning)
+            msg.setText("Please check at least one of: motSVD, movSVD")
+            msg.setStandardButtons(QtGui.QMessageBox.Ok)
+            msg.exec_()
+            return
 
     def plot_processed(self):
         self.p1.clear()
