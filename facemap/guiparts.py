@@ -4,7 +4,6 @@ from pyqtgraph import functions as fn
 from pyqtgraph import Point
 import numpy as np
 
-
 ### custom QDialog which makes a list of items you can include/exclude
 class ListChooser(QtGui.QDialog):
     def __init__(self, title, parent):
@@ -77,7 +76,6 @@ class TextChooser(QtGui.QDialog):
         self.folder = self.qedit.text()
         self.accept()
 
-
 class RGBRadioButtons(QtGui.QButtonGroup):
     def __init__(self, parent=None, row=0, col=0):
         super(RGBRadioButtons, self).__init__()
@@ -102,7 +100,6 @@ class RGBRadioButtons(QtGui.QButtonGroup):
        self.parent.view = b
        if self.parent.loaded:
            self.parent.update_plot()
-
 
 class ViewBoxNoRightDrag(pg.ViewBox):
     def __init__(self, parent=None, border=None, lockAspect=False, enableMouse=True, invertY=False, enableMenu=True, name=None, invertX=False):

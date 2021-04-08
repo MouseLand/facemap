@@ -72,10 +72,9 @@ def subsampled_mean(containers, cumframes, Ly, Lx, sbin=3, GUIobject=None, MainW
             imbin = np.abs(np.diff(imbin, axis=0))
             avgmotion[ir[n]] += imbin.mean(axis=0)
         ns+=1
-        if MainWindow is not None and GUIobject is not None:
-            message = s.getvalue().split('\x1b[A\n\r')[0].split('\r')[-1]
-            MainWindow.update_status_bar("Computing subsampled mean "+message, update_progress=True)
-            GUIobject.QApplication.processEvents()
+        update_mainwindow(MainWindow, GUIobject, s, "Computing subsampled mean ")
+
+
     avgframe /= float(ns)
     avgmotion /= float(ns)
     avgframe0 = []
@@ -196,11 +195,7 @@ def compute_SVD(containers, cumframes, Ly, Lx, avgframe, avgmotion, motSVD=True,
                             ncb = usv[0].shape[-1]
                             U_mov[wmot[i]+1][:, ni_mov[wmot[i]+1]:ni_mov[wmot[i]+1]+ncb] = usv[0] * usv[1]#U[wmot[i]+1][:, ni[wmot[i]+1]:ni[wmot[i]+1]+ncb] = usv[0]
                             ni_mov[wmot[i]+1] += ncb
-        
-        if MainWindow is not None and GUIobject is not None:
-            message = w.getvalue().split('\x1b[A\n\r')[0].split('\r')[-1]
-            MainWindow.update_status_bar("Computing SVD "+message, update_progress=True)
-            GUIobject.QApplication.processEvents()
+        update_mainwindow(MainWindow, GUIobject, w, "Computing SVD ")
         
         if fullSVD:
             if motSVD:
@@ -264,9 +259,10 @@ def process_ROIs(containers, cumframes, Ly, Lx, avgframe, avgmotion, U_mot, U_mo
     nroi = 0 # number of motion ROIs
 
     if fullSVD:
-        ncomps = U[0].shape[-1]
-        V_mot = [np.zeros((nframes, ncomps), np.float32)]
-        V_mov = [np.zeros((nframes, ncomps), np.float32)]
+        ncomps_mot = U_mot[0].shape[-1]
+        ncomps_mov = U_mov[0].shape[-1]
+        V_mot = [np.zeros((nframes, ncomps_mot), np.float32)]
+        V_mov = [np.zeros((nframes, ncomps_mov), np.float32)]
         M = [np.zeros((nframes), np.float32)]
     else:
         V_mot = [np.zeros((0,1), np.float32)]
@@ -284,19 +280,19 @@ def process_ROIs(containers, cumframes, Ly, Lx, avgframe, avgmotion, U_mot, U_mo
                     pupreflector.append(utils.get_reflector(r['yrange'], r['xrange'], rROI=None, rdict=r['reflector']))
                 else:
                     pupreflector.append(np.array([]))
-
             elif r['rind']==1:
                 motind.append(i)
                 nroi+=1
-                V.append(np.zeros((nframes, U[nroi].shape[1]), np.float32))
+                V_mot.append(np.zeros((nframes, U_mot[nroi].shape[1]), np.float32))
+                V_mov.append(np.zeros((nframes, U_mov[nroi].shape[1]), np.float32))
                 M.append(np.zeros((nframes,), np.float32))
-
             elif r['rind']==2:
                 blind.append(i)
                 blinks.append(np.zeros((nframes,)))
             elif r['rind']==3:
                 runind.append(i)
                 runs.append(np.zeros((nframes,2)))
+
     ivid = np.array(ivid).astype(np.int32)
     motind = np.array(motind).astype(np.int32)
 
@@ -320,16 +316,18 @@ def process_ROIs(containers, cumframes, Ly, Lx, avgframe, avgmotion, U_mot, U_mo
         if len(pupind)>0:     # compute pupil
             pups = self.process_pupil_ROIs(t, nt, img, ivid, rois, pupind, pups)
         if len(blind)>0:
-            blinks = self.process_blind_ROIs(t, nt, img, ivid, rois, blind, blinks)
+            blinks = self.process_blink_ROIs(t, nt, img, ivid, rois, blind, blinks)
         if len(runind)>0:     # compute running
             runs = self.process_running(t, nt, img, ivid, rois, runind, runs)
 
         # bin and get motion
         if fullSVD:
             if n>0:
-                imall = np.zeros((img[0].shape[0], (Lyb*Lxb).sum()), np.float32)
+                imall_mot = np.zeros((img[0].shape[0], (Lyb*Lxb).sum()), np.float32)
+                imall_mov = np.zeros((img[0].shape[0], (Lyb*Lxb).sum()), np.float32)
             else:
-                imall = np.zeros((img[0].shape[0]-1, (Lyb*Lxb).sum()), np.float32)
+                imall_mot = np.zeros((img[0].shape[0]-1, (Lyb*Lxb).sum()), np.float32)
+                imall_mov = np.zeros((img[0].shape[0]-1, (Lyb*Lxb).sum()), np.float32)
         if fullSVD or nroi > 0:
             for ii,im in enumerate(img):
                 usevid=False
@@ -344,41 +342,66 @@ def process_ROIs(containers, cumframes, Ly, Lx, avgframe, avgmotion, U_mot, U_mo
                     if n>0:
                         imbin = np.concatenate((imend[ii][np.newaxis,:], imbin), axis=0)
                     imend[ii] = imbin[-1]
-                    if svd_type == "motSVD":                  # compute motion energy for motSVD
-                        imbin = np.abs(np.diff(imbin, axis=0))
-                    elif svd_type == "movSVD":                # use raw frames for movSVD
-                        imbin = imbin[1:,:]
+                    if motSVD:                  # compute motion energy for motSVD
+                        imbin_mot = np.abs(np.diff(imbin, axis=0))
+                    if movSVD:                  # use raw frames for movSVD
+                        imbin_mov = imbin[1:,:]
                     if fullSVD:
-                        M[t:t+imbin.shape[0]] += imbin.sum(axis=(-2,-1))
-                        imall[:, ir[ii]] = imbin - subtract_frames[ii].flatten()
+                        M[t:t+imbin_mot.shape[0]] += imbin_mot.sum(axis=(-2,-1))
+                        if motSVD:
+                            imall_mot[:, ir[ii]] = imbin_mot - avgmotion[ii].flatten()
+                        if movSVD:
+                            imall_mov[:, ir[ii]] = imbin_mov - avgframe[ii].flatten()
                 if nroi > 0 and wmot.size>0:
-                    wmot=np.array(wmot).astype(int)
-                    imbin = np.reshape(imbin, (-1, Lyb[ii], Lxb[ii]))
-                    subtract_frames[ii] = np.reshape(subtract_frames[ii], (Lyb[ii], Lxb[ii]))
+                    wmot = np.array(wmot).astype(int)
+                    if motSVD:
+                        imbin_mot = np.reshape(imbin_mot, (-1, Lyb[ii], Lxb[ii]))
+                        avgmotion[ii] = np.reshape(avgmotion[ii], (Lyb[ii], Lxb[ii]))
+                    if movSVD:                    
+                        imbin_mov = np.reshape(imbin_mov, (-1, Lyb[ii], Lxb[ii]))
+                        avgframe[ii] = np.reshape(avgframe[ii], (Lyb[ii], Lxb[ii]))
                     wroi = motind[wmot]
                     for i in range(wroi.size):
-                        lilbin = imbin[:, rois[wroi[i]]['yrange_bin'][0]:rois[wroi[i]]['yrange_bin'][-1]+1,
-                                          rois[wroi[i]]['xrange_bin'][0]:rois[wroi[i]]['xrange_bin'][-1]+1]
-                        M[wmot[i]+1][t:t+lilbin.shape[0]] = lilbin.sum(axis=(-2,-1))
-                        lilbin -= subtract_frames[ii][rois[wroi[i]]['yrange_bin'][0]:rois[wroi[i]]['yrange_bin'][-1]+1,
-                                       rois[wroi[i]]['xrange_bin'][0]:rois[wroi[i]]['xrange_bin'][-1]+1]
-                        lilbin = np.reshape(lilbin, (lilbin.shape[0], -1))
-                        vproj = lilbin @ U[wmot[i]+1]
-                        if n==0:
-                            vproj = np.concatenate((vproj[0,:][np.newaxis, :], vproj), axis=0)
-                        V[wmot[i]+1][t:t+vproj.shape[0], :] = vproj
+                        if motSVD:
+                            lilbin = imbin_mot[:, rois[wroi[i]]['yrange_bin'][0]:rois[wroi[i]]['yrange_bin'][-1]+1,
+                                            rois[wroi[i]]['xrange_bin'][0]:rois[wroi[i]]['xrange_bin'][-1]+1]
+                            M[wmot[i]+1][t:t+lilbin.shape[0]] = lilbin.sum(axis=(-2,-1))
+                            lilbin -= avgmotion[ii][rois[wroi[i]]['yrange_bin'][0]:rois[wroi[i]]['yrange_bin'][-1]+1,
+                                        rois[wroi[i]]['xrange_bin'][0]:rois[wroi[i]]['xrange_bin'][-1]+1]
+                            lilbin = np.reshape(lilbin, (lilbin.shape[0], -1))
+                            vproj = lilbin @ U_mot[wmot[i]+1]
+                            if n==0:
+                                vproj = np.concatenate((vproj[0,:][np.newaxis, :], vproj), axis=0)
+                            V_mot[wmot[i]+1][t:t+vproj.shape[0], :] = vproj
+                        if movSVD:
+                            lilbin = imbin_mov[:, rois[wroi[i]]['yrange_bin'][0]:rois[wroi[i]]['yrange_bin'][-1]+1,
+                                            rois[wroi[i]]['xrange_bin'][0]:rois[wroi[i]]['xrange_bin'][-1]+1]
+                            lilbin -= avgframe[ii][rois[wroi[i]]['yrange_bin'][0]:rois[wroi[i]]['yrange_bin'][-1]+1,
+                                        rois[wroi[i]]['xrange_bin'][0]:rois[wroi[i]]['xrange_bin'][-1]+1]
+                            lilbin = np.reshape(lilbin, (lilbin.shape[0], -1))
+                            vproj = lilbin @ U_mov[wmot[i]+1]
+                            if n==0:
+                                vproj = np.concatenate((vproj[0,:][np.newaxis, :], vproj), axis=0)
+                            V_mov[wmot[i]+1][t:t+vproj.shape[0], :] = vproj
             if fullSVD:
-                vproj = imall @ U[0]
-                if n==0:
-                    vproj = np.concatenate((vproj[0,:][np.newaxis, :], vproj), axis=0)
-                V[0][t:t+vproj.shape[0], :] = vproj
-        self.update_mainwindow()
-    return V, M, pups, blinks, runs
+                if motSVD:
+                    vproj = imall_mot @ U_mot[0]
+                    if n==0:
+                        vproj = np.concatenate((vproj[0,:][np.newaxis, :], vproj), axis=0)
+                    V_mot[0][t:t+vproj.shape[0], :] = vproj
+                if movSVD:
+                    vproj = imall_mov @ U_mov[0]
+                    if n==0:
+                        vproj = np.concatenate((vproj[0,:][np.newaxis, :], vproj), axis=0)
+                    V_mov[0][t:t+vproj.shape[0], :] = vproj
+            update_mainwindow(MainWindow, GUIobject, s, "Computing projection ")
+    
+    return V_mot, V_mov, M, pups, blinks, runs
 
-def update_mainwindow(self, ):
+def update_mainwindow(MainWindow, GUIobject, s, prompt):
     if MainWindow is not None and GUIobject is not None:
         message = s.getvalue().split('\x1b[A\n\r')[0].split('\r')[-1]
-        MainWindow.update_status_bar("Computing projection ({})".format(svd_type)+message, update_progress=True)
+        MainWindow.update_status_bar(prompt+message, update_progress=True)
         GUIobject.QApplication.processEvents()
         
 def process_pupil_ROIs(self, t, nt, img, ivid, rois, pupind, pups):
@@ -397,7 +420,7 @@ def process_pupil_ROIs(self, t, nt, img, ivid, rois, pupind, pups):
         pups[k]['axlen'][t:t+nt1,:] = axlen
     return pups
 
-def process_blind_ROIs(self, t, nt, img, ivid, rois, blind, blinks):
+def process_blink_ROIs(self, t, nt, img, ivid, rois, blind, blinks):
     """
     docstring
     """
@@ -531,7 +554,7 @@ def run(filenames, motSVD=True, movSVD=False, GUIobject=None, parent=None, proc=
         GUIobject.QApplication.processEvents()
 
     # Compute motSVD and/or movSVD from frames subsampled across videos 
-    #   and return spatial components                            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    #   and return spatial components                      ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     ncomps = 500
     if fullSVD or nroi>0:
         tqdm.write('Computing subsampled SVD...')
@@ -563,22 +586,14 @@ def run(filenames, motSVD=True, movSVD=False, GUIobject=None, parent=None, proc=
         U_mot, U_mov = [], []
         U_mot_reshape, U_mov_reshape = [], []
    
-
-    # Add V_mot and/or V_mov calculation: project U onto all movie frames   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    # Add V_mot and/or V_mov calculation: project U onto all movie frames ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     # and compute pupil (if selected)
     tqdm.write('Computing projection for motSVD...')
-    V_mot V_mov,, M, pups, blinks, runs = process_ROIs(containers, cumframes, Ly, Lx, avgframe, avgmotion, 
+    V_mot, V_mov, M, pups, blinks, runs = process_ROIs(containers, cumframes, Ly, Lx, avgframe, avgmotion, 
                                         U_mot, U_mov, motSVD, movSVD, sbin=sbin, tic=tic, rois=rois,fullSVD=fullSVD, 
                                         GUIobject=GUIobject, MainWindow=parent)
     tqdm.write('Computed motSVD projection at %0.2fs'%(time.time() - tic))
-    """
-    if movSVD:
-        tqdm.write('Computing projection for movSVD...')
-        V_mov, M, pups, blinks, runs = process_ROIs(containers, cumframes, Ly, Lx, avgframe, U_mov, 
-                                            svd_type="movSVD", sbin=sbin, tic=tic, rois=rois,fullSVD=fullSVD, 
-                                            GUIobject=GUIobject, MainWindow=parent)
-        tqdm.write('Computed movSVD projection at %0.2fs'%(time.time() - tic))
-
+    
     # smooth pupil and blinks and running  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     for p in pups:
         if 'area' in p:
@@ -593,8 +608,8 @@ def run(filenames, motSVD=True, movSVD=False, GUIobject=None, parent=None, proc=
         parent.update_status_bar("Computed projection")
     if GUIobject is not None:
         GUIobject.QApplication.processEvents()
-    """
 
+    # Save output  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     proc = {
             'filenames': filenames, 'save_path': savepath, 'Ly': Ly, 'Lx': Lx,
             'sbin': sbin, 'fullSVD': fullSVD, 'save_mat': save_mat,
@@ -602,23 +617,17 @@ def run(filenames, motSVD=True, movSVD=False, GUIobject=None, parent=None, proc=
             'sybin': sybin, 'sxbin': sxbin, 'LYbin': LYbin, 'LXbin': LXbin,
             'avgframe': avgframe, 'avgmotion': avgmotion,
             'avgframe_reshape': avgframe_reshape, 'avgmotion_reshape': avgmotion_reshape,
-            #'motion': M,
-            'motSVD': U_mot, 'movSVD': U_mov,
-             #'pupil': pups, 'running': runs, 'blink': blinks, 'rois': rois,
+            'motion': M,
+            'motMask': U_mot, 'movMask': U_mov,
+            'motMask_reshape': U_mot_reshape, 'movMask_reshape': U_mov_reshape,
+            'motSVD': V_mot, 'movSVD': V_mov,
+            'pupil': pups, 'running': runs, 'blink': blinks, 'rois': rois,
             'sy': sy, 'sx': sx
             }
-    """
-    if fullSVD or nroi>0:
-        if motSVD:
-            proc['motSVD'], proc['motMask'], proc['motMask_reshape'] = V_mot, U_mot, U_mot_reshape
-        if movSVD:
-            proc['movSVD'], proc['movMask'], proc['movMask_reshape'] = V_mov, U_mov, U_mov_reshape
-    else:
-        proc['SVD'], proc['Mask'], proc['Mask_reshape'] = V, U, U_reshape
-    """
     # save processing
     savename = save(proc, savepath)
     utils.close_videos(containers)
+    
     if parent is not None:
         parent.update_status_bar("Output saved in "+savepath)
     if GUIobject is not None:
