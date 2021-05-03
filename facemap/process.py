@@ -214,23 +214,23 @@ def compute_SVD(containers, cumframes, Ly, Lx, avgframe, avgmotion, motSVD=True,
 
     # take SVD of concatenated spatial PCs
     if ns > 1:
-        for nr in range(len(U)):
+        for nr in range(len(U_mot)):
             if nr==0 and fullSVD:
                 if motSVD:
-                    U_mot[nr] = U_mot[nr][:, :ni[0]]
+                    U_mot[nr] = U_mot[nr][:, :ni_mot[0]]
                     usv = utils.svdecon(U_mot[nr], k = min(ncomps, U_mot[nr].shape[1]-1))
                     U_mot[nr] = usv[0] * usv[1]
                 if movSVD:
-                    U_mov[nr] = U_mov[nr][:, :ni[0]]
+                    U_mov[nr] = U_mov[nr][:, :ni_mov[0]]
                     usv = utils.svdecon(U_mov[nr], k = min(ncomps, U_mov[nr].shape[1]-1))
                     U_mov[nr] = usv[0] * usv[1]
             elif nr>0:
                 if motSVD:
-                    U_mot[nr] = U_mot[nr][:, :ni[nr]]
+                    U_mot[nr] = U_mot[nr][:, :ni_mot[nr]]
                     usv = utils.svdecon(U_mot[nr], k = min(ncomps, U_mot[nr].shape[1]-1))
                     U_mot[nr] = usv[0] * usv[1]
                 if movSVD:
-                    U_mov[nr] = U_mov[nr][:, :ni[nr]]
+                    U_mov[nr] = U_mov[nr][:, :ni_mov[nr]]
                     usv = utils.svdecon(U_mov[nr], k = min(ncomps, U_mov[nr].shape[1]-1))
                     U_mov[nr] = usv[0] * usv[1]
     return U_mot, U_mov
