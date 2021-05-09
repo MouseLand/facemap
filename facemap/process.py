@@ -212,6 +212,8 @@ def compute_SVD(containers, cumframes, Ly, Lx, avgframe, avgmotion, motSVD=True,
                 ni_mov[0] += ncb
         ns+=1
 
+    S_mot = np.zeros(500)
+    S_mov = np.zeros(500)
     # take SVD of concatenated spatial PCs
     if ns > 1:
         for nr in range(len(U_mot)):
@@ -220,20 +222,24 @@ def compute_SVD(containers, cumframes, Ly, Lx, avgframe, avgmotion, motSVD=True,
                     U_mot[nr] = U_mot[nr][:, :ni_mot[0]]
                     usv = utils.svdecon(U_mot[nr], k = min(ncomps, U_mot[nr].shape[1]-1))
                     U_mot[nr] = usv[0] * usv[1]
+                    S_mot = usv[1]
                 if movSVD:
                     U_mov[nr] = U_mov[nr][:, :ni_mov[0]]
                     usv = utils.svdecon(U_mov[nr], k = min(ncomps, U_mov[nr].shape[1]-1))
                     U_mov[nr] = usv[0] * usv[1]
+                    S_mov = usv[1]
             elif nr>0:
                 if motSVD:
                     U_mot[nr] = U_mot[nr][:, :ni_mot[nr]]
                     usv = utils.svdecon(U_mot[nr], k = min(ncomps, U_mot[nr].shape[1]-1))
                     U_mot[nr] = usv[0] * usv[1]
+                    S_mot = usv[1]
                 if movSVD:
                     U_mov[nr] = U_mov[nr][:, :ni_mov[nr]]
                     usv = utils.svdecon(U_mov[nr], k = min(ncomps, U_mov[nr].shape[1]-1))
                     U_mov[nr] = usv[0] * usv[1]
-    return U_mot, U_mov
+                    S_mov = usv[1]
+    return U_mot, U_mov, S_mot, S_mov
 
 def process_ROIs(containers, cumframes, Ly, Lx, avgframe, avgmotion, U_mot, U_mov, motSVD=True, movSVD=False,
                 sbin=3, tic=None, rois=None, fullSVD=True, GUIobject=None, MainWindow=None):
@@ -559,7 +565,7 @@ def run(filenames, motSVD=True, movSVD=False, GUIobject=None, parent=None, proc=
     if fullSVD or nroi>0:
         tqdm.write('Computing subsampled SVD...')
         print("motSVD", motSVD, "movSVD", movSVD)
-        U_mot, U_mov = compute_SVD(containers, cumframes, Ly, Lx, avgframe, avgmotion, motSVD, movSVD, ncomps=ncomps,
+        U_mot, U_mov, S_mot, S_mov = compute_SVD(containers, cumframes, Ly, Lx, avgframe, avgmotion, motSVD, movSVD, ncomps=ncomps,
                             sbin=sbin,rois=rois, fullSVD=fullSVD, GUIobject=GUIobject, MainWindow=parent)
         tqdm.write('Computed subsampled SVD at %0.2fs'%(time.time() - tic))
 
@@ -583,7 +589,7 @@ def run(filenames, motSVD=True, movSVD=False, GUIobject=None, parent=None, proc=
                     U_mov_reshape[k] = np.reshape(U_mov[k].copy(), (ly,lx,U_mov[k].shape[-1]))
                     k+=1
     else:
-        U_mot, U_mov = [], []
+        U_mot, U_mov, S_mot, S_mov = [], [], [], []
         U_mot_reshape, U_mov_reshape = [], []
    
     # Add V_mot and/or V_mov calculation: project U onto all movie frames ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -617,7 +623,7 @@ def run(filenames, motSVD=True, movSVD=False, GUIobject=None, parent=None, proc=
             'sybin': sybin, 'sxbin': sxbin, 'LYbin': LYbin, 'LXbin': LXbin,
             'avgframe': avgframe, 'avgmotion': avgmotion,
             'avgframe_reshape': avgframe_reshape, 'avgmotion_reshape': avgmotion_reshape,
-            'motion': M,
+            'motion': M, 'motSv' : S_mot, 'movSv' : S_mov,
             'motMask': U_mot, 'movMask': U_mov,
             'motMask_reshape': U_mot_reshape, 'movMask_reshape': U_mov_reshape,
             'motSVD': V_mot, 'movSVD': V_mov,
