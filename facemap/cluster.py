@@ -118,16 +118,17 @@ class Cluster():
         parent.data_clustering_combobox.clear()
         parent.ClusteringPlot.clear()
         # Add data to be used for clustering
-        parent.data_clustering_combobox.addItem("-- Data --")
-        data_types = ["motion SVD"]#, "Running", "Pupil", "Blink"]                  # Currently for fullSVD only
-        data = [parent.motSVDs[0]]#, parent.running, parent.pupil, parent.blink]    # Add ROI options
-        for i in range(len(data_types)):
-            if len(data[i]) > 0:
-                parent.data_clustering_combobox.addItem(data_types[i])
-        parent.data_clustering_combobox.setCurrentIndex(0)
-        parent.data_clustering_combobox.show()
+        if parent.processed:
+            parent.data_clustering_combobox.addItem("-- Data --")
+            data_types = ["motion SVD"]#, "Running", "Pupil", "Blink"]                  # Currently for fullSVD only
+            data = [parent.motSVDs[0]]#, parent.running, parent.pupil, parent.blink]    # Add ROI options
+            for i in range(len(data_types)):
+                if len(data[i]) > 0:
+                    parent.data_clustering_combobox.addItem(data_types[i])
+            parent.data_clustering_combobox.setCurrentIndex(0)
+            parent.data_clustering_combobox.show()
  
-        parent.run_clustering_button.show()
+            parent.run_clustering_button.show()
 
         cluster_method = parent.clusteringVisComboBox.currentText() ######
         if cluster_method == "UMAP":

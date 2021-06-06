@@ -444,11 +444,8 @@ class MainW(QtGui.QMainWindow):
             else:
                 self.update_status_bar("Please add ROIs for display")
         elif visualization_request == "UMAP":
-            if self.processed:
-                self.cluster_model.enable_data_clustering_features(parent=self)
-                self.update_status_bar("")
-            else:
-                self.update_status_bar("Please process ROIs or load data for clustering")
+            self.cluster_model.enable_data_clustering_features(parent=self)
+            self.update_status_bar("")
         else:
             self.cluster_model.disable_data_clustering_features(self)
 
