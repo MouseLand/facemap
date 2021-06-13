@@ -80,7 +80,7 @@ class Cluster():
         parent.num_clusters.setFixedWidth(50)
         parent.num_clusters.setText(str(5))
 
-        istretch = 10
+        istretch = 11
         parent.l0.addWidget(parent.ClusteringLabel, istretch, 0, 1, 2)
         parent.l0.addWidget(parent.min_dist_label, istretch+1, 0, 1, 1)
         parent.l0.addWidget(parent.min_dist_value, istretch+1, 1, 1, 1)
@@ -118,16 +118,17 @@ class Cluster():
         parent.data_clustering_combobox.clear()
         parent.ClusteringPlot.clear()
         # Add data to be used for clustering
-        parent.data_clustering_combobox.addItem("-- Data --")
-        data_types = ["motion SVD", "Running", "Pupil", "Blink"]
-        data = [parent.motSVDs[0], parent.running, parent.pupil, parent.blink]
-        for i in range(len(data_types)):
-            if len(data[i]) > 0:
-                parent.data_clustering_combobox.addItem(data_types[i])
-        parent.data_clustering_combobox.setCurrentIndex(0)
-        parent.data_clustering_combobox.show()
+        if parent.processed:
+            parent.data_clustering_combobox.addItem("-- Data --")
+            data_types = ["motion SVD"]#, "Running", "Pupil", "Blink"]                  # Currently for fullSVD only
+            data = [parent.motSVDs[0]]#, parent.running, parent.pupil, parent.blink]    # Add ROI options
+            for i in range(len(data_types)):
+                if len(data[i]) > 0:
+                    parent.data_clustering_combobox.addItem(data_types[i])
+            parent.data_clustering_combobox.setCurrentIndex(0)
+            parent.data_clustering_combobox.show()
  
-        parent.run_clustering_button.show()
+            parent.run_clustering_button.show()
 
         cluster_method = parent.clusteringVisComboBox.currentText() ######
         if cluster_method == "UMAP":
@@ -286,12 +287,14 @@ class Cluster():
         self.set_variables(parent)
         if self.data_type == "motion SVD":
             data = parent.motSVDs[0]       # Shape: num frames x num comps
-        elif self.data_type == "Pupil":
-            data = parent.pupil
-        elif self.data_type == "Blink":
-            data = parent.blink
-        elif self.data_type == "Running":
-            data = parent.running
+            """
+            elif self.data_type == "Pupil":
+                data = parent.pupil
+            elif self.data_type == "Blink":
+                data = parent.blink
+            elif self.data_type == "Running":
+                data = parent.running
+            """
         else:
             self.data_type = None
             msg = QtGui.QMessageBox(parent)

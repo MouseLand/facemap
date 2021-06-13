@@ -6,11 +6,10 @@ import os
 
 r_tol, a_tol = 1e-2, 1e-2
 
-def test_output_single_video(data_dir, video_names):
+def output_single_video(data_dir, video_names):#test_
     v1, _ = video_names
-    data_dir1, _ = data_dir
-    test_filenames = [[data_dir1+video for video in v1]]
-    process.run(test_filenames, savepath=os.getcwd()+"/tests/")    
+    test_filenames = [[data_dir+video for video in v1]]
+    process.run(test_filenames, movSVD = True, savepath=os.getcwd()+"/tests/")    
 
     output_filename, _ = os.path.splitext(v1[0])
     test_proc_filename = os.getcwd()+"/tests/"+output_filename+"_proc.npy"
@@ -22,11 +21,11 @@ def test_output_single_video(data_dir, video_names):
 
 def test_output_multivideo(data_dir, video_names):
     v1, v2 = video_names
-    data_dir1, data_dir2 = data_dir
-    test1 = [data_dir1+video for video in v1]
-    test2 = [data_dir2+video for video in v2]
+    test1 = os.path.join(data_dir,v1[0])
+    test2 = os.path.join(data_dir,v2[0])
+    # For videos recorded simultaneously from multiple cams
     test_filenames = [test1, test2]
-    process.run(test_filenames, savepath=os.getcwd()+"/tests/")    
+    process.run(test_filenames, movSVD = True, savepath=os.getcwd()+"/tests/")    
 
     output_filename, _ = os.path.splitext(v1[0])
     test_proc_filename = os.getcwd()+"/tests/"+output_filename+"_proc.npy"
@@ -34,12 +33,12 @@ def test_output_multivideo(data_dir, video_names):
     expected_proc_filename = os.getcwd()+"/tests/expected_output/multivideo_proc.npy"
     expected_output = np.load(expected_proc_filename,allow_pickle=True).item()
 
-    assert is_output_correct(output, single_video=False)
+    assert is_output_correct(output, expected_output)
 
 def is_output_correct(test_output, expected_output):
     params_match = check_params(test_output, expected_output)
     frames_match = check_frames(test_output, expected_output)
-    motion_match = check_motion
+    motion_match = check_motion(test_output, expected_output)
     U_match = check_U(test_output, expected_output)
     V_match = check_V(test_output, expected_output)
     return params_match and frames_match and motion_match and U_match and V_match
@@ -53,18 +52,32 @@ def check_params(test_output, expected_output):
                     test_output['sybin'][0] == expected_output['sybin'][0] and
                     test_output['sxbin'][0] == expected_output['sxbin'][0] and
                     test_output['LYbin'] == expected_output['LYbin'] and
-                    test_output['LXbin'] == test_output['LXbin']) 
+                    test_output['LXbin'] == expected_output['LXbin']) 
     return all_outputs_match
 
 def check_frames(test_output, expected_output):
-    return ((test_output['avgframe'][0] == expected_output['avgframe'][0]).all() and
-            (test_output['avgmotion'][0] == expected_output['avgmotion'][0]).all())
+    print(test_output['avgframe'][0].shape, expected_output['avgframe'][0].shape)
+    avgframes_match = np.allclose(test_output['avgframe'][0], expected_output['avgframe'][0], 
+                        rtol=r_tol, atol=a_tol) 
+    avgmotion_match = np.allclose(test_output['avgmotion'][0], expected_output['avgmotion'][0], 
+                        rtol=r_tol, atol=a_tol) 
+    avgframe_reshape_match = np.allclose(test_output['avgframe_reshape'][0], expected_output['avgframe_reshape'][0], 
+                        rtol=r_tol, atol=a_tol)
+    avgmotion_reshape_match = np.allclose(test_output['avgmotion_reshape'][0], expected_output['avgmotion_reshape'][0], 
+                        rtol=r_tol, atol=a_tol)         
+    return avgframes_match and avgmotion_match and avgframe_reshape_match and avgmotion_reshape_match
 
 def check_U(test_output, expected_output):
-    return np.allclose(test_output['motSVD'][0], expected_output['motSVD'][0], rtol=r_tol, atol=a_tol)
+    motionMask = np.allclose(test_output['motMask'][0], expected_output['motMask'][0], rtol=r_tol, atol=a_tol)
+    movieMask = np.allclose(test_output['movMask'][0], expected_output['movMask'][0], rtol=r_tol, atol=a_tol)
+    motionMask_reshape = np.allclose(test_output['motMask_reshape'][0], expected_output['motMask_reshape'][0], rtol=r_tol, atol=a_tol)
+    movMask_reshape = np.allclose(test_output['movMask_reshape'][0], expected_output['movMask_reshape'][0], rtol=r_tol, atol=a_tol)
+    return motionMask and movieMask and motionMask_reshape and movMask_reshape
 
 def check_V(test_output, expected_output):
-    return np.allclose(test_output['motMask'][0], expected_output['motMask'][0], rtol=r_tol, atol=a_tol)
+    motion_V = np.allclose(test_output['motSVD'][0], expected_output['motSVD'][0], rtol=r_tol, atol=a_tol)
+    movie_V = np.allclose(test_output['movSVD'][0], expected_output['movSVD'][0], rtol=r_tol, atol=a_tol)
+    return motion_V and movie_V
 
 def check_motion(test_output, expected_output):
-    return (test_output['motioin'][0] == expected_output['motioin'][0]).all()
+    return (test_output['motion'][0] == expected_output['motion'][0]).all()

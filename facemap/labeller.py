@@ -11,6 +11,7 @@ from scipy.interpolate import interp1d
 from skimage import io
 from skimage import transform, draw, measure, segmentation
 import warnings
+from . import guiparts
 from guiparts import ImageDraw, RangeSlider, RGBRadioButtons, ViewBoxNoRightDrag
 import matplotlib.pyplot as plt
 import copy

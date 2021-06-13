@@ -3,8 +3,8 @@
 def test_facemap_imports():
     import facemap
     from facemap import process
-    from facemap import utils
-    from facemap import running, roi, pupil
+    from facemap import utils, registration
+    from facemap import running, roi, pupil, cluster
 
 def test_gui_imports():
     from facemap import gui
