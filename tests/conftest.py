@@ -6,9 +6,9 @@ from urllib.request import urlopen
 
 @pytest.fixture()
 def video_names():
-    video1_names = ['cam1_test.avi']
-    video2_names = ['cam2_test.avi']
-    return video1_names, video2_names
+    video1_name = 'cam1_test.avi'
+    video2_name = 'cam2_test.avi'
+    return video1_name, video2_name
 
 @pytest.fixture()
 def data_dir(video_names):
