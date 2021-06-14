@@ -14,7 +14,7 @@ setuptools.setup(
     url="https://github.com/MouseLand/FaceMap",
     packages=setuptools.find_packages(),
     install_requires = ['pyqtgraph==0.11.0rc0', 'PyQt5', 'PyQt5.sip', 
-                        'numpy>=1.13.0', 'scipy', 'numba', 'natsort'],
+                        'numpy>=1.13.0', 'scipy', 'numba', 'natsort', 'tqdm'],
     include_package_data=True,
     classifiers=(
         "Programming Language :: Python :: 3",
