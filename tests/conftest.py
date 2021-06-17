@@ -36,7 +36,7 @@ def data_dir(video_names):
 @pytest.fixture()
 def expected_output_dir(data_dir):
     expected_output_dir = data_dir.joinpath('expected_output')
-    expected_output_dir.nkdir(exist_ok=True)
+    expected_output_dir.mkdir(exist_ok=True)
     # Download expected output files
     download_url_to_file('https://www.facemappy.org/test_data/singlevideo_proc.npy', 
                         expected_output_dir.joinpath('singlevideo_proc.npy'))

@@ -12,13 +12,10 @@ def test_output_single_video(data_dir, video_names, expected_output_dir):
     v1, _ = video_names
     test_filenames = [[str(data_dir.joinpath('cam1').joinpath(v1))]] # [[data_dir+video for video in v1]]
     save_path = str(data_dir.joinpath('cam1'))
-    output_filename, _ = os.path.splitext(v1[0])
-    test_proc_filename = save_path.joinpath(output_filename+"_proc.npy")
-    print("\n", save_path)
-    print(test_filenames)
-    print(test_proc_filename)
+    output_filename, _ = v1.split(".")
+    test_proc_filename = os.path.join(save_path,output_filename+"_proc.npy")
     # Process video
-    process.run(test_filenames, sbin=7, movSVD=True, savepath=save_path)    
+    process.run(test_filenames, sbin=7, motSVD=True, movSVD=True, savepath=save_path)    
 
     # Compare output
     output = np.load(test_proc_filename,allow_pickle=True).item()
@@ -28,7 +25,7 @@ def test_output_single_video(data_dir, video_names, expected_output_dir):
 
     assert is_output_correct(output, expected_output)
 
-def test_output_multivideo(data_dir, video_names, expected_output_dir):
+def test_output_multivideo(data_dir, video_names, expected_output_dir): 
     clear_output(data_dir, video_names)
     v1, v2 = video_names
     test1 = str(data_dir.joinpath('cam1').joinpath(v1))
@@ -36,23 +33,21 @@ def test_output_multivideo(data_dir, video_names, expected_output_dir):
     
     # For videos recorded simultaneously from multiple cams
     test_filenames = [[test1, test2]]
-    save_path = str(data_dir.joinpath('data').joinpath('cam2'))
-    output_filename, _ = os.path.splitext(v2[0])
-    test_proc_filename = save_path.joinpath(output_filename+"_proc.npy")
-    print("\n", save_path)
-    print(test_filenames)
+    save_path = str(data_dir.joinpath('cam2'))
+    output_filename, _ = v1.split(".")
+    test_proc_filename = os.path.join(save_path, output_filename+"_proc.npy")
     print(test_proc_filename)
     # Process videos
-    process.run(test_filenames, sbin=12, movSVD=True, savepath=save_path)    
+    process.run(test_filenames, sbin=12, motSVD=True, movSVD=True, savepath=save_path)    
 
     # Compare output
     output = np.load(test_proc_filename,allow_pickle=True).item()
-    expected_proc_filename = expected_output_dir.joinpath("mutlivideo_proc.npy")
+    expected_proc_filename = expected_output_dir.joinpath("multivideo_proc.npy")
     expected_output = np.load(expected_proc_filename,allow_pickle=True).item()
     clear_output(data_dir, video_names)
-    clear_expected_output(expected_output_dir)
     
     assert is_output_correct(output, expected_output)
+    clear_expected_output(expected_output_dir)
 
 def is_output_correct(test_output, expected_output):
     params_match = check_params(test_output, expected_output)
@@ -75,7 +70,6 @@ def check_params(test_output, expected_output):
     return all_outputs_match
 
 def check_frames(test_output, expected_output):
-    print(test_output['avgframe'][0].shape, expected_output['avgframe'][0].shape)
     avgframes_match = np.allclose(test_output['avgframe'][0], expected_output['avgframe'][0], 
                         rtol=r_tol, atol=a_tol) 
     avgmotion_match = np.allclose(test_output['avgmotion'][0], expected_output['avgmotion'][0], 
