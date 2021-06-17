@@ -13,7 +13,7 @@ setuptools.setup(
     long_description_content_type="text/markdown",
     url="https://github.com/MouseLand/FaceMap",
     packages=setuptools.find_packages(),
-    install_requires = ['ffmpeg','pyqtgraph==0.11.0rc0', 'PyQt5', 'PyQt5.sip', 'numpy>=1.13.0', 'scipy','matplotlib','pims','natsort', 'mkl-fft', 'tqdm'],
+    install_requires = ['ffmpeg','pyqtgraph==0.11.0rc0', 'PyQt5', 'PyQt5.sip', 'numpy>=1.13.0', 'scipy','matplotlib','natsort', 'mkl-fft>=1.1.0', 'tqdm'],
     include_package_data=True,
     classifiers=(
         "Programming Language :: Python :: 3",
