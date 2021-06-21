@@ -3,8 +3,8 @@
 # ops.yrange, xrange are ranges to use for rectangular section of movie
 from scipy.fftpack import next_fast_len
 import numpy as np
-from numpy.fft import ifftshift
-from mkl_fft import fft2, ifft2
+from numpy.fft import ifftshift, fft2, ifft2
+#from mkl_fft import fft2, ifft2
 from numba import vectorize, float32, complex64, uint8, int16
 
 eps0 = 1e-20
