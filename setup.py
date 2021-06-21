@@ -14,7 +14,7 @@ setuptools.setup(
     url="https://github.com/MouseLand/FaceMap",
     packages=setuptools.find_packages(),
     install_requires = ['ffmpeg','pyqtgraph==0.11.0rc0', 'PyQt5', 'PyQt5.sip', 'numpy>=1.13.0', 
-			'scipy','matplotlib','natsort', 'tqdm'],
+			'scipy','matplotlib','natsort', 'tqdm', 'numba>=0.43.1'],
     tests_require=['pytest', 'tqdm'],
     include_package_data=True,
     classifiers=(

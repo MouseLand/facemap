@@ -4,8 +4,6 @@ channels:
 dependencies:
   - python>3.6
   - pip
-  - mkl_fft=1.0.10
-  - mkl=2019.3
   - numpy>=1.16
   - numba>=0.43.1
   - scipy
@@ -14,9 +12,11 @@ dependencies:
   - pip:
     - pyqtgraph==0.12.0
     - pyqt5
+    - scikit-image
     - matplotlib
     - natsort
     - opencv_python_headless
     - tqdm
     - umap-learn
     - pandas
+    - pytest
