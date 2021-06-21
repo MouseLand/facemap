@@ -51,10 +51,15 @@ def test_output_multivideo(data_dir, video_names, expected_output_dir):
 
 def is_output_correct(test_output, expected_output):
     params_match = check_params(test_output, expected_output)
+    print("params match", params_match)
     frames_match = check_frames(test_output, expected_output)
+    print("frames_match", frames_match)
     motion_match = check_motion(test_output, expected_output)
+    print("motion_match", motion_match)
     U_match = check_U(test_output, expected_output)
+    print("U_match", U_match)
     V_match = check_V(test_output, expected_output)
+    print("V_match", V_match)
     return params_match and frames_match and motion_match and U_match and V_match
 
 def check_params(test_output, expected_output):
