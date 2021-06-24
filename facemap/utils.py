@@ -361,6 +361,7 @@ def video_placement(Ly, Lx):
 
 def svdecon(X, k=100):
     np.random.seed(0)   # Fix seed to get same output for eigsh
+    """
     v0 = np.random.uniform(-1,1,size=min(X.shape)) 
     NN, NT = X.shape
     if NN>NT:
@@ -379,4 +380,6 @@ def svdecon(X, k=100):
     else:
         V = (U.T @ X).T
         V = V/(V**2).sum(axis=0)**.5
+    """
+    U, Sv, V = PCA(svd_solver='randomized', random_state=np.random.RandomState(0))._fit(X)
     return U, Sv, V
