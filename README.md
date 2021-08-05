@@ -1,6 +1,6 @@
 [![Downloads](https://pepy.tech/badge/facemap)](https://pepy.tech/project/facemap)
 [![Downloads](https://pepy.tech/badge/facemap/month)](https://pepy.tech/project/facemap)
-[![](https://img.shields.io/github/license/MouseLand/facemap)](https://img.shields.io/github/license/MouseLand/facemap)
+[![](https://img.shields.io/github/license/MouseLand/facemap)](https://github.com/MouseLand/facemap/blob/main/LICENSE)
 
 # facemap <img src="facemap/mouse.png" width="200" title="lilmouse" alt="lilmouse" align="right" vspace = "50">
 
