@@ -486,7 +486,7 @@ def save(proc, savepath=None):
         del d2
     return savename
 
-def run(filenames, motSVD=True, movSVD=False, GUIobject=None, parent=None, proc=None, savepath=None):
+def run(filenames, sbin=1, motSVD=True, movSVD=False, GUIobject=None, parent=None, proc=None, savepath=None):
     '''
     Parameters
     ----------
@@ -516,7 +516,7 @@ def run(filenames, motSVD=True, movSVD=False, GUIobject=None, parent=None, proc=
     else:
         cumframes, Ly, Lx, containers = utils.get_frame_details(filenames)
         if proc is None:
-            sbin = 1
+            sbin = sbin
             fullSVD = True
             save_mat = False
             rois=None

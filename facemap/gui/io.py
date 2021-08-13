@@ -2,7 +2,8 @@ import os, glob
 import numpy as np
 from PyQt5 import QtGui, QtCore
 import pyqtgraph as pg
-from . import guiparts, roi, utils
+from . import guiparts
+from .. import roi, utils
 from natsort import natsorted
 import pickle
 

@@ -9,7 +9,8 @@ import pathlib
 import cv2
 import pandas as pd
 from PyQt5.QtGui import QPixmap 
-from . import process, roi, utils, io, menus, guiparts, cluster
+from .. import process, roi, utils, cluster
+from . import io, menus, guiparts
 
 istr = ['pupil', 'motSVD', 'blink', 'running']
 
@@ -51,7 +52,7 @@ class MainW(QtGui.QMainWindow):
                         'save_path': '', 'save_mat': False}
 
         self.save_path = self.ops['save_path']
-        self.DLC_filepath = ""
+        self.Pose_filepath = ""
 
         menus.mainmenu(self)
         self.online_mode=False
@@ -142,10 +143,10 @@ class MainW(QtGui.QMainWindow):
         self.nframes = 0
         self.cframe = 0
         
-        ## DLC plot
-        self.DLC_scatterplot = pg.ScatterPlotItem(hover=True)
-        self.DLC_scatterplot.sigClicked.connect(self.DLC_points_clicked)
-        self.DLC_scatterplot.sigHovered.connect(self.DLC_points_hovered)
+        ## Pose plot
+        self.Pose_scatterplot = pg.ScatterPlotItem(hover=True)
+        self.Pose_scatterplot.sigClicked.connect(self.DLC_points_clicked)
+        self.Pose_scatterplot.sigHovered.connect(self.DLC_points_hovered)
         self.make_buttons()
         
         self.ClusteringPlot = self.win.addPlot(row=0, col=1, lockAspect=True, enableMouse=False)
@@ -254,16 +255,16 @@ class MainW(QtGui.QMainWindow):
         self.saverois.clicked.connect(self.save_ROIs)
         self.saverois.setEnabled(False)
 
-        # DLC features
-        self.loadDLC = QtGui.QPushButton("Load DLC data")
-        self.loadDLC.setFont(QtGui.QFont("Arial", 10, QtGui.QFont.Bold))
-        self.loadDLC.clicked.connect(self.get_DLC_file)
-        self.loadDLC.setEnabled(False)
-        self.DLC_file_loaded = False
-        self.DLClabels_checkBox = QtGui.QCheckBox("Labels")
-        self.DLClabels_checkBox.setStyleSheet("color: gray;")
-        self.DLClabels_checkBox.stateChanged.connect(self.update_DLC_points)
-        self.DLClabels_checkBox.setEnabled(False)
+        # Pose/labels variables
+        self.loadPose = QtGui.QPushButton("Load pose data")
+        self.loadPose.setFont(QtGui.QFont("Arial", 10, QtGui.QFont.Bold))
+        self.loadPose.clicked.connect(self.get_pose_file)
+        self.loadPose.setEnabled(False)
+        self.Pose_file_loaded = False
+        self.Labels_checkBox = QtGui.QCheckBox("Labels")
+        self.Labels_checkBox.setStyleSheet("color: gray;")
+        self.Labels_checkBox.stateChanged.connect(self.update_pose)
+        self.Labels_checkBox.setEnabled(False)
 
         # Process features
         self.batchlist=[]
@@ -374,8 +375,8 @@ class MainW(QtGui.QMainWindow):
 
         self.l0.addWidget(self.savefolder, 8, 1, 1, 1)
         self.l0.addWidget(self.savelabel, 9, 0, 1, 2)
-        self.l0.addWidget(self.loadDLC, 10, 0, 1, 1)                    # DLC features
-        self.l0.addWidget(self.DLClabels_checkBox, 10, 1, 1, 1)        
+        self.l0.addWidget(self.loadPose, 10, 0, 1, 1)                    # DLC features
+        self.l0.addWidget(self.Labels_checkBox, 10, 1, 1, 1)        
         self.l0.addWidget(self.clusteringVisComboBox, 0, 11, 1, 1)      # clustering visualization window features
         self.l0.addWidget(self.data_clustering_combobox, 0, 12, 1, 2)      # clustering visualization window features
         self.l0.addWidget(self.roiVisComboBox, 0, 12, 1, 2)              # ROI visualization window features
@@ -515,9 +516,9 @@ class MainW(QtGui.QMainWindow):
         self.ClusteringPlot.clear()
         # Clear DLC variables when a new file is loaded
         #self.DLCplot.clear()
-        self.DLC_scatterplot.clear()
+        self.Pose_scatterplot.clear()
         #self.p0.clear()
-        self.DLC_file_loaded = False
+        self.Pose_file_loaded = False
         # clear checkboxes
         for k in range(len(self.cbs1)):
             self.cbs1[k].setText("")
@@ -590,57 +591,57 @@ class MainW(QtGui.QMainWindow):
             else:
                 self.savelabel.setText(folderName)
 
-    def get_DLC_file(self):
+    def get_pose_file(self):
         filepath = QtGui.QFileDialog.getOpenFileName(self,
-                                "Choose DLC file", "", "DLC labels file (*.h5)")
+                                "Choose pose file", "", "Pose labels file (*.h5)")
         if filepath[0]:
-            self.DLC_filepath = filepath[0]
-            self.DLC_file_loaded = True
-            self.update_status_bar("DLC file loaded: "+self.DLC_filepath)
-            self.load_DLC_points()
+            self.Pose_filepath = filepath[0]
+            self.Pose_file_loaded = True
+            self.update_status_bar("Pose file loaded: "+self.Pose_filepath)
+            self.load_labels()
 
-    def load_DLC_points(self):
-        # Read DLC file
-        self.DLC_data = pd.read_hdf(self.DLC_filepath, 'df_with_missing')
-        all_labels = self.DLC_data.columns.get_level_values("bodyparts")
-        self.DLC_keypoints_labels = [all_labels[i] for i in sorted(np.unique(all_labels, return_index=True)[1])]#np.unique(self.DLC_data.columns.get_level_values("bodyparts"))
-        self.DLC_x_coord = self.DLC_data.T[self.DLC_data.columns.get_level_values("coords").values=="x"].values #size: key points x frames
-        self.DLC_y_coord = self.DLC_data.T[self.DLC_data.columns.get_level_values("coords").values=="y"].values #size: key points x frames
-        self.DLC_likelihood = self.DLC_data.T[self.DLC_data.columns.get_level_values("coords").values=="likelihood"].values #size: key points x frames
+    def load_labels(self):
+        # Read Pose file
+        self.Pose_data = pd.read_hdf(self.Pose_filepath, 'df_with_missing')
+        all_labels = self.Pose_data.columns.get_level_values("bodyparts")
+        self.keypoints_labels = [all_labels[i] for i in sorted(np.unique(all_labels, return_index=True)[1])]
+        self.pose_x_coord = self.Pose_data.T[self.Pose_data.columns.get_level_values("coords").values=="x"].values #size: key points x frames
+        self.pose_y_coord = self.Pose_data.T[self.Pose_data.columns.get_level_values("coords").values=="y"].values #size: key points x frames
+        self.pose_likelihood = self.Pose_data.T[self.Pose_data.columns.get_level_values("coords").values=="likelihood"].values #size: key points x frames
         # Choose colors for each label: provide option for color blindness as well
-        self.colors = cm.get_cmap('gist_rainbow')(np.linspace(0, 1., len(self.DLC_keypoints_labels)))
+        self.colors = cm.get_cmap('gist_rainbow')(np.linspace(0, 1., len(self.keypoints_labels)))
         self.colors *= 255
         self.colors = self.colors.astype(int)
         self.colors[:,-1] = 127
         self.brushes = np.array([pg.mkBrush(color=c) for c in self.colors])
     
-    def update_DLC_points(self):
-        if self.DLC_file_loaded and self.DLClabels_checkBox.isChecked():
+    def update_pose(self):
+        if self.Pose_file_loaded and self.Labels_checkBox.isChecked():
             self.statusBar.clearMessage()
-            self.p0.addItem(self.DLC_scatterplot)
+            self.p0.addItem(self.Pose_scatterplot)
             self.p0.setRange(xRange=(0,self.LX), yRange=(0,self.LY), padding=0.0)
-            filtered_keypoints = np.where(self.DLC_likelihood[:,self.cframe] > 0.9)[0]
-            x = self.DLC_x_coord[filtered_keypoints,self.cframe]
-            y = self.DLC_y_coord[filtered_keypoints,self.cframe]
-            self.DLC_scatterplot.setData(x, y, size=15, symbol='o', brush=self.brushes[filtered_keypoints], hoverable=True, hoverSize=15)
-        elif not self.DLC_file_loaded and self.DLClabels_checkBox.isChecked():
-            self.update_status_bar("Please upload a DLC (*.h5) file")
+            filtered_keypoints = np.where(self.pose_likelihood[:,self.cframe] > 0.9)[0]
+            x = self.pose_x_coord[filtered_keypoints,self.cframe]
+            y = self.pose_y_coord[filtered_keypoints,self.cframe]
+            self.Pose_scatterplot.setData(x, y, size=15, symbol='o', brush=self.brushes[filtered_keypoints], hoverable=True, hoverSize=15)
+        elif not self.Pose_file_loaded and self.Labels_checkBox.isChecked():
+            self.update_status_bar("Please upload a pose (*.h5) file")
         else:
             self.statusBar.clearMessage()
-            self.DLC_scatterplot.clear()
+            self.Pose_scatterplot.clear()
 
     def DLC_points_clicked(self, obj, points):
         ## Can add functionality for clicking key points
         return ""
 
     def DLC_points_hovered(self, obj, ev):
-        point_hovered = np.where(self.DLC_scatterplot.data['hovered'])[0]
+        point_hovered = np.where(self.Pose_scatterplot.data['hovered'])[0]
         if point_hovered.shape[0] >= 1:         # Show tooltip only when hovering over a point i.e. no empty array
-            points = self.DLC_scatterplot.points()
-            vb = self.DLC_scatterplot.getViewBox()
-            if vb is not None and self.DLC_scatterplot.opts['tip'] is not None:
+            points = self.Pose_scatterplot.points()
+            vb = self.Pose_scatterplot.getViewBox()
+            if vb is not None and self.Pose_scatterplot.opts['tip'] is not None:
                 cutoff = 1                      # Display info of only one point when hovering over multiple points
-                tip = [self.DLC_scatterplot.opts['tip'](data = self.DLC_keypoints_labels[pt],x=points[pt].pos().x(), y=points[pt].pos().y())
+                tip = [self.Pose_scatterplot.opts['tip'](data = self.keypoints_labels[pt],x=points[pt].pos().x(), y=points[pt].pos().y())
                         for pt in point_hovered[:cutoff]]
                 if len(point_hovered) > cutoff:
                     tip.append('({} other...)'.format(len(point_hovered) - cutoff))
@@ -732,13 +733,13 @@ class MainW(QtGui.QMainWindow):
         self.checkBox.setChecked(True)
         self.save_mat.setChecked(True)
 
-        # Enable DLC features for single video only
+        # Enable pose features for single video only
         if len(self.img)==1:
-            self.loadDLC.setEnabled(True)
-            self.DLClabels_checkBox.setEnabled(True)
+            self.loadPose.setEnabled(True)
+            self.Labels_checkBox.setEnabled(True)
         else:
-            self.loadDLC.setEnabled(False)
-            self.DLClabels_checkBox.setEnabled(False)
+            self.loadPose.setEnabled(False)
+            self.Labels_checkBox.setEnabled(False)
 
     def jump_to_frame(self):
         if self.playButton.isEnabled():
@@ -800,7 +801,7 @@ class MainW(QtGui.QMainWindow):
         self.pimg.setImage(self.fullimg)
         self.pimg.setLevels([0,self.sat[0]])
         self.setFrame.setText(str(self.cframe))
-        self.update_DLC_points()
+        self.update_pose()
         #self.frameNumber.setText(str(self.cframe))
         self.totalFrameNumber.setText(str(self.nframes))
         self.win.show()
@@ -820,7 +821,7 @@ class MainW(QtGui.QMainWindow):
             self.pauseButton.setEnabled(True)
             self.frameSlider.setEnabled(False)
             self.updateTimer.start(25)
-        self.update_DLC_points()
+        self.update_pose()
 
     def pause(self):
         self.updateTimer.stop()
@@ -829,7 +830,7 @@ class MainW(QtGui.QMainWindow):
         self.frameSlider.setEnabled(True)
         if self.online_mode:
             self.online_traces = None
-        self.update_DLC_points()
+        self.update_pose()
 
     def save_ops(self):
         ops = {'sbin': self.sbin, 'pupil_sigma': float(self.sigmaBox.text()),

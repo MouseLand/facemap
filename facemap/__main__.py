@@ -1,6 +1,7 @@
 import numpy as np
 import time, os
-from facemap import gui,process
+from .gui import gui
+from . import process
 from scipy import stats
 import argparse
 
