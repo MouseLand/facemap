@@ -46,11 +46,6 @@ Run the following
 pip install facemap
 ~~~
 
-If you are using running ROIs, you will want to install mkl_fft via conda:
-~~~~
-conda install -c conda-forge mkl_fft
-~~~~
-
 ### Common issues
 
 If you have pip issues, there might be some interaction between pre-installed dependencies and the ones FaceMap needs. First thing to try is
