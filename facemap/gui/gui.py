@@ -52,7 +52,7 @@ class MainW(QtGui.QMainWindow):
                         'save_path': '', 'save_mat': False}
 
         self.save_path = self.ops['save_path']
-        self.Pose_filepath = ""
+        self.poseFilepath = ""
 
         menus.mainmenu(self)
         self.online_mode=False
@@ -66,7 +66,7 @@ class MainW(QtGui.QMainWindow):
         self.win = pg.GraphicsLayoutWidget()
         self.win.move(600,0)
         self.win.resize(1000,500)
-        self.l0.addWidget(self.win,1,2,27,15)
+        self.l0.addWidget(self.win,1,2,25,15)
         layout = self.win.ci.layout
 
         # Add logo
@@ -201,10 +201,6 @@ class MainW(QtGui.QMainWindow):
         VideoLabel.setStyleSheet("color: white;")
         VideoLabel.setAlignment(QtCore.Qt.AlignCenter)
         VideoLabel.setFont(QtGui.QFont("Arial", 12, QtGui.QFont.Bold))
-        #fileIOlabel = QtGui.QLabel("File I/O")
-        #fileIOlabel.setStyleSheet("color: white;")
-        #fileIOlabel.setAlignment(QtCore.Qt.AlignCenter)
-        #fileIOlabel.setFont(QtGui.QFont("Arial", 12, QtGui.QFont.Bold))
         SVDbinLabel = QtGui.QLabel("SVD spatial bin:")
         SVDbinLabel.setStyleSheet("color: gray;")
         self.binSpinBox = QtGui.QSpinBox()
@@ -233,7 +229,7 @@ class MainW(QtGui.QMainWindow):
         self.frameSlider.setTracking(False)
         self.frameSlider.valueChanged.connect(self.go_to_frame)
         self.frameDelta = 10
-        istretch = 19
+        istretch = 20
         iplay = istretch+10
         iconSize = QtCore.QSize(20, 20)
 
@@ -256,11 +252,15 @@ class MainW(QtGui.QMainWindow):
         self.saverois.setEnabled(False)
 
         # Pose/labels variables
+        self.poseEstimatesButton = QtGui.QPushButton("Generate pose estimates")
+        self.poseEstimatesButton.setFont(QtGui.QFont("Arial", 10, QtGui.QFont.Bold))
+        self.poseEstimatesButton.clicked.connect(self.get_pose_labels)
+        self.poseEstimatesButton.setEnabled(False)
         self.loadPose = QtGui.QPushButton("Load pose data")
         self.loadPose.setFont(QtGui.QFont("Arial", 10, QtGui.QFont.Bold))
         self.loadPose.clicked.connect(self.get_pose_file)
         self.loadPose.setEnabled(False)
-        self.Pose_file_loaded = False
+        self.poseFileLoaded = False
         self.Labels_checkBox = QtGui.QCheckBox("Labels")
         self.Labels_checkBox.setStyleSheet("color: gray;")
         self.Labels_checkBox.stateChanged.connect(self.update_pose)
@@ -375,8 +375,9 @@ class MainW(QtGui.QMainWindow):
 
         self.l0.addWidget(self.savefolder, 8, 1, 1, 1)
         self.l0.addWidget(self.savelabel, 9, 0, 1, 2)
-        self.l0.addWidget(self.loadPose, 10, 0, 1, 1)                    # DLC features
-        self.l0.addWidget(self.Labels_checkBox, 10, 1, 1, 1)        
+        self.l0.addWidget(self.poseEstimatesButton, 10, 0, 1, 2)                    # Pose features
+        self.l0.addWidget(self.loadPose, 11, 0, 1, 1)                    # Pose features
+        self.l0.addWidget(self.Labels_checkBox, 11, 1, 1, 1)        
         self.l0.addWidget(self.clusteringVisComboBox, 0, 11, 1, 1)      # clustering visualization window features
         self.l0.addWidget(self.data_clustering_combobox, 0, 12, 1, 2)      # clustering visualization window features
         self.l0.addWidget(self.roiVisComboBox, 0, 12, 1, 2)              # ROI visualization window features
@@ -396,10 +397,6 @@ class MainW(QtGui.QMainWindow):
         self.l0.addWidget(self.frameSlider, istretch+10,2,1,15)
 
         # plotting boxes
-        #pl = QtGui.QLabel("Plot output")
-        #pl.setStyleSheet("color: white")
-        #pl.setAlignment(QtCore.Qt.AlignCenter)
-        #self.l0.addWidget(pl, istretch+1, 0, 1, 2)
         pl = QtGui.QLabel("Plot 1")
         pl.setStyleSheet("color: gray;")
         self.l0.addWidget(pl, istretch, 0, 1, 1)
@@ -515,10 +512,9 @@ class MainW(QtGui.QMainWindow):
         self.clusteringVisComboBox.setCurrentIndex(0)
         self.ClusteringPlot.clear()
         # Clear DLC variables when a new file is loaded
-        #self.DLCplot.clear()
         self.Pose_scatterplot.clear()
         #self.p0.clear()
-        self.Pose_file_loaded = False
+        self.poseFileLoaded = False
         # clear checkboxes
         for k in range(len(self.cbs1)):
             self.cbs1[k].setText("")
@@ -528,6 +524,9 @@ class MainW(QtGui.QMainWindow):
             self.cbs2[k].setEnabled(False)
             self.cbs1[k].setChecked(False)
             self.cbs2[k].setChecked(False)
+
+    def get_pose_labels(self):
+        print("Generating pose estimates")
 
     def pupil_sigma_change(self):
         self.pupil_sigma = float(self.sigmaBox.text())
@@ -595,14 +594,14 @@ class MainW(QtGui.QMainWindow):
         filepath = QtGui.QFileDialog.getOpenFileName(self,
                                 "Choose pose file", "", "Pose labels file (*.h5)")
         if filepath[0]:
-            self.Pose_filepath = filepath[0]
-            self.Pose_file_loaded = True
-            self.update_status_bar("Pose file loaded: "+self.Pose_filepath)
+            self.poseFilepath = filepath[0]
+            self.poseFileLoaded = True
+            self.update_status_bar("Pose file loaded: "+self.poseFilepath)
             self.load_labels()
 
     def load_labels(self):
         # Read Pose file
-        self.Pose_data = pd.read_hdf(self.Pose_filepath, 'df_with_missing')
+        self.Pose_data = pd.read_hdf(self.poseFilepath, 'df_with_missing')
         all_labels = self.Pose_data.columns.get_level_values("bodyparts")
         self.keypoints_labels = [all_labels[i] for i in sorted(np.unique(all_labels, return_index=True)[1])]
         self.pose_x_coord = self.Pose_data.T[self.Pose_data.columns.get_level_values("coords").values=="x"].values #size: key points x frames
@@ -616,7 +615,7 @@ class MainW(QtGui.QMainWindow):
         self.brushes = np.array([pg.mkBrush(color=c) for c in self.colors])
     
     def update_pose(self):
-        if self.Pose_file_loaded and self.Labels_checkBox.isChecked():
+        if self.poseFileLoaded and self.Labels_checkBox.isChecked():
             self.statusBar.clearMessage()
             self.p0.addItem(self.Pose_scatterplot)
             self.p0.setRange(xRange=(0,self.LX), yRange=(0,self.LY), padding=0.0)
@@ -624,7 +623,7 @@ class MainW(QtGui.QMainWindow):
             x = self.pose_x_coord[filtered_keypoints,self.cframe]
             y = self.pose_y_coord[filtered_keypoints,self.cframe]
             self.Pose_scatterplot.setData(x, y, size=15, symbol='o', brush=self.brushes[filtered_keypoints], hoverable=True, hoverSize=15)
-        elif not self.Pose_file_loaded and self.Labels_checkBox.isChecked():
+        elif not self.poseFileLoaded and self.Labels_checkBox.isChecked():
             self.update_status_bar("Please upload a pose (*.h5) file")
         else:
             self.statusBar.clearMessage()
@@ -730,6 +729,7 @@ class MainW(QtGui.QMainWindow):
         self.process.setEnabled(True)
         self.savefolder.setEnabled(True)
         self.saverois.setEnabled(True)
+        self.poseEstimatesButton.setEnabled(True)
         self.checkBox.setChecked(True)
         self.save_mat.setChecked(True)
 
