@@ -9,7 +9,7 @@ import pathlib
 import cv2
 import pandas as pd
 from PyQt5.QtGui import QPixmap 
-from .. import process, roi, utils, cluster
+from .. import process, roi, utils, cluster, pose
 from . import io, menus, guiparts
 
 istr = ['pupil', 'motSVD', 'blink', 'running']
@@ -527,6 +527,7 @@ class MainW(QtGui.QMainWindow):
 
     def get_pose_labels(self):
         print("Generating pose estimates")
+        pose_model = pose.Pose(parent=self)
 
     def pupil_sigma_change(self):
         self.pupil_sigma = float(self.sigmaBox.text())
@@ -729,7 +730,6 @@ class MainW(QtGui.QMainWindow):
         self.process.setEnabled(True)
         self.savefolder.setEnabled(True)
         self.saverois.setEnabled(True)
-        self.poseEstimatesButton.setEnabled(True)
         self.checkBox.setChecked(True)
         self.save_mat.setChecked(True)
 
@@ -737,9 +737,11 @@ class MainW(QtGui.QMainWindow):
         if len(self.img)==1:
             self.loadPose.setEnabled(True)
             self.Labels_checkBox.setEnabled(True)
+            self.poseEstimatesButton.setEnabled(True)
         else:
             self.loadPose.setEnabled(False)
             self.Labels_checkBox.setEnabled(False)
+            self.poseEstimatesButton.setEnabled(False)
 
     def jump_to_frame(self):
         if self.playButton.isEnabled():

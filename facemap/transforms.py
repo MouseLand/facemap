@@ -6,6 +6,8 @@ Facemap functions for:
 """
 import numpy as np
 import cv2
+import torch
+from . import UNet_helper_functions
 
 def preprocess_img(im):
     """ 
@@ -38,14 +40,6 @@ def preprocess_img(im):
     if im.shape[-1]%16!=0 or im.shape[-2]%16!=0:  
         im, _, _ = pad_image_ND(im)
     return im
-
-def get_imgs_batch(img_files, batch_size, nchannels):
-    img_x, img_y = preprocess_img(img_files[np.random.randint(len(img_files))]).shape[-2:]
-    imgs = np.empty((batch_size, nchannels, img_x, img_y))
-    for i in range(batch_size):
-        img = preprocess_img(img_files[np.random.randint(len(img_files))])
-        imgs[i] = img
-    return imgs
 
 def get_cropped_imgs(imgs, bbox):
     """ 
@@ -91,7 +85,7 @@ def get_bounding_box(imgs, net, prev_bbox):
     """
     prev_minx, prev_maxx, prev_miny, prev_maxy = prev_bbox
     net.eval()
-    _,_,hm_pred,_ = net(torch.tensor(imgs).to(device=DEVICE, dtype=torch.float32)) # convert to tensor and send to device
+    hm_pred = net(torch.tensor(imgs).to(device=net.DEVICE, dtype=torch.float32)) # convert to tensor and send to device
     # Get landmark positions
     lm = UNet_helper_functions.heatmap2landmarks(hm_pred.cpu().detach().numpy())
     lm_mean = lm.mean(axis=0) # avg. position of all landmarks/key points
