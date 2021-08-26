@@ -46,7 +46,7 @@ To upgrade FaceMap (package [here](https://pypi.org/project/facemap/)), within t
 pip install facemap --upgrade
 ~~~~
 
-## For latest development version 
+### For latest development version 
 
 To install github version (main branch) of facemap:
 1. Run `pip install git+https://www.github.com/mouseland/facemap.git`
