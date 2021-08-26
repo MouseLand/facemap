@@ -34,22 +34,30 @@ This package only supports python 3. We recommend installing python 3 with **[An
 4. To activate this new environment, run `conda activate facemap`
 5. You should see `(facemap)` on the left side of the terminal line. Now run `python -m facemap` and you're all set.
 
-To upgrade FaceMap (package [here](https://pypi.org/project/facemap/)), within the environment run:
-~~~~
-pip install facemap --upgrade
-~~~~
-
-### Using pip package
+### For last released version (from PyPI)
 
 Run the following
 ~~~
 pip install facemap
 ~~~
 
-If you are using running ROIs, you will want to install mkl_fft via conda:
+To upgrade FaceMap (package [here](https://pypi.org/project/facemap/)), within the environment run:
 ~~~~
-conda install -c conda-forge mkl_fft
+pip install facemap --upgrade
 ~~~~
+
+### For latest development version 
+
+To install github version (main branch) of facemap:
+1. Run `pip install git+https://www.github.com/mouseland/facemap.git`
+
+Alternatively,
+
+1. Clone the github repository: `git clone https://www.github.com/mouseland/facemap.git`
+2. Change directory to facemap folder `cd facemap`
+3. Run `conda env create -f environment.yml`
+4. To activate this new environment, run `conda activate facemap`
+5. You should see `(facemap)` on the left side of the terminal line. Now run `python -m facemap` and you're all set.
 
 ### Common issues
 
