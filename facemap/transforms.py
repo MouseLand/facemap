@@ -36,9 +36,6 @@ def preprocess_img(im):
     im = normalize99(im)   
     if im.ndim < 3:
         im = im[np.newaxis,...]
-    # pad image if (x,y) dim not divisible by 16 
-    if im.shape[-1]%16!=0 or im.shape[-2]%16!=0:  
-        im, _, _ = pad_image_ND(im)
     return im
 
 def get_cropped_imgs(imgs, bbox):
@@ -67,7 +64,7 @@ def get_cropped_imgs(imgs, bbox):
     
 def get_bounding_box(imgs, net, prev_bbox):
     """
-
+    Predicts bounding box for face ROI used as input for UNet model.
     Parameters
     -------------
     imgs: ND-array
@@ -85,8 +82,20 @@ def get_bounding_box(imgs, net, prev_bbox):
     """
     prev_minx, prev_maxx, prev_miny, prev_maxy = prev_bbox
     net.eval()
+    # pad image if not divisible by 16 
+    if imgs.shape[-1]%16!=0 or imgs.shape[-2]%16!=0:  
+        imgs, ysub, xsub = pad_image_ND(imgs)
+    # Network prediction using padded image
     hm_pred = net(torch.tensor(imgs).to(device=net.DEVICE, dtype=torch.float32)) # convert to tensor and send to device
+    # slices from padding
+    slc = [slice(0, imgs.shape[n]+1) for n in range(imgs.ndim)]
+    slc[-3] = slice(0, hm_pred.shape[-3])
+    slc[-2] = slice(ysub[0], ysub[-1]+1)
+    slc[-1] = slice(xsub[0], xsub[-1]+1)
+    # Slice out padding
+    hm_pred = hm_pred[slc]
     # Get landmark positions
+    print("sliced hm", hm_pred.shape)
     lm = UNet_helper_functions.heatmap2landmarks(hm_pred.cpu().detach().numpy())
     lm_mean = lm.mean(axis=0) # avg. position of all landmarks/key points
     # Estimate bbox positions using landmark positions b/w 5th and 95th percentile 
@@ -113,8 +122,11 @@ def adjust_bbox(prev_bbox, img_xy):
     bbox: tuple of size (4,)
         bounding box positions in order x1, x2, y1, y2 
     """
+    padding = 20
     x1, x2, y1, y2 = np.round(prev_bbox)
-    xdim, ydim = x2-x1, y2-y1
+    xdim, ydim = (x2-x1)+padding, (y2-y1)+padding
+    xdim = min(xdim, img_xy[0])
+    ydim = min(ydim, img_xy[1])
     if xdim > ydim:
         # Adjust ydim
         ypad = xdim-ydim 
@@ -183,7 +195,7 @@ def pad_image_ND(img0, div=16, extra = 1):
     else:
         pads = np.array([[0,0], [xpad1,xpad2], [ypad1, ypad2]])
 
-    I = np.pad(img0,pads, mode='constant')
+    I = np.pad(img0, pads, mode='constant')
 
     Ly, Lx = img0.shape[-2:]
     ysub = np.arange(xpad1, xpad1+Ly)

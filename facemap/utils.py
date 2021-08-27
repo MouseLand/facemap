@@ -22,9 +22,7 @@ def split_testtrain(n_t, frac=0.25):
     itest = (ninds[:,np.newaxis] + np.arange(0,n_len * frac,1,int)).flatten()
     itrain = np.ones(n_t,np.bool)
     itrain[itest] = 0
-    
     return itest, itrain
-
 
 def rrr_prediction(X, Y, rank=None, lam=0):
     """ predict Y from X using regularized reduced rank regression 
