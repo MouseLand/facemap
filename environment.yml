@@ -12,11 +12,10 @@ dependencies:
   - pip:
     - pyqtgraph==0.12.0
     - pyqt5
-    - scikit-image
+    - torch>=1.9
     - matplotlib
     - natsort
     - opencv_python_headless
     - tqdm
     - umap-learn
     - pandas
-    - pytest

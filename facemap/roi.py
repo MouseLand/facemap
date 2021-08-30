@@ -364,18 +364,3 @@ class sROI():
         parent.win.show()
         parent.show()
 
-"""
-class netROI():
-    def __init__(self, moveable=True,
-                 parent=None, pos=None,
-                 yrange=None, xrange=None, ellipse=None):
-
-    def suggest_ROI():
-
-    def draw():
-
-    def position():
-
-    def get_ROI_settings():
-
-"""

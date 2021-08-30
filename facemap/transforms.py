@@ -95,7 +95,6 @@ def get_bounding_box(imgs, net, prev_bbox):
     # Slice out padding
     hm_pred = hm_pred[slc]
     # Get landmark positions
-    print("sliced hm", hm_pred.shape)
     lm = UNet_helper_functions.heatmap2landmarks(hm_pred.cpu().detach().numpy())
     lm_mean = lm.mean(axis=0) # avg. position of all landmarks/key points
     # Estimate bbox positions using landmark positions b/w 5th and 95th percentile 

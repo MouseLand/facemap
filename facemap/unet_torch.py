@@ -31,7 +31,6 @@ class convdown(nn.Module):
         x = self.conv[1](x)
         return x
 
-
 class downsample(nn.Module):
     def __init__(self, nbase, kernel_size):
         super().__init__()
