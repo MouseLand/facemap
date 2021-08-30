@@ -90,10 +90,13 @@ def analyze_frames(frames_dir, bodyparts, scorer, net, img_xy, lowres_locref, lo
         dataFrame.iloc[ind] = landmarks
     return dataFrame
 
-def heatmap2landmarks(hms):
+def heatmap2landmarks(hms, image_dim=None):
     idx = np.argmax(hms.reshape(hms.shape[:-2]+(hms.shape[-2]*hms.shape[-1],)),axis=-1)
     locs = np.zeros(hms.shape[:-2]+(2,))
-    locs[...,1],locs[...,0] = np.unravel_index(idx,hms.shape[-2:])
+    if image_dim is None:
+        locs[...,1],locs[...,0] = np.unravel_index(idx, hms.shape[-2:])
+    else:
+        locs[...,1],locs[...,0] = np.unravel_index(idx, image_dim)
     return locs.astype(int)
 
 def heatmap2image(hm,cmap='jet',colors=None):

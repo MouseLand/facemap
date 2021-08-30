@@ -17,7 +17,7 @@ setuptools.setup(
                         'PyQt5', 
                         'PyQt5.sip', 
                         'numpy>=1.13.0', 
-			'scipy',
+                        'scipy',
                         'matplotlib',
                         'natsort', 
                         'tqdm', 

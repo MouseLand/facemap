@@ -258,7 +258,7 @@ class MainW(QtGui.QMainWindow):
         self.poseEstimatesButton.setEnabled(False)
         self.loadPose = QtGui.QPushButton("Load pose data")
         self.loadPose.setFont(QtGui.QFont("Arial", 10, QtGui.QFont.Bold))
-        self.loadPose.clicked.connect(self.get_pose_file)
+        self.loadPose.clicked.connect(lambda: io.get_pose_file(parent=self))
         self.loadPose.setEnabled(False)
         self.poseFileLoaded = False
         self.Labels_checkBox = QtGui.QCheckBox("Labels")
@@ -591,15 +591,6 @@ class MainW(QtGui.QMainWindow):
             else:
                 self.savelabel.setText(folderName)
 
-    def get_pose_file(self):
-        filepath = QtGui.QFileDialog.getOpenFileName(self,
-                                "Choose pose file", "", "Pose labels file (*.h5)")
-        if filepath[0]:
-            self.poseFilepath = filepath[0]
-            self.poseFileLoaded = True
-            self.update_status_bar("Pose file loaded: "+self.poseFilepath)
-            self.load_labels()
-
     def load_labels(self):
         # Read Pose file
         self.Pose_data = pd.read_hdf(self.poseFilepath, 'df_with_missing')
@@ -607,7 +598,7 @@ class MainW(QtGui.QMainWindow):
         self.keypoints_labels = [all_labels[i] for i in sorted(np.unique(all_labels, return_index=True)[1])]
         self.pose_x_coord = self.Pose_data.T[self.Pose_data.columns.get_level_values("coords").values=="x"].values #size: key points x frames
         self.pose_y_coord = self.Pose_data.T[self.Pose_data.columns.get_level_values("coords").values=="y"].values #size: key points x frames
-        self.pose_likelihood = self.Pose_data.T[self.Pose_data.columns.get_level_values("coords").values=="likelihood"].values #size: key points x frames
+        #self.pose_likelihood = self.Pose_data.T[self.Pose_data.columns.get_level_values("coords").values=="likelihood"].values #size: key points x frames
         # Choose colors for each label: provide option for color blindness as well
         self.colors = cm.get_cmap('gist_rainbow')(np.linspace(0, 1., len(self.keypoints_labels)))
         self.colors *= 255
@@ -620,10 +611,10 @@ class MainW(QtGui.QMainWindow):
             self.statusBar.clearMessage()
             self.p0.addItem(self.Pose_scatterplot)
             self.p0.setRange(xRange=(0,self.LX), yRange=(0,self.LY), padding=0.0)
-            filtered_keypoints = np.where(self.pose_likelihood[:,self.cframe] > 0.9)[0]
-            x = self.pose_x_coord[filtered_keypoints,self.cframe]
-            y = self.pose_y_coord[filtered_keypoints,self.cframe]
-            self.Pose_scatterplot.setData(x, y, size=15, symbol='o', brush=self.brushes[filtered_keypoints], hoverable=True, hoverSize=15)
+            #filtered_keypoints = np.where(self.pose_likelihood[:,self.cframe] > 0.9)[0]
+            x = self.pose_x_coord[:,self.cframe]#[filtered_keypoints,self.cframe]
+            y = self.pose_y_coord[:,self.cframe]#[filtered_keypoints,self.cframe]
+            self.Pose_scatterplot.setData(x, y, size=15, symbol='o', brush=self.brushes, hoverable=True, hoverSize=15)
         elif not self.poseFileLoaded and self.Labels_checkBox.isChecked():
             self.update_status_bar("Please upload a pose (*.h5) file")
         else:

@@ -252,6 +252,15 @@ def load_movies(parent, filelist=None):
         parent.jump_to_frame()
     return good
 
+def get_pose_file(parent):
+    filepath = QtGui.QFileDialog.getOpenFileName(parent,
+                            "Choose pose file", "", "Pose labels file (*.h5)")
+    if filepath[0]:
+        parent.poseFilepath = filepath[0]
+        parent.poseFileLoaded = True
+        parent.update_status_bar("Pose file loaded: "+parent.poseFilepath)
+        parent.load_labels()
+
 def load_cluster_labels(parent):
     try:
         file_name = QtGui.QFileDialog.getOpenFileName(parent,

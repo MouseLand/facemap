@@ -96,52 +96,74 @@ def get_bounding_box(imgs, net, prev_bbox):
     hm_pred = hm_pred[slc]
     # Get landmark positions
     lm = UNet_helper_functions.heatmap2landmarks(hm_pred.cpu().detach().numpy())
-    lm_mean = lm.mean(axis=0) # avg. position of all landmarks/key points
+    # avg. position of all landmarks/key points
+    lm_mean = lm.mean(axis=0) 
     # Estimate bbox positions using landmark positions b/w 5th and 95th percentile 
-    min_x = np.nanmean([np.percentile(lm.T[0,:],5),prev_minx])
-    max_x = np.nanmean([np.percentile(lm.T[0,:],90),prev_maxx])
-    min_y = np.nanmean([np.percentile(lm.T[1,:],5),prev_miny])
-    max_y = np.nanmean([np.percentile(lm.T[1,:],90),prev_maxy])
+    pad = 10
+    min_x = np.nanmean([np.percentile(lm.T[0,:],5)-pad, prev_minx])
+    max_x = np.nanmean([np.percentile(lm.T[0,:],90)+pad, prev_maxx])
+    min_y = np.nanmean([np.percentile(lm.T[1,:],5)-pad, prev_miny])
+    max_y = np.nanmean([np.percentile(lm.T[1,:],90)+pad, prev_maxy])
     bbox = (min_x, max_x, min_y, max_y)
     return bbox, lm_mean
 
-def adjust_bbox(prev_bbox, img_xy):
+def adjust_bbox(prev_bbox, img_yx, div=16, extra=1):
     """
-    Takes a bounding box as an input and desired image size. Adjusts bounding box to be square
+    Takes a bounding box as an input and the original image size. Adjusts bounding box to be square
     instead of a rectangle. Uses longest dimension of prev_bbox for final image size that cannot
-    exceed img_xy
+    exceed img_yx
     Parameters
     -------------
     prev_bbox: tuple of size (4,)
         bounding box positions in order x1, x2, y1, y2 
-    img_xy: tuple of size (2,)
-        image size for x and y dimensions
+    img_yx: tuple of size (2,)
+        image size for y and x dimensions
     Returns
     --------------
     bbox: tuple of size (4,)
         bounding box positions in order x1, x2, y1, y2 
     """
-    padding = 20
     x1, x2, y1, y2 = np.round(prev_bbox)
-    xdim, ydim = (x2-x1)+padding, (y2-y1)+padding
-    xdim = min(xdim, img_xy[0])
-    ydim = min(ydim, img_xy[1])
+    xdim, ydim = (x2-x1), (y2-y1)
+
+    # Pad bbox dimensions to be divisible by div
+    Lpad = int(div * np.ceil(xdim/div) - xdim)
+    xpad1 = extra*div//2 + Lpad//2
+    xpad2 = extra*div//2 + Lpad - Lpad//2
+    Lpad = int(div * np.ceil(ydim/div) - ydim)
+    ypad1 = extra*div//2 + Lpad//2
+    ypad2 = extra*div//2+Lpad - Lpad//2
+
+    x1, x2, y1, y2  = x1-xpad1, x2+xpad2, y1-ypad1, y2+ypad2
+    xdim = min(x2-x1, img_yx[1])
+    ydim = min(y2-y1, img_yx[0])
+
+    # Choose largest dimension for image size
     if xdim > ydim:
         # Adjust ydim
         ypad = xdim-ydim 
         if ypad%2!=0:
             ypad+=1
         y1 = max(0, y1-ypad//2)
-        y2 = min(y2+ypad//2, img_xy[1])
+        y2 = min(y2+ypad//2, img_yx[0])
     else:
         # Adjust xdim
         xpad = ydim-xdim
         if xpad%2!=0:
             xpad+=1
         x1 = max(0, x1-xpad//2)
-        x2 = min(x2+xpad//2, img_xy[0])
-    bbox = (x1, x2, y1, y2)
-    return bbox
+        x2 = min(x2+xpad//2, img_yx[1])
+    adjusted_bbox = (x1, x2, y1, y2)
+    return adjusted_bbox
+
+def labels_resize(Xlabel, Ylabel, current_size, desired_size):
+    """
+
+    """
+    Xlabel, Ylabel = Xlabel.astype(float), Ylabel.astype(float)
+    Xlabel *= (desired_size[1]/current_size[1])  # x_scale
+    Ylabel *= (desired_size[0]/current_size[0])  # y_scale
+    return Xlabel, Ylabel
 
 #  Following Function adopted from cellpose:
 #  https://github.com/MouseLand/cellpose/blob/35c16c94e285a4ec2fa17f148f06bbd414deb5b8/cellpose/transforms.py#L187
