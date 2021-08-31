@@ -158,7 +158,19 @@ def adjust_bbox(prev_bbox, img_yx, div=16, extra=1):
 
 def labels_resize(Xlabel, Ylabel, current_size, desired_size):
     """
-
+    Adjust x,y labels on a 2D image to perform a resize operation
+    Parameters
+    -------------
+    Xlabel: ND-array
+    Ylabel: ND-array
+    current_size: tuple or array of size(2,)
+    desired_size: tuple or array of size(2,)
+    Returns
+    --------------
+    Xlabel: ND-array
+            adjusted x values on new/desired_size of image
+    Ylabel: ND-array
+            adjusted y values on new/desired_size of image
     """
     Xlabel, Ylabel = Xlabel.astype(float), Ylabel.astype(float)
     Xlabel *= (desired_size[1]/current_size[1])  # x_scale

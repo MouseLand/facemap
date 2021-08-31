@@ -175,7 +175,7 @@ class Pose():
             im[k] = frame_grayscale_preprocessed
         return im
 
-# Function for obtaining pose estimates w/o GUI i.e. command line
+# Function for obtaining pose estimates w/o GUI i.e. via command line
 def run(filename, parent=None, savepath=None, GUIobject=None):
     pose = Pose()
 
