@@ -24,6 +24,26 @@ def split_testtrain(n_t, frac=0.25):
     itrain[itest] = 0
     return itest, itrain
 
+def get_frame(cframe, nframes, cumframes, containers):
+    cframe = np.maximum(0, np.minimum(nframes-1, cframe))
+    cframe = int(cframe)
+    try:
+        ivid = (cumframes < cframe).nonzero()[0][-1]
+    except:
+        ivid = 0
+    img = []
+    for vs in containers[ivid]:
+        frame_ind = cframe - cumframes[ivid]
+        capture = vs
+        if int(capture.get(cv2.CAP_PROP_POS_FRAMES)) != frame_ind:
+            capture.set(cv2.CAP_PROP_POS_FRAMES, frame_ind)
+        ret, frame = capture.read()
+        if ret:
+            img.append(frame)
+        else:
+            print("Error reading frame")    
+    return img
+
 def rrr_prediction(X, Y, rank=None, lam=0):
     """ predict Y from X using regularized reduced rank regression 
     

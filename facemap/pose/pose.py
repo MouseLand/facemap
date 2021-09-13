@@ -1,5 +1,4 @@
 import numpy as np
-import pyqtgraph as pg
 from . import transforms
 from . import UNet_helper_functions as UNet_utils
 from .. import roi, utils
@@ -9,24 +8,46 @@ import time, os
 import pandas as pd
 
 """
-Base class for generating pose estimates. Currently supports single video processing only.
+Base class for generating pose estimates using command line interface.
+Currently supports single video processing only.
 """
 class Pose():
-    def __init__(self, filenames, savepath=None, parent=None, bbox=None):
-        self.cumframes, self.Ly, self.Lx, _ = utils.get_frame_details(filenames)
+    def __init__(self, filenames, bbox_user_validation=False, savepath=None):
+        self.filenames = filenames
+        self.cumframes, self.Ly, self.Lx, self.containers = utils.get_frame_details(self.filenames)
+        self.nframes = self.cumframes[-1]
         self.pose_labels = None
         self.bodyparts = None
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         self.net = self.load_model()
-        self.bbox = None 
-        self.bbox_set = False
-        self.draw_bbox()                            ## ~~~~~~~~~~~~~~~~    GUI function     ~~~~~~~~~~~~~~~~
+
+        if not bbox_user_validation:
+            self.bbox = np.round(self.estimate_bbox_region((np.nan, np.nan, np.nan, np.nan))).astype(int)
+            self.bbox_set = True
+        else:
+            self.bbox = None
+            self.bbox_set = False
+
+    def run(self):
         self.cropped_img_slice = self.get_img_slice()
-        # Plot key points on all frames: predict, save, and plot!
+        # Predict and save pose
         self.dataFrame = self.predict_landmarks()
         self.save_pose_prediction()
-        self.plot_pose_labels()
-        print("predicted labels plotted!")
+
+    def estimate_bbox_region(self, prev_bbox):
+        """
+        Obtain ROI/bbox for cropping images to use as input for model 
+        """
+        num_iter = 3 # select optimum value for CPU vs. GPU
+        for it in range(num_iter):
+            t0 = time.time()
+            imgs = self.get_batch_imgs()
+            # Get bounding box for imgs 
+            bbox, _ = transforms.get_bounding_box(imgs, self.net, prev_bbox)
+            prev_bbox = bbox    # Update bbox 
+            adjusted_bbox = transforms.adjust_bbox(bbox, (self.Ly[0], self.Lx[0])) # Adjust bbox to be square instead of rectangle
+            print(adjusted_bbox, "bbox", time.time()-t0) 
+        return adjusted_bbox
 
     def predict_landmarks(self, save_prediction=True):
         """
@@ -61,7 +82,7 @@ class Pose():
             # Prepocess images
             im = np.zeros((batch_size, nchannels, img_y, img_x))
             for i, frame_ind in enumerate(np.arange(start,end)):
-                frame = self.parent.get_frame(frame_ind)[0]     ## ~~~~~~~~~~~~~~~~    GUI function     ~~~~~~~~~~~~~~~~
+                frame = utils.get_frame(frame_ind, self.nframes, self.cumframes, self.containers)[0]  
                 frame_grayscale = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
                 frame_grayscale_preprocessed = transforms.preprocess_img(frame_grayscale)
                 im[i,0] = frame_grayscale_preprocessed[0][self.cropped_img_slice]    # used cropped section only
@@ -83,22 +104,15 @@ class Pose():
         
     def save_pose_prediction(self):
         # Save prediction to .h5 file
-        basename, filename = os.path.split(self.parent.filenames[0][0])
+        basename, filename = os.path.split(self.filenames[0][0])
         videoname, _ = os.path.splitext(filename)
-        self.parent.poseFilepath = os.path.join(basename, videoname+"_FacemapPose.h5")
-        self.dataFrame.to_hdf(self.parent.poseFilepath, "df_with_missing", mode="w") 
-        
-    def plot_pose_labels(self):
-        # Plot labels
-        self.parent.poseFileLoaded = True
-        self.parent.load_labels()
-        self.parent.Labels_checkBox.setChecked(True)         
+        poseFilepath = os.path.join(basename, videoname+"_FacemapPose.h5")
+        self.dataFrame.to_hdf(poseFilepath, "df_with_missing", mode="w")      
     
     def get_img_slice(self):
         x1, x2, y1, y2 = self.bbox
         slc = [slice(y1, y2), slice(x1, x2)]   # slice img_y and img_x
         return slc
-
         
     def load_model(self):
         """
@@ -133,12 +147,8 @@ class Pose():
         img_ind = np.random.randint(0, self.cumframes[-1], batch_size)
         im = np.zeros((batch_size, nchannels, self.Ly[0], self.Lx[0]))
         for k, ind in enumerate(img_ind):
-            frame = self.parent.get_frame(ind)[0]       ## ~~~~~~~~~~~~~~~~    GUI function     ~~~~~~~~~~~~~~~~
+            frame = utils.get_frame(ind, self.nframes, self.cumframes, self.containers)[0]        ## ~~~~~~~~~~~~~~~~    GUI function     ~~~~~~~~~~~~~~~~
             frame_grayscale = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
             frame_grayscale_preprocessed = transforms.preprocess_img(frame_grayscale)
             im[k] = frame_grayscale_preprocessed
         return im
-
-
-
-

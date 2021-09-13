@@ -739,33 +739,13 @@ class MainW(QtGui.QMainWindow):
             self.cframe = np.maximum(0, np.minimum(self.nframes-1, self.cframe))
             self.cframe = int(self.cframe)
             self.cframe -= 1
-            self.img = self.get_frame(self.cframe)
+            self.img = utils.get_frame(self.cframe, self.nframes, self.cumframes, self.video)
             for i in range(len(self.img)):
                 self.imgs[i][:,:,:,1] = self.img[i].copy()
-            img = self.get_frame(self.cframe+1)
+            img = utils.get_frame(self.cframe+1, self.nframes, self.cumframes, self.video)
             for i in range(len(self.img)):
                 self.imgs[i][:,:,:,2] = img[i]
             self.next_frame()
-
-    def get_frame(self, cframe):
-        cframe = np.maximum(0, np.minimum(self.nframes-1, cframe))
-        cframe = int(cframe)
-        try:
-            ivid = (self.cumframes < cframe).nonzero()[0][-1]
-        except:
-            ivid = 0
-        img = []
-        for vs in self.video[ivid]:
-            frame_ind = cframe - self.cumframes[ivid]
-            capture = vs
-            if int(capture.get(cv2.CAP_PROP_POS_FRAMES)) != frame_ind:
-                capture.set(cv2.CAP_PROP_POS_FRAMES, frame_ind)
-            ret, frame = capture.read()
-            if ret:
-                img.append(frame)
-            else:
-                print("Error reading frame")    
-        return img
 
     def next_frame(self):
         if not self.online_mode:
@@ -775,7 +755,7 @@ class MainW(QtGui.QMainWindow):
                 self.cframe = 0
             for i in range(len(self.imgs)):
                 self.imgs[i][:,:,:,:2] = self.imgs[i][:,:,:,1:]
-            im = self.get_frame(self.cframe+1)
+            im = utils.get_frame(self.cframe+1, self.nframes, self.cumframes, self.video)
             for i in range(len(self.imgs)):
                 self.imgs[i][:,:,:,2] = im[i]
                 self.img[i] = self.imgs[i][:,:,:,1].copy()
