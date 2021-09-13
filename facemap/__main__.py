@@ -19,6 +19,11 @@ if __name__ == '__main__':
     parser.add_argument('--ops', default=[], type=str, help='options')
     parser.add_argument('--movie', default=[], type=str, help='moviefile')
     parser.add_argument('--savedir', default=[], type=str, help='savedir')
+
+    parser.add_argument('--poseGUI', dest='poseGUI', action='store_true', help="Pose GUI")
+    parser.add_argument('--no-poseGUI', dest='poseGUI', action='store_false', help="Pose CLI")
+    parser.set_defaults(poseGUI=True)
+
     args = parser.parse_args()
 
     if len(args.movie)>0:
@@ -29,6 +34,11 @@ if __name__ == '__main__':
         savedir = args.savedir
     else:
         savedir = None
+
+    if args.poseGUI:
+        print("Running Facemap GUI w/ pose")
+    else:
+        print("Running Facemap pose CLI")
 
     ops = {}
     if len(args.ops)>0:
