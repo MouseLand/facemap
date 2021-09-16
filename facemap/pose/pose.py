@@ -1,11 +1,14 @@
-import numpy as np
-from . import transforms
-from . import UNet_helper_functions as UNet_utils
-from .. import roi, utils
-import torch
+import os
+import time
+
 import cv2
-import time, os
+import numpy as np
 import pandas as pd
+import torch
+
+from .. import roi, utils
+from . import UNet_helper_functions as UNet_utils
+from . import transforms
 
 """
 Base class for generating pose estimates using command line interface.
@@ -20,6 +23,7 @@ class Pose():
         self.bodyparts = None
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         self.net = self.load_model()
+        self.savepath = savepath
 
         if not bbox_user_validation:
             self.bbox = np.round(self.estimate_bbox_region((np.nan, np.nan, np.nan, np.nan))).astype(int)
@@ -28,11 +32,13 @@ class Pose():
             self.bbox = None
             self.bbox_set = False
 
-    def run(self):
+    def run(self, save=True):
         self.cropped_img_slice = self.get_img_slice()
         # Predict and save pose
         self.dataFrame = self.predict_landmarks()
-        self.save_pose_prediction()
+        if save:
+            self.savepath = self.save_pose_prediction()
+        return self.savepath
 
     def estimate_bbox_region(self, prev_bbox):
         """
@@ -107,7 +113,8 @@ class Pose():
         basename, filename = os.path.split(self.filenames[0][0])
         videoname, _ = os.path.splitext(filename)
         poseFilepath = os.path.join(basename, videoname+"_FacemapPose.h5")
-        self.dataFrame.to_hdf(poseFilepath, "df_with_missing", mode="w")      
+        self.dataFrame.to_hdf(poseFilepath, "df_with_missing", mode="w")
+        return poseFilepath  
     
     def get_img_slice(self):
         x1, x2, y1, y2 = self.bbox

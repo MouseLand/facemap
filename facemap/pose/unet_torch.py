@@ -1,7 +1,7 @@
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Network ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 import torch.nn as nn
-from torch import optim
 import torch.nn.functional as F
+from torch import optim
 
 def convbatchrelu(in_channels, out_channels, sz):
     return nn.Sequential(

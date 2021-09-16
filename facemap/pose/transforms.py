@@ -4,10 +4,12 @@ Facemap functions for:
 - image preprocessing 
 - image augmentation
 """
-import numpy as np
 import cv2
+import numpy as np
 import torch
+
 from . import UNet_helper_functions
+
 
 def preprocess_img(im):
     """ 

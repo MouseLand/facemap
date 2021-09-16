@@ -1,11 +1,12 @@
-import numpy as np
-from scipy.sparse.linalg import eigsh
 import cv2
-from scipy.ndimage import gaussian_filter1d
+import numpy as np
 from scipy.interpolate import interp1d
 from scipy.linalg import eigh
+from scipy.ndimage import gaussian_filter1d
+from scipy.sparse.linalg import eigsh
 from sklearn.decomposition import PCA
 from tqdm import tqdm
+
 
 def bin1d(X, tbin):
     """ bin over first axis of data with bin tbin """

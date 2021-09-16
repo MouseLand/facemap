@@ -1,25 +1,28 @@
-import sys
+import argparse
+import copy
 import os
 import shutil
+import sys
 import time
-import numpy as np
-from PyQt5 import QtGui, QtCore, Qt, QtWidgets
-import pyqtgraph as pg
-from pyqtgraph import GraphicsScene
-from scipy.ndimage import gaussian_filter1d
-from scipy.interpolate import interp1d
-from skimage import io
-from skimage import transform, draw, measure, segmentation
 import warnings
-from .gui import guiparts
-from guiparts import ImageDraw, RangeSlider, RGBRadioButtons, ViewBoxNoRightDrag
-import matplotlib.pyplot as plt
-import copy
-import mxnet as mx
-from mxnet import nd
 from glob import glob
+
+import matplotlib.pyplot as plt
+import mxnet as mx
+import numpy as np
+import pyqtgraph as pg
+from guiparts import (ImageDraw, RangeSlider, RGBRadioButtons,
+                      ViewBoxNoRightDrag)
+from mxnet import nd
 from natsort import natsorted
-import argparse
+from PyQt5 import Qt, QtCore, QtGui, QtWidgets
+from pyqtgraph import GraphicsScene
+from scipy.interpolate import interp1d
+from scipy.ndimage import gaussian_filter1d
+from skimage import draw, io, measure, segmentation, transform
+
+from .gui import guiparts
+
 
 def make_bwr():
     # make a bwr colormap

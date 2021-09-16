@@ -1,20 +1,25 @@
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Import packages ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 import numpy as np
+
 print('numpy version: %s'%np.__version__)
-import cv2 # opencv
-import torch # pytorch
+import cv2  # opencv
+import torch  # pytorch
+
 print('CUDA available: %d'%torch.cuda.is_available())
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 print('torch version: %s'%torch.__version__)
-from tqdm import tqdm # waitbar
-import os # file path stuff
-from glob import glob # listing files
 import itertools
-import pandas as pd
+import os  # file path stuff
 import random
+from glob import glob  # listing files
 from platform import python_version
+
+import pandas as pd
+from tqdm import tqdm  # waitbar
+
 print("python version:", python_version())
 import matplotlib
+
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Helper functions ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 def set_seed(seed):
@@ -425,8 +430,9 @@ class COCODataset(torch.utils.data.Dataset):
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Network  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 # Define network structure - UNet
 import torch.nn as nn
-from torch import optim
 import torch.nn.functional as F
+from torch import optim
+
 
 def convbatchrelu(in_channels, out_channels, sz):
     return nn.Sequential(

@@ -9,7 +9,8 @@ import pathlib
 import cv2
 import pandas as pd
 from PyQt5.QtGui import QPixmap 
-from .. import process, roi, utils, cluster, pose
+from .. import process, roi, utils, cluster
+from ..pose import pose_gui
 from . import io, menus, guiparts
 
 istr = ['pupil', 'motSVD', 'blink', 'running']
@@ -527,7 +528,7 @@ class MainW(QtGui.QMainWindow):
 
     def get_pose_labels(self):
         print("Generating pose estimates")
-        pose_model = pose.Pose(parent=self)
+        pose_model = pose_gui.PoseGUI(parent=self)
 
     def pupil_sigma_change(self):
         self.pupil_sigma = float(self.sigmaBox.text())
@@ -614,7 +615,8 @@ class MainW(QtGui.QMainWindow):
             #filtered_keypoints = np.where(self.pose_likelihood[:,self.cframe] > 0.9)[0]
             x = self.pose_x_coord[:,self.cframe]#[filtered_keypoints,self.cframe]
             y = self.pose_y_coord[:,self.cframe]#[filtered_keypoints,self.cframe]
-            self.Pose_scatterplot.setData(x, y, size=15, symbol='o', brush=self.brushes, hoverable=True, hoverSize=15)
+            self.Pose_scatterplot.setData(x, y, size=10, symbol='o', brush=self.brushes,
+                                             hoverable=True, hoverSize=10)
         elif not self.poseFileLoaded and self.Labels_checkBox.isChecked():
             self.update_status_bar("Please upload a pose (*.h5) file")
         else:

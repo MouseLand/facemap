@@ -1,14 +1,19 @@
-import numpy as np
-from facemap import pupil, running, utils
-from numba import vectorize,uint8,float32
-import time
-import os, sys, subprocess
+import os
 import pdb
+import subprocess
+import sys
+import time
 from io import StringIO
+
+import cv2
+import numpy as np
+from numba import float32, uint8, vectorize
 from scipy import io
 from scipy.ndimage import gaussian_filter
-import cv2
 from tqdm import tqdm
+
+from facemap import pupil, running, utils
+
 
 def binned_inds(Ly, Lx, sbin):
     Lyb = np.zeros((len(Ly),), np.int32)

@@ -1,10 +1,10 @@
 # outputs the dx, dy offsets between frames by registering frame N to frame
 # N-1. If the movement is larger than half the frame size, outputs NaN.
 # ops.yrange, xrange are ranges to use for rectangular section of movie
-from scipy.fftpack import next_fast_len
 import numpy as np
-from numpy.fft import ifftshift, fft2, ifft2
-from numba import vectorize, float32, complex64, uint8, int16
+from numba import complex64, float32, int16, uint8, vectorize
+from numpy.fft import fft2, ifft2, ifftshift
+from scipy.fftpack import next_fast_len
 
 eps0 = 1e-20
 
