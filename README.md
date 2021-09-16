@@ -40,6 +40,10 @@ Run the following
 ~~~
 pip install facemap
 ~~~
+or the following for GUI version:
+~~~~
+pip install facemap[gui]
+~~~~
 
 To upgrade FaceMap (package [here](https://pypi.org/project/facemap/)), within the environment run:
 ~~~~
