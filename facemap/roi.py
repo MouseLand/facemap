@@ -13,7 +13,7 @@ from scipy.stats import skew, zscore
 
 from facemap import pupil, utils
 
-colors = np.array([[0,200,50],[180,0,50],[40,100,250],[150,50,150]])
+colors = np.array([[0,200,50],[180,0,50],[40,100,250],[150,50,150],[0, 255, 255]])
 
 class reflectROI():
     def __init__(self, iROI, wROI, moveable=True,
@@ -130,6 +130,7 @@ class sROI():
         else:
             self.pupil_sigma = 0
         self.moveable = moveable
+        self.resizable = resizable
         if self.pos is None:
             view = parent.p0.viewRange()
             imx = (view[0][1] + view[0][0]) / 2
@@ -160,14 +161,14 @@ class sROI():
     def draw(self, parent, imy, imx, dy, dx):
         roipen = pg.mkPen(self.color, width=3,
                           style=QtCore.Qt.SolidLine)
-        if self.rind==1 or self.rind==3:
+        if self.rind==1 or self.rind==3 or self.rind==4:
             self.ROI = pg.RectROI(
-                [imx, imy], [dx, dy], movable = self.moveable,
+                [imx, imy], [dx, dy], movable = self.moveable, resizable=self.resizable,
                 pen=roipen, sideScalers=True, removable=self.moveable
             )
         else:
             self.ROI = pg.EllipseROI(
-                [imx, imy], [dx, dy], movable = self.moveable,
+                [imx, imy], [dx, dy], movable = self.moveable, resizable=self.resizable,
                 pen=roipen, removable=self.moveable
             )
         self.ROI.handleSize = 8
@@ -179,6 +180,7 @@ class sROI():
 
     def position(self, parent):
         if parent.iROI != self.iROI:
+            print("rind", self.rind)
             if self.rind==0:
                 #print('change to pupil')
                 for i in range(len(parent.rROI[self.iROI])):
@@ -243,6 +245,7 @@ class sROI():
             parent.clusteringVisComboBox.setCurrentIndex(index)
         parent.roiVisComboBox.setCurrentIndex(self.iROI+1)
         parent.display_ROI()#self.plot(parent)
+        print(self.pos)
 
     def remove(self, parent):
         parent.p0.removeItem(self.ROI)

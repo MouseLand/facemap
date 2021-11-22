@@ -20,17 +20,17 @@ class PoseGUI(Pose):
         # Get bbox coordinates   
         y, x, dy, dx =  self.bbox_roi.pos
         self.bbox = x, x+dx, y, y+dy
-        print(self.bbox)
+        print("~~~~~bbox~~~~~~~~~~~", self.bbox)
         self.parent.poseFilepath = super().run()
         self.plot_pose_estimates()
+        print("DONE")
 
     def draw_suggested_bbox(self):
         if self.bbox_set:
             del self.bbox_roi
             x1, x2, y1, y2 = self.bbox
             dx, dy = x2-x1, y2-y1
-            self.bbox_roi = roi.sROI(rind=1, rtype="bbox", iROI=1, moveable=False, 
-                                        parent=self.parent, pos=(y1, x1, dy, dx))
+            self.create_bbox_roi(y1, x1, dy, dx)
         else:
             prev_bbox = (np.nan, np.nan, np.nan, np.nan)
             while not self.bbox_set:
@@ -39,10 +39,8 @@ class PoseGUI(Pose):
                 # plot bbox as ROI
                 x1, x2, y1, y2 = 0,0,0,0#self.bbox
                 dx, dy = x2-x1, y2-y1
-                self.bbox_roi = roi.sROI(rind=1, rtype="bbox", iROI=1, moveable=False, 
-                                        parent=self.parent, pos=(y1, x1, dy, dx))
+                self.create_bbox_roi(y1, x1, dy, dx)
                 # get user validation
-                
                 qm = QtGui.QMessageBox
                 ret = qm.question(self.parent,'', "Does the suggested ROI match the requirements?", 
                                     qm.Yes | qm.No)
@@ -66,9 +64,14 @@ class PoseGUI(Pose):
         self.bbox_set = False
         x1, y1 = 0, 0
         dx, dy = 512, 512
-        self.bbox_roi = roi.sROI(rind=1, rtype="bbox", iROI=1, moveable=True, resizable=False,
-                                        parent=self.parent, pos=(y1, x1, dy, dx))
-        return ""
+        self.create_bbox_roi(y1, x1, dy, dx)
+        self.bbox_set = True
+
+    def create_bbox_roi(self, y1, x1, dy, dx):
+        self.parent.nROIs += 1
+        self.bbox_roi = roi.sROI(rind=4, rtype="bbox", iROI=self.parent.nROIs, moveable=True, 
+                                    resizable=False, parent=self.parent, pos=(y1, x1, dy, dx))
+        self.parent.ROIs.append(self.bbox_roi)
 
     def plot_pose_estimates(self):
         # Plot labels
