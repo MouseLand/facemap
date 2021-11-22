@@ -88,16 +88,20 @@ def get_bounding_box(imgs, net, prev_bbox):
     if imgs.shape[-1]%16!=0 or imgs.shape[-2]%16!=0:  
         imgs, ysub, xsub = pad_image_ND(imgs)
     # Network prediction using padded image
-    hm_pred = net(torch.tensor(imgs).to(device=net.DEVICE, dtype=torch.float32)) # convert to tensor and send to device
-    # slices from padding
+    hm_pred, locref_pred = net(torch.tensor(imgs).to(device=net.DEVICE, dtype=torch.float32)) # convert to tensor and send to device
+    # Slice out padding
     slc = [slice(0, imgs.shape[n]+1) for n in range(imgs.ndim)]
     slc[-3] = slice(0, hm_pred.shape[-3])
     slc[-2] = slice(ysub[0], ysub[-1]+1)
     slc[-1] = slice(xsub[0], xsub[-1]+1)
-    # Slice out padding
     hm_pred = hm_pred[slc]
+    slc[-3] = slice(0, locref_pred.shape[-3])
+    locref_pred = locref_pred[slc]
     # Get landmark positions
-    lm = UNet_helper_functions.heatmap2landmarks(hm_pred.cpu().detach().numpy())
+    pose = UNet_helper_functions.argmax_pose_predict_batch(hm_pred.cpu().detach().numpy(), 
+                                                            locref_pred.cpu().detach().numpy(),
+                                                            UNet_helper_functions.STRIDE)
+    lm = pose[:,:,:2].squeeze()
     # avg. position of all landmarks/key points
     lm_mean = lm.mean(axis=0) 
     # Estimate bbox positions using landmark positions b/w 5th and 95th percentile 

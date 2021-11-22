@@ -107,7 +107,7 @@ class reflectROI():
         parent.ROIs[self.iROI].plot(parent)
 
 class sROI():
-    def __init__(self, rind, rtype, iROI, moveable=True,
+    def __init__(self, rind, rtype, iROI, moveable=True, resizable=True,
                  parent=None, saturation=None, color=None, pos=None,
                  yrange=None, xrange=None,
                  ivid=None, pupil_sigma=None):
@@ -115,6 +115,7 @@ class sROI():
         self.iROI = iROI
         self.rind = rind
         self.rtype = rtype
+        self.pos = pos
         if saturation is None:
             self.saturation = 0
         else:
@@ -129,7 +130,7 @@ class sROI():
         else:
             self.pupil_sigma = 0
         self.moveable = moveable
-        if pos is None:
+        if self.pos is None:
             view = parent.p0.viewRange()
             imx = (view[0][1] + view[0][0]) / 2
             imy = (view[1][1] + view[1][0]) / 2
@@ -140,10 +141,10 @@ class sROI():
             imx = imx - dx / 2
             imy = imy - dy / 2
         else:
-            imy = pos[0]
-            imx = pos[1]
-            dy = pos[2]
-            dx = pos[3]
+            imy = self.pos[0]
+            imx = self.pos[1]
+            dy = self.pos[2]
+            dx = self.pos[3]
         if ivid is None:
             self.ivid=0
         else:
@@ -193,6 +194,7 @@ class sROI():
         sizex, sizey = self.ROI.size()
         xrange = (np.arange(-1 * int(sizex), 1) + int(posx)).astype(np.int32)
         yrange = (np.arange(-1 * int(sizey), 1) + int(posy)).astype(np.int32)
+        self.pos = (posy, posx, yrange, xrange) # get ROI position
         if self.rind==0 or self.rind==2:
             yrange += int(sizey/2)
         # what is ellipse circling?

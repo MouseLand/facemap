@@ -16,10 +16,20 @@ from platform import python_version
 
 import pandas as pd
 from tqdm import tqdm  # waitbar
+import torch.nn as nn
+import torch.nn.functional as F
+from torch import optim
 
 print("python version:", python_version())
 import matplotlib
 
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~Global variables~~~~~~~~~~~~~~~~~~~~~~~~~~~~~`
+DIST_THRESHOLD = 17/2
+LOCREF_STDEV = 7.2801/2
+STRIDE = 4
+print("Global varaibles set:")
+print("dist threshold:", DIST_THRESHOLD)
+print("locref stdev:", LOCREF_STDEV)
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Helper functions ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 def set_seed(seed):
@@ -30,21 +40,90 @@ def set_seed(seed):
     np.random.seed(seed)
     random.seed(seed)
 
-def argmax_pose_predict(scmap, offmat):
-    """Combine scoremat and offsets to the final pose."""
-    num_joints = scmap.shape[2]
-    batch_size = scmap.shape[-1]
-    pose = np.zeros((batch_size, num_joints, 2))
-    landmarks = heatmap2landmarks(scmap.T)
-    for joint_idx in range(num_joints):
-        maxloc = landmarks[:,joint_idx]
-        offset_x = np.array(offmat[maxloc[:,0],maxloc[:,1],joint_idx*2])
-        offset_y = np.array(offmat[maxloc[:,0],maxloc[:,1],joint_idx*2+1])
-        offset = np.array([np.diag(offset_x), np.diag(offset_y)]).T
-        pose[:,joint_idx] = np.array([maxloc[:,0]+offset[:,0], maxloc[:,1]+offset[:,1]]).T
-    return np.array(pose)
+def gaussian_smoothing(hm, sigma, nms_size, sigmoid=False):
+    num_bodyparts = hm.shape[1]
+    filters = get_2d_gaussian_kernel_map(sigma, nms_size, num_bodyparts)
+    if sigmoid:
+        s_fn = torch.nn.Sigmoid()
+        image = s_fn(hm)
+    else:
+        image = hm
+    cin = image.shape[1]
+    features = F.conv2d(image, filters, groups=cin, padding='same')
+    return features
 
-def analyze_frames(frames_dir, bodyparts, scorer, net, img_xy, lowres_locref, lowres_hm):
+def get_2d_gaussian_kernel_map(sigma, nms_radius, num_landmarks):
+    size = nms_radius * 2 + 1
+    k = torch.range(-size // 2 + 1, size // 2 + 1)
+    k = k ** 2
+    sm = torch.nn.Softmax()
+    k = sm(-k / (2 * (sigma ** 2)))
+    kernel = torch.einsum('i,j->ij', k, k)
+    kernel = torch.unsqueeze(kernel, dim=0)
+    kernel = torch.unsqueeze(kernel, dim=0)
+    kernel_sc = kernel.repeat([num_landmarks, 1, 1, 1])
+    return kernel_sc
+
+def argmax_pose_predict_batch(scmap_batch, offmat_batch, stride):
+    """Combine scoremat and offsets to the final pose."""
+    pose_batch = []
+    for b in range(scmap_batch.shape[0]):
+        scmap, offmat = scmap_batch[b].T, offmat_batch[b].T
+        ny, nx, num_joints = offmat.shape
+        offmat = offmat.reshape(ny,nx,num_joints//2,-1)
+        offmat *= LOCREF_STDEV
+        num_joints = scmap.shape[2]
+        pose = []
+        for joint_idx in range(num_joints):
+            maxloc = np.unravel_index(
+                np.argmax(scmap[:, :, joint_idx]), scmap[:, :, joint_idx].shape
+            )
+            offset = np.array(offmat[maxloc][joint_idx])[::-1]
+            pos_f8 = np.array(maxloc).astype("float") * stride + 0.5 * stride + offset
+            pose.append(np.hstack((pos_f8, [scmap[maxloc][joint_idx]])))
+        pose_batch.append(pose)
+    return np.array(pose_batch)
+
+def clahe_adjust_contrast(in_img):
+    """
+    in_img : LIST of ND-arrays, float
+            list of image arrays of size [nchan x Ly x Lx] or [Ly x Lx]
+    """
+    in_img = np.array(in_img)
+    clahe_grid_size = 20
+    clahe = cv2.createCLAHE(
+        clipLimit=2.0,
+        tileGridSize=(clahe_grid_size, clahe_grid_size))
+    simg = np.zeros(in_img.shape)
+    if in_img.shape[1] == 1:
+        for ndx in range(in_img.shape[0]): # for each image ndx
+            simg[ndx,0,:,:] = clahe.apply(in_img[ndx, 0,:,:].astype('uint8')).astype('float')
+    else:
+        for ndx in range(in_img.shape[0]):
+            lab = cv2.cvtColor(in_img[ndx,...], cv2.COLOR_RGB2LAB)
+            lab_planes = cv2.split(lab)
+            lab_planes[0] = clahe.apply(lab_planes[0])
+            lab = cv2.merge(lab_planes)
+            rgb = cv2.cvtColor(lab, cv2.COLOR_LAB2RGB)
+            simg[ndx,...] = rgb
+    return simg
+
+def normalize_mean(in_img):
+    zz = in_img.astype('float')
+    # subtract mean for each img.
+    mm = zz.mean(axis=(2,3))
+    xx = zz - mm[:, :, np.newaxis, np.newaxis]
+    return xx
+
+def normalize99(img):
+    """ normalize image so 0.0 is 1st percentile and 1.0 is 99th percentile """
+    X = img.copy()
+    x01 = np.percentile(X, 1)
+    x99 = np.percentile(X, 99)
+    X = (X - x01) / (x99 - x01)
+    return X
+
+def analyze_frames(frames_dir, bodyparts, scorer, net, img_xy):
     """
     Input:-
     - frames_dir: path containing .png files 
@@ -73,32 +152,26 @@ def analyze_frames(frames_dir, bodyparts, scorer, net, img_xy, lowres_locref, lo
     net.eval()
     for ind, img_file in enumerate(frames):
         im = cv2.imread(img_file, 0)
-        if im.dtype == float:
-            pass
-        elif im.dtype == np.uint8:
-            im = im.astype(float)/255.
-        elif im.dtype == np.uint16:
-            im = im.astype(float)/65535.
-        else:
-            print('Cannot handle im type '+str(im.dtype))
-            raise TypeError
+        im = im.astype('uint8')
+        im = im[np.newaxis,np.newaxis,:,:]
+        # Adjust image contrast
+        im = clahe_adjust_contrast(im)
+        im = normalize_mean(im)
+        for i in range(im.shape[0]):
+            im[i,0] = normalize99(im[i,0])
 
-        im = torch.Tensor(im[np.newaxis,np.newaxis,:,:])
-        if lowres_locref and lowres_hm:
-            hm_pred,_,_ = net(im.to(device=device, dtype=torch.float32), lowres_locref, lowres_hm)
-        elif lowres_locref or lowres_hm:
-            hm_pred,_ = net(im.to(device=device, dtype=torch.float32), lowres_locref, lowres_hm)
-        else:
-            hm_pred = net(im.to(device=device, dtype=torch.float32), lowres_locref, lowres_hm)
-        landmarks = heatmap2landmarks(hm_pred.cpu().detach().numpy()).ravel()
-        #landmarks = argmax_pose_predict(hm_pred.T.cpu().detach().numpy(), locref_pred.T.cpu().detach().numpy()).ravel()
+        hm_pred, locref_pred = net(torch.Tensor(im).to(device=net.DEVICE, dtype=torch.float32))
+        hm_pred = gaussian_smoothing(hm_pred.cpu(), sigma=3, nms_size=9, sigmoid=True)
+        pose = argmax_pose_predict_batch(hm_pred.cpu().detach().numpy(), locref_pred.cpu().detach().numpy(),
+                                          stride=STRIDE)
+        landmarks = pose[:,:,:2].ravel()
         dataFrame.iloc[ind] = landmarks
     return dataFrame
 
 def heatmap2landmarks(hms):
     idx = np.argmax(hms.reshape(hms.shape[:-2]+(hms.shape[-2]*hms.shape[-1],)),axis=-1)
     locs = np.zeros(hms.shape[:-2]+(2,))
-    locs[...,1],locs[...,0] = np.unravel_index(idx, hms.shape[-2:])
+    locs[...,1],locs[...,0] = np.unravel_index(idx,hms.shape[-2:])
     return locs.astype(int)
 
 def heatmap2image(hm,cmap='jet',colors=None):
@@ -136,9 +209,57 @@ def heatmap2image(hm,cmap='jet',colors=None):
     im = np.minimum(1.,im)
     return im
 
+def add_motion_blur(img, kernel_size=None, vertical=True, horizontal=True):
+    # Create the vertical kernel.
+    kernel_v = np.zeros((kernel_size, kernel_size))
+
+    # Create a copy of the same for creating the horizontal kernel.
+    kernel_h = np.copy(kernel_v)
+
+    # Fill the middle row with ones.
+    kernel_v[:, int((kernel_size - 1)/2)] = np.ones(kernel_size)
+    kernel_h[int((kernel_size - 1)/2), :] = np.ones(kernel_size)
+
+    # Normalize.
+    kernel_v /= kernel_size
+    kernel_h /= kernel_size
+    
+    if vertical:
+        # Apply the vertical kernel.
+        img = cv2.filter2D(img, -1, kernel_v)
+
+    if horizontal:
+        # Apply the horizontal kernel.
+        img = cv2.filter2D(img, -1, kernel_h)
+    
+    return img
+
+def randomly_adjust_contrast(img):
+    """
+    Randomly adjusts contrast of image
+    img: ND-array of size nchan x Ly x Lx
+    Assumes image values in range 0 to 1
+    """
+    brange = [-0.2,0.2]
+    bdiff = brange[1] - brange[0]
+    crange = [0.7,1.3]
+    cdiff = crange[1] - crange[0]
+    imax = 1
+    if (bdiff<0.01) and (cdiff<0.01):
+        return img
+    bfactor = np.random.rand() * bdiff + brange[0]
+    cfactor = np.random.rand() * cdiff + crange[0]
+    mm = img.mean()
+    jj = img + bfactor * imax
+    jj = np.minimum(imax, (jj - mm) * cfactor + mm)
+    jj = jj.clip(0, imax)
+    img = normalize99(jj)
+    return img
+
 # Cellpose augmentation method (https://github.com/MouseLand/cellpose/blob/35c16c94e285a4ec2fa17f148f06bbd414deb5b8/cellpose/transforms.py#L590)
-def random_rotate_and_resize(X, Y, scale_range=1., xy=(300,300),
-                             do_flip=True, rotation=10):
+def random_rotate_and_resize(X, Y, scale_range=1., xy=(256,256),do_flip=True, rotation=10,
+                            contrast_adjustment=True, gamma_aug=True, gamma_range=0.5,
+                            motion_blur=True, gaussian_blur=True):
     """ augmentation by random rotation and resizing
         X and Y are lists or arrays of length nimg, with dims channels x Ly x Lx (channels optional)
         Parameters
@@ -184,6 +305,7 @@ def random_rotate_and_resize(X, Y, scale_range=1., xy=(300,300),
         nt = 1
     lbl = np.zeros((nimg, nt, xy[0], xy[1]), np.float32)
     scale = np.zeros(nimg, np.float32)
+    dg = gamma_range/2 
     
     for n in range(nimg):
         Ly, Lx = X[n].shape[-2:]
@@ -191,9 +313,17 @@ def random_rotate_and_resize(X, Y, scale_range=1., xy=(300,300),
         
         # generate random augmentation parameters
         flip = np.random.rand()>.5
-        theta = random.random()*rotation # random degree of rotation #np.random.rand() * np.pi * 2
+        theta = random.random()*rotation # random rotation in degrees (float)
         scale[n] = (1-scale_range/2) + scale_range * np.random.rand()
         
+        if contrast_adjustment:
+            imgi[n] = randomly_adjust_contrast(imgi[n])
+        if motion_blur and np.random.rand()>.5:
+            blur_pixels = np.random.randint(1,5)
+            imgi[n] = add_motion_blur(imgi[n], kernel_size=blur_pixels)
+        if gaussian_blur and np.random.rand()>.5:
+            kernel = random.randrange(1,10,2)#np.random.randint(1,9)
+            imgi[n] = cv2.GaussianBlur(imgi[n], (kernel, kernel), cv2.BORDER_CONSTANT )
         # create affine transform
         c = (xy[0] * 0.5 - 0.5, xy[1] * 0.5 - 0.5)  # Center of image
         M = cv2.getRotationMatrix2D(c, theta, scale[n])
@@ -204,13 +334,17 @@ def random_rotate_and_resize(X, Y, scale_range=1., xy=(300,300),
             
         for k in range(nchan):
             I = cv2.warpAffine(imgi[n][k], M, (xy[1],xy[0]), flags=cv2.INTER_LINEAR)
-            imgi[n] = I
+            if gamma_aug:
+                gamma = np.random.uniform(low=1-dg,high=1+dg) 
+                imgi[n] = np.sign(I) * (np.abs(I)) ** gamma
+            else:
+                imgi[n] = I
         
         for k in range(nt):
             lbl[n,k] = cv2.warpAffine(lbl[n][k], M, (xy[1],xy[0]), flags=cv2.INTER_LINEAR)
     
-    #imgi = image_augmentation(imgi, xy) # motion blur
     return imgi, lbl, scale
+
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Dataset loader ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 class COCODataset(torch.utils.data.Dataset):
     """
@@ -221,8 +355,6 @@ class COCODataset(torch.utils.data.Dataset):
                  scale=0.5, flip=True, rotation=10):
         
         self.label_filter = None
-        #self.label_filter_r = 5
-        #self.label_filter_d = 10
         self.label_sigma = sigma #8 
         self.init_label_filter()
         self.flip = flip
@@ -256,19 +388,15 @@ class COCODataset(torch.utils.data.Dataset):
         self.im = []
         for file in self.img_files:
             im = cv2.imread(file, cv2.IMREAD_GRAYSCALE)
-            # convert to float32 in the range 0. to 1.
-            if im.dtype == float:
-                pass
-            elif im.dtype == np.uint8:
-                im = im.astype(float)/255.
-            elif im.dtype == np.uint16:
-                im = im.astype(float)/65535.
-            else:
-                print('Cannot handle im type '+str(im.dtype))
-                raise TypeError
-            im = self.normalize99(im)   # Normalize images
+            im = im.astype('uint8') # APT method only
             if im.ndim < 3:
                 self.im.append(im[np.newaxis,...])
+    
+        # Adjust image contrast
+        self.im = clahe_adjust_contrast(self.im)
+        self.im = normalize_mean(self.im)
+        for i in range(self.im.shape[0]):
+            self.im[i,0] = normalize99(self.im[i,0]) 
 
         self.landmark_names = pd.unique(self.landmarks.columns.get_level_values("bodyparts"))
         self.nlandmarks = len(self.landmark_names)
@@ -306,23 +434,21 @@ class COCODataset(torch.utils.data.Dataset):
         lm = heatmap2landmarks(lm_heatmap)
         
         locs = np.squeeze(lm)
-        #locref_map, _ = compute_locref_maps(locs, self.img_xy, self.landmark_names)
-        lowres_locref_map, _ = compute_locref_maps(locs, self.img_xy,
+        scmap, locref_map, _ = compute_locref_maps(locs, self.img_xy,
                                                self.landmark_names, lowres=True)
-        
-        # Return numpy arrays
-        im = np.squeeze(im,axis=0)#torch.tensor(np.squeeze(im,axis=0), dtype=torch.float32) 
-        lm_heatmap = np.squeeze(lm_heatmap,axis=0)#torch.tensor(np.squeeze(lm_heatmap,axis=0), dtype=torch.float32) 
-        lm = np.squeeze(lm,axis=0)#torch.tensor(np.squeeze(lm,axis=0), dtype=torch.float32) 
-        #locref_map = torch.tensor(locref_map, dtype=torch.float32) 
-        #lowres_locref_map = torch.tensor(lowres_locref_map, dtype=torch.float32) 
-        
+        # Return tensors only
+        im = np.squeeze(im,axis=0)
+        lm_heatmap = np.squeeze(lm_heatmap,axis=0)
+        lm = np.squeeze(lm,axis=0)
+        locref_map = torch.tensor(locref_map, dtype=torch.float32) 
+        scmap = torch.tensor(scmap, dtype=torch.float32) 
+
         features = {'image': im,
                    'landmarks': lm,
                     'heatmap' : lm_heatmap, 
-                    'lowres_locref_map': lowres_locref_map,
-                    #'locref_map' : locref_map,
-                   'id': item}
+                    'locref_map' : locref_map,
+                    'scmap' : scmap,
+                    'id': item}
         return features
 
     @staticmethod
@@ -362,14 +488,6 @@ class COCODataset(torch.utils.data.Dataset):
         else:
             im = np.squeeze(np.transpose(d['image'][i,...].numpy(),(1,2,0)),axis=2)
         return im
-    
-    def normalize99(self, img):
-        """ normalize image so 0.0 is 1st percentile and 1.0 is 99th percentile """
-        X = img.copy()
-        x01 = np.percentile(X, 1)
-        x99 = np.percentile(X, 99)
-        X = (X - x01) / (x99 - x01)
-        return X
 
     def make_heatmap_target(self,locs,imsz):
         """
@@ -426,175 +544,26 @@ class COCODataset(torch.utils.data.Dataset):
         self.label_filter = self.label_filter / np.max(self.label_filter) 
         # convert to torch tensor
         self.label_filter = torch.from_numpy(self.label_filter)
-        
-# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Network  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-# Define network structure - UNet
-import torch.nn as nn
-import torch.nn.functional as F
-from torch import optim
-
-
-def convbatchrelu(in_channels, out_channels, sz):
-    return nn.Sequential(
-      nn.Conv2d(in_channels, out_channels, sz, padding=sz//2),
-      nn.BatchNorm2d(out_channels, eps=1e-5),
-      nn.ReLU(inplace=True),
-      )
-
-class convdown(nn.Module):
-    def __init__(self, in_channels, out_channels, kernel_size):
-        super().__init__()
-        self.conv = nn.Sequential()
-        for t in range(2):
-            if t == 0:
-                self.conv.add_module('conv_%d'%t,
-                                 convbatchrelu(in_channels,
-                                               out_channels,
-                                               kernel_size))
-            else:
-                self.conv.add_module('conv_%d'%t,
-                                 convbatchrelu(out_channels,
-                                               out_channels,
-                                               kernel_size))
-
-    def forward(self, x):
-        x = self.conv[0](x)
-        x = self.conv[1](x)
-        return x
-
-
-class downsample(nn.Module):
-    def __init__(self, nbase, kernel_size):
-        super().__init__()
-        self.down = nn.Sequential()
-        self.maxpool = nn.MaxPool2d(2, 2)
-        for n in range(len(nbase) - 1):
-            self.down.add_module('conv_down_%d'%n,
-                               convdown(nbase[n],
-                                        nbase[n + 1],
-                                        kernel_size))
-
-    def forward(self, x):
-        xd = []
-        for n in range(len(self.down)):
-            if n > 0:
-                y = self.maxpool(xd[n - 1])
-            else:
-                y = x
-            xd.append(self.down[n](y))
-        return xd
-
-
-class convup(nn.Module):
-    def __init__(self, in_channels, out_channels, kernel_size):
-        super().__init__()
-        self.conv = nn.Sequential()
-        self.conv.add_module('conv_0', convbatchrelu(in_channels,
-                                                     out_channels,
-                                                     kernel_size))
-        self.conv.add_module('conv_1', convbatchrelu(out_channels,
-                                                     out_channels,
-                                                     kernel_size))
-
-    def forward(self, x, y):
-        x = self.conv[0](x)
-        x = self.conv[1](x + y)
-        return x
-
-class upsample(nn.Module):
-    def __init__(self, nbase, kernel_size):
-        super().__init__()
-        self.upsampling = nn.Upsample(scale_factor=2, mode='nearest')
-        self.up = nn.Sequential()
-        for n in range(len(nbase) - 1 , 0, -1):
-            self.up.add_module('conv_up_%d'%(n - 1),
-              convup(nbase[n], nbase[n - 1], kernel_size))
-
-    def forward(self, xd):
-        x = xd[-1]
-        for n in range(0, len(self.up)):
-            if n > 0:
-                if n==1:
-                    decoder_x = self.upsampling(x)
-                    x = decoder_x
-                else:
-                    x = self.upsampling(x)
-            x = self.up[n](x, xd[len(xd) - 1 - n])
-        return decoder_x, x
-
-class UNet_b(nn.Module):
-    def __init__(self, nbase, nout, kernel_size, labels_id=None):
-        super(UNet_b, self).__init__()
-        self.DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-        self.nbase = nbase
-        self.nout = nout
-        self.kernel_size = kernel_size
-        self.heatmap_labels = labels_id
-        
-        self.downsample = downsample(nbase, kernel_size)
-        nbaseup = nbase[1:]
-        nbaseup.append(nbase[-1])
-        self.upsample = upsample(nbaseup, kernel_size)
-        self.lowres_locref_output = nn.Conv2d(nbaseup[-2], self.nout*2, kernel_size,
-                                padding=kernel_size//2)
-        self.hm_output = nn.Conv2d(nbase[1], self.nout, kernel_size,
-                        padding=kernel_size//2)
-        self.lowres_hm_output = nn.Conv2d(nbaseup[-2], self.nout, kernel_size,
-                        padding=kernel_size//2)
-            
-    def forward(self, data, lowres_locref=False, lowres_hm=False):
-        T0 = self.downsample(data)
-        decoder_T0, T0 = self.upsample(T0)
-        lowres_heatmap = self.lowres_hm_output(decoder_T0)
-        lowres_locref_map = self.lowres_locref_output(decoder_T0)
-        heatmap = self.hm_output(T0)
-        if lowres_locref and lowres_hm:
-            out = (heatmap, lowres_heatmap, lowres_locref_map)
-        elif lowres_hm:
-            out = (heatmap, lowres_heatmap)
-        elif lowres_locref:
-            out = (heatmap, lowres_locref_map)
-        else:
-            out = heatmap
-        return out
-
-    def save_model(self, filename):
-        torch.save(self.state_dict(), filename)
-
-    def load_model(self, filename, cpu=False):
-        if not cpu:
-            self.load_state_dict(torch.load(filename))
-            self.DEVICE = 'cuda'
-        else:
-            self.__init__(self.nbase,
-                        self.nout,
-                        self.kernel_size)
-            self.DEVICE = 'cpu'
-            self.load_state_dict(torch.load(filename,
-                                          map_location=torch.device('cpu')))
-
 
 ## ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ DeeperCut's methods ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 ## Local refinement
-def set_locref(locref_map, locref_mask, locref_scale, j, i, j_id, dx, dy):
+def set_locref(scmap, locref_map, locref_mask, locref_scale, j, i, j_id, dx, dy):
     locref_mask[j, i, j_id * 2 + 0] = 1
     locref_mask[j, i, j_id * 2 + 1] = 1
     locref_map[j, i, j_id * 2 + 0] = dx * locref_scale
     locref_map[j, i, j_id * 2 + 1] = dy * locref_scale
+    scmap[j, i, j_id] = 1
     
 def compute_locref_maps(landmarks, size, landmark_names, lowres=False):
     # Set params
-    stride = 4
-    half_stride = stride/2
+    stride = STRIDE
+    half_stride = STRIDE/2
     scale = 1
-
-    if lowres:
-        size = np.ceil(np.array(size) / stride).astype(int)#(stride * 2)).astype(int) * 2
-        dist_thresh = 4*scale
-        locref_stdev = 8
-    else:
-        dist_thresh = 10 * scale
-        locref_stdev = 17.2801
+    scaled_img_size = np.array(size)*scale
+    size = np.ceil(scaled_img_size / (stride * 2)).astype(int) * 2
+    dist_thresh = DIST_THRESHOLD * scale
+    locref_stdev = LOCREF_STDEV
+    
     width = size[1]
     height = size[0]
     dist_thresh_sq = dist_thresh ** 2
@@ -611,33 +580,21 @@ def compute_locref_maps(landmarks, size, landmark_names, lowres=False):
         j_y = joint_pt[1]
         if ~np.isnan(j_x) or ~np.isnan(j_y):
             # don't loop over entire heatmap, but just relevant locations
-            if lowres:
-                j_x_sm = round((j_x - half_stride) / stride)
-                j_y_sm = round((j_y - half_stride) / stride)
-            else:
-                j_x_sm = round(j_x)
-                j_y_sm = round(j_y)
-            min_x = round(max(j_x_sm - dist_thresh - 1, 0))
-            max_x = round(min(j_x_sm + dist_thresh + 1, width - 1))
-            min_y = round(max(j_y_sm - dist_thresh - 1, 0))
-            max_y = round(min(j_y_sm + dist_thresh + 1, height - 1))
+            j_x_sm = round((j_x - half_stride) / stride)
+            j_y_sm = round((j_y - half_stride) / stride)
+            min_x = int(round(max(j_x_sm - dist_thresh - 1, 0)))
+            max_x = int(round(min(j_x_sm + dist_thresh + 1, width - 1)))
+            min_y = int(round(max(j_y_sm - dist_thresh - 1, 0)))
+            max_y = int(round(min(j_y_sm + dist_thresh + 1, height - 1)))
             
             for j in range(min_y, max_y + 1):  # range(height):
-                if lowres:
-                    pt_y = j * stride + half_stride
-                else:
-                    pt_y = j
+                pt_y = j * stride + half_stride
                 for i in range(min_x, max_x + 1):  # range(width):
-                    if lowres:
-                        pt_x = i * stride + half_stride
-                    else:
-                        pt_x = i 
+                    pt_x = i * stride + half_stride
                     dx = j_x - pt_x
                     dy = j_y - pt_y
                     dist = dx ** 2 + dy ** 2
                     if dist <= dist_thresh_sq:
-                        dist = dx ** 2 + dy ** 2
-                    locref_scale = 1.0 / locref_stdev
-                    set_locref(locref_map, locref_mask, locref_scale, j, i, k, dx, dy)
-
-    return locref_map.T, locref_mask.T
+                        locref_scale = 1.0 / locref_stdev
+                        set_locref(scmap, locref_map, locref_mask, locref_scale, j, i, k, dx, dy)
+    return scmap.T, locref_map.T, locref_mask.T

@@ -253,16 +253,20 @@ class MainW(QtGui.QMainWindow):
         self.saverois.setEnabled(False)
 
         # Pose/labels variables
-        self.poseEstimatesButton = QtGui.QPushButton("Generate pose estimates")
+        self.poseEstimatesButton = QtGui.QPushButton("Run tracker")
         self.poseEstimatesButton.setFont(QtGui.QFont("Arial", 10, QtGui.QFont.Bold))
         self.poseEstimatesButton.clicked.connect(self.get_pose_labels)
         self.poseEstimatesButton.setEnabled(False)
+        self.poseBboxButton = QtGui.QPushButton("Set pose bbox")
+        self.poseBboxButton.setFont(QtGui.QFont("Arial", 10, QtGui.QFont.Bold))
+        self.poseBboxButton.clicked.connect(self.set_pose_bbox)
+        self.poseBboxButton.setEnabled(False)
         self.loadPose = QtGui.QPushButton("Load pose data")
         self.loadPose.setFont(QtGui.QFont("Arial", 10, QtGui.QFont.Bold))
         self.loadPose.clicked.connect(lambda: io.get_pose_file(parent=self))
         self.loadPose.setEnabled(False)
         self.poseFileLoaded = False
-        self.Labels_checkBox = QtGui.QCheckBox("Labels")
+        self.Labels_checkBox = QtGui.QCheckBox("Keypoints")
         self.Labels_checkBox.setStyleSheet("color: gray;")
         self.Labels_checkBox.stateChanged.connect(self.update_pose)
         self.Labels_checkBox.setEnabled(False)
@@ -376,7 +380,8 @@ class MainW(QtGui.QMainWindow):
 
         self.l0.addWidget(self.savefolder, 8, 1, 1, 1)
         self.l0.addWidget(self.savelabel, 9, 0, 1, 2)
-        self.l0.addWidget(self.poseEstimatesButton, 10, 0, 1, 2)                    # Pose features
+        self.l0.addWidget(self.poseEstimatesButton, 10, 0, 1, 1)                    # Pose features
+        self.l0.addWidget(self.poseBboxButton, 10, 1, 1, 1)                    # Pose features
         self.l0.addWidget(self.loadPose, 11, 0, 1, 1)                    # Pose features
         self.l0.addWidget(self.Labels_checkBox, 11, 1, 1, 1)        
         self.l0.addWidget(self.clusteringVisComboBox, 0, 11, 1, 1)      # clustering visualization window features
@@ -526,9 +531,13 @@ class MainW(QtGui.QMainWindow):
             self.cbs1[k].setChecked(False)
             self.cbs2[k].setChecked(False)
 
+    def set_pose_bbox(self):
+        # User defined or automatic bbox selection
+        self.pose_model = pose_gui.PoseGUI(parent=self)
+
     def get_pose_labels(self):
         print("Generating pose estimates")
-        pose_model = pose_gui.PoseGUI(parent=self)
+        pose_model = self.pose_model.run()
 
     def pupil_sigma_change(self):
         self.pupil_sigma = float(self.sigmaBox.text())
@@ -731,10 +740,12 @@ class MainW(QtGui.QMainWindow):
             self.loadPose.setEnabled(True)
             self.Labels_checkBox.setEnabled(True)
             self.poseEstimatesButton.setEnabled(True)
+            self.poseBboxButton.setEnabled(True)
         else:
             self.loadPose.setEnabled(False)
             self.Labels_checkBox.setEnabled(False)
             self.poseEstimatesButton.setEnabled(False)
+            self.poseBboxButton.setEnabled(False)
 
     def jump_to_frame(self):
         if self.playButton.isEnabled():

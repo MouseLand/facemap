@@ -6,8 +6,9 @@ import numpy as np
 import pandas as pd
 import torch
 
-from .. import roi, utils
+from .. import utils
 from . import UNet_helper_functions as UNet_utils
+from . import unet_torch
 from . import transforms
 
 """
@@ -45,7 +46,7 @@ class Pose():
         Obtain ROI/bbox for cropping images to use as input for model 
         """
         num_iter = 3 # select optimum value for CPU vs. GPU
-        for it in range(num_iter):
+        for it in range(1):#num_iter):
             t0 = time.time()
             imgs = self.get_batch_imgs()
             # Get bounding box for imgs 
@@ -60,14 +61,14 @@ class Pose():
         Predict labels for all frames in video and save output as .h5 file
         """
         scorer = "Facemap" 
-        bodyparts = np.arange(self.net.nout) # temporary, switch to self.net.labels_id
+        bodyparts = self.net.labels_id 
         nchannels = 1
         batch_size = 1
 
         # Create an empty dataframe
         for index, bodypart in enumerate(bodyparts):
             columnindex = pd.MultiIndex.from_product(
-                [[scorer], [bodypart], ["x", "y"]], 
+                [[scorer], [bodypart], ["x", "y"]],#"likelihood" 
                 names=["scorer", "bodyparts", "coords"])
             frame = pd.DataFrame(
                                 np.nan,
@@ -84,8 +85,8 @@ class Pose():
         end = batch_size
         img_x, img_y = self.bbox[1]-self.bbox[0], self.bbox[-1]-self.bbox[-2]
         orig_imgy, orig_imgx = self.Ly[0], self.Lx[0]
-        while end != 20: # self.cumframes[-1]:
-            # Prepocess images
+        while end != 2: # self.cumframes[-1]:
+            # Pre-pocess images
             im = np.zeros((batch_size, nchannels, img_y, img_x))
             for i, frame_ind in enumerate(np.arange(start,end)):
                 frame = utils.get_frame(frame_ind, self.nframes, self.cumframes, self.containers)[0]  
@@ -94,16 +95,20 @@ class Pose():
                 im[i,0] = frame_grayscale_preprocessed[0][self.cropped_img_slice]    # used cropped section only
             
             # Network prediction 
-            hm_pred = self.net(torch.tensor(im).to(device=self.net.DEVICE, dtype=torch.float32)) # convert to tensor and send to device
+            hm_pred, locref_pred = self.net(torch.tensor(im).to(device=self.net.DEVICE, dtype=torch.float32)) # convert to tensor and send to device
             del im
-            
+            pose = UNet_utils.argmax_pose_predict_batch(hm_pred.cpu().detach().numpy(), 
+                                                            locref_pred.cpu().detach().numpy(),
+                                                            UNet_utils.STRIDE)
             # Get adjusted landmarks that fit to original image size
-            landmarks = np.squeeze(UNet_utils.heatmap2landmarks(hm_pred.cpu().detach().numpy()))
-            del hm_pred
+            landmarks = pose[:,:,:2].squeeze()
+            likelihood = pose[:,:,2].squeeze()
+            del hm_pred, locref_pred
             Xlabel, Ylabel = transforms.labels_resize(landmarks[:,0], landmarks[:,1], 
-                                                    current_size=(img_x, img_y), desired_size=(orig_imgx, orig_imgy))
-            landmarks = np.array(list(zip(Xlabel, Ylabel)))
-            dataFrame.iloc[start:end] = landmarks.ravel()
+                                                    current_size=(img_x, img_y), 
+                                                    desired_size=(orig_imgx, orig_imgy))
+            im_pred = np.array(list(zip(Xlabel, Ylabel)))
+            dataFrame.iloc[start:end] = im_pred.ravel()
             start = end 
             end += batch_size
         return dataFrame
@@ -125,18 +130,21 @@ class Pose():
         """
         Load pre-trained UNet model for labels prediction 
         """
-        # Replace w/ function that downloads model from server
-        model_file = "/Users/Atika/Neuroverse/Janelia/facemap-mac/facemap/example_model_small"  
-        self.bodyparts = None # data['landmarks']
+        # Replace following w/ a function that downloads model from a server
+        model_file = "/Users/Atika/Neuroverse/Janelia/facemap-mac/model_state.pt" 
+        model_params_file = "/Users/Atika/Neuroverse/Janelia/facemap-mac/model_params.pth"  
+        model_params = torch.load(model_params_file)
+        self.bodyparts = model_params['landmarks'] 
         kernel_size = 3
-        nbase = [1, 64, 64*2, 64*3, 64*4] # number of channels per layer
-        nout = 14 #len(self.bodyparts)  # number of outputs
-        net = UNet_utils.UNet_b(nbase, nout, kernel_size, labels_id=self.bodyparts)
+        nout = len(self.bodyparts)  # number of outputs
+        net = unet_torch.FMnet(img_ch=1, output_ch=nout, labels_id=self.bodyparts, 
+                                filters=64, kernel=kernel_size, device=self.device)
         if torch.cuda.is_available():
             cpu_is_device = False
         else:
             cpu_is_device = True
         net.load_model(model_file, cpu=cpu_is_device)
+        print("Using cpu as device:", cpu_is_device)
         return net
 
     def get_batch_imgs(self, batch_size=1, nchannels=1):
