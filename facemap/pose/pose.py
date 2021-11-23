@@ -35,7 +35,7 @@ class Pose():
             self.bbox_set = False
 
     def run(self, save=True):
-        self.cropped_img_slice = self.get_img_slice()
+        #self.cropped_img_slice = self.get_img_slice()
         # Predict and save pose
         self.dataFrame = self.predict_landmarks()
         if save:
@@ -84,29 +84,21 @@ class Pose():
         self.net.eval()
         start = 0
         end = batch_size
-        img_x, img_y = self.bbox[1]-self.bbox[0], self.bbox[-1]-self.bbox[-2]
-        orig_imgy, orig_imgx = self.Ly[0], self.Lx[0]
-        while end != 2: # self.cumframes[-1]:
+        orig_imgx, orig_imgy = abs(self.bbox[0]-self.bbox[1]), abs(self.bbox[2]-self.bbox[3])
+        dummy_img = np.zeros((orig_imgx, orig_imgy))
+        Xstart, Xstop, Ystart, Ystop, resize = transforms.get_crop_resize_params(dummy_img, 
+                                                                    x_dims=(self.bbox[0], self.bbox[1]), 
+                                                                    y_dims=(self.bbox[2], self.bbox[3]))
+        while end != 10: # self.cumframes[-1]:
             # Pre-pocess images
-            im = np.zeros((batch_size, nchannels, img_y, img_x))
+            im = np.zeros((batch_size, nchannels, 256, 256))
             for i, frame_ind in enumerate(np.arange(start,end)):
                 frame = utils.get_frame(frame_ind, self.nframes, self.cumframes, self.containers)[0]  
                 frame_grayscale = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
                 frame_grayscale_preprocessed = transforms.preprocess_img(frame_grayscale)
-                """
-                #
-                pix = self.convert_nparray_to_QPixmap(frame_grayscale_preprocessed)
-                print("pix", pix)
-                    imgsize = min(image.width(), image.height())
-                rect = QRect(
-                    (image.width() - imgsize) / 2,
-                    (image.height() - imgsize) / 2,
-                    imgsize,
-                    imgsize,
-                )
-                image = image.copy(rect)
-                """
-                im[i,0] = frame_grayscale_preprocessed[0][self.cropped_img_slice]    # used cropped section only
+                im[i,0] = transforms.crop_resize(frame_grayscale_preprocessed.squeeze(), Xstart, 
+                                                Xstop, Ystart, Ystop, resize)
+                #im[i,0] = frame_grayscale_preprocessed[0][self.cropped_img_slice]    # used cropped section only
             
             # Network prediction 
             hm_pred, locref_pred = self.net(torch.tensor(im).to(device=self.net.DEVICE, dtype=torch.float32)) # convert to tensor and send to device
@@ -118,25 +110,14 @@ class Pose():
             landmarks = pose[:,:,:2].squeeze()
             likelihood = pose[:,:,2].squeeze()
             del hm_pred, locref_pred
-            Xlabel, Ylabel = transforms.labels_resize(landmarks[:,0], landmarks[:,1], 
-                                                    current_size=(img_x, img_y), 
+            Xlabel, Ylabel = transforms.labels_crop_resize(landmarks[:,0], landmarks[:,1], Xstart, Ystart,
+                                                    current_size=(256, 256), 
                                                     desired_size=(orig_imgx, orig_imgy))
             im_pred = np.array(list(zip(Xlabel, Ylabel)))
             dataFrame.iloc[start:end] = im_pred.ravel()
             start = end 
             end += batch_size
         return dataFrame
-
-    def convert_nparray_to_QPixmap(self, img):
-        ch, w, h = img.shape
-        # Convert resulting image to pixmap
-        if img.ndim == 1:
-            img =  cv2.cvtColor(img,cv2.COLOR_GRAY2RGB)
-
-        qimg = QtGui.QImage(img.data, h, w, 3*h, QtGui.QImage.Format_RGB888) 
-        qpixmap = QtGui.QPixmap(qimg)
-
-        return qpixmap  
 
     def save_pose_prediction(self):
         # Save prediction to .h5 file

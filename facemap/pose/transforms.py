@@ -33,7 +33,6 @@ def preprocess_img(im):
     for i in range(im.shape[0]):
         im[i,0] = normalize99(im[i,0]) 
     im = np.squeeze(im, axis=0)
-    print("im", im.shape)
     return im
 
 def get_cropped_imgs(imgs, bbox):
@@ -109,6 +108,113 @@ def get_bounding_box(imgs, net, prev_bbox):
     bbox = (min_x, max_x, min_y, max_y)
     return bbox, lm_mean
 
+def get_crop_resize_params(img, x_dims, y_dims, xy=(256,256)):
+    """
+    Get cropped and resized image dimensions
+    Input:-
+        img: image 
+        x_dims: min,max x pos 
+        y_dims: min,max y pos 
+        xy: final (desired) image size
+    Output:-
+        Xstart: (int) x dim start pos
+        Xstop: (int) x dim stop pos
+        Ystart: (int) y dim start pos
+        Ystop: (int) y dim stop pos 
+        resize: (bool) whether to resize image
+    """
+    xdiff, ydiff = x_dims[1] - x_dims[0], y_dims[1] - y_dims[0]
+    
+    Xstart = int(x_dims[0])
+    Xstop = int(x_dims[1])
+    Ystart = int(y_dims[0])
+    Ystop = int(y_dims[1])
+    
+    resize = False
+    if abs(Ystop-Ystart) > xy[0]:   # if cropped image larger than desired size
+        # crop image then resize image and landmarks 
+        resize = True
+    else:    # if cropped image smaller than desired size then add padding accounting for labels in view
+        y_pad = abs(abs(Ystop-Ystart) - xy[0]) 
+        if y_pad % 2 == 0:
+            y_pad = y_pad//2
+            Ystart, Ystop = Ystart-y_pad, Ystop+y_pad
+        else:  # odd number division so add 1
+            y_pad = y_pad//2
+            Ystart, Ystop = Ystart-y_pad, Ystop+y_pad+1
+        
+    if abs(Xstop-Xstart) > xy[1]:  # if cropped image larger than desired size
+        resize = True
+    else:
+        x_pad = abs(abs(Xstop-Xstart) - xy[1]) 
+        if x_pad % 2 == 0 :
+            x_pad = x_pad//2 
+            Xstart, Xstop = Xstart-x_pad, Xstop+x_pad
+        else:
+            x_pad = x_pad//2 
+            Xstart, Xstop = Xstart-x_pad, Xstop+x_pad+1
+    
+    # Add padding for cropping before resize
+    if resize:
+        Xstart -= 30 # padding
+        Xstop += 30
+        Ystart -= 30 # padding
+        Ystop += 30
+        
+    if Ystop > img.shape[0]:
+        Ystart -= (Ystop - img.shape[0])
+    if Xstop > img.shape[1]:
+        Xstart -= (Xstop - img.shape[1])
+    
+    Ystop, Xstop = min(Ystop, img.shape[0]), min(Xstop, img.shape[1])
+    Ystart, Xstart = max(0, Ystart), max(0, Xstart) 
+    Ystop, Xstop = max(Ystop, xy[0]), max(Xstop, xy[1])    
+
+    return Xstart, Xstop, Ystart, Ystop, resize
+
+def crop_resize(img, Xstart, Xstop, Ystart, Ystop, resize, xy=(256,256)):
+    """
+    Crop and resize image using dimensions provided
+    Input:-
+        img: (2D array) image
+        Xstart: (int) x dim start pos
+        Xstop: (int) x dim stop pos
+        Ystart: (int) y dim start pos
+        Ystop: (int) y dim stop pos 
+        resize: (bool) whether to resize image
+    Output:-
+        im_cropped: (2D array) cropped image
+    """
+    # Crop image and landmarks
+    im_cropped = img[Ystart:Ystop,Xstart:Xstop]
+    # Resize image 
+    if resize:
+        im_cropped = cv2.resize(im_cropped, xy)
+    return im_cropped
+
+def labels_crop_resize(Xlabel, Ylabel, Xstart, Ystart, current_size, desired_size):
+    """
+    Adjust x,y labels on a 2D image to perform a resize operation
+    Parameters
+    -------------
+    Xlabel: ND-array
+    Ylabel: ND-array
+    current_size: tuple or array of size(2,)
+    desired_size: tuple or array of size(2,)
+    Returns
+    --------------
+    Xlabel: ND-array
+            adjusted x values on new/desired_size of image
+    Ylabel: ND-array
+            adjusted y values on new/desired_size of image
+    """
+    Xlabel, Ylabel = Xlabel.astype(float), Ylabel.astype(float)
+    Xlabel = Xlabel-Xstart
+    Ylabel = Ylabel-Ystart
+    Xlabel *= (desired_size[1]/current_size[1])  # x_scale
+    Ylabel *= (desired_size[0]/current_size[0])  # y_scale
+    return Xlabel, Ylabel
+
 def adjust_bbox(prev_bbox, img_yx, div=16, extra=1):
     """
     Takes a bounding box as an input and the original image size. Adjusts bounding box to be square
@@ -157,27 +263,6 @@ def adjust_bbox(prev_bbox, img_yx, div=16, extra=1):
         x2 = min(x2+xpad//2, img_yx[1])
     adjusted_bbox = (x1, x2, y1, y2)
     return adjusted_bbox
-
-def labels_resize(Xlabel, Ylabel, current_size, desired_size):
-    """
-    Adjust x,y labels on a 2D image to perform a resize operation
-    Parameters
-    -------------
-    Xlabel: ND-array
-    Ylabel: ND-array
-    current_size: tuple or array of size(2,)
-    desired_size: tuple or array of size(2,)
-    Returns
-    --------------
-    Xlabel: ND-array
-            adjusted x values on new/desired_size of image
-    Ylabel: ND-array
-            adjusted y values on new/desired_size of image
-    """
-    Xlabel, Ylabel = Xlabel.astype(float), Ylabel.astype(float)
-    Xlabel *= (desired_size[1]/current_size[1])  # x_scale
-    Ylabel *= (desired_size[0]/current_size[0])  # y_scale
-    return Xlabel, Ylabel
 
 #  Following Function adopted from cellpose:
 #  https://github.com/MouseLand/cellpose/blob/35c16c94e285a4ec2fa17f148f06bbd414deb5b8/cellpose/transforms.py#L187

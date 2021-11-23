@@ -29,14 +29,14 @@ class PoseGUI(Pose):
         print("~~~~~adjusted bbox~~~~~~~~~~~", self.bbox)
         self.parent.poseFilepath = super().run()
         self.plot_pose_estimates()
-        print("DONE")
+        print("~~~~~~~~~~~~~~~~~~~~~DONE~~~~~~~~~~~~~~~~~~~~~")
 
     def draw_suggested_bbox(self):
         if self.bbox_set:
             del self.bbox_roi
             x1, x2, y1, y2 = self.bbox
             dx, dy = x2-x1, y2-y1
-            self.create_bbox_roi(y1, x1, dy, dx)
+            self.plot_bbox_roi(y1, x1, dy, dx)
         else:
             prev_bbox = (np.nan, np.nan, np.nan, np.nan)
             while not self.bbox_set:
@@ -45,7 +45,7 @@ class PoseGUI(Pose):
                 # plot bbox as ROI
                 x1, x2, y1, y2 = 0,0,0,0#self.bbox
                 dx, dy = x2-x1, y2-y1
-                self.create_bbox_roi(y1, x1, dy, dx)
+                self.plot_bbox_roi(y1, x1, dy, dx)
                 # get user validation
                 qm = QtGui.QMessageBox
                 ret = qm.question(self.parent,'', "Does the suggested ROI match the requirements?", 
@@ -68,8 +68,6 @@ class PoseGUI(Pose):
         Function for user to draw a bbox
         """
         self.bbox_set = False
-        x1, y1 = 0, 0
-        dx, dy = 512, 512
         frame = utils.get_frame(0, self.nframes, self.cumframes, self.containers)[0]  
         frame_grayscale = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
         frame_grayscale_preprocessed = transforms.preprocess_img(frame_grayscale) 
@@ -78,10 +76,12 @@ class PoseGUI(Pose):
         user_selected_ROI = cv2.selectROI(frame_grayscale_preprocessed.squeeze(), from_center, show_crosshair)
         top_x, top_y, bottom_x, bottom_y = user_selected_ROI
         #cv2.SetImageROI(frame_grayscale_preprocessed, user_selected_ROI)
-        self.create_bbox_roi(top_y, top_x, bottom_y, bottom_x, moveable=False, resizable=False)
+        self.plot_bbox_roi(top_y, top_x, bottom_y, bottom_x, moveable=False, resizable=False)
+        cv2.destroyWindow("ROI selector")
+        self.bbox = top_x, top_x+bottom_x, top_y, top_y+bottom_y
         self.bbox_set = True
 
-    def create_bbox_roi(self, y1, x1, dy, dx, moveable=True, resizable=False):
+    def plot_bbox_roi(self, y1, x1, dy, dx, moveable=True, resizable=False):
         self.parent.nROIs += 1
         self.bbox_roi = roi.sROI(rind=4, rtype="bbox", iROI=self.parent.nROIs, moveable=moveable, 
                                     resizable=resizable, parent=self.parent, pos=(y1, x1, dy, dx))
