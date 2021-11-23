@@ -10,6 +10,7 @@ from .. import utils
 from . import UNet_helper_functions as UNet_utils
 from . import unet_torch
 from . import transforms
+from PyQt5 import QtGui 
 
 """
 Base class for generating pose estimates using command line interface.
@@ -92,6 +93,19 @@ class Pose():
                 frame = utils.get_frame(frame_ind, self.nframes, self.cumframes, self.containers)[0]  
                 frame_grayscale = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
                 frame_grayscale_preprocessed = transforms.preprocess_img(frame_grayscale)
+                """
+                #
+                pix = self.convert_nparray_to_QPixmap(frame_grayscale_preprocessed)
+                print("pix", pix)
+                    imgsize = min(image.width(), image.height())
+                rect = QRect(
+                    (image.width() - imgsize) / 2,
+                    (image.height() - imgsize) / 2,
+                    imgsize,
+                    imgsize,
+                )
+                image = image.copy(rect)
+                """
                 im[i,0] = frame_grayscale_preprocessed[0][self.cropped_img_slice]    # used cropped section only
             
             # Network prediction 
@@ -112,7 +126,18 @@ class Pose():
             start = end 
             end += batch_size
         return dataFrame
-        
+
+    def convert_nparray_to_QPixmap(self, img):
+        ch, w, h = img.shape
+        # Convert resulting image to pixmap
+        if img.ndim == 1:
+            img =  cv2.cvtColor(img,cv2.COLOR_GRAY2RGB)
+
+        qimg = QtGui.QImage(img.data, h, w, 3*h, QtGui.QImage.Format_RGB888) 
+        qpixmap = QtGui.QPixmap(qimg)
+
+        return qpixmap  
+
     def save_pose_prediction(self):
         # Save prediction to .h5 file
         basename, filename = os.path.split(self.filenames[0][0])

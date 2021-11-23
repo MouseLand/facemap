@@ -24,20 +24,16 @@ def preprocess_img(im):
     im: ND-array
         preprocessed image of size [1 x Ly x Lx] if input dimensions==2, else [Lz x Ly x Lx]
     """
-    # convert to float32 in the range 0. to 1.
-    if im.dtype == float:
-        pass
-    elif im.dtype == np.uint8:
-        im = im.astype(float)/255.
-    elif im.dtype == np.uint16:
-        im = im.astype(float)/65535.
-    else:
-        print('Cannot handle im type '+str(im.dtype))
-        raise TypeError
-    # Normalize images
-    im = normalize99(im)   
-    if im.ndim < 3:
-        im = im[np.newaxis,...]
+    im = im.astype('uint8') # APT method only
+    if im.ndim == 2:
+        im = im[np.newaxis,np.newaxis,...]
+    # Adjust image contrast
+    im = UNet_helper_functions.clahe_adjust_contrast(im)
+    im = UNet_helper_functions.normalize_mean(im)
+    for i in range(im.shape[0]):
+        im[i,0] = normalize99(im[i,0]) 
+    im = np.squeeze(im, axis=0)
+    print("im", im.shape)
     return im
 
 def get_cropped_imgs(imgs, bbox):

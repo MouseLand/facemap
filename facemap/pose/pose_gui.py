@@ -4,7 +4,10 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 
 from .. import roi
 from .pose import Pose
+from . import transforms
 
+import cv2
+from .. import utils
 """
 Pose subclass for generating pose estimates on GUI involving user validation for bbox.
 Currently supports single video processing only.
@@ -21,6 +24,9 @@ class PoseGUI(Pose):
         y, x, dy, dx =  self.bbox_roi.pos
         self.bbox = x, x+dx, y, y+dy
         print("~~~~~bbox~~~~~~~~~~~", self.bbox)
+        self.bbox = transforms.adjust_bbox(np.array(self.bbox).astype(int), img_yx=(self.Ly[0], self.Lx[0]), 
+                                        div=16, extra=1)
+        print("~~~~~adjusted bbox~~~~~~~~~~~", self.bbox)
         self.parent.poseFilepath = super().run()
         self.plot_pose_estimates()
         print("DONE")
@@ -64,13 +70,21 @@ class PoseGUI(Pose):
         self.bbox_set = False
         x1, y1 = 0, 0
         dx, dy = 512, 512
-        self.create_bbox_roi(y1, x1, dy, dx)
+        frame = utils.get_frame(0, self.nframes, self.cumframes, self.containers)[0]  
+        frame_grayscale = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+        frame_grayscale_preprocessed = transforms.preprocess_img(frame_grayscale) 
+        from_center = False
+        show_crosshair = False
+        user_selected_ROI = cv2.selectROI(frame_grayscale_preprocessed.squeeze(), from_center, show_crosshair)
+        top_x, top_y, bottom_x, bottom_y = user_selected_ROI
+        #cv2.SetImageROI(frame_grayscale_preprocessed, user_selected_ROI)
+        self.create_bbox_roi(top_y, top_x, bottom_y, bottom_x, moveable=False, resizable=False)
         self.bbox_set = True
 
-    def create_bbox_roi(self, y1, x1, dy, dx):
+    def create_bbox_roi(self, y1, x1, dy, dx, moveable=True, resizable=False):
         self.parent.nROIs += 1
-        self.bbox_roi = roi.sROI(rind=4, rtype="bbox", iROI=self.parent.nROIs, moveable=True, 
-                                    resizable=False, parent=self.parent, pos=(y1, x1, dy, dx))
+        self.bbox_roi = roi.sROI(rind=4, rtype="bbox", iROI=self.parent.nROIs, moveable=moveable, 
+                                    resizable=resizable, parent=self.parent, pos=(y1, x1, dy, dx))
         self.parent.ROIs.append(self.bbox_roi)
 
     def plot_pose_estimates(self):

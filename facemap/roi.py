@@ -196,7 +196,9 @@ class sROI():
         sizex, sizey = self.ROI.size()
         xrange = (np.arange(-1 * int(sizex), 1) + int(posx)).astype(np.int32)
         yrange = (np.arange(-1 * int(sizey), 1) + int(posy)).astype(np.int32)
-        self.pos = (posy, posx, yrange, xrange) # get ROI position
+        self.pos = posy, posx, posy+sizey, posx+sizex
+        print("pos", self.pos)
+        #self.pos = (posy, posx, posy+sizey, posx+sizex) # get ROI position
         if self.rind==0 or self.rind==2:
             yrange += int(sizey/2)
         # what is ellipse circling?
