@@ -1,5 +1,6 @@
 import os
 import time
+from tqdm import tqdm
 
 import cv2
 import numpy as np
@@ -17,7 +18,7 @@ Base class for generating pose estimates using command line interface.
 Currently supports single video processing only.
 """
 class Pose():
-    def __init__(self, filenames, bbox_user_validation=False, savepath=None):
+    def __init__(self, filenames, bbox_user_validation=True, savepath=None):
         self.filenames = filenames
         self.cumframes, self.Ly, self.Lx, self.containers = utils.get_frame_details(self.filenames)
         self.nframes = self.cumframes[-1]
@@ -84,39 +85,44 @@ class Pose():
         self.net.eval()
         start = 0
         end = batch_size
-        orig_imgx, orig_imgy = abs(self.bbox[0]-self.bbox[1]), abs(self.bbox[2]-self.bbox[3])
-        dummy_img = np.zeros((orig_imgx, orig_imgy))
-        Xstart, Xstop, Ystart, Ystop, resize = transforms.get_crop_resize_params(dummy_img, 
+        sample_frame = utils.get_frame(0, self.nframes, self.cumframes, self.containers)[0]  
+        Xstart, Xstop, Ystart, Ystop, resize = transforms.get_crop_resize_params(sample_frame, 
                                                                     x_dims=(self.bbox[0], self.bbox[1]), 
                                                                     y_dims=(self.bbox[2], self.bbox[3]))
-        while end != 10: # self.cumframes[-1]:
-            # Pre-pocess images
-            im = np.zeros((batch_size, nchannels, 256, 256))
-            for i, frame_ind in enumerate(np.arange(start,end)):
-                frame = utils.get_frame(frame_ind, self.nframes, self.cumframes, self.containers)[0]  
-                frame_grayscale = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-                frame_grayscale_preprocessed = transforms.preprocess_img(frame_grayscale)
-                im[i,0] = transforms.crop_resize(frame_grayscale_preprocessed.squeeze(), Xstart, 
-                                                Xstop, Ystart, Ystop, resize)
-                #im[i,0] = frame_grayscale_preprocessed[0][self.cropped_img_slice]    # used cropped section only
-            
-            # Network prediction 
-            hm_pred, locref_pred = self.net(torch.tensor(im).to(device=self.net.DEVICE, dtype=torch.float32)) # convert to tensor and send to device
-            del im
-            pose = UNet_utils.argmax_pose_predict_batch(hm_pred.cpu().detach().numpy(), 
-                                                            locref_pred.cpu().detach().numpy(),
-                                                            UNet_utils.STRIDE)
-            # Get adjusted landmarks that fit to original image size
-            landmarks = pose[:,:,:2].squeeze()
-            likelihood = pose[:,:,2].squeeze()
-            del hm_pred, locref_pred
-            Xlabel, Ylabel = transforms.labels_crop_resize(landmarks[:,0], landmarks[:,1], Xstart, Ystart,
-                                                    current_size=(256, 256), 
-                                                    desired_size=(orig_imgx, orig_imgy))
-            im_pred = np.array(list(zip(Xlabel, Ylabel)))
-            dataFrame.iloc[start:end] = im_pred.ravel()
-            start = end 
-            end += batch_size
+        with tqdm(total=self.cumframes[-1], unit='frame', unit_scale=True) as pbar:
+            while end != 5:#self.cumframes[-1]:
+                # Pre-pocess images
+                im = np.zeros((batch_size, nchannels, 256, 256))
+                for i, frame_ind in enumerate(np.arange(start,end)):
+                    frame = utils.get_frame(frame_ind, self.nframes, self.cumframes, self.containers)[0]  
+                    frame_grayscale = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+                    frame_grayscale_preprocessed = transforms.preprocess_img(frame_grayscale)
+                    im[i,0] = transforms.crop_resize(frame_grayscale_preprocessed.squeeze(), Xstart, 
+                                                    Xstop, Ystart, Ystop, resize)
+                
+                # Network prediction 
+                hm_pred, locref_pred = self.net(torch.tensor(im).to(device=self.net.DEVICE, dtype=torch.float32)) # convert to tensor and send to device
+                del im
+                hm_pred = UNet_utils.gaussian_smoothing(hm_pred.cpu(), sigma=2, nms_size=6, sigmoid=True)
+                pose = UNet_utils.argmax_pose_predict_batch(hm_pred.cpu().detach().numpy(), 
+                                                                locref_pred.cpu().detach().numpy(),
+                                                                UNet_utils.STRIDE)
+                # Get adjusted landmarks that fit to original image size
+                landmarks = pose[:,:,:2].squeeze()
+                likelihood = pose[:,:,-1].squeeze()
+                del hm_pred, locref_pred
+                Xlabel, Ylabel = transforms.labels_crop_resize(landmarks[:,0], landmarks[:,1], 
+                                                                Xstart, Ystart,
+                                                                current_size=(256, 256), 
+                                                                desired_size=(self.bbox[3]-self.bbox[2], 
+                                                                            self.bbox[1]-self.bbox[0]))
+                im_pred = np.array(list(zip(Xlabel, Ylabel)))
+                dataFrame.iloc[start:end] = im_pred.ravel()
+                start = end 
+                end += batch_size
+                print(end, self.cumframes[-1])
+                if end%10==0:
+                    pbar.update(end/batch_size*100)
         return dataFrame
 
     def save_pose_prediction(self):

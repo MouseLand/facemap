@@ -154,13 +154,6 @@ def get_crop_resize_params(img, x_dims, y_dims, xy=(256,256)):
             x_pad = x_pad//2 
             Xstart, Xstop = Xstart-x_pad, Xstop+x_pad+1
     
-    # Add padding for cropping before resize
-    if resize:
-        Xstart -= 30 # padding
-        Xstop += 30
-        Ystart -= 30 # padding
-        Ystop += 30
-        
     if Ystop > img.shape[0]:
         Ystart -= (Ystop - img.shape[0])
     if Xstop > img.shape[1]:
@@ -209,10 +202,10 @@ def labels_crop_resize(Xlabel, Ylabel, Xstart, Ystart, current_size, desired_siz
             adjusted y values on new/desired_size of image
     """
     Xlabel, Ylabel = Xlabel.astype(float), Ylabel.astype(float)
-    Xlabel = Xlabel-Xstart
-    Ylabel = Ylabel-Ystart
     Xlabel *= (desired_size[1]/current_size[1])  # x_scale
     Ylabel *= (desired_size[0]/current_size[0])  # y_scale
+    Xlabel = Xlabel+Xstart
+    Ylabel = Ylabel+Ystart
     return Xlabel, Ylabel
 
 def adjust_bbox(prev_bbox, img_yx, div=16, extra=1):

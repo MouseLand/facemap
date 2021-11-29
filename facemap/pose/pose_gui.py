@@ -8,6 +8,7 @@ from . import transforms
 
 import cv2
 from .. import utils
+import time
 """
 Pose subclass for generating pose estimates on GUI involving user validation for bbox.
 Currently supports single video processing only.
@@ -21,15 +22,13 @@ class PoseGUI(Pose):
 
     def run(self):
         # Get bbox coordinates   
-        y, x, dy, dx =  self.bbox_roi.pos
-        self.bbox = x, x+dx, y, y+dy
-        print("~~~~~bbox~~~~~~~~~~~", self.bbox)
-        self.bbox = transforms.adjust_bbox(np.array(self.bbox).astype(int), img_yx=(self.Ly[0], self.Lx[0]), 
-                                        div=16, extra=1)
-        print("~~~~~adjusted bbox~~~~~~~~~~~", self.bbox)
+        #y, x, dy, dx =  self.bbox_roi.pos
+        #self.bbox = x, x+dx, y, y+dy
+        t0 = time.time()
         self.parent.poseFilepath = super().run()
         self.plot_pose_estimates()
         print("~~~~~~~~~~~~~~~~~~~~~DONE~~~~~~~~~~~~~~~~~~~~~")
+        print("Time taken:", time.time()-t0)
 
     def draw_suggested_bbox(self):
         if self.bbox_set:
@@ -80,6 +79,7 @@ class PoseGUI(Pose):
         cv2.destroyWindow("ROI selector")
         self.bbox = top_x, top_x+bottom_x, top_y, top_y+bottom_y
         self.bbox_set = True
+        print("user selected bbox:", self.bbox)
 
     def plot_bbox_roi(self, y1, x1, dy, dx, moveable=True, resizable=False):
         self.parent.nROIs += 1
