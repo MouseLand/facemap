@@ -60,7 +60,10 @@ class Pose():
         scorer = "Facemap" 
         bodyparts = self.net.labels_id 
         nchannels = 1
-        batch_size = 2
+        if self.device == 'cpu':
+            batch_size = 2
+        else:
+            batch_size = 16
 
         # Create an empty dataframe
         for index, bodypart in enumerate(bodyparts):
@@ -82,9 +85,9 @@ class Pose():
         end = batch_size
         Xstart, Xstop, Ystart, Ystop, resize = self.bbox
         with tqdm(total=self.cumframes[-1], unit='frame', unit_scale=True) as pbar:
-            while end != 10+batch_size:#self.cumframes[-1]:
+            while start != self.cumframes[-1]:#
                 # Pre-pocess images
-                im = np.zeros((batch_size, nchannels, 256, 256))
+                im = np.zeros((end-start, nchannels, 256, 256))
                 for i, frame_ind in enumerate(np.arange(start,end)):
                     frame = utils.get_frame(frame_ind, self.nframes, self.cumframes, self.containers)[0]  
                     frame_grayscale = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
@@ -115,6 +118,7 @@ class Pose():
                     pbar.update(batch_size)
                 start = end 
                 end += batch_size
+                end = min(end, self.cumframes[-1])
         return dataFrame
 
     def save_pose_prediction(self):
@@ -143,6 +147,7 @@ class Pose():
         else:
             cpu_is_device = True
         net.load_model(model_file, cpu=cpu_is_device)
+        net.to(self.device)
         print("Using cpu as device:", cpu_is_device)
         return net
 
