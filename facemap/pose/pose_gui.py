@@ -16,14 +16,12 @@ Currently supports single video processing only.
 class PoseGUI(Pose):
     def __init__(self, parent=None):
         self.parent = parent
-        super().__init__(self.parent.filenames, bbox_user_validation=True)
+        if self.parent is not None:
+            super().__init__(self.parent.filenames)
         if self.bbox is None:
-            self.draw_user_box() #draw_suggested_bbox()  
+            self.draw_user_bbox() #draw_suggested_bbox()  
 
     def run(self):
-        # Get bbox coordinates   
-        #y, x, dy, dx =  self.bbox_roi.pos
-        #self.bbox = x, x+dx, y, y+dy
         t0 = time.time()
         self.parent.poseFilepath = super().run()
         self.plot_pose_estimates()
@@ -62,7 +60,7 @@ class PoseGUI(Pose):
                     del self.bbox_roi
 
     # Draw box on GUI using user's input
-    def draw_user_box(self):
+    def draw_user_bbox(self):
         """
         Function for user to draw a bbox
         """
@@ -74,15 +72,26 @@ class PoseGUI(Pose):
         show_crosshair = False
         user_selected_ROI = cv2.selectROI(frame_grayscale_preprocessed.squeeze(), from_center, show_crosshair)
         top_x, top_y, bottom_x, bottom_y = user_selected_ROI
-        #cv2.SetImageROI(frame_grayscale_preprocessed, user_selected_ROI)
-        self.plot_bbox_roi(top_y, top_x, bottom_y, bottom_x, moveable=False, resizable=False)
-        cv2.destroyWindow("ROI selector")
-        self.bbox = top_x, top_x+bottom_x, top_y, top_y+bottom_y
-        self.bbox_set = True
+        resize = False
+        self.bbox = top_x, top_x+bottom_x, top_y, top_y+bottom_y, resize
         print("user selected bbox:", self.bbox)
+        self.plot_bbox_roi(moveable=False, resizable=False)
+        cv2.destroyWindow("ROI selector")
 
-    def plot_bbox_roi(self, y1, x1, dy, dx, moveable=True, resizable=False):
+    def set_bbox_params(self):
+        sample_frame = utils.get_frame(0, self.nframes, self.cumframes, self.containers)[0]  
+        x1, x2, y1, y2, resize = transforms.get_crop_resize_params(sample_frame, 
+                                                                    x_dims=(self.bbox[0], self.bbox[1]), 
+                                                                    y_dims=(self.bbox[2], self.bbox[3]))
+        self.bbox = x1, x2, y1, y2, resize
+        self.bbox_set = True
+        print("user selected bbox after adjustment:", self.bbox)
+
+    def plot_bbox_roi(self, moveable=True, resizable=False):
+        self.set_bbox_params()
         self.parent.nROIs += 1
+        x1, x2, y1, y2, _ = self.bbox
+        dy, dx = y2-y1, x2-x1
         self.bbox_roi = roi.sROI(rind=4, rtype="bbox", iROI=self.parent.nROIs, moveable=moveable, 
                                     resizable=resizable, parent=self.parent, pos=(y1, x1, dy, dx))
         self.parent.ROIs.append(self.bbox_roi)

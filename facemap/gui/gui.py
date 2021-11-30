@@ -253,14 +253,14 @@ class MainW(QtGui.QMainWindow):
         self.saverois.setEnabled(False)
 
         # Pose/labels variables
-        self.poseEstimatesButton = QtGui.QPushButton("Run tracker")
-        self.poseEstimatesButton.setFont(QtGui.QFont("Arial", 10, QtGui.QFont.Bold))
-        self.poseEstimatesButton.clicked.connect(self.get_pose_labels)
-        self.poseEstimatesButton.setEnabled(False)
         self.poseBboxButton = QtGui.QPushButton("Set pose bbox")
         self.poseBboxButton.setFont(QtGui.QFont("Arial", 10, QtGui.QFont.Bold))
         self.poseBboxButton.clicked.connect(self.set_pose_bbox)
         self.poseBboxButton.setEnabled(False)
+        self.poseEstimatesButton = QtGui.QPushButton("Run tracker")
+        self.poseEstimatesButton.setFont(QtGui.QFont("Arial", 10, QtGui.QFont.Bold))
+        self.poseEstimatesButton.clicked.connect(self.get_pose_labels)
+        self.poseEstimatesButton.setEnabled(False)
         self.loadPose = QtGui.QPushButton("Load pose data")
         self.loadPose.setFont(QtGui.QFont("Arial", 10, QtGui.QFont.Bold))
         self.loadPose.clicked.connect(lambda: io.get_pose_file(parent=self))
@@ -305,7 +305,7 @@ class MainW(QtGui.QMainWindow):
         btns.addButton(self.pauseButton,1)
         btns.setExclusive(True)
 
-        # Add ROI features
+        # Create ROI features
         self.comboBox = QtGui.QComboBox(self)
         self.comboBox.setFixedWidth(100)
         self.comboBox.addItem("Select ROI")
@@ -362,6 +362,7 @@ class MainW(QtGui.QMainWindow):
         self.movSVD_checkbox.setStyleSheet("color: gray;")
 
         # Add features to window
+        # ~~~~~~~~~~ motsvd/movsvd options ~~~~~~~~~~
         self.l0.addWidget(VideoLabel,0,0,1,2)
         self.l0.addWidget(self.comboBox,1,0,1,2)
         self.l0.addWidget(self.addROI,1,1,1,1)
@@ -377,18 +378,21 @@ class MainW(QtGui.QMainWindow):
         self.l0.addWidget(self.saverois, 7, 0, 1, 1)
         self.l0.addWidget(self.process,  7, 1, 1, 1)
         self.l0.addWidget(self.processbatch, 8, 0, 1, 1)
-
+        # ~~~~~~~~~~ Save/file IO ~~~~~~~~~~
         self.l0.addWidget(self.savefolder, 8, 1, 1, 1)
         self.l0.addWidget(self.savelabel, 9, 0, 1, 2)
-        self.l0.addWidget(self.poseEstimatesButton, 10, 0, 1, 1)                    # Pose features
-        self.l0.addWidget(self.poseBboxButton, 10, 1, 1, 1)                    # Pose features
-        self.l0.addWidget(self.loadPose, 11, 0, 1, 1)                    # Pose features
-        self.l0.addWidget(self.Labels_checkBox, 11, 1, 1, 1)        
-        self.l0.addWidget(self.clusteringVisComboBox, 0, 11, 1, 1)      # clustering visualization window features
-        self.l0.addWidget(self.data_clustering_combobox, 0, 12, 1, 2)      # clustering visualization window features
-        self.l0.addWidget(self.roiVisComboBox, 0, 12, 1, 2)              # ROI visualization window features
-        self.l0.addWidget(self.run_clustering_button, 0, 14, 1, 1)      # clustering visualization window features
-        self.l0.addWidget(self.save_clustering_button, 0, 15, 1, 1)      # clustering visualization window features
+        # ~~~~~~~~~~ Pose features ~~~~~~~~~~ 
+        self.l0.addWidget(self.poseBboxButton, 10, 0, 1, 1)                
+        self.l0.addWidget(self.poseEstimatesButton, 10, 1, 1, 1)          
+        self.l0.addWidget(self.loadPose, 11, 0, 1, 1)                    
+        self.l0.addWidget(self.Labels_checkBox, 11, 1, 1, 1)     
+        # ~~~~~~~~~~ clustering & ROI visualization window features   
+        self.l0.addWidget(self.clusteringVisComboBox, 0, 11, 1, 1)      
+        self.l0.addWidget(self.data_clustering_combobox, 0, 12, 1, 2)      
+        self.l0.addWidget(self.roiVisComboBox, 0, 12, 1, 2)             
+        self.l0.addWidget(self.run_clustering_button, 0, 14, 1, 1)     
+        self.l0.addWidget(self.save_clustering_button, 0, 15, 1, 1)    
+        #   ~~~~~~~~~~ Video playback ~~~~~~~~~~
         self.l0.addWidget(self.playButton,iplay,0,1,1)
         self.l0.addWidget(self.pauseButton,iplay,1,1,1)
         self.playButton.setEnabled(False)
@@ -402,7 +406,7 @@ class MainW(QtGui.QMainWindow):
         self.l0.addWidget(self.totalFrameNumber, istretch+8,1,1,1)
         self.l0.addWidget(self.frameSlider, istretch+10,2,1,15)
 
-        # plotting boxes
+        # plotting checkboxes
         pl = QtGui.QLabel("Plot 1")
         pl.setStyleSheet("color: gray;")
         self.l0.addWidget(pl, istretch, 0, 1, 1)
@@ -604,12 +608,11 @@ class MainW(QtGui.QMainWindow):
     def load_labels(self):
         # Read Pose file
         self.Pose_data = pd.read_hdf(self.poseFilepath, 'df_with_missing')
-        all_labels = self.Pose_data.columns.get_level_values("bodyparts")
-        self.keypoints_labels = [all_labels[i] for i in sorted(np.unique(all_labels, return_index=True)[1])]
+        self.keypoints_labels = pd.unique(self.Pose_data.columns.get_level_values("bodyparts"))
         self.pose_x_coord = self.Pose_data.T[self.Pose_data.columns.get_level_values("coords").values=="x"].values #size: key points x frames
         self.pose_y_coord = self.Pose_data.T[self.Pose_data.columns.get_level_values("coords").values=="y"].values #size: key points x frames
         self.pose_likelihood = self.Pose_data.T[self.Pose_data.columns.get_level_values("coords").values=="likelihood"].values #size: key points x frames
-        # Choose colors for each label: provide option for color blindness as well
+        # Choose colors for each label: provide option for paltter that is color-blindness friendly
         self.colors = cm.get_cmap('gist_rainbow')(np.linspace(0, 1., len(self.keypoints_labels)))
         self.colors *= 255
         self.colors = self.colors.astype(int)
@@ -626,7 +629,7 @@ class MainW(QtGui.QMainWindow):
             x = self.pose_x_coord[filtered_keypoints,self.cframe]
             y = self.pose_y_coord[filtered_keypoints,self.cframe]
             self.Pose_scatterplot.setData(x, y, size=10, symbol='o', brush=self.brushes[filtered_keypoints],
-                                             hoverable=True, hoverSize=10)
+                                             hoverable=True, hoverSize=10, data=self.keypoints_labels[filtered_keypoints])
         elif not self.poseFileLoaded and self.Labels_checkBox.isChecked():
             self.update_status_bar("Please upload a pose (*.h5) file")
         else:
@@ -644,7 +647,7 @@ class MainW(QtGui.QMainWindow):
             vb = self.Pose_scatterplot.getViewBox()
             if vb is not None and self.Pose_scatterplot.opts['tip'] is not None:
                 cutoff = 1                      # Display info of only one point when hovering over multiple points
-                tip = [self.Pose_scatterplot.opts['tip'](data = self.keypoints_labels[pt],x=points[pt].pos().x(), y=points[pt].pos().y())
+                tip = [self.Pose_scatterplot.opts['tip'](data=points[pt].data(), x=points[pt].pos().x(), y=points[pt].pos().y())
                         for pt in point_hovered[:cutoff]]
                 if len(point_hovered) > cutoff:
                     tip.append('({} other...)'.format(len(point_hovered) - cutoff))
@@ -1033,10 +1036,5 @@ def run(moviefile=None,savedir=None):
     app_icon.addFile(icon_path, QtCore.QSize(256, 256))
     app.setWindowIcon(app_icon)
     GUI = MainW(moviefile,savedir)
-    #p = GUI.palette()
     ret = app.exec_()
-    # GUI.save_gui_data()
     sys.exit(ret)
-
-
-# run()

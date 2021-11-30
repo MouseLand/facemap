@@ -12,13 +12,14 @@ from . import UNet_helper_functions as UNet_utils
 from . import unet_torch
 from . import transforms
 from PyQt5 import QtGui 
+from . import pose_gui
 
 """
 Base class for generating pose estimates using command line interface.
 Currently supports single video processing only.
 """
 class Pose():
-    def __init__(self, filenames, bbox_user_validation=True, savepath=None):
+    def __init__(self, filenames=None, savepath=None):
         self.filenames = filenames
         self.cumframes, self.Ly, self.Lx, self.containers = utils.get_frame_details(self.filenames)
         self.nframes = self.cumframes[-1]
@@ -27,17 +28,11 @@ class Pose():
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         self.net = self.load_model()
         self.savepath = savepath
-
-        if not bbox_user_validation:
-            self.bbox = np.round(self.estimate_bbox_region((np.nan, np.nan, np.nan, np.nan))).astype(int)
-            self.bbox_set = True
-        else:
-            self.bbox = None
-            self.bbox_set = False
+        self.bbox = None
 
     def run(self, save=True):
-        #self.cropped_img_slice = self.get_img_slice()
         # Predict and save pose
+        self.set_bbox_params()
         self.dataFrame = self.predict_landmarks()
         if save:
             self.savepath = self.save_pose_prediction()
@@ -85,10 +80,7 @@ class Pose():
         self.net.eval()
         start = 0
         end = batch_size
-        sample_frame = utils.get_frame(0, self.nframes, self.cumframes, self.containers)[0]  
-        Xstart, Xstop, Ystart, Ystop, resize = transforms.get_crop_resize_params(sample_frame, 
-                                                                    x_dims=(self.bbox[0], self.bbox[1]), 
-                                                                    y_dims=(self.bbox[2], self.bbox[3]))
+        Xstart, Xstop, Ystart, Ystop, resize = self.bbox
         with tqdm(total=self.cumframes[-1], unit='frame', unit_scale=True) as pbar:
             while end != 10+batch_size:#self.cumframes[-1]:
                 # Pre-pocess images
@@ -132,11 +124,6 @@ class Pose():
         poseFilepath = os.path.join(basename, videoname+"_FacemapPose.h5")
         self.dataFrame.to_hdf(poseFilepath, "df_with_missing", mode="w")
         return poseFilepath  
-    
-    def get_img_slice(self):
-        x1, x2, y1, y2 = self.bbox
-        slc = [slice(y1, y2), slice(x1, x2)]   # slice img_y and img_x
-        return slc
         
     def load_model(self):
         """
