@@ -146,8 +146,8 @@ class MainW(QtGui.QMainWindow):
         
         ## Pose plot
         self.Pose_scatterplot = pg.ScatterPlotItem(hover=True)
-        self.Pose_scatterplot.sigClicked.connect(self.DLC_points_clicked)
-        self.Pose_scatterplot.sigHovered.connect(self.DLC_points_hovered)
+        self.Pose_scatterplot.sigClicked.connect(self.keypoints_clicked)
+        self.Pose_scatterplot.sigHovered.connect(self.keypoints_hovered)
         self.make_buttons()
         
         self.ClusteringPlot = self.win.addPlot(row=0, col=1, lockAspect=True, enableMouse=False)
@@ -517,7 +517,7 @@ class MainW(QtGui.QMainWindow):
         self.cluster_model.disable_data_clustering_features(self)
         self.clusteringVisComboBox.setCurrentIndex(0)
         self.ClusteringPlot.clear()
-        # Clear DLC variables when a new file is loaded
+        # Clear keypoints when a new file is loaded
         self.Pose_scatterplot.clear()
         #self.p0.clear()
         self.poseFileLoaded = False
@@ -608,7 +608,7 @@ class MainW(QtGui.QMainWindow):
         self.keypoints_labels = [all_labels[i] for i in sorted(np.unique(all_labels, return_index=True)[1])]
         self.pose_x_coord = self.Pose_data.T[self.Pose_data.columns.get_level_values("coords").values=="x"].values #size: key points x frames
         self.pose_y_coord = self.Pose_data.T[self.Pose_data.columns.get_level_values("coords").values=="y"].values #size: key points x frames
-        #self.pose_likelihood = self.Pose_data.T[self.Pose_data.columns.get_level_values("coords").values=="likelihood"].values #size: key points x frames
+        self.pose_likelihood = self.Pose_data.T[self.Pose_data.columns.get_level_values("coords").values=="likelihood"].values #size: key points x frames
         # Choose colors for each label: provide option for color blindness as well
         self.colors = cm.get_cmap('gist_rainbow')(np.linspace(0, 1., len(self.keypoints_labels)))
         self.colors *= 255
@@ -621,10 +621,11 @@ class MainW(QtGui.QMainWindow):
             self.statusBar.clearMessage()
             self.p0.addItem(self.Pose_scatterplot)
             self.p0.setRange(xRange=(0,self.LX), yRange=(0,self.LY), padding=0.0)
-            #filtered_keypoints = np.where(self.pose_likelihood[:,self.cframe] > 0.9)[0]
-            x = self.pose_x_coord[:,self.cframe]#[filtered_keypoints,self.cframe]
-            y = self.pose_y_coord[:,self.cframe]#[filtered_keypoints,self.cframe]
-            self.Pose_scatterplot.setData(x, y, size=10, symbol='o', brush=self.brushes,
+            threshold = np.nanpercentile(self.pose_likelihood, 10) # Determine threshold
+            filtered_keypoints = np.where(self.pose_likelihood[:,self.cframe] > threshold)[0]
+            x = self.pose_x_coord[filtered_keypoints,self.cframe]
+            y = self.pose_y_coord[filtered_keypoints,self.cframe]
+            self.Pose_scatterplot.setData(x, y, size=10, symbol='o', brush=self.brushes[filtered_keypoints],
                                              hoverable=True, hoverSize=10)
         elif not self.poseFileLoaded and self.Labels_checkBox.isChecked():
             self.update_status_bar("Please upload a pose (*.h5) file")
@@ -632,11 +633,11 @@ class MainW(QtGui.QMainWindow):
             self.statusBar.clearMessage()
             self.Pose_scatterplot.clear()
 
-    def DLC_points_clicked(self, obj, points):
+    def keypoints_clicked(self, obj, points):
         ## Can add functionality for clicking key points
         return ""
 
-    def DLC_points_hovered(self, obj, ev):
+    def keypoints_hovered(self, obj, ev):
         point_hovered = np.where(self.Pose_scatterplot.data['hovered'])[0]
         if point_hovered.shape[0] >= 1:         # Show tooltip only when hovering over a point i.e. no empty array
             points = self.Pose_scatterplot.points()
@@ -857,7 +858,7 @@ class MainW(QtGui.QMainWindow):
             files = self.batchlist
             for f in files:
                 proc = np.load(f, allow_pickle=True).item()
-                savename = process.run(proc['filenames'], GUIobject=QtGui, parent=self, proc=proc, savepath=proc['save_path'])
+                savename = process.run(proc['filenames'], GUIobject=QtGui, proc=proc, savepath=proc['save_path'])
             if len(files)==1:
                 io.open_proc(self, file_name=savename)
         else:

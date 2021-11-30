@@ -65,12 +65,12 @@ class Pose():
         scorer = "Facemap" 
         bodyparts = self.net.labels_id 
         nchannels = 1
-        batch_size = 1
+        batch_size = 2
 
         # Create an empty dataframe
         for index, bodypart in enumerate(bodyparts):
             columnindex = pd.MultiIndex.from_product(
-                [[scorer], [bodypart], ["x", "y"]],#"likelihood" 
+                [[scorer], [bodypart], ["x", "y","likelihood"]],
                 names=["scorer", "bodyparts", "coords"])
             frame = pd.DataFrame(
                                 np.nan,
@@ -90,7 +90,7 @@ class Pose():
                                                                     x_dims=(self.bbox[0], self.bbox[1]), 
                                                                     y_dims=(self.bbox[2], self.bbox[3]))
         with tqdm(total=self.cumframes[-1], unit='frame', unit_scale=True) as pbar:
-            while end != 5:#self.cumframes[-1]:
+            while end != 10+batch_size:#self.cumframes[-1]:
                 # Pre-pocess images
                 im = np.zeros((batch_size, nchannels, 256, 256))
                 for i, frame_ind in enumerate(np.arange(start,end)):
@@ -111,18 +111,18 @@ class Pose():
                 landmarks = pose[:,:,:2].squeeze()
                 likelihood = pose[:,:,-1].squeeze()
                 del hm_pred, locref_pred
-                Xlabel, Ylabel = transforms.labels_crop_resize(landmarks[:,0], landmarks[:,1], 
+                Xlabel, Ylabel = transforms.labels_crop_resize(landmarks[:,:,0], landmarks[:,:,1], 
                                                                 Xstart, Ystart,
                                                                 current_size=(256, 256), 
                                                                 desired_size=(self.bbox[3]-self.bbox[2], 
                                                                             self.bbox[1]-self.bbox[0]))
-                im_pred = np.array(list(zip(Xlabel, Ylabel)))
-                dataFrame.iloc[start:end] = im_pred.ravel()
+                dataFrame.iloc[start:end,::3] = Xlabel
+                dataFrame.iloc[start:end,1::3] = Ylabel
+                dataFrame.iloc[start:end,2::3] = likelihood
+                if end%2==0:
+                    pbar.update(batch_size)
                 start = end 
                 end += batch_size
-                print(end, self.cumframes[-1])
-                if end%10==0:
-                    pbar.update(end/batch_size*100)
         return dataFrame
 
     def save_pose_prediction(self):
