@@ -81,7 +81,7 @@ class Cluster():
         parent.num_clusters.setFixedWidth(50)
         parent.num_clusters.setText(str(5))
 
-        istretch = 11
+        istretch = 12
         parent.l0.addWidget(parent.ClusteringLabel, istretch, 0, 1, 2)
         parent.l0.addWidget(parent.min_dist_label, istretch+1, 0, 1, 1)
         parent.l0.addWidget(parent.min_dist_value, istretch+1, 1, 1, 1)
@@ -162,6 +162,8 @@ class Cluster():
     def disable_data_clustering_features(self, parent):
         parent.data_clustering_combobox.hide()
         parent.ClusteringPlot.clear()
+        parent.zoom_in_button.hide()
+        parent.zoom_out_button.hide()
         self.hide_umap_param(parent)
         parent.run_clustering_button.hide()
         parent.save_clustering_button.hide()
@@ -180,6 +182,8 @@ class Cluster():
         parent.hdbscan_radiobutton.show()
         self.show_cluster_method_param(parent)
         parent.load_umap_embedding_button.show()
+        parent.zoom_in_button.show()
+        parent.zoom_out_button.show()
 
     def hide_umap_param(self, parent):
         parent.ClusteringLabel.hide()
@@ -339,6 +343,13 @@ class Cluster():
 
         # Plot output (i) w/ cluster labels (ii) w/o  cluster labels and (iii) 3D output
         if num_comps == 2:
+            # Set pixel size of embedded points on plot
+            if self.embedded_output.shape[0]<500:
+                point_size=6 
+            elif self.embedded_output.shape[0]<2000:
+                point_size=4 
+            else:
+                point_size=2 
             if is_cluster_colored:
                 scatter_plots = []
                 if max(self.cluster_labels) > 4: #Adjust legend
@@ -360,14 +371,20 @@ class Cluster():
                     parent.ClusteringPlot.addItem(scatter_plots[i])
                     parent.ClusteringPlot_legend.addItem(scatter_plots[i], name=str(i))
                 # Add all points (transparent) to connect them to hovered function
-                parent.clustering_scatterplot.setData(self.embedded_output[:,0], self.embedded_output[:,1], symbol='o', brush=(0,0,0,0),
-                                                hoverable=True, hoverSize=15, pen=(0,0,0,0), data=np.arange(num_feat),name=name)
+                print("points", )
+                parent.clustering_scatterplot.setData(self.embedded_output[:,0], self.embedded_output[:,1], symbol='o',
+                                                 brush=(0,0,0,0),pxMode=True, hoverable=True, hoverSize=15,
+                                                  hoverSymbol="+", hoverBrush='r',pen=(0,0,0,0),
+                                                   data=np.arange(num_feat), name=name,size=point_size)
                 parent.ClusteringPlot.addItem(parent.clustering_scatterplot)
                 parent.ClusteringPlot_legend.setPos(parent.clustering_scatterplot.x()+5,parent.clustering_scatterplot.y())
                 parent.ClusteringPlot_legend.setParentItem(parent.ClusteringPlot)
             else:
-                parent.clustering_scatterplot.setData(self.embedded_output[:,0], self.embedded_output[:,1], symbol='o', brush=all_spots_colors,
-                                                hoverable=True, hoverSize=15, data=np.arange(num_feat),name=name)
+                print("points", self.embedded_output.shape[0])
+                parent.clustering_scatterplot.setData(self.embedded_output[:,0], self.embedded_output[:,1], symbol='o',
+                                                     brush=all_spots_colors,pxMode=True,hoverable=True, 
+                                                     hoverSize=15, hoverSymbol="+",hoverBrush='r',
+                                                     data=np.arange(num_feat),name=name, size=point_size)
                 parent.ClusteringPlot.addItem(parent.clustering_scatterplot)
             parent.ClusteringPlot.showAxis('left')
             parent.ClusteringPlot.showAxis('bottom')

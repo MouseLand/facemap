@@ -1,5 +1,7 @@
 import os
 import time
+
+from numpy.core.fromnumeric import cumprod
 from tqdm import tqdm
 
 import cv2
@@ -134,8 +136,8 @@ class Pose():
         Load pre-trained UNet model for labels prediction 
         """
         # Replace following w/ a function that downloads model from a server
-        model_file = "/Users/Atika/Neuroverse/Janelia/facemap-mac/model_state.pt" 
-        model_params_file = "/Users/Atika/Neuroverse/Janelia/facemap-mac/model_params.pth"  
+        model_file = "/home/stringlab/Facemap/facemap/facemap/model_state.pt" 
+        model_params_file = "/home/stringlab/Facemap/facemap/facemap/model_params.pth"  
         model_params = torch.load(model_params_file)
         self.bodyparts = model_params['landmarks'] 
         kernel_size = 3

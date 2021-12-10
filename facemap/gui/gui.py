@@ -148,7 +148,6 @@ class MainW(QtGui.QMainWindow):
         self.Pose_scatterplot = pg.ScatterPlotItem(hover=True)
         self.Pose_scatterplot.sigClicked.connect(self.keypoints_clicked)
         self.Pose_scatterplot.sigHovered.connect(self.keypoints_hovered)
-        self.make_buttons()
         
         self.ClusteringPlot = self.win.addPlot(row=0, col=1, lockAspect=True, enableMouse=False)
         self.ClusteringPlot.hideAxis('left')
@@ -186,6 +185,7 @@ class MainW(QtGui.QMainWindow):
         self.progressBar.setGeometry(0, 0, 300, 25)
         self.progressBar.setMaximum(100)
         self.progressBar.hide()
+        self.make_buttons()
 
     def set_saturation_label(self):
         self.saturationLevelLabel.setText(str(self.sl[0].value()))
@@ -345,6 +345,14 @@ class MainW(QtGui.QMainWindow):
         self.data_clustering_combobox = QtGui.QComboBox(self)
         self.data_clustering_combobox.setFixedWidth(100)
         self.data_clustering_combobox.hide()
+        self.zoom_in_button = QtGui.QPushButton('+')
+        self.zoom_in_button.setMaximumWidth(0.3*self.data_clustering_combobox.width())    
+        self.zoom_in_button.clicked.connect(lambda clicked: self.cluster_plot_zoom_buttons("in"))
+        self.zoom_in_button.hide()
+        self.zoom_out_button = QtGui.QPushButton('-')
+        self.zoom_out_button.setMaximumWidth(0.3*self.data_clustering_combobox.width())    
+        self.zoom_out_button.clicked.connect(lambda clicked: self.cluster_plot_zoom_buttons("out"))
+        self.zoom_out_button.hide()
 
         # Check boxes
         self.checkBox = QtGui.QCheckBox("multivideo SVD")
@@ -389,7 +397,9 @@ class MainW(QtGui.QMainWindow):
         # ~~~~~~~~~~ clustering & ROI visualization window features   
         self.l0.addWidget(self.clusteringVisComboBox, 0, 11, 1, 1)      
         self.l0.addWidget(self.data_clustering_combobox, 0, 12, 1, 2)      
-        self.l0.addWidget(self.roiVisComboBox, 0, 12, 1, 2)             
+        self.l0.addWidget(self.roiVisComboBox, 0, 12, 1, 2) 
+        self.l0.addWidget(self.zoom_in_button, 0, 12, 1, 1)
+        self.l0.addWidget(self.zoom_out_button, 0, 13, 1, 1)                    
         self.l0.addWidget(self.run_clustering_button, 0, 14, 1, 1)     
         self.l0.addWidget(self.save_clustering_button, 0, 15, 1, 1)    
         #   ~~~~~~~~~~ Video playback ~~~~~~~~~~
@@ -467,6 +477,15 @@ class MainW(QtGui.QMainWindow):
         self.ClusteringPlot.removeItem(self.clustering_scatterplot)
         self.ClusteringPlot_legend.setParentItem(None)
         self.ClusteringPlot_legend.hide()
+
+    def cluster_plot_zoom_buttons(self, in_or_out):
+        """
+        see ViewBox.scaleBy()
+        pyqtgraph wheel zoom is s = ~0.75
+        """
+        s = 0.9
+        zoom = (s, s) if in_or_out == "in" else (1/s, 1/s)
+        self.ClusteringPlot.vb.scaleBy(zoom)
 
     def update_ROI_vis_comboBox(self):
         """
@@ -624,12 +643,13 @@ class MainW(QtGui.QMainWindow):
             self.statusBar.clearMessage()
             self.p0.addItem(self.Pose_scatterplot)
             self.p0.setRange(xRange=(0,self.LX), yRange=(0,self.LY), padding=0.0)
-            threshold = np.nanpercentile(self.pose_likelihood, 10) # Determine threshold
+            threshold = np.nanpercentile(self.pose_likelihood, 30) # Determine threshold
             filtered_keypoints = np.where(self.pose_likelihood[:,self.cframe] > threshold)[0]
             x = self.pose_x_coord[filtered_keypoints,self.cframe]
             y = self.pose_y_coord[filtered_keypoints,self.cframe]
             self.Pose_scatterplot.setData(x, y, size=10, symbol='o', brush=self.brushes[filtered_keypoints],
-                                             hoverable=True, hoverSize=10, data=self.keypoints_labels[filtered_keypoints])
+                                             hoverable=True, hoverSize=10, 
+                                             data=self.keypoints_labels[filtered_keypoints])
         elif not self.poseFileLoaded and self.Labels_checkBox.isChecked():
             self.update_status_bar("Please upload a pose (*.h5) file")
         else:
