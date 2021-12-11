@@ -364,14 +364,15 @@ class Cluster():
                     data = self.embedded_output[ind,:]
                     if cluster == -1:
                         scatter_plots.append(pg.ScatterPlotItem(data[:,0], data[:,1], symbol='o', brush=pg.mkBrush(color=(0,1,1,1)),
-                                            hoverable=True, hoverSize=15, pen=(0,.0001,0,0), data=ind, name=str(i))) #pg.mkPen(pg.hsvColor(hue=.01,sat=.01,alpha=0.01))
+                                            hoverable=True, hoverSize=15, hoverSymbol="+", hoverBrush='r',
+                                            pen=(0,.0001,0,0), data=ind, name=str(i)),size=point_size) #pg.mkPen(pg.hsvColor(hue=.01,sat=.01,alpha=0.01))
                     else:
                         scatter_plots.append(pg.ScatterPlotItem(data[:,0], data[:,1], symbol='o', brush=brushes[i],
-                                            hoverable=True, hoverSize=15, data=ind, name=str(i)))
+                                            hoverable=True, hoverSize=15, hoverSymbol="+", hoverBrush='r',
+                                            data=ind, name=str(i), size=point_size))
                     parent.ClusteringPlot.addItem(scatter_plots[i])
                     parent.ClusteringPlot_legend.addItem(scatter_plots[i], name=str(i))
                 # Add all points (transparent) to connect them to hovered function
-                print("points", )
                 parent.clustering_scatterplot.setData(self.embedded_output[:,0], self.embedded_output[:,1], symbol='o',
                                                  brush=(0,0,0,0),pxMode=True, hoverable=True, hoverSize=15,
                                                   hoverSymbol="+", hoverBrush='r',pen=(0,0,0,0),
@@ -380,7 +381,6 @@ class Cluster():
                 parent.ClusteringPlot_legend.setPos(parent.clustering_scatterplot.x()+5,parent.clustering_scatterplot.y())
                 parent.ClusteringPlot_legend.setParentItem(parent.ClusteringPlot)
             else:
-                print("points", self.embedded_output.shape[0])
                 parent.clustering_scatterplot.setData(self.embedded_output[:,0], self.embedded_output[:,1], symbol='o',
                                                      brush=all_spots_colors,pxMode=True,hoverable=True, 
                                                      hoverSize=15, hoverSymbol="+",hoverBrush='r',
