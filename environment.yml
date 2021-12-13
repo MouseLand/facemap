@@ -7,18 +7,16 @@ dependencies:
   - numpy>=1.16
   - numba>=0.43.1
   - scipy
-#  - pyqt
+  - pyqt
   - hdbscan
   - pytables
   - pip:
     - pyqtgraph==0.12.0
-#    - pyqt
     - pyqt5
     - torch>=1.9
     - matplotlib
     - natsort
-    - opencv-python==3.4.11.41
-#opencv_python_headless
+    - opencv_python_headless
     - tqdm
     - umap-learn
     - pandas
