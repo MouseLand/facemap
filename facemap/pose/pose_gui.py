@@ -70,51 +70,30 @@ class PoseGUI(Pose):
         Function for user to draw a bbox
         """
         self.bbox_set = False
-        """
-        frame = utils.get_frame(0, self.nframes, self.cumframes, self.containers)[0]  
-        frame_grayscale = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-        frame_grayscale_preprocessed = transforms.preprocess_img(frame_grayscale) 
-        from_center = False
-        show_crosshair = False
-        user_selected_ROI = cv2.selectROI(frame_grayscale_preprocessed.squeeze(), from_center, show_crosshair)
-        top_x, top_y, bottom_x, bottom_y = user_selected_ROI
-        resize = False
-        self.bbox = top_x, top_x+bottom_x, top_y, top_y+bottom_y, resize
-        print("user selected bbox:", self.bbox)
-        #cv2.destroyWindow("ROI selector")
-        """
         sample_frame = utils.get_frame(0, self.nframes, self.cumframes, self.containers)[0]  
+        # Trigger new window for ROI selection
         exPopup = ROI_popup(sample_frame, self.parent, self)
         exPopup.show()        
 
-    def set_bbox_params(self):
+    def adjust_bbox_params(self):
+        # This function adjusts bbox so that it is of minimum dimension: 256,256
         sample_frame = utils.get_frame(0, self.nframes, self.cumframes, self.containers)[0]  
         x1, x2, y1, y2, resize = transforms.get_crop_resize_params(sample_frame, 
                                                                     x_dims=(self.bbox[0], self.bbox[1]), 
                                                                     y_dims=(self.bbox[2], self.bbox[3]))
         self.bbox = x1, x2, y1, y2, resize
         self.bbox_set = True
-        print("user selected bbox after adjustment:", self.bbox)
+        print("user selected bbox after adjustment:", self.bbox)                                       
 
     def plot_bbox_roi(self, moveable=True, resizable=True):
-        print("bbox before", self.bbox)
-        self.set_bbox_params()
+        self.adjust_bbox_params()
         self.parent.nROIs += 1
         x1, x2, y1, y2, _ = self.bbox
         dy, dx = y2-y1, x2-x1
-        self.bbox_roi = roi.sROI(rind=4, rtype="bbox", iROI=self.parent.nROIs, moveable=moveable, 
-                                    resizable=resizable, parent=self.parent, pos=(x1, y1, dx, dy))
+        self.bbox_roi = roi.sROI(rind=4, rtype="bbox", iROI=self.parent.nROIs, moveable=False, 
+                                    resizable=False, parent=self.parent, pos=(x1, y1, dx, dy))
         self.parent.ROIs.append(self.bbox_roi)
-        """
-        # ROI dimensions
-        pos0 = self.bbox_roi.ROI.getSceneHandlePositions()
-        pos = self.parent.p0.mapSceneToView(pos0[0][1])
-        x2, y2 = int(pos.x()), int(pos.y())
-        sizex, sizey = self.bbox_roi.ROI.size()
-        x1 = int(x2-sizex)
-        y1 = int(y2-sizey)
-        """
-        self.bbox = x1, x2, y1, y2, False
+        self.bbox_set = True      
 
     def plot_pose_estimates(self):
         # Plot labels
@@ -169,78 +148,36 @@ class ROI_popup(QDialog):
         # User finished drawing ROI
         (x1, x2), (y1, y2) = self.get_coordinates()
         self.pose.bbox = x1, x2, y1, y2, False
-        print("ROI selected:", (x1, x2), (y1, y2))
         self.pose.plot_bbox_roi()
         dialogBox.close()
-    """
+
+# Following used to check cropped sections of frames
+class test_popup(QDialog):
+    def __init__(self, frame, parent):
+        super().__init__(parent)
+        self.parent = parent
+        self.frame = frame
+
+        self.setWindowTitle('Chosen ROI')
+        self.verticalLayout = QtWidgets.QVBoxLayout(self)
+
+        # Add image and ROI bbox
         self.win = pg.GraphicsLayoutWidget()
-        self.win.move(600,0)
-        self.win.resize(1000,500)
-        ROI_win = self.win.addViewBox()
-
-        imv = pg.ImageItem(frame)#pg.ImageView()
-        #imv.setImage(frame)
-        #self.hide_buttons(imv)
-        #imv.show()
-        ROI_win.addItem(imv)
-        roi = pg.RectROI([0,0],[100,100],pen=pg.mkPen('r',width=2), movable=True,resizable=True)
-        ROI_win.addItem(roi)
-        print("here")
+        ROI_win = self.win.addViewBox(invertY=True)
+        self.img = pg.ImageItem(self.frame)
+        ROI_win.addItem(self.img)
         self.win.show()
+        self.verticalLayout.addWidget(self.win)
 
-        def getcoordinates(roi):
-            roi_tuple, _ = roi.getArraySlice(frame, imv.imageItem, returnSlice=False)
-            (x1, x2), (y1, y2) = roi_tuple[0], roi_tuple[1]
-
-        roi.sigRegionChanged.connect(getcoordinates)
-
-    def hide_buttons(self, imv):
-        imv.ui.roiBtn.hide()
-        imv.ui.histogram.hide()
-        imv.ui.menuBtn.hide()
-        done_button = QtGui.QPushButton('Done')
-        done_button.setDefault(True)
-
-        # Add first video frame
-        self.roi_frame = QLabel(self)
-        image = QtGui.QImage(frame, frame.shape[1],\
-                            frame.shape[0], frame.shape[1] * 3,QtGui.QImage.Format_RGB888)
-        pixmap = QtGui.QPixmap(image)
-        self.roi_frame.resize(frame.shape[0], frame.shape[1])
-        self.roi_frame.setPixmap(pixmap.scaled(self.roi_frame.size(), QtCore.Qt.KeepAspectRatio))
-        #self.verticalLayout.addWidget(self.roi_frame)
+        self.cancel_button = QtGui.QPushButton('Cancel')
+        self.cancel_button.clicked.connect(self.close)
         
-        self.rubberband = QtGui.QRubberBand(
-            QtGui.QRubberBand.Rectangle, self)
-        self.setMouseTracking(True)
-        self.selector_roi = None
-        color = QtGui.QPalette()
-        color.setBrush(QtGui.QPalette.Highlight, QtGui.QBrush(QtCore.Qt.red))
-        self.rubberband.setPalette(color)
-        self.rubberband.setWindowOpacity(1.0)
-        print(frame.shape)
-        self.rubberband.show()
-    def mousePressEvent(self, event):
-        self.origin = event.pos()
-        self.rubberband.setGeometry(
-            QtCore.QRect(self.origin, QtCore.QSize()))
-        self.rubberband.show()
-        QtGui.QWidget.mousePressEvent(self, event)
+        # Position buttons
+        self.widget = QtWidgets.QWidget(self)
+        self.horizontalLayout = QtWidgets.QHBoxLayout(self.widget)
+        self.horizontalLayout.setContentsMargins(-1, -1, -1, 0)
+        self.horizontalLayout.setObjectName("horizontalLayout")
+        self.horizontalLayout.addWidget(self.cancel_button)
+        self.verticalLayout.addWidget(self.widget)
 
-    def mouseMoveEvent(self, event):
-        if self.rubberband.isVisible():
-            self.rubberband.setGeometry(
-                QtCore.QRect(self.origin, event.pos()).normalized())
-        QtGui.QWidget.mouseMoveEvent(self, event)
-
-    def mouseReleaseEvent(self, event):
-        if self.rubberband.isVisible():
-            self.rubberband.hide()
-            selected = []
-            rect = self.rubberband.geometry()
-            self.rubberband.show()
-            self.selector_roi = rect.getRect()
-            print(self.selector_roi)
-        QtGui.QWidget.mouseReleaseEvent(self, event)   
-    """
-
+        self.show() 

@@ -31,14 +31,15 @@ class Pose():
         self.net = self.load_model()
         self.savepath = savepath
         self.bbox = None
+        self.bbox_set = False
 
     def run(self, save=True):
         # Predict and save pose
-        self.set_bbox_params()
-        self.dataFrame = self.predict_landmarks()
-        if save:
-            self.savepath = self.save_pose_prediction()
-        return self.savepath
+        if self.bbox_set:
+            self.dataFrame = self.predict_landmarks()
+            if save:
+                self.savepath = self.save_pose_prediction()
+            return self.savepath
 
     def estimate_bbox_region(self, prev_bbox):
         """
@@ -62,11 +63,10 @@ class Pose():
         scorer = "Facemap" 
         bodyparts = self.net.labels_id 
         nchannels = 1
-        if self.device == 'cpu':
-            batch_size = 2
-        else:
+        if torch.cuda.is_available():
             batch_size = 16
-
+        else:
+            batch_size = 2
         # Create an empty dataframe
         for index, bodypart in enumerate(bodyparts):
             columnindex = pd.MultiIndex.from_product(
@@ -87,16 +87,16 @@ class Pose():
         end = batch_size
         Xstart, Xstop, Ystart, Ystop, resize = self.bbox
         with tqdm(total=self.cumframes[-1], unit='frame', unit_scale=True) as pbar:
-            while start != self.cumframes[-1]:#
+            while start != 4:#self.cumframes[-1]:#
                 # Pre-pocess images
                 im = np.zeros((end-start, nchannels, 256, 256))
                 for i, frame_ind in enumerate(np.arange(start,end)):
                     frame = utils.get_frame(frame_ind, self.nframes, self.cumframes, self.containers)[0]  
                     frame_grayscale = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
                     frame_grayscale_preprocessed = transforms.preprocess_img(frame_grayscale)
-                    im[i,0] = transforms.crop_resize(frame_grayscale_preprocessed.squeeze(), Xstart, 
-                                                    Xstop, Ystart, Ystop, resize)
-                
+                    im[i,0] = transforms.crop_resize(frame_grayscale_preprocessed.squeeze(), Ystart, Ystop,
+                                                    Xstart, Xstop, resize)
+
                 # Network prediction 
                 hm_pred, locref_pred = self.net(torch.tensor(im).to(device=self.net.DEVICE, dtype=torch.float32)) # convert to tensor and send to device
                 del im
@@ -109,10 +109,10 @@ class Pose():
                 likelihood = pose[:,:,-1].squeeze()
                 del hm_pred, locref_pred
                 Xlabel, Ylabel = transforms.labels_crop_resize(landmarks[:,:,0], landmarks[:,:,1], 
-                                                                Xstart, Ystart,
+                                                                Ystart, Xstart,
                                                                 current_size=(256, 256), 
-                                                                desired_size=(self.bbox[3]-self.bbox[2], 
-                                                                            self.bbox[1]-self.bbox[0]))
+                                                                desired_size=(self.bbox[1]-self.bbox[0],
+                                                                                self.bbox[3]-self.bbox[2]))
                 dataFrame.iloc[start:end,::3] = Xlabel
                 dataFrame.iloc[start:end,1::3] = Ylabel
                 dataFrame.iloc[start:end,2::3] = likelihood

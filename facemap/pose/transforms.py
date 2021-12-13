@@ -154,12 +154,12 @@ def get_crop_resize_params(img, x_dims, y_dims, xy=(256,256)):
             x_pad = x_pad//2 
             Xstart, Xstop = Xstart-x_pad, Xstop+x_pad+1
     
-    if Ystop > img.shape[0]:
-        Ystart -= (Ystop - img.shape[0])
-    if Xstop > img.shape[1]:
-        Xstart -= (Xstop - img.shape[1])
+    if Ystop > img.shape[1]:
+        Ystart -= (Ystop - img.shape[1])
+    if Xstop > img.shape[0]:
+        Xstart -= (Xstop - img.shape[0])
     
-    Ystop, Xstop = min(Ystop, img.shape[0]), min(Xstop, img.shape[1])
+    Ystop, Xstop = min(Ystop, img.shape[1]), min(Xstop, img.shape[0])
     Ystart, Xstart = max(0, Ystart), max(0, Xstart) 
     Ystop, Xstop = max(Ystop, xy[0]), max(Xstop, xy[1])    
 
