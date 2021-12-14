@@ -153,9 +153,11 @@ class MainW(QtGui.QMainWindow):
         self.ClusteringPlot.hideAxis('left')
         self.ClusteringPlot.hideAxis('bottom')
         self.clustering_scatterplot = pg.ScatterPlotItem(hover=True)
-        #self.clustering_scatterplot.sigClicked.connect(lambda obj, ev: cluster.embeddedPointsClicked(obj, ev, self))
+        #self.clustering_scatterplot.sigClicked.connect(lambda obj, ev: self.cluster_model.highlight_embedded_point(obj, ev, parent=self))
         self.clustering_scatterplot.sigHovered.connect(lambda obj, ev: self.cluster_model.embedded_points_hovered(obj, ev, parent=self))
         #self.ClusteringPlot.scene().sigMouseMoved.connect(lambda pos: self.cluster_model.mouse_moved_embedding(pos, parent=self))
+        self.clustering_highlight_scatterplot = pg.ScatterPlotItem(hover=True)
+        self.clustering_highlight_scatterplot.sigHovered.connect(lambda obj, ev: self.cluster_model.embedded_points_hovered(obj, ev, parent=self))
 
         self.ClusteringPlot_legend = pg.LegendItem(labelTextSize='12pt', title="Cluster")
         self.cluster_model = cluster.Cluster(parent=self)
@@ -518,7 +520,9 @@ class MainW(QtGui.QMainWindow):
     def set_frame_changed(self, text):
         self.cframe = int(float(self.setFrame.text()))
         self.jump_to_frame()
-
+        if self.cluster_model.embedded_output is not None:
+            self.highlight_embed_point(self.cframe)
+            
     def reset(self):
         if len(self.rROI)>0:
             for r in self.rROI:
@@ -672,6 +676,30 @@ class MainW(QtGui.QMainWindow):
                 if len(point_hovered) > cutoff:
                     tip.append('({} other...)'.format(len(point_hovered) - cutoff))
                 vb.setToolTip('\n\n'.join(tip))
+
+    def highlight_embed_point(self, playback_point): 
+        x = [np.array(self.clustering_scatterplot.points()[playback_point].pos().x())]
+        y = [np.array(self.clustering_scatterplot.points()[playback_point].pos().y())]
+        self.clustering_highlight_scatterplot.setData(x=x, y=y, 
+                                                    symbol='x', brush='r',pxMode=True, hoverable=True, hoverSize=20,
+                                                    hoverSymbol="x", hoverBrush='r',pen=(0,0,0,0),
+                                                   data=playback_point, size=15)
+        """
+        old = self.clustering_scatterplot.data['hovered']
+        self.clustering_scatterplot.data['sourceRect'][old] = 1
+        bool_mask = np.full((len(self.clustering_scatterplot.data)), False, dtype=bool)
+        self.clustering_scatterplot.data['hovered'] = bool_mask
+        self.clustering_scatterplot.invalidate()   
+        self.clustering_scatterplot.updateSpots()
+        self.clustering_scatterplot.sigPlotChanged.emit(self.clustering_scatterplot)
+
+        bool_mask[playback_point] = True
+        self.clustering_scatterplot.data['hovered'] = bool_mask
+        self.clustering_scatterplot.data['sourceRect'][bool_mask] = 0
+        self.clustering_scatterplot.updateSpots()   
+        #points = self.clustering_scatterplot.points()
+        #self.clustering_scatterplot.sigClicked.emit([points[playback_point]], None, self)
+        """
 
     def keyPressEvent(self, event):
         bid = -1

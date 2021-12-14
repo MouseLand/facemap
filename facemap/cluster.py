@@ -364,28 +364,30 @@ class Cluster():
                     data = self.embedded_output[ind,:]
                     if cluster == -1:
                         scatter_plots.append(pg.ScatterPlotItem(data[:,0], data[:,1], symbol='o', brush=pg.mkBrush(color=(0,1,1,1)),
-                                            hoverable=True, hoverSize=15, hoverSymbol="+", hoverBrush='r',
+                                            hoverable=True, hoverSize=15, hoverSymbol="x", hoverBrush='r',
                                             pen=(0,.0001,0,0), data=ind, name=str(i)),size=point_size) #pg.mkPen(pg.hsvColor(hue=.01,sat=.01,alpha=0.01))
                     else:
                         scatter_plots.append(pg.ScatterPlotItem(data[:,0], data[:,1], symbol='o', brush=brushes[i],
-                                            hoverable=True, hoverSize=15, hoverSymbol="+", hoverBrush='r',
+                                            hoverable=True, hoverSize=15, hoverSymbol="x", hoverBrush='r',
                                             data=ind, name=str(i), size=point_size))
                     parent.ClusteringPlot.addItem(scatter_plots[i])
                     parent.ClusteringPlot_legend.addItem(scatter_plots[i], name=str(i))
                 # Add all points (transparent) to connect them to hovered function
                 parent.clustering_scatterplot.setData(self.embedded_output[:,0], self.embedded_output[:,1], symbol='o',
                                                  brush=(0,0,0,0),pxMode=True, hoverable=True, hoverSize=15,
-                                                  hoverSymbol="+", hoverBrush='r',pen=(0,0,0,0),
+                                                  hoverSymbol="x", hoverBrush='r',pen=(0,0,0,0),
                                                    data=np.arange(num_feat), name=name,size=point_size)
                 parent.ClusteringPlot.addItem(parent.clustering_scatterplot)
+                parent.ClusteringPlot.addItem(parent.clustering_highlight_scatterplot)
                 parent.ClusteringPlot_legend.setPos(parent.clustering_scatterplot.x()+5,parent.clustering_scatterplot.y())
                 parent.ClusteringPlot_legend.setParentItem(parent.ClusteringPlot)
             else:
                 parent.clustering_scatterplot.setData(self.embedded_output[:,0], self.embedded_output[:,1], symbol='o',
                                                      brush=all_spots_colors,pxMode=True,hoverable=True, 
-                                                     hoverSize=15, hoverSymbol="+",hoverBrush='r',
+                                                     hoverSize=15, hoverSymbol="x",hoverBrush='r',
                                                      data=np.arange(num_feat),name=name, size=point_size)
                 parent.ClusteringPlot.addItem(parent.clustering_scatterplot)
+                parent.ClusteringPlot.addItem(parent.clustering_highlight_scatterplot)
             parent.ClusteringPlot.showAxis('left')
             parent.ClusteringPlot.showAxis('bottom')
             parent.ClusteringPlot.setLabels(bottom='UMAP coordinate 1',left='UMAP coordinate 2') 
@@ -403,7 +405,6 @@ class Cluster():
         parent.save_clustering_button.show()
 
     def embedded_points_hovered(self, obj, ev, parent):
-        
         """
         point_hovered = np.where(parent.clustering_scatterplot.data['hovered'])[0]
         if point_hovered.shape[0] >= 1:         # Show tooltip only when hovering over a point i.e. no empty array
