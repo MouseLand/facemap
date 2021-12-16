@@ -10,7 +10,7 @@ import cv2
 import pandas as pd
 from PyQt5.QtGui import QPixmap 
 from .. import process, roi, utils, cluster
-from ..pose import pose_gui
+from ..pose import pose_gui, pose
 from . import io, menus, guiparts
 
 istr = ['pupil', 'motSVD', 'blink', 'running']
@@ -560,11 +560,12 @@ class MainW(QtGui.QMainWindow):
 
     def set_pose_bbox(self):
         # User defined or automatic bbox selection
-        self.pose_model = pose_gui.PoseGUI(parent=self)
+        self.pose_gui = pose_gui.PoseGUI(parent=self)
 
     def get_pose_labels(self):
         print("Generating pose estimates")
-        pose_model = self.pose_model.run()
+        self.pose_model = pose.Pose(parent=self, filenames=self.filenames)
+        self.pose_model.run()
 
     def pupil_sigma_change(self):
         self.pupil_sigma = float(self.sigmaBox.text())

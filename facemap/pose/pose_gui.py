@@ -26,13 +26,6 @@ class PoseGUI(Pose):
         if self.bbox is None:
             self.draw_user_bbox() #draw_suggested_bbox()  
 
-    def run(self):
-        t0 = time.time()
-        self.parent.poseFilepath = super().run()
-        self.plot_pose_estimates()
-        print("~~~~~~~~~~~~~~~~~~~~~DONE~~~~~~~~~~~~~~~~~~~~~")
-        print("Time taken:", time.time()-t0)
-
     def draw_suggested_bbox(self):
         if self.bbox_set:
             del self.bbox_roi
@@ -94,12 +87,6 @@ class PoseGUI(Pose):
                                     resizable=False, parent=self.parent, pos=(x1, y1, dx, dy))
         self.parent.ROIs.append(self.bbox_roi)
         self.bbox_set = True      
-
-    def plot_pose_estimates(self):
-        # Plot labels
-        self.parent.poseFileLoaded = True
-        self.parent.load_labels()
-        self.parent.Labels_checkBox.setChecked(True)    
 
 class ROI_popup(QDialog):
     def __init__(self, frame, parent, pose):

@@ -21,8 +21,9 @@ Base class for generating pose estimates using command line interface.
 Currently supports single video processing only.
 """
 class Pose():
-    def __init__(self, filenames=None, savepath=None):
+    def __init__(self, parent=None, filenames=None, savepath=None):
         self.filenames = filenames
+        self.parent = parent
         self.cumframes, self.Ly, self.Lx, self.containers = utils.get_frame_details(self.filenames)
         self.nframes = self.cumframes[-1]
         self.pose_labels = None
@@ -35,11 +36,25 @@ class Pose():
 
     def run(self, save=True):
         # Predict and save pose
-        if self.bbox_set:
-            self.dataFrame = self.predict_landmarks()
-            if save:
-                self.savepath = self.save_pose_prediction()
-            return self.savepath
+        if not self.bbox_set:
+            resize = True 
+            self.bbox = 0, self.Ly[0], 0, self.Lx[0], resize
+            print("No bbox set. Using full image size:", self.bbox)
+        t0 = time.time()
+        self.dataFrame = self.predict_landmarks()
+        if save:
+            self.savepath = self.save_pose_prediction()
+            self.parent.poseFilepath = self.savepath
+        print("~~~~~~~~~~~~~~~~~~~~~DONE~~~~~~~~~~~~~~~~~~~~~")
+        print("Time taken:", time.time()-t0)
+        self.plot_pose_estimates()
+        return self.savepath
+
+    def plot_pose_estimates(self):
+        # Plot labels
+        self.parent.poseFileLoaded = True
+        self.parent.load_labels()
+        self.parent.Labels_checkBox.setChecked(True)    
 
     def estimate_bbox_region(self, prev_bbox):
         """
@@ -87,7 +102,7 @@ class Pose():
         end = batch_size
         Xstart, Xstop, Ystart, Ystop, resize = self.bbox
         with tqdm(total=self.cumframes[-1], unit='frame', unit_scale=True) as pbar:
-            while start != 4:#self.cumframes[-1]:#
+            while start != self.cumframes[-1]:
                 # Pre-pocess images
                 im = np.zeros((end-start, nchannels, 256, 256))
                 for i, frame_ind in enumerate(np.arange(start,end)):
