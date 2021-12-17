@@ -148,6 +148,7 @@ class MainW(QtGui.QMainWindow):
         self.Pose_scatterplot = pg.ScatterPlotItem(hover=True)
         self.Pose_scatterplot.sigClicked.connect(self.keypoints_clicked)
         self.Pose_scatterplot.sigHovered.connect(self.keypoints_hovered)
+        self.pose_model = None
         
         self.ClusteringPlot = self.win.addPlot(row=0, col=1, lockAspect=True, enableMouse=False)
         self.ClusteringPlot.hideAxis('left')
@@ -418,24 +419,34 @@ class MainW(QtGui.QMainWindow):
         self.l0.addWidget(self.totalFrameNumber, istretch+8,1,1,1)
         self.l0.addWidget(self.frameSlider, istretch+10,2,1,15)
 
-        # plotting checkboxes
+        # Plot 1 and 2 features
         pl = QtGui.QLabel("Plot 1")
         pl.setStyleSheet("color: gray;")
         self.l0.addWidget(pl, istretch, 0, 1, 1)
         pl = QtGui.QLabel("Plot 2")
         pl.setStyleSheet("color: gray;")
         self.l0.addWidget(pl, istretch, 1, 1, 1)
-        pl = QtGui.QLabel("ROI")
-        pl.setStyleSheet("color: gray;")
+        #pl = QtGui.QLabel("ROI")
+        #pl.setStyleSheet("color: gray;")
         #self.l0.addWidget(pl, istretch+2, 2, 1, 1)
+        self.load_trace1_button = QtGui.QPushButton('Load')
+        self.load_trace1_button.setFont(QtGui.QFont("Arial", 12))
+        self.load_trace1_button.clicked.connect(lambda: self.load_trace_button_clicked(1))
+        self.trace1_data_loaded = None
+        self.load_trace2_button = QtGui.QPushButton('Load')
+        self.load_trace2_button.setFont(QtGui.QFont("Arial", 12))
+        self.load_trace2_button.clicked.connect(lambda: self.load_trace_button_clicked(2))
+        self.trace2_data_loaded = None
+        self.l0.addWidget(self.load_trace1_button, istretch+1, 0, 1, 1)
+        self.l0.addWidget(self.load_trace2_button, istretch+1, 1, 1, 1)
         self.cbs1 = []
         self.cbs2 = []
         self.lbls = []
-        for k in range(5):
+        for k in range(4):
             self.cbs1.append(QtGui.QCheckBox(""))
-            self.l0.addWidget(self.cbs1[-1], istretch+1+k, 0, 1, 1)
+            self.l0.addWidget(self.cbs1[-1], istretch+2+k, 0, 1, 1)
             self.cbs2.append(QtGui.QCheckBox(""))
-            self.l0.addWidget(self.cbs2[-1], istretch+1+k, 1, 1, 1)
+            self.l0.addWidget(self.cbs2[-1], istretch+2+k, 1, 1, 1)
             self.cbs1[-1].toggled.connect(self.plot_processed)
             self.cbs2[-1].toggled.connect(self.plot_processed)
             self.cbs1[-1].setEnabled(False)
@@ -468,6 +479,41 @@ class MainW(QtGui.QMainWindow):
             self.update_status_bar("")
         else:
             self.cluster_model.disable_data_clustering_features(self)
+
+    def load_trace_button_clicked(self, plot_id):
+        data = io.load_trace_data(parent=self)
+        if data.ndim == 1:
+            if plot_id == 1:
+                self.trace1_data_loaded = data
+                self.plot_processed()
+            elif plot_id == 2:
+                self.trace2_data_loaded = data
+                self.plot_processed()
+            else:
+                self.update_status_bar("Error: plot ID not recognized")
+        else:
+            self.update_status_bar("Error: data not recognized")
+
+    def plot_run_trace(self):
+        avg = self.run_data
+        avg -= avg.min()
+        avg /= avg.max()
+        avg = avg[self.xrange]
+        self.run_trace_plot.setData(self.xrange, avg, pen=(0,255,0))
+        if self.run_trace_plot_added:
+            self.p3.removeItem(self.run_trace_plot)
+        else:
+            self.run_legend.addItem(self.run_trace_plot, name='Run')
+            self.run_legend.setPos(self.run_trace_plot.x()+70, self.run_trace_plot.y())
+            self.run_legend.setParentItem(self.p3)
+        self.p3.addItem(self.run_trace_plot, pen=(0,255,0))
+        self.run_trace_plot_added = True
+        self.p3.setXRange(self.xrange[0],self.xrange[-1])
+        self.p3.setLimits(xMin=self.xrange[0],xMax=self.xrange[-1])
+        try:
+            self.run_legend.sigClicked.connect(self.mouseClickEvent)
+        except Exception as e:
+            return
 
     def clear_visualization_window(self):
         self.roiVisComboBox.hide()
@@ -548,6 +594,8 @@ class MainW(QtGui.QMainWindow):
         self.Pose_scatterplot.clear()
         #self.p0.clear()
         self.poseFileLoaded = False
+        self.trace1_data_loaded = None
+        self.trace2_data_loaded = None
         # clear checkboxes
         for k in range(len(self.cbs1)):
             self.cbs1[k].setText("")
@@ -560,11 +608,14 @@ class MainW(QtGui.QMainWindow):
 
     def set_pose_bbox(self):
         # User defined or automatic bbox selection
-        self.pose_gui = pose_gui.PoseGUI(parent=self)
+        if self.pose_model is None:
+            self.pose_model = pose.Pose(parent=self, filenames=self.filenames)
+        self.pose_gui = pose_gui.PoseGUI(gui=self, parent=self.pose_model)
 
     def get_pose_labels(self):
         print("Generating pose estimates")
-        self.pose_model = pose.Pose(parent=self, filenames=self.filenames)
+        if self.pose_model is None:
+            self.pose_model = pose.Pose(parent=self, filenames=self.filenames)
         self.pose_model.run()
 
     def pupil_sigma_change(self):
@@ -648,7 +699,7 @@ class MainW(QtGui.QMainWindow):
             self.statusBar.clearMessage()
             self.p0.addItem(self.Pose_scatterplot)
             self.p0.setRange(xRange=(0,self.LX), yRange=(0,self.LY), padding=0.0)
-            threshold = np.nanpercentile(self.pose_likelihood, 30) # Determine threshold
+            threshold = 0#np.nanpercentile(self.pose_likelihood, 30) # Determine threshold
             filtered_keypoints = np.where(self.pose_likelihood[:,self.cframe] > threshold)[0]
             x = self.pose_x_coord[filtered_keypoints,self.cframe]
             y = self.pose_y_coord[filtered_keypoints,self.cframe]
@@ -828,7 +879,7 @@ class MainW(QtGui.QMainWindow):
                 self.fullimg[self.sy[i]:self.sy[i]+self.Ly[i],
                             self.sx[i]:self.sx[i]+self.Lx[i]] = self.img[i]
             self.frameSlider.setValue(self.cframe)
-            if self.processed:
+            if self.processed or self.trace1_data_loaded is not None or self.trace2_data_loaded is not None:
                 self.plot_scatter()
         else:
             self.online_plotted = False
@@ -972,6 +1023,14 @@ class MainW(QtGui.QMainWindow):
             else:
                 self.cbs2[k].setText(self.lbls[k].text())
                 self.cbs2[k].setStyleSheet("color: gray")
+        if self.trace1_data_loaded is not None:
+            tr = self.trace1_data_loaded
+            self.p1.plot(tr, pen=pg.mkPen("g", width=1))
+            self.traces1 = np.concatenate((self.traces1, tr[np.newaxis,:]), axis=0)
+        if self.trace2_data_loaded is not None:
+            tr = self.trace2_data_loaded
+            self.p2.plot(tr, pen=pg.mkPen("b", width=1))
+            self.traces2 = np.concatenate((self.traces2, tr[np.newaxis,:]), axis=0)
         self.p1.setRange(xRange=(0,self.nframes),
                          yRange=(-4, 4),
                           padding=0.0)

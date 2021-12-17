@@ -304,6 +304,27 @@ def load_umap(parent):
         msg.exec_()
         print(e)
 
+def load_trace_data(parent):
+    try:
+        file_name = QtGui.QFileDialog.getOpenFileName(parent,
+                        "Select data file", "", "(*.npy *.pkl)")[0]
+        extension = file_name.split(".")[-1]
+        if extension == "npy":
+            dat = np.load(file_name, allow_pickle=True)
+        elif extension == "pkl":
+            with open(file_name, 'rb') as f:
+                dat = pickle.load(f)
+        else:
+            return
+        return dat
+    except Exception as e:
+        msg = QtGui.QMessageBox(parent)
+        msg.setIcon(QtGui.QMessageBox.Warning)
+        msg.setText("Error: not a supported filetype")
+        msg.setStandardButtons(QtGui.QMessageBox.Ok)
+        msg.exec_()
+        print(e)
+
 def save_clustering_output(output, parent):
     filename, ext = parent.filenames[0][0].split(".")
     filename = filename.split("/")[-1]    # Use video filename 

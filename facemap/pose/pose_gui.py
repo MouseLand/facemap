@@ -19,10 +19,11 @@ Pose subclass for generating pose estimates on GUI involving user validation for
 Currently supports single video processing only.
 """
 class PoseGUI(Pose):
-    def __init__(self, parent=None):
+    def __init__(self, gui=None, parent=None):
+        self.gui = gui
         self.parent = parent
         if self.parent is not None:
-            super().__init__(self.parent.filenames)
+            super().__init__(parent=self.gui)
         if self.bbox is None:
             self.draw_user_bbox() #draw_suggested_bbox()  
 
@@ -43,7 +44,7 @@ class PoseGUI(Pose):
                 self.plot_bbox_roi(y1, x1, dy, dx)
                 # get user validation
                 qm = QtGui.QMessageBox
-                ret = qm.question(self.parent,'', "Does the suggested ROI match the requirements?", 
+                ret = qm.question(self.gui,'', "Does the suggested ROI match the requirements?", 
                                     qm.Yes | qm.No)
                 """
                 msgBox = QtGui.QMessageBox()
@@ -65,7 +66,7 @@ class PoseGUI(Pose):
         self.bbox_set = False
         sample_frame = utils.get_frame(0, self.nframes, self.cumframes, self.containers)[0]  
         # Trigger new window for ROI selection
-        exPopup = ROI_popup(sample_frame, self.parent, self)
+        exPopup = ROI_popup(sample_frame, self.gui, self)
         exPopup.show()        
 
     def adjust_bbox_params(self):
@@ -80,18 +81,18 @@ class PoseGUI(Pose):
 
     def plot_bbox_roi(self, moveable=True, resizable=True):
         self.adjust_bbox_params()
-        self.parent.nROIs += 1
+        self.gui.nROIs += 1
         x1, x2, y1, y2, _ = self.bbox
         dy, dx = y2-y1, x2-x1
-        self.bbox_roi = roi.sROI(rind=4, rtype="bbox", iROI=self.parent.nROIs, moveable=False, 
-                                    resizable=False, parent=self.parent, pos=(x1, y1, dx, dy))
-        self.parent.ROIs.append(self.bbox_roi)
+        self.bbox_roi = roi.sROI(rind=4, rtype="bbox", iROI=self.gui.nROIs, moveable=False, 
+                                    resizable=False, parent=self.gui, pos=(x1, y1, dx, dy))
+        self.gui.ROIs.append(self.bbox_roi)
         self.bbox_set = True      
 
 class ROI_popup(QDialog):
-    def __init__(self, frame, parent, pose):
-        super().__init__(parent)
-        self.parent = parent
+    def __init__(self, frame, gui, pose):
+        super().__init__(gui)
+        self.gui = gui
         self.frame = frame
         self.pose = pose
 
@@ -111,7 +112,7 @@ class ROI_popup(QDialog):
         # Add buttons to dialog box
         self.done_button = QtGui.QPushButton('Done')
         self.done_button.setDefault(True)
-        self.done_button.clicked.connect(lambda: self.done_exec(self, parent))
+        self.done_button.clicked.connect(lambda: self.done_exec(self))
         self.cancel_button = QtGui.QPushButton('Cancel')
         self.cancel_button.clicked.connect(self.close)
         
@@ -131,7 +132,7 @@ class ROI_popup(QDialog):
         (x1, x2), (y1, y2) = roi_tuple[0], roi_tuple[1]
         return (x1, x2), (y1, y2)
 
-    def done_exec(self, dialogBox, parent):
+    def done_exec(self, dialogBox):
         # User finished drawing ROI
         (x1, x2), (y1, y2) = self.get_coordinates()
         self.pose.bbox = x1, x2, y1, y2, False
@@ -140,9 +141,9 @@ class ROI_popup(QDialog):
 
 # Following used to check cropped sections of frames
 class test_popup(QDialog):
-    def __init__(self, frame, parent):
-        super().__init__(parent)
-        self.parent = parent
+    def __init__(self, frame, gui):
+        super().__init__(gui)
+        self.gui = gui
         self.frame = frame
 
         self.setWindowTitle('Chosen ROI')

@@ -22,8 +22,11 @@ Currently supports single video processing only.
 """
 class Pose():
     def __init__(self, parent=None, filenames=None, savepath=None):
-        self.filenames = filenames
         self.parent = parent
+        if self.parent is not None:
+            self.filenames = self.parent.filenames
+        else:
+            self.filenames = filenames
         self.cumframes, self.Ly, self.Lx, self.containers = utils.get_frame_details(self.filenames)
         self.nframes = self.cumframes[-1]
         self.pose_labels = None
@@ -55,7 +58,7 @@ class Pose():
         self.parent.poseFileLoaded = True
         self.parent.load_labels()
         self.parent.Labels_checkBox.setChecked(True)    
-
+        
     def estimate_bbox_region(self, prev_bbox):
         """
         Obtain ROI/bbox for cropping images to use as input for model 
