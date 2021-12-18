@@ -112,6 +112,10 @@ class Cluster():
         self.plot_clustering_output(parent)
 
     def load_cluster_labels(self, parent):
+        try:
+            self.ClusteringPlot_legend.clear()
+        except Exception as e:
+            pass
         io.load_cluster_labels(parent)
         self.plot_clustering_output(parent)
 
@@ -349,7 +353,7 @@ class Cluster():
             elif self.embedded_output.shape[0]<2000:
                 point_size=4 
             else:
-                point_size=2 
+                point_size=2
             if is_cluster_colored:
                 scatter_plots = []
                 if max(self.cluster_labels) > 4: #Adjust legend

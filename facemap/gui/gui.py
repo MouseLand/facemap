@@ -1,9 +1,10 @@
-import sys, os, shutil, glob, time
+import sys, os
 import numpy as np
 from PyQt5 import QtGui, QtCore
 import pyqtgraph as pg
 from scipy.stats import zscore, skew
 from matplotlib import cm
+import matplotlib.pyplot as plt
 from natsort import natsorted
 import pathlib
 import cv2
@@ -12,6 +13,8 @@ from PyQt5.QtGui import QPixmap
 from .. import process, roi, utils, cluster
 from ..pose import pose_gui, pose
 from . import io, menus, guiparts
+from PyQt5 import QtGui, QtCore, QtWidgets
+from PyQt5.QtGui import QPainterPath, QColor
 
 istr = ['pupil', 'motSVD', 'blink', 'running']
 
@@ -432,10 +435,13 @@ class MainW(QtGui.QMainWindow):
         self.load_trace1_button = QtGui.QPushButton('Load')
         self.load_trace1_button.setFont(QtGui.QFont("Arial", 12))
         self.load_trace1_button.clicked.connect(lambda: self.load_trace_button_clicked(1))
+        self.load_trace1_button.setEnabled(False)
         self.trace1_data_loaded = None
+        self.trace1_legend = pg.LegendItem(labelTextSize='12pt', horSpacing=30)
         self.load_trace2_button = QtGui.QPushButton('Load')
         self.load_trace2_button.setFont(QtGui.QFont("Arial", 12))
         self.load_trace2_button.clicked.connect(lambda: self.load_trace_button_clicked(2))
+        self.load_trace2_button.setEnabled(False)
         self.trace2_data_loaded = None
         self.l0.addWidget(self.load_trace1_button, istretch+1, 0, 1, 1)
         self.l0.addWidget(self.load_trace2_button, istretch+1, 1, 1, 1)
@@ -483,37 +489,122 @@ class MainW(QtGui.QMainWindow):
     def load_trace_button_clicked(self, plot_id):
         data = io.load_trace_data(parent=self)
         if data.ndim == 1:
-            if plot_id == 1:
-                self.trace1_data_loaded = data
+            # Open a QDialog box containing two radio buttons horizontally centered
+            # and a QLineEdit to enter the name of the trace
+            # If the user presses OK, the trace is added to the list of traces
+            # and the combo box is updated
+            # If the user presses Cancel, the trace is not added
+            dialog = QtWidgets.QDialog()
+            dialog.setWindowTitle("Set data type")
+            dialog.setFixedWidth(400)
+            dialog.verticalLayout = QtWidgets.QVBoxLayout(dialog)
+            dialog.verticalLayout.setContentsMargins(10, 10, 10, 10) 
+
+            dialog.horizontalLayout = QtWidgets.QHBoxLayout()
+            dialog.verticalLayout.addLayout(dialog.horizontalLayout)
+            dialog.label = QtWidgets.QLabel("Data type:")
+            dialog.horizontalLayout.addWidget(dialog.label)
+            
+            # Create radio buttons
+            dialog.radio_button_group = QtWidgets.QButtonGroup()
+            dialog.radio_button_group.setExclusive(True)
+            dialog.radioButton1 = QtWidgets.QRadioButton("Continuous")
+            dialog.radioButton1.setChecked(True)
+            dialog.horizontalLayout.addWidget(dialog.radioButton1)
+            dialog.radioButton2 = QtWidgets.QRadioButton("Discrete")
+            dialog.radioButton2.setChecked(False)
+            dialog.horizontalLayout.addWidget(dialog.radioButton2)
+            # Add radio buttons to radio buttons group
+            dialog.radio_button_group.addButton(dialog.radioButton1)
+            dialog.radio_button_group.addButton(dialog.radioButton2)
+
+            dialog.horizontalLayout2 = QtWidgets.QHBoxLayout()
+            dialog.label = QtWidgets.QLabel("Data name:")
+            dialog.horizontalLayout2.addWidget(dialog.label)
+            dialog.lineEdit = QtWidgets.QLineEdit()
+            dialog.lineEdit.setText("Trace 1")
+            # Adjust size of line edit
+            dialog.lineEdit.setFixedWidth(200)
+            # 
+            dialog.horizontalLayout2.addWidget(dialog.lineEdit)
+            dialog.verticalLayout.addLayout(dialog.horizontalLayout2)
+            dialog.horizontalLayout3 = QtWidgets.QHBoxLayout()
+            dialog.buttonBox = QtWidgets.QDialogButtonBox(QtWidgets.QDialogButtonBox.Ok | QtWidgets.QDialogButtonBox.Cancel)
+            dialog.buttonBox.accepted.connect(dialog.accept)
+            dialog.buttonBox.rejected.connect(dialog.reject)
+            dialog.horizontalLayout3.addWidget(dialog.buttonBox)
+            dialog.verticalLayout.addLayout(dialog.horizontalLayout3)
+            if dialog.exec_():
+                data_type = "continuous"
+                if dialog.radioButton2.isChecked():
+                    data_type = "discrete"
+                    # Create a color palette of len(data) using distinguishable_colors
+                    # and add it to the list of color palettes
+                    # The color palette is used to color the points in the scatter 
+                    if len(np.unique(data))<=10:
+                        color_palette = np.array(plt.get_cmap('tab10').colors)
+                    elif len(np.unique(data))<=10:
+                        color_palette = np.array(plt.get_cmap('tab20').colors)
+                    else:
+                        color_palette = np.array(plt.get_cmap('tab20').colors)
+                    color_palette *= 255
+                    color_palette = color_palette.astype(int)
+                    color_palette = color_palette[:len(np.unique(data))]
+                    # Create a list of pens for each unique value in data
+                    # The pen is used to color the points in the scatter plot                    
+                    pen_list = np.empty(len(data), dtype=object)
+                    for j, value in enumerate(np.unique(data)):
+                        ind = np.where(data==value)[0]
+                        pen_list[ind] = pg.mkPen(QtGui.QColor(color_palette[j][0], color_palette[j][1], color_palette[j][2]))
+                    vtick = QPainterPath()
+                    vtick.moveTo(0, -0.5)
+                    vtick.lineTo(0, 0.5)
+                data_name = dialog.lineEdit.text()
+                if data_name == "":
+                    data_name = "trace"
+                if plot_id == 1:
+                    self.trace1_data_loaded = data
+                    self.trace1_data_type = data_type
+                    self.trace1_name = data_name   
+                    if data_type == "discrete":
+                        x = np.arange(len(data))
+                        self.trace1_plot = pg.ScatterPlotItem()
+                        self.trace1_plot.setData(x, data, pen=pen_list, brush='g',pxMode=False, 
+                                                symbol=vtick, size=1, symbol_pen=pen_list)
+                    else:
+                        self.trace1_plot = pg.PlotDataItem()
+                        self.trace1_plot.setData(data, pen=pg.mkPen("g", width=1))
+                    self.trace1_legend.clear()
+                    self.trace1_legend.addItem(self.trace1_plot, name=data_name)
+                    self.trace1_legend.setPos(self.trace1_plot.x(), self.trace1_plot.y())
+                    self.trace1_legend.setParentItem(self.p1)
+                    self.trace1_legend.setVisible(True)
+                    self.load_trace1_button.setText("Loaded")
+                    self.load_trace1_button.setEnabled(False)
+                    self.trace1_plot.setVisible(True)
+                    self.update_status_bar("Trace 1 data updated")
+                    try:
+                        self.trace1_legend.sigClicked.connect(self.mouseClickEvent)
+                    except Exception as e:
+                        pass
+                elif plot_id == 2:
+                    self.trace2_data_loaded = data
+                    self.trace2_data_type = data_type
+                    self.trace2_name = data_name
+                    self.trace2_plot.setData(data)
+                    self.trace2_legend.clear()
+                    self.trace2_legend.addItem(self.trace2_plot, name=data_name)
+                    self.trace2_legend.setParentItem(self.trace2_plot)
+                    self.trace2_legend.setVisible(True)
+                    self.load_trace2_button.setEnabled(False)
+                    self.trace2_plot.setVisible(True)
+                    self.update_status_bar("Trace 2 data updated")
+                else:
+                    self.update_status_bar("Error: plot ID not recognized")
+                    pass
                 self.plot_processed()
-            elif plot_id == 2:
-                self.trace2_data_loaded = data
-                self.plot_processed()
-            else:
-                self.update_status_bar("Error: plot ID not recognized")
         else:
             self.update_status_bar("Error: data not recognized")
-
-    def plot_run_trace(self):
-        avg = self.run_data
-        avg -= avg.min()
-        avg /= avg.max()
-        avg = avg[self.xrange]
-        self.run_trace_plot.setData(self.xrange, avg, pen=(0,255,0))
-        if self.run_trace_plot_added:
-            self.p3.removeItem(self.run_trace_plot)
-        else:
-            self.run_legend.addItem(self.run_trace_plot, name='Run')
-            self.run_legend.setPos(self.run_trace_plot.x()+70, self.run_trace_plot.y())
-            self.run_legend.setParentItem(self.p3)
-        self.p3.addItem(self.run_trace_plot, pen=(0,255,0))
-        self.run_trace_plot_added = True
-        self.p3.setXRange(self.xrange[0],self.xrange[-1])
-        self.p3.setLimits(xMin=self.xrange[0],xMax=self.xrange[-1])
-        try:
-            self.run_legend.sigClicked.connect(self.mouseClickEvent)
-        except Exception as e:
-            return
 
     def clear_visualization_window(self):
         self.roiVisComboBox.hide()
@@ -838,6 +929,8 @@ class MainW(QtGui.QMainWindow):
         self.saverois.setEnabled(True)
         self.checkBox.setChecked(True)
         self.save_mat.setChecked(True)
+        self.load_trace1_button.setEnabled(True)
+        self.load_trace2_button.setEnabled(True)
 
         # Enable pose features for single video only
         if len(self.img)==1:
@@ -1024,9 +1117,8 @@ class MainW(QtGui.QMainWindow):
                 self.cbs2[k].setText(self.lbls[k].text())
                 self.cbs2[k].setStyleSheet("color: gray")
         if self.trace1_data_loaded is not None:
-            tr = self.trace1_data_loaded
-            self.p1.plot(tr, pen=pg.mkPen("g", width=1))
-            self.traces1 = np.concatenate((self.traces1, tr[np.newaxis,:]), axis=0)
+            self.p1.addItem(self.trace1_plot)
+            self.traces1 = np.concatenate((self.traces1, self.trace1_data_loaded[np.newaxis,:]), axis=0)
         if self.trace2_data_loaded is not None:
             tr = self.trace2_data_loaded
             self.p2.plot(tr, pen=pg.mkPen("b", width=1))
