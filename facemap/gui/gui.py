@@ -429,9 +429,6 @@ class MainW(QtGui.QMainWindow):
         pl = QtGui.QLabel("Plot 2")
         pl.setStyleSheet("color: gray;")
         self.l0.addWidget(pl, istretch, 1, 1, 1)
-        #pl = QtGui.QLabel("ROI")
-        #pl.setStyleSheet("color: gray;")
-        #self.l0.addWidget(pl, istretch+2, 2, 1, 1)
         self.load_trace1_button = QtGui.QPushButton('Load')
         self.load_trace1_button.setFont(QtGui.QFont("Arial", 12))
         self.load_trace1_button.clicked.connect(lambda: self.load_trace_button_clicked(1))
@@ -443,6 +440,7 @@ class MainW(QtGui.QMainWindow):
         self.load_trace2_button.clicked.connect(lambda: self.load_trace_button_clicked(2))
         self.load_trace2_button.setEnabled(False)
         self.trace2_data_loaded = None
+        self.trace2_legend = pg.LegendItem(labelTextSize='12pt', horSpacing=30)
         self.l0.addWidget(self.load_trace1_button, istretch+1, 0, 1, 1)
         self.l0.addWidget(self.load_trace2_button, istretch+1, 1, 1, 1)
         self.cbs1 = []
@@ -461,198 +459,7 @@ class MainW(QtGui.QMainWindow):
             self.cbs2[k].setStyleSheet("color: gray;")
             self.lbls.append(QtGui.QLabel(''))
             self.lbls[-1].setStyleSheet("color: white;")
-            #self.l0.addWidget(self.lbls[-1], istretch+3+k, 2, 1, 1)
-        #ll = QtGui.QLabel('play/pause [SPACE]')
-        #ll.setStyleSheet("color: gray;")
-        #self.l0.addWidget(ll, istretch+3+k+1,0,1,1)
         self.update_frame_slider()
-
-    def vis_combobox_selection_changed(self):
-        """
-        Call clustering or ROI display functions upon user selection from combo box
-        """
-        self.clear_visualization_window()
-        visualization_request = self.clusteringVisComboBox.currentText()
-        if visualization_request == "ROI":
-            self.cluster_model.disable_data_clustering_features(self)
-            if len(self.ROIs)>0:
-                self.update_ROI_vis_comboBox()
-                self.update_status_bar("")
-            else:
-                self.update_status_bar("Please add ROIs for display")
-        elif visualization_request == "UMAP":
-            self.cluster_model.enable_data_clustering_features(parent=self)
-            self.update_status_bar("")
-        else:
-            self.cluster_model.disable_data_clustering_features(self)
-
-    def load_trace_button_clicked(self, plot_id):
-        data = io.load_trace_data(parent=self)
-        if data.ndim == 1:
-            # Open a QDialog box containing two radio buttons horizontally centered
-            # and a QLineEdit to enter the name of the trace
-            # If the user presses OK, the trace is added to the list of traces
-            # and the combo box is updated
-            # If the user presses Cancel, the trace is not added
-            dialog = QtWidgets.QDialog()
-            dialog.setWindowTitle("Set data type")
-            dialog.setFixedWidth(400)
-            dialog.verticalLayout = QtWidgets.QVBoxLayout(dialog)
-            dialog.verticalLayout.setContentsMargins(10, 10, 10, 10) 
-
-            dialog.horizontalLayout = QtWidgets.QHBoxLayout()
-            dialog.verticalLayout.addLayout(dialog.horizontalLayout)
-            dialog.label = QtWidgets.QLabel("Data type:")
-            dialog.horizontalLayout.addWidget(dialog.label)
-            
-            # Create radio buttons
-            dialog.radio_button_group = QtWidgets.QButtonGroup()
-            dialog.radio_button_group.setExclusive(True)
-            dialog.radioButton1 = QtWidgets.QRadioButton("Continuous")
-            dialog.radioButton1.setChecked(True)
-            dialog.horizontalLayout.addWidget(dialog.radioButton1)
-            dialog.radioButton2 = QtWidgets.QRadioButton("Discrete")
-            dialog.radioButton2.setChecked(False)
-            dialog.horizontalLayout.addWidget(dialog.radioButton2)
-            # Add radio buttons to radio buttons group
-            dialog.radio_button_group.addButton(dialog.radioButton1)
-            dialog.radio_button_group.addButton(dialog.radioButton2)
-
-            dialog.horizontalLayout2 = QtWidgets.QHBoxLayout()
-            dialog.label = QtWidgets.QLabel("Data name:")
-            dialog.horizontalLayout2.addWidget(dialog.label)
-            dialog.lineEdit = QtWidgets.QLineEdit()
-            dialog.lineEdit.setText("Trace 1")
-            # Adjust size of line edit
-            dialog.lineEdit.setFixedWidth(200)
-            # 
-            dialog.horizontalLayout2.addWidget(dialog.lineEdit)
-            dialog.verticalLayout.addLayout(dialog.horizontalLayout2)
-            dialog.horizontalLayout3 = QtWidgets.QHBoxLayout()
-            dialog.buttonBox = QtWidgets.QDialogButtonBox(QtWidgets.QDialogButtonBox.Ok | QtWidgets.QDialogButtonBox.Cancel)
-            dialog.buttonBox.accepted.connect(dialog.accept)
-            dialog.buttonBox.rejected.connect(dialog.reject)
-            dialog.horizontalLayout3.addWidget(dialog.buttonBox)
-            dialog.verticalLayout.addLayout(dialog.horizontalLayout3)
-            if dialog.exec_():
-                data_type = "continuous"
-                if dialog.radioButton2.isChecked():
-                    data_type = "discrete"
-                    # Create a color palette of len(data) using distinguishable_colors
-                    # and add it to the list of color palettes
-                    # The color palette is used to color the points in the scatter 
-                    if len(np.unique(data))<=10:
-                        color_palette = np.array(plt.get_cmap('tab10').colors)
-                    elif len(np.unique(data))<=10:
-                        color_palette = np.array(plt.get_cmap('tab20').colors)
-                    else:
-                        color_palette = np.array(plt.get_cmap('tab20').colors)
-                    color_palette *= 255
-                    color_palette = color_palette.astype(int)
-                    color_palette = color_palette[:len(np.unique(data))]
-                    # Create a list of pens for each unique value in data
-                    # The pen is used to color the points in the scatter plot                    
-                    pen_list = np.empty(len(data), dtype=object)
-                    for j, value in enumerate(np.unique(data)):
-                        ind = np.where(data==value)[0]
-                        pen_list[ind] = pg.mkPen(QtGui.QColor(color_palette[j][0], color_palette[j][1], color_palette[j][2]))
-                    vtick = QPainterPath()
-                    vtick.moveTo(0, -0.5)
-                    vtick.lineTo(0, 0.5)
-                data_name = dialog.lineEdit.text()
-                if data_name == "":
-                    data_name = "trace"
-                if plot_id == 1:
-                    self.trace1_data_loaded = data
-                    self.trace1_data_type = data_type
-                    self.trace1_name = data_name   
-                    if data_type == "discrete":
-                        x = np.arange(len(data))
-                        self.trace1_plot = pg.ScatterPlotItem()
-                        self.trace1_plot.setData(x, data, pen=pen_list, brush='g',pxMode=False, 
-                                                symbol=vtick, size=1, symbol_pen=pen_list)
-                    else:
-                        self.trace1_plot = pg.PlotDataItem()
-                        self.trace1_plot.setData(data, pen=pg.mkPen("g", width=1))
-                    self.trace1_legend.clear()
-                    self.trace1_legend.addItem(self.trace1_plot, name=data_name)
-                    self.trace1_legend.setPos(self.trace1_plot.x(), self.trace1_plot.y())
-                    self.trace1_legend.setParentItem(self.p1)
-                    self.trace1_legend.setVisible(True)
-                    self.load_trace1_button.setText("Loaded")
-                    self.load_trace1_button.setEnabled(False)
-                    self.trace1_plot.setVisible(True)
-                    self.update_status_bar("Trace 1 data updated")
-                    try:
-                        self.trace1_legend.sigClicked.connect(self.mouseClickEvent)
-                    except Exception as e:
-                        pass
-                elif plot_id == 2:
-                    self.trace2_data_loaded = data
-                    self.trace2_data_type = data_type
-                    self.trace2_name = data_name
-                    self.trace2_plot.setData(data)
-                    self.trace2_legend.clear()
-                    self.trace2_legend.addItem(self.trace2_plot, name=data_name)
-                    self.trace2_legend.setParentItem(self.trace2_plot)
-                    self.trace2_legend.setVisible(True)
-                    self.load_trace2_button.setEnabled(False)
-                    self.trace2_plot.setVisible(True)
-                    self.update_status_bar("Trace 2 data updated")
-                else:
-                    self.update_status_bar("Error: plot ID not recognized")
-                    pass
-                self.plot_processed()
-        else:
-            self.update_status_bar("Error: data not recognized")
-
-    def clear_visualization_window(self):
-        self.roiVisComboBox.hide()
-        self.pROIimg.clear()
-        self.pROI.removeItem(self.scatter)
-        self.ClusteringPlot.clear()
-        self.ClusteringPlot.hideAxis('left')
-        self.ClusteringPlot.hideAxis('bottom')
-        self.ClusteringPlot.removeItem(self.clustering_scatterplot)
-        self.ClusteringPlot_legend.setParentItem(None)
-        self.ClusteringPlot_legend.hide()
-
-    def cluster_plot_zoom_buttons(self, in_or_out):
-        """
-        see ViewBox.scaleBy()
-        pyqtgraph wheel zoom is s = ~0.75
-        """
-        s = 0.9
-        zoom = (s, s) if in_or_out == "in" else (1/s, 1/s)
-        self.ClusteringPlot.vb.scaleBy(zoom)
-
-    def update_ROI_vis_comboBox(self):
-        """
-        Update ROI selection combo box
-        """
-        self.roiVisComboBox.clear()
-        self.pROIimg.clear() 
-        self.roiVisComboBox.addItem("--Type--")
-        for i in range(len(self.ROIs)):
-            selected = self.ROIs[i]
-            self.roiVisComboBox.addItem(str(selected.iROI+1)+". "+selected.rtype)
-        if self.clusteringVisComboBox.currentText() == "ROI":
-            self.roiVisComboBox.show()
-
-    def display_ROI(self):
-        """
-        Plot selected ROI on visualizaiton window 
-        """
-        self.roiVisComboBox.show()
-        roi_request = self.roiVisComboBox.currentText()
-        if roi_request != "--Type--":
-            self.pROI.addItem(self.scatter)
-            roi_request_ind = int(roi_request.split(".")[0]) - 1
-            self.ROIs[int(roi_request_ind)].plot(self)
-            #self.set_ROI_saturation_label(self.ROIs[int(roi_request_ind)].saturation)
-        else:
-            self.pROIimg.clear()
-            self.pROI.removeItem(self.scatter)
 
     def set_frame_changed(self, text):
         self.cframe = int(float(self.setFrame.text()))
@@ -696,18 +503,6 @@ class MainW(QtGui.QMainWindow):
             self.cbs2[k].setEnabled(False)
             self.cbs1[k].setChecked(False)
             self.cbs2[k].setChecked(False)
-
-    def set_pose_bbox(self):
-        # User defined or automatic bbox selection
-        if self.pose_model is None:
-            self.pose_model = pose.Pose(parent=self, filenames=self.filenames)
-        self.pose_gui = pose_gui.PoseGUI(gui=self, parent=self.pose_model)
-
-    def get_pose_labels(self):
-        print("Generating pose estimates")
-        if self.pose_model is None:
-            self.pose_model = pose.Pose(parent=self, filenames=self.filenames)
-        self.pose_model.run()
 
     def pupil_sigma_change(self):
         self.pupil_sigma = float(self.sigmaBox.text())
@@ -771,79 +566,6 @@ class MainW(QtGui.QMainWindow):
             else:
                 self.savelabel.setText(folderName)
 
-    def load_labels(self):
-        # Read Pose file
-        self.Pose_data = pd.read_hdf(self.poseFilepath, 'df_with_missing')
-        self.keypoints_labels = pd.unique(self.Pose_data.columns.get_level_values("bodyparts"))
-        self.pose_x_coord = self.Pose_data.T[self.Pose_data.columns.get_level_values("coords").values=="x"].values #size: key points x frames
-        self.pose_y_coord = self.Pose_data.T[self.Pose_data.columns.get_level_values("coords").values=="y"].values #size: key points x frames
-        self.pose_likelihood = self.Pose_data.T[self.Pose_data.columns.get_level_values("coords").values=="likelihood"].values #size: key points x frames
-        # Choose colors for each label: provide option for paltter that is color-blindness friendly
-        self.colors = cm.get_cmap('gist_rainbow')(np.linspace(0, 1., len(self.keypoints_labels)))
-        self.colors *= 255
-        self.colors = self.colors.astype(int)
-        self.colors[:,-1] = 127
-        self.brushes = np.array([pg.mkBrush(color=c) for c in self.colors])
-    
-    def update_pose(self):
-        if self.poseFileLoaded and self.Labels_checkBox.isChecked():
-            self.statusBar.clearMessage()
-            self.p0.addItem(self.Pose_scatterplot)
-            self.p0.setRange(xRange=(0,self.LX), yRange=(0,self.LY), padding=0.0)
-            threshold = 0#np.nanpercentile(self.pose_likelihood, 30) # Determine threshold
-            filtered_keypoints = np.where(self.pose_likelihood[:,self.cframe] > threshold)[0]
-            x = self.pose_x_coord[filtered_keypoints,self.cframe]
-            y = self.pose_y_coord[filtered_keypoints,self.cframe]
-            self.Pose_scatterplot.setData(x, y, size=10, symbol='o', brush=self.brushes[filtered_keypoints],
-                                             hoverable=True, hoverSize=10, 
-                                             data=self.keypoints_labels[filtered_keypoints])
-        elif not self.poseFileLoaded and self.Labels_checkBox.isChecked():
-            self.update_status_bar("Please upload a pose (*.h5) file")
-        else:
-            self.statusBar.clearMessage()
-            self.Pose_scatterplot.clear()
-
-    def keypoints_clicked(self, obj, points):
-        ## Can add functionality for clicking key points
-        return ""
-
-    def keypoints_hovered(self, obj, ev):
-        point_hovered = np.where(self.Pose_scatterplot.data['hovered'])[0]
-        if point_hovered.shape[0] >= 1:         # Show tooltip only when hovering over a point i.e. no empty array
-            points = self.Pose_scatterplot.points()
-            vb = self.Pose_scatterplot.getViewBox()
-            if vb is not None and self.Pose_scatterplot.opts['tip'] is not None:
-                cutoff = 1                      # Display info of only one point when hovering over multiple points
-                tip = [self.Pose_scatterplot.opts['tip'](data=points[pt].data(), x=points[pt].pos().x(), y=points[pt].pos().y())
-                        for pt in point_hovered[:cutoff]]
-                if len(point_hovered) > cutoff:
-                    tip.append('({} other...)'.format(len(point_hovered) - cutoff))
-                vb.setToolTip('\n\n'.join(tip))
-
-    def highlight_embed_point(self, playback_point): 
-        x = [np.array(self.clustering_scatterplot.points()[playback_point].pos().x())]
-        y = [np.array(self.clustering_scatterplot.points()[playback_point].pos().y())]
-        self.clustering_highlight_scatterplot.setData(x=x, y=y, 
-                                                    symbol='x', brush='r',pxMode=True, hoverable=True, hoverSize=20,
-                                                    hoverSymbol="x", hoverBrush='r',pen=(0,0,0,0),
-                                                   data=playback_point, size=15)
-        """
-        old = self.clustering_scatterplot.data['hovered']
-        self.clustering_scatterplot.data['sourceRect'][old] = 1
-        bool_mask = np.full((len(self.clustering_scatterplot.data)), False, dtype=bool)
-        self.clustering_scatterplot.data['hovered'] = bool_mask
-        self.clustering_scatterplot.invalidate()   
-        self.clustering_scatterplot.updateSpots()
-        self.clustering_scatterplot.sigPlotChanged.emit(self.clustering_scatterplot)
-
-        bool_mask[playback_point] = True
-        self.clustering_scatterplot.data['hovered'] = bool_mask
-        self.clustering_scatterplot.data['sourceRect'][bool_mask] = 0
-        self.clustering_scatterplot.updateSpots()   
-        #points = self.clustering_scatterplot.points()
-        #self.clustering_scatterplot.sigClicked.emit([points[playback_point]], None, self)
-        """
-
     def keyPressEvent(self, event):
         bid = -1
         if self.playButton.isEnabled():
@@ -864,46 +586,6 @@ class MainW(QtGui.QMainWindow):
                 else:
                     self.pause()
 
-    def plot_clicked(self, event):
-        items = self.win.scene().items(event.scenePos())
-        posx  = 0
-        posy  = 0
-        iplot = 0
-        zoom = False
-        zoomImg = False
-        choose = False
-        if self.loaded:
-            for x in items:
-                if x==self.p1:
-                    vb = self.p1.vb
-                    pos = vb.mapSceneToView(event.scenePos())
-                    posx = pos.x()
-                    iplot = 1
-                elif x==self.p2:
-                    vb = self.p1.vb
-                    pos = vb.mapSceneToView(event.scenePos())
-                    posx = pos.x()
-                    iplot = 2
-                elif x==self.p0:
-                    if event.button()==1:
-                        if event.double():
-                            zoomImg=True
-                if iplot==1 or iplot==2:
-                    if event.button()==1:
-                        if event.double():
-                            zoom=True
-                        else:
-                            choose=True
-        if zoomImg:
-            self.p0.setRange(xRange=(0,self.LX),yRange=(0,self.LY))
-        if zoom:
-            self.p1.setRange(xRange=(0,self.nframes))
-        if choose:
-            if self.playButton.isEnabled() and not self.online_mode:
-                self.cframe = np.maximum(0, np.minimum(self.nframes-1, int(np.round(posx))))
-                self.frameSlider.setValue(self.cframe)
-                #self.jump_to_frame()
-
     def go_to_frame(self):
         self.cframe = int(self.frameSlider.value())
         self.setFrame.setText(str(self.cframe))
@@ -918,31 +600,6 @@ class MainW(QtGui.QMainWindow):
         self.frameLabel.setEnabled(True)
         self.totalFrameLabel.setEnabled(True)
         self.frameSlider.setEnabled(True)
-
-    def update_buttons(self):
-        self.playButton.setEnabled(True)
-        self.pauseButton.setEnabled(False)
-        self.addROI.setEnabled(True)
-        self.pauseButton.setChecked(True)
-        self.process.setEnabled(True)
-        self.savefolder.setEnabled(True)
-        self.saverois.setEnabled(True)
-        self.checkBox.setChecked(True)
-        self.save_mat.setChecked(True)
-        self.load_trace1_button.setEnabled(True)
-        self.load_trace2_button.setEnabled(True)
-
-        # Enable pose features for single video only
-        if len(self.img)==1:
-            self.loadPose.setEnabled(True)
-            self.Labels_checkBox.setEnabled(True)
-            self.poseEstimatesButton.setEnabled(True)
-            self.poseBboxButton.setEnabled(True)
-        else:
-            self.loadPose.setEnabled(False)
-            self.Labels_checkBox.setEnabled(False)
-            self.poseEstimatesButton.setEnabled(False)
-            self.poseBboxButton.setEnabled(False)
 
     def jump_to_frame(self):
         if self.playButton.isEnabled():
@@ -1085,7 +742,328 @@ class MainW(QtGui.QMainWindow):
             msg.setStandardButtons(QtGui.QMessageBox.Ok)
             msg.exec_()
             return
+        
+    def update_buttons(self):
+        self.playButton.setEnabled(True)
+        self.pauseButton.setEnabled(False)
+        self.addROI.setEnabled(True)
+        self.pauseButton.setChecked(True)
+        self.process.setEnabled(True)
+        self.savefolder.setEnabled(True)
+        self.saverois.setEnabled(True)
+        self.checkBox.setChecked(True)
+        self.save_mat.setChecked(True)
+        self.load_trace1_button.setEnabled(True)
+        self.load_trace2_button.setEnabled(True)
 
+        # Enable pose features for single video only
+        if len(self.img)==1:
+            self.loadPose.setEnabled(True)
+            self.Labels_checkBox.setEnabled(True)
+            self.poseEstimatesButton.setEnabled(True)
+            self.poseBboxButton.setEnabled(True)
+        else:
+            self.loadPose.setEnabled(False)
+            self.Labels_checkBox.setEnabled(False)
+            self.poseEstimatesButton.setEnabled(False)
+            self.poseBboxButton.setEnabled(False)
+    
+    def button_status(self, status):
+        self.playButton.setEnabled(status)
+        self.pauseButton.setEnabled(status)
+        self.frameSlider.setEnabled(status)
+        self.process.setEnabled(status)
+        self.saverois.setEnabled(status)
+
+    ### ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Clustering and ROI ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ 
+    def vis_combobox_selection_changed(self):
+        """
+        Call clustering or ROI display functions upon user selection from combo box
+        """
+        self.clear_visualization_window()
+        visualization_request = self.clusteringVisComboBox.currentText()
+        if visualization_request == "ROI":
+            self.cluster_model.disable_data_clustering_features(self)
+            if len(self.ROIs)>0:
+                self.update_ROI_vis_comboBox()
+                self.update_status_bar("")
+            else:
+                self.update_status_bar("Please add ROIs for display")
+        elif visualization_request == "UMAP":
+            self.cluster_model.enable_data_clustering_features(parent=self)
+            self.update_status_bar("")
+        else:
+            self.cluster_model.disable_data_clustering_features(self)
+
+    def clear_visualization_window(self):
+        self.roiVisComboBox.hide()
+        self.pROIimg.clear()
+        self.pROI.removeItem(self.scatter)
+        self.ClusteringPlot.clear()
+        self.ClusteringPlot.hideAxis('left')
+        self.ClusteringPlot.hideAxis('bottom')
+        self.ClusteringPlot.removeItem(self.clustering_scatterplot)
+        self.ClusteringPlot_legend.setParentItem(None)
+        self.ClusteringPlot_legend.hide()
+
+    def cluster_plot_zoom_buttons(self, in_or_out):
+        """
+        see ViewBox.scaleBy()
+        pyqtgraph wheel zoom is s = ~0.75
+        """
+        s = 0.9
+        zoom = (s, s) if in_or_out == "in" else (1/s, 1/s)
+        self.ClusteringPlot.vb.scaleBy(zoom)
+
+    def update_ROI_vis_comboBox(self):
+        """
+        Update ROI selection combo box
+        """
+        self.roiVisComboBox.clear()
+        self.pROIimg.clear() 
+        self.roiVisComboBox.addItem("--Type--")
+        for i in range(len(self.ROIs)):
+            selected = self.ROIs[i]
+            self.roiVisComboBox.addItem(str(selected.iROI+1)+". "+selected.rtype)
+        if self.clusteringVisComboBox.currentText() == "ROI":
+            self.roiVisComboBox.show()
+
+    def display_ROI(self):
+        """
+        Plot selected ROI on visualizaiton window 
+        """
+        self.roiVisComboBox.show()
+        roi_request = self.roiVisComboBox.currentText()
+        if roi_request != "--Type--":
+            self.pROI.addItem(self.scatter)
+            roi_request_ind = int(roi_request.split(".")[0]) - 1
+            self.ROIs[int(roi_request_ind)].plot(self)
+            #self.set_ROI_saturation_label(self.ROIs[int(roi_request_ind)].saturation)
+        else:
+            self.pROIimg.clear()
+            self.pROI.removeItem(self.scatter)
+
+    def highlight_embed_point(self, playback_point): 
+        x = [np.array(self.clustering_scatterplot.points()[playback_point].pos().x())]
+        y = [np.array(self.clustering_scatterplot.points()[playback_point].pos().y())]
+        self.clustering_highlight_scatterplot.setData(x=x, y=y, 
+                                                    symbol='x', brush='r',pxMode=True, hoverable=True, hoverSize=20,
+                                                    hoverSymbol="x", hoverBrush='r',pen=(0,0,0,0),
+                                                   data=playback_point, size=15)
+        """
+        old = self.clustering_scatterplot.data['hovered']
+        self.clustering_scatterplot.data['sourceRect'][old] = 1
+        bool_mask = np.full((len(self.clustering_scatterplot.data)), False, dtype=bool)
+        self.clustering_scatterplot.data['hovered'] = bool_mask
+        self.clustering_scatterplot.invalidate()   
+        self.clustering_scatterplot.updateSpots()
+        self.clustering_scatterplot.sigPlotChanged.emit(self.clustering_scatterplot)
+
+        bool_mask[playback_point] = True
+        self.clustering_scatterplot.data['hovered'] = bool_mask
+        self.clustering_scatterplot.data['sourceRect'][bool_mask] = 0
+        self.clustering_scatterplot.updateSpots()   
+        #points = self.clustering_scatterplot.points()
+        #self.clustering_scatterplot.sigClicked.emit([points[playback_point]], None, self)
+        """
+
+    ### ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Pose functions ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ 
+    def set_pose_bbox(self):
+        # User defined or automatic bbox selection
+        if self.pose_model is None:
+            self.pose_model = pose.Pose(parent=self, filenames=self.filenames)
+        self.pose_gui = pose_gui.PoseGUI(gui=self, parent=self.pose_model)
+
+    def get_pose_labels(self):
+        print("Generating pose estimates")
+        if self.pose_model is None:
+            self.pose_model = pose.Pose(parent=self, filenames=self.filenames)
+        self.pose_model.run()
+
+    def load_labels(self):
+        # Read Pose file
+        self.Pose_data = pd.read_hdf(self.poseFilepath, 'df_with_missing')
+        self.keypoints_labels = pd.unique(self.Pose_data.columns.get_level_values("bodyparts"))
+        self.pose_x_coord = self.Pose_data.T[self.Pose_data.columns.get_level_values("coords").values=="x"].values #size: key points x frames
+        self.pose_y_coord = self.Pose_data.T[self.Pose_data.columns.get_level_values("coords").values=="y"].values #size: key points x frames
+        self.pose_likelihood = self.Pose_data.T[self.Pose_data.columns.get_level_values("coords").values=="likelihood"].values #size: key points x frames
+        # Choose colors for each label: provide option for paltter that is color-blindness friendly
+        self.colors = cm.get_cmap('gist_rainbow')(np.linspace(0, 1., len(self.keypoints_labels)))
+        self.colors *= 255
+        self.colors = self.colors.astype(int)
+        self.colors[:,-1] = 127
+        self.brushes = np.array([pg.mkBrush(color=c) for c in self.colors])
+    
+    def update_pose(self):
+        if self.poseFileLoaded and self.Labels_checkBox.isChecked():
+            self.statusBar.clearMessage()
+            self.p0.addItem(self.Pose_scatterplot)
+            self.p0.setRange(xRange=(0,self.LX), yRange=(0,self.LY), padding=0.0)
+            threshold = 0#np.nanpercentile(self.pose_likelihood, 30) # Determine threshold
+            filtered_keypoints = np.where(self.pose_likelihood[:,self.cframe] > threshold)[0]
+            x = self.pose_x_coord[filtered_keypoints,self.cframe]
+            y = self.pose_y_coord[filtered_keypoints,self.cframe]
+            self.Pose_scatterplot.setData(x, y, size=10, symbol='o', brush=self.brushes[filtered_keypoints],
+                                             hoverable=True, hoverSize=10, 
+                                             data=self.keypoints_labels[filtered_keypoints])
+        elif not self.poseFileLoaded and self.Labels_checkBox.isChecked():
+            self.update_status_bar("Please upload a pose (*.h5) file")
+        else:
+            self.statusBar.clearMessage()
+            self.Pose_scatterplot.clear()
+
+    def keypoints_clicked(self, obj, points):
+        ## Can add functionality for clicking key points
+        return ""
+
+    def keypoints_hovered(self, obj, ev):
+        point_hovered = np.where(self.Pose_scatterplot.data['hovered'])[0]
+        if point_hovered.shape[0] >= 1:         # Show tooltip only when hovering over a point i.e. no empty array
+            points = self.Pose_scatterplot.points()
+            vb = self.Pose_scatterplot.getViewBox()
+            if vb is not None and self.Pose_scatterplot.opts['tip'] is not None:
+                cutoff = 1                      # Display info of only one point when hovering over multiple points
+                tip = [self.Pose_scatterplot.opts['tip'](data=points[pt].data(), x=points[pt].pos().x(), y=points[pt].pos().y())
+                        for pt in point_hovered[:cutoff]]
+                if len(point_hovered) > cutoff:
+                    tip.append('({} other...)'.format(len(point_hovered) - cutoff))
+                vb.setToolTip('\n\n'.join(tip))
+
+    ### ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Plot 1 and 2 functions ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ 
+    def load_trace_button_clicked(self, plot_id):
+        data = io.load_trace_data(parent=self)
+        if data.ndim == 1:
+            # Open a QDialog box containing two radio buttons horizontally centered
+            # and a QLineEdit to enter the name of the trace
+            # If the user presses OK, the trace is added to the list of traces
+            # and the combo box is updated
+            # If the user presses Cancel, the trace is not added
+            dialog = QtWidgets.QDialog()
+            dialog.setWindowTitle("Set data type")
+            dialog.setFixedWidth(400)
+            dialog.verticalLayout = QtWidgets.QVBoxLayout(dialog)
+            dialog.verticalLayout.setContentsMargins(10, 10, 10, 10) 
+
+            dialog.horizontalLayout = QtWidgets.QHBoxLayout()
+            dialog.verticalLayout.addLayout(dialog.horizontalLayout)
+            dialog.label = QtWidgets.QLabel("Data type:")
+            dialog.horizontalLayout.addWidget(dialog.label)
+            
+            # Create radio buttons
+            dialog.radio_button_group = QtWidgets.QButtonGroup()
+            dialog.radio_button_group.setExclusive(True)
+            dialog.radioButton1 = QtWidgets.QRadioButton("Continuous")
+            dialog.radioButton1.setChecked(True)
+            dialog.horizontalLayout.addWidget(dialog.radioButton1)
+            dialog.radioButton2 = QtWidgets.QRadioButton("Discrete")
+            dialog.radioButton2.setChecked(False)
+            dialog.horizontalLayout.addWidget(dialog.radioButton2)
+            # Add radio buttons to radio buttons group
+            dialog.radio_button_group.addButton(dialog.radioButton1)
+            dialog.radio_button_group.addButton(dialog.radioButton2)
+
+            dialog.horizontalLayout2 = QtWidgets.QHBoxLayout()
+            dialog.label = QtWidgets.QLabel("Data name:")
+            dialog.horizontalLayout2.addWidget(dialog.label)
+            dialog.lineEdit = QtWidgets.QLineEdit()
+            dialog.lineEdit.setText("Trace 1")
+            # Adjust size of line edit
+            dialog.lineEdit.setFixedWidth(200)
+            # 
+            dialog.horizontalLayout2.addWidget(dialog.lineEdit)
+            dialog.verticalLayout.addLayout(dialog.horizontalLayout2)
+            dialog.horizontalLayout3 = QtWidgets.QHBoxLayout()
+            dialog.buttonBox = QtWidgets.QDialogButtonBox(QtWidgets.QDialogButtonBox.Ok | QtWidgets.QDialogButtonBox.Cancel)
+            dialog.buttonBox.accepted.connect(dialog.accept)
+            dialog.buttonBox.rejected.connect(dialog.reject)
+            dialog.horizontalLayout3.addWidget(dialog.buttonBox)
+            dialog.verticalLayout.addLayout(dialog.horizontalLayout3)
+            if dialog.exec_():
+                data_name = dialog.lineEdit.text()
+                if data_name == "":
+                    data_name = "trace"
+                data_type = "continuous"
+                if dialog.radioButton2.isChecked():
+                    data_type = "discrete"
+                    # Create a color palette of len(data) using distinguishable_colors
+                    # and add it to the list of color palettes
+                    # The color palette is used to color the points in the scatter 
+                    if len(np.unique(data))<=10:
+                        color_palette = np.array(plt.get_cmap('tab10').colors)
+                    elif len(np.unique(data))<=10:
+                        color_palette = np.array(plt.get_cmap('tab20').colors)
+                    else:
+                        color_palette = np.array(plt.get_cmap('tab20').colors)
+                    color_palette *= 255
+                    color_palette = color_palette.astype(int)
+                    color_palette = color_palette[:len(np.unique(data))]
+                    # Create a list of pens for each unique value in data
+                    # The pen is used to color the points in the scatter plot                    
+                    pen_list = np.empty(len(data), dtype=object)
+                    for j, value in enumerate(np.unique(data)):
+                        ind = np.where(data==value)[0]
+                        pen_list[ind] = pg.mkPen(QtGui.QColor(color_palette[j][0], color_palette[j][1], color_palette[j][2]))
+                    vtick = QPainterPath()
+                    vtick.moveTo(0, -0.5)
+                    vtick.lineTo(0, 0.5)
+
+                if plot_id == 1:
+                    self.trace1_data_loaded = data
+                    self.trace1_data_type = data_type
+                    self.trace1_name = data_name   
+                    if data_type == "discrete":
+                        x = np.arange(len(data))
+                        self.trace1_plot = pg.ScatterPlotItem()
+                        self.trace1_plot.setData(x, data, pen=pen_list, brush='g',pxMode=False, 
+                                                symbol=vtick, size=1, symbol_pen=pen_list)
+                    else:
+                        self.trace1_plot = pg.PlotDataItem()
+                        self.trace1_plot.setData(data, pen=pg.mkPen("g", width=1))
+                    self.trace1_legend.clear()
+                    self.trace1_legend.addItem(self.trace1_plot, name=data_name)
+                    self.trace1_legend.setPos(self.trace1_plot.x(), self.trace1_plot.y())
+                    self.trace1_legend.setParentItem(self.p1)
+                    self.trace1_legend.setVisible(True)
+                    self.load_trace1_button.setText("Loaded")
+                    self.load_trace1_button.setEnabled(False)
+                    self.trace1_plot.setVisible(True)
+                    self.update_status_bar("Trace 1 data updated")
+                    try:
+                        self.trace1_legend.sigClicked.connect(self.mouseClickEvent)
+                    except Exception as e:
+                        pass
+                elif plot_id == 2:
+                    self.trace2_data_loaded = data
+                    self.trace2_data_type = data_type
+                    self.trace2_name = data_name
+                    if data_type == "discrete":
+                        x = np.arange(len(data))
+                        self.trace2_plot = pg.ScatterPlotItem()
+                        self.trace2_plot.setData(x, data, pen=pen_list, brush='g',pxMode=False, 
+                                                symbol=vtick, size=1, symbol_pen=pen_list)
+                    else:
+                        self.trace2_plot = pg.PlotDataItem()
+                        self.trace2_plot.setData(data, pen=pg.mkPen("g", width=1))
+                    self.trace2_legend.clear()
+                    self.trace2_legend.addItem(self.trace2_plot, name=data_name)
+                    self.trace2_legend.setPos(self.trace2_plot.x(), self.trace2_plot.y())
+                    self.trace2_legend.setParentItem(self.p2)
+                    self.trace2_legend.setVisible(True)
+                    self.load_trace2_button.setText("Loaded")
+                    self.load_trace2_button.setEnabled(False)
+                    self.trace2_plot.setVisible(True)
+                    self.update_status_bar("Trace 2 data updated")
+                    try:
+                        self.trace2_legend.sigClicked.connect(self.mouseClickEvent)
+                    except Exception as e:
+                        pass
+                else:
+                    self.update_status_bar("Error: plot ID not recognized")
+                    pass
+                self.plot_processed()
+        else:
+            self.update_status_bar("Error: data not recognized")
+    
     def plot_processed(self):
         self.p1.clear()
         self.p2.clear()
@@ -1120,9 +1098,8 @@ class MainW(QtGui.QMainWindow):
             self.p1.addItem(self.trace1_plot)
             self.traces1 = np.concatenate((self.traces1, self.trace1_data_loaded[np.newaxis,:]), axis=0)
         if self.trace2_data_loaded is not None:
-            tr = self.trace2_data_loaded
-            self.p2.plot(tr, pen=pg.mkPen("b", width=1))
-            self.traces2 = np.concatenate((self.traces2, tr[np.newaxis,:]), axis=0)
+            self.p2.addItem(self.trace2_plot)
+            self.traces2 = np.concatenate((self.traces2, self.trace2_data_loaded[np.newaxis,:]), axis=0)
         self.p1.setRange(xRange=(0,self.nframes),
                          yRange=(-4, 4),
                           padding=0.0)
@@ -1214,12 +1191,47 @@ class MainW(QtGui.QMainWindow):
             tr = running.T
         return tr
 
-    def button_status(self, status):
-        self.playButton.setEnabled(status)
-        self.pauseButton.setEnabled(status)
-        self.frameSlider.setEnabled(status)
-        self.process.setEnabled(status)
-        self.saverois.setEnabled(status)
+    def plot_clicked(self, event):
+        items = self.win.scene().items(event.scenePos())
+        posx  = 0
+        posy  = 0
+        iplot = 0
+        zoom = False
+        zoomImg = False
+        choose = False
+        if self.loaded:
+            for x in items:
+                if x==self.p1:
+                    vb = self.p1.vb
+                    pos = vb.mapSceneToView(event.scenePos())
+                    posx = pos.x()
+                    iplot = 1
+                elif x==self.p2:
+                    vb = self.p1.vb
+                    pos = vb.mapSceneToView(event.scenePos())
+                    posx = pos.x()
+                    iplot = 2
+                elif x==self.p0:
+                    if event.button()==1:
+                        if event.double():
+                            zoomImg=True
+                if iplot==1 or iplot==2:
+                    if event.button()==1:
+                        if event.double():
+                            zoom=True
+                        else:
+                            choose=True
+        if zoomImg:
+            self.p0.setRange(xRange=(0,self.LX),yRange=(0,self.LY))
+        if zoom:
+            self.p1.setRange(xRange=(0,self.nframes))
+        if choose:
+            if self.playButton.isEnabled() and not self.online_mode:
+                self.cframe = np.maximum(0, np.minimum(self.nframes-1, int(np.round(posx))))
+                self.frameSlider.setValue(self.cframe)
+                #self.jump_to_frame()
+
+### ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Main ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ 
 
 def run(moviefile=None,savedir=None):
     # Always start by initializing Qt (only once per application)
