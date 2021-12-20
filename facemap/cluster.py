@@ -262,11 +262,11 @@ class Cluster():
         colors = cm.get_cmap('gist_rainbow')(np.linspace(0, 1., num_classes))
         colors *= 255
         colors = colors.astype(int)
-        colors[:,-1] = 127
+        colors[:,-1] = 200#127
         brushes = [pg.mkBrush(color=c) for c in colors]
         #if -1 in np.unique(self.cluster_labels):
         #    brushes[0] = pg.mkBrush(color=(220,220,220))
-        return brushes
+        return brushes, colors
 
     def reset(self, parent):
         self.cluster_labels = None
@@ -340,7 +340,7 @@ class Cluster():
         # Get cluster labels if clustering method selected for embedded output
         if parent.kmeans_radiobutton.isChecked() or parent.hdbscan_radiobutton.isChecked() or parent.loadlabels_radiobutton.isChecked():
             self.get_cluster_labels(self.embedded_output, parent)
-            brushes = self.get_colors()
+            brushes, colors = self.get_colors()
             name = self.cluster_labels
             if len(brushes) > 1:
                 is_cluster_colored = True
@@ -385,6 +385,7 @@ class Cluster():
                 parent.ClusteringPlot.addItem(parent.clustering_highlight_scatterplot)
                 parent.ClusteringPlot_legend.setPos(parent.clustering_scatterplot.x()+5,parent.clustering_scatterplot.y())
                 parent.ClusteringPlot_legend.setParentItem(parent.ClusteringPlot)
+                parent.plot_cluster_labels_p1(self.cluster_labels, colors)
             else:
                 parent.clustering_scatterplot.setData(self.embedded_output[:,0], self.embedded_output[:,1], symbol='o',
                                                      brush=all_spots_colors,pxMode=True,hoverable=True, 

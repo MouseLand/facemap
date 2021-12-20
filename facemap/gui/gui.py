@@ -5,16 +5,15 @@ import pyqtgraph as pg
 from scipy.stats import zscore, skew
 from matplotlib import cm
 import matplotlib.pyplot as plt
-from natsort import natsorted
-import pathlib
-import cv2
 import pandas as pd
 from PyQt5.QtGui import QPixmap 
 from .. import process, roi, utils, cluster
 from ..pose import pose_gui, pose
 from . import io, menus, guiparts
 from PyQt5 import QtGui, QtCore, QtWidgets
-from PyQt5.QtGui import QPainterPath, QColor
+from PyQt5.QtGui import QPainterPath
+
+# TODO - Match ehtogram/cluster labels w/ UMAP/embedding labels file
 
 istr = ['pupil', 'motSVD', 'blink', 'running']
 
@@ -969,7 +968,6 @@ class MainW(QtGui.QMainWindow):
             dialog.lineEdit.setText("Trace 1")
             # Adjust size of line edit
             dialog.lineEdit.setFixedWidth(200)
-            # 
             dialog.horizontalLayout2.addWidget(dialog.lineEdit)
             dialog.verticalLayout.addLayout(dialog.horizontalLayout2)
             dialog.horizontalLayout3 = QtWidgets.QHBoxLayout()
@@ -1064,6 +1062,41 @@ class MainW(QtGui.QMainWindow):
         else:
             self.update_status_bar("Error: data not recognized")
     
+    # Plot trace on p1 showing cluster labels as discrete data
+    def plot_cluster_labels_p1(self, labels, color_palette):
+        x = np.arange(len(labels))
+        y = np.ones((len(x)))
+        self.trace1_data_loaded = y
+        self.trace1_data_type = "discrete"
+        self.trace1_name = "Cluster Labels"   
+        # Create a list of pens for each unique value in data
+        # The pen is used to color the points in the scatter plot                    
+        pen_list = np.empty(len(labels), dtype=object)
+        for j, value in enumerate(np.unique(labels)):
+            ind = np.where(labels==value)[0]
+            pen_list[ind] = pg.mkPen(color_palette[j])
+        vtick = QPainterPath()
+        vtick.moveTo(0, -1)
+        vtick.lineTo(0, 1)
+        # Plot trace 1 data points
+        self.trace1_plot = pg.ScatterPlotItem()
+        self.trace1_plot.setData(x, y, pen=pen_list, brush='g',pxMode=False, 
+                                symbol=vtick, size=1, symbol_pen=pen_list)
+        self.trace1_legend.clear()
+        self.trace1_legend.addItem(self.trace1_plot, name=self.trace1_name)
+        self.trace1_legend.setPos(self.trace1_plot.x(), self.trace1_plot.y())
+        self.trace1_legend.setParentItem(self.p1)
+        self.trace1_legend.setVisible(True)
+        self.load_trace1_button.setText("Loaded")
+        self.load_trace1_button.setEnabled(False)
+        self.trace1_plot.setVisible(True)
+        self.update_status_bar("Trace 1 data updated")
+        try:
+            self.trace1_legend.sigClicked.connect(self.mouseClickEvent)
+        except Exception as e:
+            pass
+        self.plot_processed()
+
     def plot_processed(self):
         self.p1.clear()
         self.p2.clear()
@@ -1119,7 +1152,7 @@ class MainW(QtGui.QMainWindow):
             self.p1.removeItem(self.scatter1)
             self.scatter1.setData(self.cframe*np.ones((ntr,)),
                                   self.traces1[:, self.cframe],
-                                  size=10, brush=pg.mkBrush(255,255,255))
+                                  size=8, brush=pg.mkBrush(255,255,255))
             self.p1.addItem(self.scatter1)
 
         if self.traces2.shape[0] > 0:
@@ -1127,7 +1160,7 @@ class MainW(QtGui.QMainWindow):
             self.p2.removeItem(self.scatter2)
             self.scatter2.setData(self.cframe*np.ones((ntr,)),
                                   self.traces2[:, self.cframe],
-                                  size=10, brush=pg.mkBrush(255,255,255))
+                                  size=8, brush=pg.mkBrush(255,255,255))
             self.p2.addItem(self.scatter2)
 
     def plot_trace(self, wplot, proctype, wroi, color):
