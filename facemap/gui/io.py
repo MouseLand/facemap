@@ -252,13 +252,18 @@ def load_movies(parent, filelist=None):
     return good
 
 def get_pose_file(parent):
-    filepath = QtGui.QFileDialog.getOpenFileName(parent,
-                            "Choose pose file", "", "Pose labels file (*.h5)")
-    if filepath[0]:
-        parent.poseFilepath = filepath[0]
+    # Open a folder and allow selection of multiple files with extension *.h5 only
+    # Returns a list of files
+    filelist = []
+    filelist = QtGui.QFileDialog.getOpenFileNames(parent, 'Open Pose File', parent.save_path, '*.h5')
+    if filelist[0] == '':
+        return
+    else:
+        parent.poseFilepath = natsorted(filelist[0])
         parent.poseFileLoaded = True
-        parent.update_status_bar("Pose file loaded: "+parent.poseFilepath)
         parent.load_labels()
+        parent.Labels_checkBox.setChecked(True)
+        parent.update_status_bar("Pose file(s) loaded")
 
 def load_cluster_labels(parent):
     try:

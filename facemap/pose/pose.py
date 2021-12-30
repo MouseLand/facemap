@@ -85,7 +85,7 @@ class Pose():
         end = batch_size
         Xstart, Xstop, Ystart, Ystop, resize = self.bbox[video_id]
         with tqdm(total=self.cumframes[-1], unit='frame', unit_scale=True) as pbar:
-            while start != 2:#self.cumframes[-1]:
+            while start != self.cumframes[-1]:
                 # Pre-pocess images
                 im = np.zeros((end-start, nchannels, 256, 256))
                 for i, frame_ind in enumerate(np.arange(start,end)):

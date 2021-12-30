@@ -777,8 +777,7 @@ class MainW(QtGui.QMainWindow):
         self.Labels_checkBox.setEnabled(True)
         self.poseEstimatesButton.setEnabled(True)
         self.poseBboxButton.setEnabled(True)
-        if len(self.img)==1:
-            self.loadPose.setEnabled(True)
+        self.loadPose.setEnabled(True)
     
     def button_status(self, status):
         self.playButton.setEnabled(status)
