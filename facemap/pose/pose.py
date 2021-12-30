@@ -19,10 +19,10 @@ Base class for generating pose estimates using command line interface.
 Currently supports single video processing only.
 """
 class Pose():
-    def __init__(self, parent=None, filenames=None, savepath=None):
-        self.parent = parent
-        if self.parent is not None:
-            self.filenames = self.parent.filenames
+    def __init__(self, gui=None, filenames=None):
+        self.gui = gui
+        if self.gui is not None:
+            self.filenames = self.gui.filenames
         else:
             self.filenames = filenames
         self.cumframes, self.Ly, self.Lx, self.containers = utils.get_frame_details(self.filenames)
@@ -31,7 +31,6 @@ class Pose():
         self.bodyparts = None
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         self.net = self.load_model()
-        self.savepath = savepath
         self.bbox = []
         self.bbox_set = False
 
@@ -39,40 +38,23 @@ class Pose():
         # Predict and save pose
         if not self.bbox_set:
             resize = True 
-            self.bbox = 0, self.Ly[0], 0, self.Lx[0], resize
+            for i in range(len(self.Ly)):
+                x1, x2, y1, y2 = 0, self.Ly[i], 0, self.Lx[i]
+                self.bbox.append([x1, x2, y1, y2, resize])
             print("No bbox set. Using full image size:", self.bbox)
+            self.bbox_set = True    
         t0 = time.time()
-        self.dataFrame = self.predict_landmarks()
-        if save:
-            self.savepath = self.save_pose_prediction()
-            self.parent.poseFilepath = self.savepath
+        for video_id in range(len(self.bbox)):
+            print("Processing video:", self.filenames[0][video_id])
+            dataFrame = self.predict_landmarks(video_id)
+            if save:
+                savepath = self.save_pose_prediction(dataFrame, video_id)
+                self.gui.poseFilepath.append(savepath)
         print("~~~~~~~~~~~~~~~~~~~~~DONE~~~~~~~~~~~~~~~~~~~~~")
         print("Time taken:", time.time()-t0)
         self.plot_pose_estimates()
-        return self.savepath
 
-    def plot_pose_estimates(self):
-        # Plot labels
-        self.parent.poseFileLoaded = True
-        self.parent.load_labels()
-        self.parent.Labels_checkBox.setChecked(True)    
-        
-    def estimate_bbox_region(self, prev_bbox):
-        """
-        Obtain ROI/bbox for cropping images to use as input for model 
-        """
-        num_iter = 3 # select optimum value for CPU vs. GPU
-        for it in range(1):#num_iter):
-            t0 = time.time()
-            imgs = self.get_batch_imgs()
-            # Get bounding box for imgs 
-            bbox, _ = transforms.get_bounding_box(imgs, self.net, prev_bbox)
-            prev_bbox = bbox    # Update bbox 
-            adjusted_bbox = transforms.adjust_bbox(bbox, (self.Ly[0], self.Lx[0])) # Adjust bbox to be square instead of rectangle
-            print(adjusted_bbox, "bbox", time.time()-t0) 
-        return adjusted_bbox
-
-    def predict_landmarks(self, save_prediction=True):
+    def predict_landmarks(self, video_id):
         """
         Predict labels for all frames in video and save output as .h5 file
         """
@@ -101,13 +83,13 @@ class Pose():
         self.net.eval()
         start = 0
         end = batch_size
-        Xstart, Xstop, Ystart, Ystop, resize = self.bbox
+        Xstart, Xstop, Ystart, Ystop, resize = self.bbox[video_id]
         with tqdm(total=self.cumframes[-1], unit='frame', unit_scale=True) as pbar:
-            while start != self.cumframes[-1]:
+            while start != 2:#self.cumframes[-1]:
                 # Pre-pocess images
                 im = np.zeros((end-start, nchannels, 256, 256))
                 for i, frame_ind in enumerate(np.arange(start,end)):
-                    frame = utils.get_frame(frame_ind, self.nframes, self.cumframes, self.containers)[0]  
+                    frame = utils.get_frame(frame_ind, self.nframes, self.cumframes, self.containers)[video_id]  
                     frame_grayscale = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
                     frame_grayscale_preprocessed = transforms.preprocess_img(frame_grayscale)
                     im[i,0] = transforms.crop_resize(frame_grayscale_preprocessed.squeeze(), Ystart, Ystop,
@@ -127,8 +109,8 @@ class Pose():
                 Xlabel, Ylabel = transforms.labels_crop_resize(landmarks[:,:,0], landmarks[:,:,1], 
                                                                 Ystart, Xstart,
                                                                 current_size=(256, 256), 
-                                                                desired_size=(self.bbox[1]-self.bbox[0],
-                                                                                self.bbox[3]-self.bbox[2]))
+                                                                desired_size=(self.bbox[video_id][1]-self.bbox[video_id][0],
+                                                                                self.bbox[video_id][3]-self.bbox[video_id][2]))
                 dataFrame.iloc[start:end,::3] = Xlabel
                 dataFrame.iloc[start:end,1::3] = Ylabel
                 dataFrame.iloc[start:end,2::3] = likelihood
@@ -139,14 +121,35 @@ class Pose():
                 end = min(end, self.cumframes[-1])
         return dataFrame
 
-    def save_pose_prediction(self):
+    def save_pose_prediction(self, dataFrame, video_id):
         # Save prediction to .h5 file
-        basename, filename = os.path.split(self.filenames[0][0])
+        basename, filename = os.path.split(self.filenames[0][video_id])
         videoname, _ = os.path.splitext(filename)
         poseFilepath = os.path.join(basename, videoname+"_FacemapPose.h5")
-        self.dataFrame.to_hdf(poseFilepath, "df_with_missing", mode="w")
+        dataFrame.to_hdf(poseFilepath, "df_with_missing", mode="w")
         return poseFilepath  
+    
+    def plot_pose_estimates(self):
+        # Plot labels
+        self.gui.poseFileLoaded = True
+        self.gui.load_labels()
+        self.gui.Labels_checkBox.setChecked(True)    
         
+    def estimate_bbox_region(self, prev_bbox):
+        """
+        Obtain ROI/bbox for cropping images to use as input for model 
+        """
+        num_iter = 3 # select optimum value for CPU vs. GPU
+        for it in range(1):#num_iter):
+            t0 = time.time()
+            imgs = self.get_batch_imgs()
+            # Get bounding box for imgs 
+            bbox, _ = transforms.get_bounding_box(imgs, self.net, prev_bbox)
+            prev_bbox = bbox    # Update bbox 
+            adjusted_bbox = transforms.adjust_bbox(bbox, (self.Ly[0], self.Lx[0])) # Adjust bbox to be square instead of rectangle
+            print(adjusted_bbox, "bbox", time.time()-t0) 
+        return adjusted_bbox
+
     def load_model(self):
         """
         Load pre-trained UNet model for labels prediction 

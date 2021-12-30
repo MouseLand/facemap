@@ -22,8 +22,9 @@ class PoseGUI(Pose):
         self.gui = gui
         self.parent = parent
         if self.parent is not None:
-            super().__init__(parent=self.gui)
-        if len(self.bbox)==0:
+            print("initalizing super")
+            super(PoseGUI, self).__init__(gui=self.gui)
+        if len(self.parent.bbox)==0:
             self.draw_user_bbox() #draw_suggested_bbox()  
 
     # Draw box on GUI using user's input
@@ -31,7 +32,7 @@ class PoseGUI(Pose):
         """ 
         Function for user to draw a bbox
         """
-        self.bbox_set = False
+        self.parent.bbox_set = False
         # Get sample frame from each video in case of multiple videos
         sample_frame = utils.get_frame(0, self.nframes, self.cumframes, self.containers)
         last_video=False
@@ -44,17 +45,16 @@ class PoseGUI(Pose):
     def adjust_bbox_params(self):
         # This function adjusts bbox so that it is of minimum dimension: 256,256
         sample_frame = utils.get_frame(0, self.nframes, self.cumframes, self.containers)  
-        for i, bbox in enumerate(self.bbox):
+        for i, bbox in enumerate(self.parent.bbox):
             x1, x2, y1, y2, resize = transforms.get_crop_resize_params(sample_frame[i], 
                                                                     x_dims=(bbox[0], bbox[1]), 
                                                                     y_dims=(bbox[2], bbox[3]))
-            self.bbox[i] = [x1, x2, y1, y2, resize]
-        self.bbox_set = True
-        print("user selected bbox after adjustment:", self.bbox)                                       
+            self.parent.bbox[i] = [x1, x2, y1, y2, resize]
+        print("user selected bbox after adjustment:", self.parent.bbox)
 
-    def plot_bbox_roi(self, moveable=True, resizable=True):
+    def plot_bbox_roi(self):
         self.adjust_bbox_params()
-        for i, bbox in enumerate(self.bbox):
+        for i, bbox in enumerate(self.parent.bbox):
             x1, x2, y1, y2, _ = bbox
             dy, dx = y2-y1, x2-x1
             xrange = np.arange(y1+self.gui.sx[i], y2+self.gui.sx[i]).astype(np.int32)
@@ -62,7 +62,7 @@ class PoseGUI(Pose):
             x1, y1 = yrange[0], xrange[0]
             self.gui.add_ROI(roitype=4+1, roistr="bbox_{}".format(i), moveable=False, resizable=False,
                             pos=(x1, y1, dx, dy), ivid=i, yrange=yrange, xrange=xrange)
-        self.bbox_set = True     
+        self.parent.bbox_set = True    
 
 class ROI_popup(QDialog):
     def __init__(self, frame, video_id, gui, pose, last_video):
@@ -117,13 +117,13 @@ class ROI_popup(QDialog):
 
     def next_exec(self):
         (x1, x2), (y1, y2) = self.get_coordinates()
-        self.pose.bbox.append([x1, x2, y1, y2, False])
+        self.pose.parent.bbox.append([x1, x2, y1, y2, False])
         self.close()
 
     def done_exec(self):
         # User finished drawing ROI
         (x1, x2), (y1, y2) = self.get_coordinates()
-        self.pose.bbox.append([x1, x2, y1, y2, False])
+        self.pose.parent.bbox.append([x1, x2, y1, y2, False])
         self.pose.plot_bbox_roi()
         self.close()
 

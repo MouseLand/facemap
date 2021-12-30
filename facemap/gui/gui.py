@@ -55,7 +55,6 @@ class MainW(QtGui.QMainWindow):
                         'save_path': '', 'save_mat': False}
 
         self.save_path = self.ops['save_path']
-        self.poseFilepath = ""
 
         menus.mainmenu(self)
         self.online_mode=False
@@ -151,6 +150,12 @@ class MainW(QtGui.QMainWindow):
         self.Pose_scatterplot.sigClicked.connect(self.keypoints_clicked)
         self.Pose_scatterplot.sigHovered.connect(self.keypoints_hovered)
         self.pose_model = None
+        self.poseFilepath = []
+        self.keypoints_labels = []
+        self.pose_x_coord = []
+        self.pose_y_coord = []
+        self.pose_likelihood = []
+        self.keypoints_brushes = []
         
         self.ClusteringPlot = self.win.addPlot(row=0, col=1, lockAspect=True, enableMouse=False)
         self.ClusteringPlot.hideAxis('left')
@@ -502,6 +507,15 @@ class MainW(QtGui.QMainWindow):
             self.cbs2[k].setEnabled(False)
             self.cbs1[k].setChecked(False)
             self.cbs2[k].setChecked(False)
+        # Clear pose variables
+        self.pose_model = None
+        self.poseFilepath = []
+        self.poseFilepath = []
+        self.keypoints_labels = []
+        self.pose_x_coord = []
+        self.pose_y_coord = []
+        self.pose_likelihood = []
+        self.keypoints_brushes = []
 
     def pupil_sigma_change(self):
         self.pupil_sigma = float(self.sigmaBox.text())
@@ -869,28 +883,29 @@ class MainW(QtGui.QMainWindow):
     def set_pose_bbox(self):
         # User defined or automatic bbox selection
         if self.pose_model is None:
-            self.pose_model = pose.Pose(parent=self, filenames=self.filenames)
+            self.pose_model = pose.Pose(gui=self, filenames=self.filenames)
         self.pose_gui = pose_gui.PoseGUI(gui=self, parent=self.pose_model)
 
     def get_pose_labels(self):
-        print("Generating pose estimates")
         if self.pose_model is None:
-            self.pose_model = pose.Pose(parent=self, filenames=self.filenames)
+            self.pose_model = pose.Pose(gui=self, filenames=self.filenames)
         self.pose_model.run()
 
     def load_labels(self):
         # Read Pose file
-        self.Pose_data = pd.read_hdf(self.poseFilepath, 'df_with_missing')
-        self.keypoints_labels = pd.unique(self.Pose_data.columns.get_level_values("bodyparts"))
-        self.pose_x_coord = self.Pose_data.T[self.Pose_data.columns.get_level_values("coords").values=="x"].values #size: key points x frames
-        self.pose_y_coord = self.Pose_data.T[self.Pose_data.columns.get_level_values("coords").values=="y"].values #size: key points x frames
-        self.pose_likelihood = self.Pose_data.T[self.Pose_data.columns.get_level_values("coords").values=="likelihood"].values #size: key points x frames
-        # Choose colors for each label: provide option for paltter that is color-blindness friendly
-        self.colors = cm.get_cmap('gist_rainbow')(np.linspace(0, 1., len(self.keypoints_labels)))
-        self.colors *= 255
-        self.colors = self.colors.astype(int)
-        self.colors[:,-1] = 127
-        self.brushes = np.array([pg.mkBrush(color=c) for c in self.colors])
+        for video_id in range(len(self.poseFilepath)):
+            pose_data = pd.read_hdf(self.poseFilepath[video_id], 'df_with_missing')
+            # Append pose data to list for each video_id
+            self.keypoints_labels.append(pd.unique(pose_data.columns.get_level_values("bodyparts")))
+            self.pose_x_coord.append(pose_data.T[pose_data.columns.get_level_values("coords").values=="x"].values) #size: key points x frames
+            self.pose_y_coord.append(pose_data.T[pose_data.columns.get_level_values("coords").values=="y"].values) #size: key points x frames
+            self.pose_likelihood.append(pose_data.T[pose_data.columns.get_level_values("coords").values=="likelihood"].values) #size: key points x frames
+            # Choose colors for each label: provide option for paltter that is color-blindness friendly
+            colors = cm.get_cmap('gist_rainbow')(np.linspace(0, 1., len(self.keypoints_labels[video_id])))
+            colors *= 255
+            colors = colors.astype(int)
+            colors[:,-1] = 127
+            self.keypoints_brushes.append(np.array([pg.mkBrush(color=c) for c in colors]))
     
     def update_pose(self):
         if self.poseFileLoaded and self.Labels_checkBox.isChecked():
@@ -898,12 +913,17 @@ class MainW(QtGui.QMainWindow):
             self.p0.addItem(self.Pose_scatterplot)
             self.p0.setRange(xRange=(0,self.LX), yRange=(0,self.LY), padding=0.0)
             threshold = 0#np.nanpercentile(self.pose_likelihood, 30) # Determine threshold
-            filtered_keypoints = np.where(self.pose_likelihood[:,self.cframe] > threshold)[0]
-            x = self.pose_x_coord[filtered_keypoints,self.cframe]
-            y = self.pose_y_coord[filtered_keypoints,self.cframe]
-            self.Pose_scatterplot.setData(x, y, size=10, symbol='o', brush=self.brushes[filtered_keypoints],
-                                             hoverable=True, hoverSize=10, 
-                                             data=self.keypoints_labels[filtered_keypoints])
+            x, y, labels, brushes = np.array([]), np.array([]), np.array([]), np.array([])
+            for video_id in range(len(self.poseFilepath)):
+                filtered_keypoints = np.where(self.pose_likelihood[video_id][:,self.cframe] > threshold)[0]
+                x_coord = self.pose_x_coord[video_id] + self.sx[video_id] # shift x coordinates
+                x = np.append(x, x_coord[filtered_keypoints,self.cframe])
+                y_coord = self.pose_y_coord[video_id] + self.sy[video_id] # shift y coordinates
+                y = np.append(y, y_coord[filtered_keypoints,self.cframe])
+                labels = np.append(labels, self.keypoints_labels[video_id][filtered_keypoints])
+                brushes = np.append(brushes, self.keypoints_brushes[video_id][filtered_keypoints])
+            self.Pose_scatterplot.setData(x, y, size=10, symbol='o', brush=brushes, hoverable=True, hoverSize=10, 
+                                            data=labels)
         elif not self.poseFileLoaded and self.Labels_checkBox.isChecked():
             self.update_status_bar("Please upload a pose (*.h5) file")
         else:
