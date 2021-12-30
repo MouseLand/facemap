@@ -13,6 +13,12 @@ from scipy.stats import skew, zscore
 
 from facemap import pupil, utils
 
+# Types of ROI and their ID:
+# 0: Pupil 
+# 1: motion SVD
+# 2: Blink
+# 3: Running
+# 4: Pose bbox
 colors = np.array([[0,200,50],[180,0,50],[40,100,250],[150,50,150],[0, 255, 255]])
 
 class reflectROI():
@@ -180,7 +186,6 @@ class sROI():
 
     def position(self, parent):
         if parent.iROI != self.iROI:
-            print("rind", self.rind)
             if self.rind==0:
                 #print('change to pupil')
                 for i in range(len(parent.rROI[self.iROI])):
@@ -197,7 +202,6 @@ class sROI():
         xrange = (np.arange(-1 * int(sizex), 1) + int(posx)).astype(np.int32)
         yrange = (np.arange(-1 * int(sizey), 1) + int(posy)).astype(np.int32)
         self.pos = posy, posx, posy+sizey, posx+sizex
-        print("pos", self.pos)
         #self.pos = (posy, posx, posy+sizey, posx+sizex) # get ROI position
         if self.rind==0 or self.rind==2:
             yrange += int(sizey/2)
@@ -233,7 +237,7 @@ class sROI():
         yrange -= parent.sy[ivid]
         self.xrange = xrange
         self.yrange = yrange
-        self.ivid   = ivid
+        self.ivid = ivid
 
         if self.rind==0:
             self.rmin = 0
@@ -247,7 +251,6 @@ class sROI():
             parent.clusteringVisComboBox.setCurrentIndex(index)
         parent.roiVisComboBox.setCurrentIndex(self.iROI+1)
         parent.display_ROI()#self.plot(parent)
-        print(self.pos)
 
     def remove(self, parent):
         parent.p0.removeItem(self.ROI)
@@ -348,7 +351,7 @@ class sROI():
                         parent.show()
                         parent.online_plotted = True
                 #self.p2.setLimits(xMin=0,xMax=self.nframes)
-        elif self.rind==1 or self.rind==3:
+        elif self.rind==1 or self.rind==3 or self.rind==4:
             parent.pROI.removeItem(parent.scatter)
             parent.scatter = pg.ScatterPlotItem([0], [0], pen='k', symbol='+')
             parent.pROI.addItem(parent.scatter)

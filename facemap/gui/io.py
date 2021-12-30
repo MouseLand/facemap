@@ -81,7 +81,6 @@ def choose_files(parent, file_name):
     else:
         parent.filelist = [parent.filelist]
     parent.filelist = natsorted(parent.filelist)
-    print(parent.filelist)
 
 def open_proc(parent, file_name=None):
     if file_name is None:
@@ -196,7 +195,7 @@ def load_movies(parent, filelist=None):
     if filelist is not None:
         parent.filelist = filelist
     try:
-        cumframes, Ly, Lx, v = utils.get_frame_details(parent.filelist)  # v is containers/videos
+        cumframes, Ly, Lx, containers = utils.get_frame_details(parent.filelist)  
         nframes = cumframes[-1]
         good = True
     except Exception as e:
@@ -205,7 +204,7 @@ def load_movies(parent, filelist=None):
         good = False
     if good:
         parent.reset()
-        parent.video = v
+        parent.video = containers
         parent.filenames = parent.filelist
         parent.nframes = nframes
         parent.cumframes = np.array(cumframes).astype(int)

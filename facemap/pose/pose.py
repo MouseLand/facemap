@@ -1,7 +1,6 @@
 import os
 import time
 
-from numpy.core.fromnumeric import cumprod
 from tqdm import tqdm
 
 import cv2
@@ -13,7 +12,6 @@ from .. import utils
 from . import UNet_helper_functions as UNet_utils
 from . import unet_torch
 from . import transforms
-from PyQt5 import QtGui 
 from . import pose_gui
 
 """
@@ -34,7 +32,7 @@ class Pose():
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         self.net = self.load_model()
         self.savepath = savepath
-        self.bbox = None
+        self.bbox = []
         self.bbox_set = False
 
     def run(self, save=True):

@@ -323,7 +323,7 @@ class MainW(QtGui.QMainWindow):
         #self.comboBox.currentIndexChanged.connect(self.mode_change)
         self.addROI = QtGui.QPushButton("Add ROI")
         self.addROI.setFont(QtGui.QFont("Arial", 10, QtGui.QFont.Bold))
-        self.addROI.clicked.connect(self.add_ROI)
+        self.addROI.clicked.connect(lambda clicked: self.add_ROI())
         self.addROI.setFixedWidth(70)
         self.addROI.setEnabled(False)
 
@@ -511,9 +511,11 @@ class MainW(QtGui.QMainWindow):
     def add_reflectROI(self):
         self.rROI[self.iROI].append(roi.reflectROI(iROI=self.iROI, wROI=len(self.rROI[self.iROI]), moveable=True, parent=self))
 
-    def add_ROI(self):
-        roitype = self.comboBox.currentIndex()
-        roistr = self.comboBox.currentText()
+    def add_ROI(self, roitype=None, roistr=None, pos=None, ivid=None, xrange=None, yrange=None,
+                moveable=True, resizable=True):
+        if roitype is None and roistr is None:
+            roitype = self.comboBox.currentIndex()
+            roistr = self.comboBox.currentText()
         if roitype > 0:
             if self.online_mode and roitype>1:
                 msg = QtGui.QMessageBox(self)
@@ -528,7 +530,9 @@ class MainW(QtGui.QMainWindow):
                     for i in range(len(self.rROI[self.iROI])):
                         self.pROI.removeItem(self.rROI[self.iROI][i].ROI)
             self.iROI = self.nROIs
-            self.ROIs.append(roi.sROI(rind=roitype-1, rtype=roistr, iROI=self.nROIs, moveable=True, parent=self))
+            self.ROIs.append(roi.sROI(rind=roitype-1, rtype=roistr, iROI=self.nROIs, moveable=moveable,
+                                    resizable=resizable, pos=pos, parent=self, ivid=ivid, xrange=xrange,
+                                    yrange=yrange, saturation=255))
             self.rROI.append([])
             self.reflectors.append([])
             self.nROIs += 1
@@ -737,7 +741,7 @@ class MainW(QtGui.QMainWindow):
         else: 
             msg = QtGui.QMessageBox(self)
             msg.setIcon(QtGui.QMessageBox.Warning)
-            msg.setText("Please check at least one of: motSVD, movSVD")
+            msg.setText("Please select at least one of: motSVD, movSVD")
             msg.setStandardButtons(QtGui.QMessageBox.Ok)
             msg.exec_()
             return
@@ -756,16 +760,11 @@ class MainW(QtGui.QMainWindow):
         self.load_trace2_button.setEnabled(True)
 
         # Enable pose features for single video only
+        self.Labels_checkBox.setEnabled(True)
+        self.poseEstimatesButton.setEnabled(True)
+        self.poseBboxButton.setEnabled(True)
         if len(self.img)==1:
             self.loadPose.setEnabled(True)
-            self.Labels_checkBox.setEnabled(True)
-            self.poseEstimatesButton.setEnabled(True)
-            self.poseBboxButton.setEnabled(True)
-        else:
-            self.loadPose.setEnabled(False)
-            self.Labels_checkBox.setEnabled(False)
-            self.poseEstimatesButton.setEnabled(False)
-            self.poseBboxButton.setEnabled(False)
     
     def button_status(self, status):
         self.playButton.setEnabled(status)

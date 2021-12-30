@@ -1,6 +1,6 @@
 import numpy as np
 import pyqtgraph as pg
-from PyQt5 import QtCore, QtGui, QtWidgets
+from PyQt5 import QtGui, QtWidgets
 from PyQt5.QtWidgets import (
     QDialog,
     QPushButton,
@@ -10,7 +10,6 @@ from .. import roi
 from .pose import Pose
 from . import transforms
 
-import cv2
 from .. import utils
 import time
 
@@ -24,83 +23,60 @@ class PoseGUI(Pose):
         self.parent = parent
         if self.parent is not None:
             super().__init__(parent=self.gui)
-        if self.bbox is None:
+        if len(self.bbox)==0:
             self.draw_user_bbox() #draw_suggested_bbox()  
-
-    def draw_suggested_bbox(self):
-        if self.bbox_set:
-            del self.bbox_roi
-            x1, x2, y1, y2 = self.bbox
-            dx, dy = x2-x1, y2-y1
-            self.plot_bbox_roi(y1, x1, dy, dx)
-        else:
-            prev_bbox = (np.nan, np.nan, np.nan, np.nan)
-            while not self.bbox_set:
-                self.bbox = np.round(super().estimate_bbox_region(prev_bbox)).astype(int)
-                prev_bbox = self.bbox
-                # plot bbox as ROI
-                x1, x2, y1, y2 = 0,0,0,0#self.bbox
-                dx, dy = x2-x1, y2-y1
-                self.plot_bbox_roi(y1, x1, dy, dx)
-                # get user validation
-                qm = QtGui.QMessageBox
-                ret = qm.question(self.gui,'', "Does the suggested ROI match the requirements?", 
-                                    qm.Yes | qm.No)
-                """
-                msgBox = QtGui.QMessageBox()
-                msgBox.setText('What to do?')
-                msgBox.addButton(QtGui.QPushButton('Yes'))
-                msgBox.addButton(QtGui.QPushButton('No'))
-                msgBox.addButton(QtGui.QPushButton('Draw'))
-                ret = msgBox.exec_()"""
-                print("ret", ret)
-                self.bbox_set = ret == qm.Yes
-                if not self.bbox_set:
-                    del self.bbox_roi
 
     # Draw box on GUI using user's input
     def draw_user_bbox(self):
-        """
+        """ 
         Function for user to draw a bbox
         """
         self.bbox_set = False
-        sample_frame = utils.get_frame(0, self.nframes, self.cumframes, self.containers)[0]  
-        # Trigger new window for ROI selection
-        exPopup = ROI_popup(sample_frame, self.gui, self)
-        exPopup.show()        
+        # Get sample frame from each video in case of multiple videos
+        sample_frame = utils.get_frame(0, self.nframes, self.cumframes, self.containers)
+        last_video=False
+        for video_id, frame in enumerate(sample_frame):         
+            # Trigger new window for ROI selection of each frame
+            if video_id == len(sample_frame)-1:
+                last_video = True
+            ROI_popup(frame, video_id, self.gui, self, last_video) 
 
     def adjust_bbox_params(self):
         # This function adjusts bbox so that it is of minimum dimension: 256,256
-        sample_frame = utils.get_frame(0, self.nframes, self.cumframes, self.containers)[0]  
-        x1, x2, y1, y2, resize = transforms.get_crop_resize_params(sample_frame, 
-                                                                    x_dims=(self.bbox[0], self.bbox[1]), 
-                                                                    y_dims=(self.bbox[2], self.bbox[3]))
-        self.bbox = x1, x2, y1, y2, resize
+        sample_frame = utils.get_frame(0, self.nframes, self.cumframes, self.containers)  
+        for i, bbox in enumerate(self.bbox):
+            x1, x2, y1, y2, resize = transforms.get_crop_resize_params(sample_frame[i], 
+                                                                    x_dims=(bbox[0], bbox[1]), 
+                                                                    y_dims=(bbox[2], bbox[3]))
+            self.bbox[i] = [x1, x2, y1, y2, resize]
         self.bbox_set = True
         print("user selected bbox after adjustment:", self.bbox)                                       
 
     def plot_bbox_roi(self, moveable=True, resizable=True):
         self.adjust_bbox_params()
-        self.gui.nROIs += 1
-        x1, x2, y1, y2, _ = self.bbox
-        dy, dx = y2-y1, x2-x1
-        self.bbox_roi = roi.sROI(rind=4, rtype="bbox", iROI=self.gui.nROIs, moveable=False, 
-                                    resizable=False, parent=self.gui, pos=(x1, y1, dx, dy))
-        self.gui.ROIs.append(self.bbox_roi)
-        self.bbox_set = True      
+        for i, bbox in enumerate(self.bbox):
+            x1, x2, y1, y2, _ = bbox
+            dy, dx = y2-y1, x2-x1
+            xrange = np.arange(y1+self.gui.sx[i], y2+self.gui.sx[i]).astype(np.int32)
+            yrange = np.arange(x1+self.gui.sy[i], x2+self.gui.sy[i]).astype(np.int32)
+            x1, y1 = yrange[0], xrange[0]
+            self.gui.add_ROI(roitype=4+1, roistr="bbox_{}".format(i), moveable=False, resizable=False,
+                            pos=(x1, y1, dx, dy), ivid=i, yrange=yrange, xrange=xrange)
+        self.bbox_set = True     
 
 class ROI_popup(QDialog):
-    def __init__(self, frame, gui, pose):
-        super().__init__(gui)
+    def __init__(self, frame, video_id, gui, pose, last_video):
+        super().__init__()
         self.gui = gui
         self.frame = frame
         self.pose = pose
-
-        self.setWindowTitle('Select ROI')
-        self.verticalLayout = QtWidgets.QVBoxLayout(self)
+        self.last_video = last_video
+        self.setWindowTitle('Select ROI for video: '+str(video_id))
 
         # Add image and ROI bbox
+        self.verticalLayout = QtWidgets.QVBoxLayout(self)
         self.win = pg.GraphicsLayoutWidget()
+        self.win.setObjectName("Dialog "+str(video_id+1))
         ROI_win = self.win.addViewBox(invertY=True)
         self.img = pg.ImageItem(self.frame)
         ROI_win.addItem(self.img)
@@ -112,32 +88,44 @@ class ROI_popup(QDialog):
         # Add buttons to dialog box
         self.done_button = QtGui.QPushButton('Done')
         self.done_button.setDefault(True)
-        self.done_button.clicked.connect(lambda: self.done_exec(self))
+        self.done_button.clicked.connect(self.done_exec)
         self.cancel_button = QtGui.QPushButton('Cancel')
         self.cancel_button.clicked.connect(self.close)
-        
+        # Add a next button to the dialog box horizontally centered with cancel button and done button
+        self.next_button = QtGui.QPushButton('Next')
+        self.next_button.setDefault(True)
+        self.next_button.clicked.connect(self.next_exec)
+
         # Position buttons
         self.widget = QtWidgets.QWidget(self)
         self.horizontalLayout = QtWidgets.QHBoxLayout(self.widget)
         self.horizontalLayout.setContentsMargins(-1, -1, -1, 0)
         self.horizontalLayout.setObjectName("horizontalLayout")
         self.horizontalLayout.addWidget(self.cancel_button)
-        self.horizontalLayout.addWidget(self.done_button)
+        if self.last_video:
+            self.horizontalLayout.addWidget(self.done_button)
+        else:
+            self.horizontalLayout.addWidget(self.next_button)
         self.verticalLayout.addWidget(self.widget)
 
-        self.show() 
+        self.exec_() 
     
     def get_coordinates(self):
         roi_tuple, _ = self.roi.getArraySlice(self.frame, self.img, returnSlice=False)
         (x1, x2), (y1, y2) = roi_tuple[0], roi_tuple[1]
         return (x1, x2), (y1, y2)
 
-    def done_exec(self, dialogBox):
+    def next_exec(self):
+        (x1, x2), (y1, y2) = self.get_coordinates()
+        self.pose.bbox.append([x1, x2, y1, y2, False])
+        self.close()
+
+    def done_exec(self):
         # User finished drawing ROI
         (x1, x2), (y1, y2) = self.get_coordinates()
-        self.pose.bbox = x1, x2, y1, y2, False
+        self.pose.bbox.append([x1, x2, y1, y2, False])
         self.pose.plot_bbox_roi()
-        dialogBox.close()
+        self.close()
 
 # Following used to check cropped sections of frames
 class test_popup(QDialog):
@@ -169,3 +157,4 @@ class test_popup(QDialog):
         self.verticalLayout.addWidget(self.widget)
 
         self.show() 
+

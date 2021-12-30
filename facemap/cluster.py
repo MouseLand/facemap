@@ -6,7 +6,6 @@ import pyqtgraph as pg
 from sklearn.cluster import MiniBatchKMeans
 import hdbscan
 from matplotlib import cm
-import matplotlib.pyplot as plt
 from . import utils
 from .gui import io
 import cv2
