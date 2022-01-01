@@ -12,14 +12,13 @@ from .. import utils
 from . import UNet_helper_functions as UNet_utils
 from . import unet_torch
 from . import transforms
-from . import pose_gui
 
 """
 Base class for generating pose estimates using command line interface.
 Currently supports single video processing only.
 """
 class Pose():
-    def __init__(self, gui=None, filenames=None):
+    def __init__(self, gui=None, filenames=None, bbox=[], bbox_set=False):
         self.gui = gui
         if self.gui is not None:
             self.filenames = self.gui.filenames
@@ -31,10 +30,10 @@ class Pose():
         self.bodyparts = None
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         self.net = self.load_model()
-        self.bbox = []
-        self.bbox_set = False
+        self.bbox = bbox
+        self.bbox_set = bbox_set
 
-    def run(self, save=True):
+    def run(self, plot=True):
         # Predict and save pose
         if not self.bbox_set:
             resize = True 
@@ -47,12 +46,13 @@ class Pose():
         for video_id in range(len(self.bbox)):
             print("Processing video:", self.filenames[0][video_id])
             dataFrame = self.predict_landmarks(video_id)
-            if save:
-                savepath = self.save_pose_prediction(dataFrame, video_id)
+            savepath = self.save_pose_prediction(dataFrame, video_id)
+            if self.gui is not None:
                 self.gui.poseFilepath.append(savepath)
         print("~~~~~~~~~~~~~~~~~~~~~DONE~~~~~~~~~~~~~~~~~~~~~")
         print("Time taken:", time.time()-t0)
-        self.plot_pose_estimates()
+        if plot:
+            self.plot_pose_estimates()
 
     def predict_landmarks(self, video_id):
         """

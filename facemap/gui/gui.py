@@ -156,7 +156,9 @@ class MainW(QtGui.QMainWindow):
         self.pose_y_coord = []
         self.pose_likelihood = []
         self.keypoints_brushes = []
-        
+        self.bbox = []
+        self.bbox_set = False
+
         self.ClusteringPlot = self.win.addPlot(row=0, col=1, lockAspect=True, enableMouse=False)
         self.ClusteringPlot.hideAxis('left')
         self.ClusteringPlot.hideAxis('bottom')
@@ -208,7 +210,7 @@ class MainW(QtGui.QMainWindow):
 
     def make_buttons(self):
         # create frame slider
-        VideoLabel = QtGui.QLabel("Analyze Videos")
+        VideoLabel = QtGui.QLabel("Video analysis - SVD & Tracker")
         VideoLabel.setStyleSheet("color: white;")
         VideoLabel.setAlignment(QtCore.Qt.AlignCenter)
         VideoLabel.setFont(QtGui.QFont("Arial", 12, QtGui.QFont.Bold))
@@ -263,10 +265,6 @@ class MainW(QtGui.QMainWindow):
         self.saverois.setEnabled(False)
 
         # Pose/labels variables
-        self.poseBboxButton = QtGui.QPushButton("Set pose bbox")
-        self.poseBboxButton.setFont(QtGui.QFont("Arial", 10, QtGui.QFont.Bold))
-        self.poseBboxButton.clicked.connect(self.set_pose_bbox)
-        self.poseBboxButton.setEnabled(False)
         self.poseEstimatesButton = QtGui.QPushButton("Run tracker")
         self.poseEstimatesButton.setFont(QtGui.QFont("Arial", 10, QtGui.QFont.Bold))
         self.poseEstimatesButton.clicked.connect(self.get_pose_labels)
@@ -317,12 +315,13 @@ class MainW(QtGui.QMainWindow):
 
         # Create ROI features
         self.comboBox = QtGui.QComboBox(self)
-        self.comboBox.setFixedWidth(100)
+        self.comboBox.setFixedWidth(110)
         self.comboBox.addItem("Select ROI")
         self.comboBox.addItem("Pupil")
         self.comboBox.addItem("motion SVD")
         self.comboBox.addItem("Blink")
         self.comboBox.addItem("Running")
+        self.comboBox.addItem("Face (pose)")
         self.newROI = 0
         self.comboBox.setCurrentIndex(0)
         #self.comboBox.currentIndexChanged.connect(self.mode_change)
@@ -400,8 +399,7 @@ class MainW(QtGui.QMainWindow):
         self.l0.addWidget(self.savefolder, 8, 1, 1, 1)
         self.l0.addWidget(self.savelabel, 9, 0, 1, 2)
         # ~~~~~~~~~~ Pose features ~~~~~~~~~~ 
-        self.l0.addWidget(self.poseBboxButton, 10, 0, 1, 1)                
-        self.l0.addWidget(self.poseEstimatesButton, 10, 1, 1, 1)          
+        self.l0.addWidget(self.poseEstimatesButton, 10, 1, 1, 2)          
         self.l0.addWidget(self.loadPose, 11, 0, 1, 1)                    
         self.l0.addWidget(self.Labels_checkBox, 11, 1, 1, 1)     
         # ~~~~~~~~~~ clustering & ROI visualization window features   
@@ -433,13 +431,13 @@ class MainW(QtGui.QMainWindow):
         pl = QtGui.QLabel("Plot 2")
         pl.setStyleSheet("color: gray;")
         self.l0.addWidget(pl, istretch, 1, 1, 1)
-        self.load_trace1_button = QtGui.QPushButton('Load')
+        self.load_trace1_button = QtGui.QPushButton('Load 1D data')
         self.load_trace1_button.setFont(QtGui.QFont("Arial", 12))
         self.load_trace1_button.clicked.connect(lambda: self.load_trace_button_clicked(1))
         self.load_trace1_button.setEnabled(False)
         self.trace1_data_loaded = None
         self.trace1_legend = pg.LegendItem(labelTextSize='12pt', horSpacing=30)
-        self.load_trace2_button = QtGui.QPushButton('Load')
+        self.load_trace2_button = QtGui.QPushButton('Load 1D data')
         self.load_trace2_button.setFont(QtGui.QFont("Arial", 12))
         self.load_trace2_button.clicked.connect(lambda: self.load_trace_button_clicked(2))
         self.load_trace2_button.setEnabled(False)
@@ -516,6 +514,8 @@ class MainW(QtGui.QMainWindow):
         self.pose_y_coord = []
         self.pose_likelihood = []
         self.keypoints_brushes = []
+        self.bbox = []
+        self.bbox_set = False
 
     def pupil_sigma_change(self):
         self.pupil_sigma = float(self.sigmaBox.text())
@@ -530,7 +530,9 @@ class MainW(QtGui.QMainWindow):
         if roitype is None and roistr is None:
             roitype = self.comboBox.currentIndex()
             roistr = self.comboBox.currentText()
-        if roitype > 0:
+        if "pose" in roistr:
+            self.bbox, self.bbox_set, cancel = self.set_pose_bbox()
+        elif roitype > 0:
             if self.online_mode and roitype>1:
                 msg = QtGui.QMessageBox(self)
                 msg.setIcon(QtGui.QMessageBox.Warning)
@@ -555,7 +557,7 @@ class MainW(QtGui.QMainWindow):
         else:
             msg = QtGui.QMessageBox(self)
             msg.setIcon(QtGui.QMessageBox.Warning)
-            msg.setText("You have to choose an ROI type before creating ROI")
+            msg.setText("Please select an ROI type")
             msg.setStandardButtons(QtGui.QMessageBox.Ok)
             msg.exec_()
             return
@@ -698,39 +700,31 @@ class MainW(QtGui.QMainWindow):
         return ops
 
     def save_ROIs(self):
-        self.sbin = int(self.binSpinBox.value())
-        # save running parameters as defaults
-        ops = self.save_ops()
-
-        if len(self.save_path) > 0:
-            savepath = self.save_path
-        else:
-            savepath = None
-        print("ROIs saved in:", savepath)
-        if len(self.ROIs)>0:
-            rois = utils.roi_to_dict(self.ROIs, self.rROI)
-        else:
-            rois = None
-        proc = {'Ly':self.Ly, 'Lx':self.Lx, 'sy': self.sy, 'sx': self.sx, 'LY':self.LY, 'LX':self.LX,
-                'sbin': ops['sbin'], 'fullSVD': ops['fullSVD'], 'rois': rois,
-                'save_mat': ops['save_mat'], 'save_path': ops['save_path'],
-                'filenames': self.filenames}
-        savename = process.save(proc, savepath=savepath)
-        self.update_status_bar("File saved in "+savepath) #### 
-        self.batchlist.append(savename)
-        basename,filename = os.path.split(savename)
-        filename, ext = os.path.splitext(filename)
-        #self.batchname[len(self.batchlist)-1].setText(filename)
-        self.processbatch.setEnabled(True)
-
-    def process_batch(self):
         if self.motSVD_checkbox.isChecked() or self.movSVD_checkbox.isChecked():
-            files = self.batchlist
-            for f in files:
-                proc = np.load(f, allow_pickle=True).item()
-                savename = process.run(proc['filenames'], GUIobject=QtGui, proc=proc, savepath=proc['save_path'])
-            if len(files)==1:
-                io.open_proc(self, file_name=savename)
+            self.sbin = int(self.binSpinBox.value())
+            # save running parameters as defaults
+            ops = self.save_ops()
+            if len(self.save_path) > 0:
+                savepath = self.save_path
+            else:
+                savepath = None
+            if len(self.ROIs)>0:
+                rois = utils.roi_to_dict(self.ROIs, self.rROI)
+            else:
+                rois = None
+            proc = {'Ly':self.Ly, 'Lx':self.Lx, 'sy': self.sy, 'sx': self.sx, 'LY':self.LY, 'LX':self.LX,
+                    'sbin': ops['sbin'], 'fullSVD': ops['fullSVD'], 'rois': rois,
+                    'motSVD': self.motSVD_checkbox.isChecked(), 'movSVD': self.movSVD_checkbox.isChecked(),
+                    'bbox': self.bbox, 'bbox_set': self.bbox_set, 
+                    'save_mat': ops['save_mat'], 'save_path': ops['save_path'],
+                    'filenames': self.filenames}
+            savename = process.save(proc, savepath=savepath)
+            self.update_status_bar("ROIs saved in "+savepath) 
+            self.batchlist.append(savename)
+            _,filename = os.path.split(savename)
+            filename, _ = os.path.splitext(filename)
+            #self.batchname[len(self.batchlist)-1].setText(filename)
+            self.processbatch.setEnabled(True)
         else:
             msg = QtGui.QMessageBox(self)
             msg.setIcon(QtGui.QMessageBox.Warning)
@@ -738,6 +732,18 @@ class MainW(QtGui.QMainWindow):
             msg.setStandardButtons(QtGui.QMessageBox.Ok)
             msg.exec_()
             return
+
+    def process_batch(self):
+        files = self.batchlist
+        for f in files:
+            proc = np.load(f, allow_pickle=True).item()
+            savename = process.run(proc['filenames'], motSVD=proc['motSVD'], movSVD=proc['movSVD'],
+                                        GUIobject=QtGui, proc=proc, savepath=proc['save_path'])
+            pose.Pose(gui=None, filenames=proc['filenames'], 
+                        bbox=proc['bbox'], bbox_set=proc['bbox_set']).run(plot=False)
+            self.update_status_bar("Processed "+savename)
+        if len(files)==1:
+            io.open_proc(self, file_name=savename)
 
     def process_ROIs(self):
         self.sbin = int(self.binSpinBox.value())
@@ -776,7 +782,6 @@ class MainW(QtGui.QMainWindow):
         # Enable pose features for single video only
         self.Labels_checkBox.setEnabled(True)
         self.poseEstimatesButton.setEnabled(True)
-        self.poseBboxButton.setEnabled(True)
         self.loadPose.setEnabled(True)
     
     def button_status(self, status):
@@ -880,15 +885,19 @@ class MainW(QtGui.QMainWindow):
 
     ### ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Pose functions ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ 
     def set_pose_bbox(self):
-        # User defined or automatic bbox selection
-        if self.pose_model is None:
-            self.pose_model = pose.Pose(gui=self, filenames=self.filenames)
-        self.pose_gui = pose_gui.PoseGUI(gui=self, parent=self.pose_model)
+        # User defined bbox selection
+        self.pose_gui = pose_gui.PoseGUI(gui=self)
+        self.bbox, self.bbox_set, cancel = self.pose_gui.draw_user_bbox()
+        return self.bbox, self.bbox_set, cancel
 
     def get_pose_labels(self):
+        cancel = False
+        if not self.bbox_set:
+            self.bbox, self.bbox_set, cancel = self.set_pose_bbox()
         if self.pose_model is None:
-            self.pose_model = pose.Pose(gui=self, filenames=self.filenames)
-        self.pose_model.run()
+            self.pose_model = pose.Pose(gui=self, filenames=self.filenames, bbox=self.bbox, bbox_set=self.bbox_set)
+        if not cancel:
+            self.pose_model.run()
 
     def load_labels(self):
         # Read Pose file

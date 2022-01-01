@@ -11,28 +11,24 @@ from .pose import Pose
 from . import transforms
 
 from .. import utils
-import time
 
 """
 Pose subclass for generating pose estimates on GUI involving user validation for bbox.
 Currently supports single video processing only.
 """
 class PoseGUI(Pose):
-    def __init__(self, gui=None, parent=None):
+    def __init__(self, gui=None):
         self.gui = gui
-        self.parent = parent
-        if self.parent is not None:
-            print("initalizing super")
-            super(PoseGUI, self).__init__(gui=self.gui)
-        if len(self.parent.bbox)==0:
-            self.draw_user_bbox() #draw_suggested_bbox()  
+        super(PoseGUI, self).__init__(gui=self.gui)
+        self.bbox_set = False
+        self.bbox = []
+        self.cancel = False
 
     # Draw box on GUI using user's input
     def draw_user_bbox(self):
         """ 
         Function for user to draw a bbox
         """
-        self.parent.bbox_set = False
         # Get sample frame from each video in case of multiple videos
         sample_frame = utils.get_frame(0, self.nframes, self.cumframes, self.containers)
         last_video=False
@@ -41,20 +37,21 @@ class PoseGUI(Pose):
             if video_id == len(sample_frame)-1:
                 last_video = True
             ROI_popup(frame, video_id, self.gui, self, last_video) 
+        return self.bbox, self.bbox_set, self.cancel
 
     def adjust_bbox_params(self):
         # This function adjusts bbox so that it is of minimum dimension: 256,256
         sample_frame = utils.get_frame(0, self.nframes, self.cumframes, self.containers)  
-        for i, bbox in enumerate(self.parent.bbox):
+        for i, bbox in enumerate(self.bbox):
             x1, x2, y1, y2, resize = transforms.get_crop_resize_params(sample_frame[i], 
                                                                     x_dims=(bbox[0], bbox[1]), 
                                                                     y_dims=(bbox[2], bbox[3]))
-            self.parent.bbox[i] = [x1, x2, y1, y2, resize]
-        print("user selected bbox after adjustment:", self.parent.bbox)
+            self.bbox[i] = [x1, x2, y1, y2, resize]
+        print("user selected bbox after adjustment:", self.bbox)
 
     def plot_bbox_roi(self):
         self.adjust_bbox_params()
-        for i, bbox in enumerate(self.parent.bbox):
+        for i, bbox in enumerate(self.bbox):
             x1, x2, y1, y2, _ = bbox
             dy, dx = y2-y1, x2-x1
             xrange = np.arange(y1+self.gui.sx[i], y2+self.gui.sx[i]).astype(np.int32)
@@ -62,7 +59,7 @@ class PoseGUI(Pose):
             x1, y1 = yrange[0], xrange[0]
             self.gui.add_ROI(roitype=4+1, roistr="bbox_{}".format(i), moveable=False, resizable=False,
                             pos=(x1, y1, dx, dy), ivid=i, yrange=yrange, xrange=xrange)
-        self.parent.bbox_set = True    
+        self.bbox_set = True    
 
 class ROI_popup(QDialog):
     def __init__(self, frame, video_id, gui, pose, last_video):
@@ -90,11 +87,15 @@ class ROI_popup(QDialog):
         self.done_button.setDefault(True)
         self.done_button.clicked.connect(self.done_exec)
         self.cancel_button = QtGui.QPushButton('Cancel')
-        self.cancel_button.clicked.connect(self.close)
+        self.cancel_button.clicked.connect(self.cancel_exec)
         # Add a next button to the dialog box horizontally centered with cancel button and done button
         self.next_button = QtGui.QPushButton('Next')
         self.next_button.setDefault(True)
         self.next_button.clicked.connect(self.next_exec)
+        # Add a skip button to the dialog box horizontally centered with cancel button and done button
+        self.skip_button = QtGui.QPushButton('Skip')
+        self.skip_button.setDefault(True)
+        self.skip_button.clicked.connect(self.skip_exec)
 
         # Position buttons
         self.widget = QtWidgets.QWidget(self)
@@ -102,6 +103,7 @@ class ROI_popup(QDialog):
         self.horizontalLayout.setContentsMargins(-1, -1, -1, 0)
         self.horizontalLayout.setObjectName("horizontalLayout")
         self.horizontalLayout.addWidget(self.cancel_button)
+        self.horizontalLayout.addWidget(self.skip_button)
         if self.last_video:
             self.horizontalLayout.addWidget(self.done_button)
         else:
@@ -115,15 +117,24 @@ class ROI_popup(QDialog):
         (x1, x2), (y1, y2) = roi_tuple[0], roi_tuple[1]
         return (x1, x2), (y1, y2)
 
+    def skip_exec(self):
+        self.pose.bbox = []
+        self.pose.bbox_set = False
+        self.close()
+
     def next_exec(self):
         (x1, x2), (y1, y2) = self.get_coordinates()
-        self.pose.parent.bbox.append([x1, x2, y1, y2, False])
+        self.pose.bbox.append([x1, x2, y1, y2, False])
+        self.close()
+
+    def cancel_exec(self):
+        self.pose.cancel = True
         self.close()
 
     def done_exec(self):
         # User finished drawing ROI
         (x1, x2), (y1, y2) = self.get_coordinates()
-        self.pose.parent.bbox.append([x1, x2, y1, y2, False])
+        self.pose.bbox.append([x1, x2, y1, y2, False])
         self.pose.plot_bbox_roi()
         self.close()
 
