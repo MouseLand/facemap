@@ -399,7 +399,7 @@ class MainW(QtGui.QMainWindow):
         self.l0.addWidget(self.savefolder, 8, 1, 1, 1)
         self.l0.addWidget(self.savelabel, 9, 0, 1, 2)
         # ~~~~~~~~~~ Pose features ~~~~~~~~~~ 
-        self.l0.addWidget(self.poseEstimatesButton, 10, 1, 1, 2)          
+        self.l0.addWidget(self.poseEstimatesButton, 10, 0, 1, 2)          
         self.l0.addWidget(self.loadPose, 11, 0, 1, 1)                    
         self.l0.addWidget(self.Labels_checkBox, 11, 1, 1, 1)     
         # ~~~~~~~~~~ clustering & ROI visualization window features   
