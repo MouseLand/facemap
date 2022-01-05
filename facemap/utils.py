@@ -400,5 +400,5 @@ def svdecon(X, k=100):
         V = (U.T @ X).T
         V = V/(V**2).sum(axis=0)**.5
     """
-    U, Sv, V = PCA(svd_solver='randomized', random_state=np.random.RandomState(0))._fit(X)
+    U, Sv, V = PCA(n_components=k, svd_solver='randomized', random_state=np.random.RandomState(0))._fit(X)
     return U, Sv, V

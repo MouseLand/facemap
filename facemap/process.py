@@ -5,7 +5,6 @@ import sys
 import time
 from io import StringIO
 
-import cv2
 import numpy as np
 from numba import float32, uint8, vectorize
 from scipy import io
