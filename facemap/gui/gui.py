@@ -1,17 +1,19 @@
 import sys, os
 import numpy as np
-from PyQt5 import QtGui, QtCore
+from PyQt5 import QtGui, QtCore, QtWidgets
 import pyqtgraph as pg
 from scipy.stats import zscore, skew
 from matplotlib import cm
 import matplotlib.pyplot as plt
 import pandas as pd
-from PyQt5.QtGui import QPixmap 
 from .. import process, roi, utils, cluster
 from ..pose import pose_gui, pose
 from . import io, menus, guiparts
-from PyQt5 import QtGui, QtCore, QtWidgets
-from PyQt5.QtGui import QPainterPath
+from PyQt5.QtGui import QPixmap, QFont, QPainterPath, QIcon
+from PyQt5.QtWidgets import ( QLabel, QPushButton, QLineEdit, QCheckBox, 
+                            QComboBox, QToolButton, QStatusBar, QSlider,
+                            QProgressBar, QSpinBox, QMessageBox, QButtonGroup, 
+                            QGridLayout, QWidget, QPushButton, QWidget)
 
 # TODO - Match ehtogram/cluster labels w/ UMAP/embedding labels file
 
@@ -23,7 +25,7 @@ class MainW(QtGui.QMainWindow):
         icon_path = os.path.join(
             os.path.dirname(os.path.realpath(__file__)), "mouse.png"
         )
-        app_icon = QtGui.QIcon()
+        app_icon = QIcon()
         app_icon.addFile(icon_path, QtCore.QSize(16, 16))
         app_icon.addFile(icon_path, QtCore.QSize(24, 24))
         app_icon.addFile(icon_path, QtCore.QSize(32, 32))
@@ -60,9 +62,9 @@ class MainW(QtGui.QMainWindow):
         self.online_mode=False
         #menus.onlinemenu(self)
 
-        self.cwidget = QtGui.QWidget(self)
+        self.cwidget = QWidget(self)
         self.setCentralWidget(self.cwidget)
-        self.l0 = QtGui.QGridLayout()
+        self.l0 = QGridLayout()
         self.cwidget.setLayout(self.l0)
         # --- cells image
         self.win = pg.GraphicsLayoutWidget()
@@ -106,22 +108,22 @@ class MainW(QtGui.QMainWindow):
         for j in range(2):
             self.sl.append(guiparts.Slider(j, self))
             self.l0.addWidget(self.sl[j],1,3+3*j,1,2)#+5*j,1,2)
-            qlabel = QtGui.QLabel(txt[j])
+            qlabel = QLabel(txt[j])
             qlabel.setStyleSheet('color: white;')
             self.l0.addWidget(qlabel,0,3+3*j,1,1)
         self.sl[0].valueChanged.connect(self.set_saturation_label)        
         self.sl[1].valueChanged.connect(self.set_ROI_saturation_label)
 
         # Add label to indicate saturation level    
-        self.saturationLevelLabel = QtGui.QLabel(str(self.sl[0].value()))
+        self.saturationLevelLabel = QLabel(str(self.sl[0].value()))
         self.saturationLevelLabel.setStyleSheet("color: white;")
         self.l0.addWidget(self.saturationLevelLabel,0,5,1,1)
-        self.roiSaturationLevelLabel = QtGui.QLabel(str(self.sl[1].value()))
+        self.roiSaturationLevelLabel = QLabel(str(self.sl[1].value()))
         self.roiSaturationLevelLabel.setStyleSheet("color: white;")
         self.l0.addWidget(self.roiSaturationLevelLabel,0,8,1,1)
         
         # Reflector
-        self.reflector = QtGui.QPushButton('Add corneal reflection')
+        self.reflector = QPushButton('Add corneal reflection')
         self.reflector.setEnabled(False)
         self.reflector.clicked.connect(self.add_reflectROI)
         self.rROI=[]
@@ -190,9 +192,9 @@ class MainW(QtGui.QMainWindow):
             self.savelabel.setText("..."+savedir[-20:])
 
         # Status bar
-        self.statusBar = QtGui.QStatusBar()
+        self.statusBar = QStatusBar()
         self.setStatusBar(self.statusBar)
-        self.progressBar = QtGui.QProgressBar()
+        self.progressBar = QProgressBar()
         self.statusBar.addPermanentWidget(self.progressBar)
         self.progressBar.setGeometry(0, 0, 300, 25)
         self.progressBar.setMaximum(100)
@@ -210,34 +212,30 @@ class MainW(QtGui.QMainWindow):
 
     def make_buttons(self):
         # create frame slider
-        VideoLabel = QtGui.QLabel("Video analysis - SVD & Tracker")
+        VideoLabel = QLabel("Video analysis - SVD & Tracker")
         VideoLabel.setStyleSheet("color: white;")
         VideoLabel.setAlignment(QtCore.Qt.AlignCenter)
-        VideoLabel.setFont(QtGui.QFont("Arial", 12, QtGui.QFont.Bold))
-        SVDbinLabel = QtGui.QLabel("SVD spatial bin:")
+        VideoLabel.setFont(QFont("Arial", 12, QFont.Bold))
+        SVDbinLabel = QLabel("SVD spatial bin:")
         SVDbinLabel.setStyleSheet("color: gray;")
-        self.binSpinBox = QtGui.QSpinBox()
+        self.binSpinBox = QSpinBox()
         self.binSpinBox.setRange(1, 20)
         self.binSpinBox.setValue(self.ops['sbin'])
         self.binSpinBox.setFixedWidth(50)
-        binLabel = QtGui.QLabel("Pupil sigma:")
+        binLabel = QLabel("Pupil sigma:")
         binLabel.setStyleSheet("color: gray;")
-        self.sigmaBox = QtGui.QLineEdit()
+        self.sigmaBox = QLineEdit()
         self.sigmaBox.setText(str(self.ops['pupil_sigma']))
         self.sigmaBox.setFixedWidth(45)
         self.pupil_sigma = float(self.sigmaBox.text())
         self.sigmaBox.returnPressed.connect(self.pupil_sigma_change)
-        self.frameLabel = QtGui.QLabel("Frame:")
-        self.frameLabel.setStyleSheet("color: white;")
-        self.totalFrameLabel = QtGui.QLabel("Total frames:")
-        self.totalFrameLabel.setStyleSheet("color: white;")
-        self.setFrame = QtGui.QLineEdit()
+        self.setFrame = QLineEdit()
         self.setFrame.setMaxLength(10)
         self.setFrame.setFixedWidth(50)
         self.setFrame.textChanged[str].connect(self.set_frame_changed)
-        self.totalFrameNumber = QtGui.QLabel("0")             #########
+        self.totalFrameNumber = QLabel("0")             #########
         self.totalFrameNumber.setStyleSheet("color: white;")             #########
-        self.frameSlider = QtGui.QSlider(QtCore.Qt.Horizontal)      
+        self.frameSlider = QSlider(QtCore.Qt.Horizontal)      
         self.frameSlider.setTickInterval(5)
         self.frameSlider.setTracking(False)
         self.frameSlider.valueChanged.connect(self.go_to_frame)
@@ -246,75 +244,61 @@ class MainW(QtGui.QMainWindow):
         iplay = istretch+10
         iconSize = QtCore.QSize(20, 20)
 
-        self.process = QtGui.QPushButton('process ROIs')
-        self.process.setFont(QtGui.QFont("Arial", 10, QtGui.QFont.Bold))
+        self.process = QPushButton('process')
+        self.process.setFont(QFont("Arial", 10, QFont.Bold))
         self.process.clicked.connect(self.process_ROIs)
         self.process.setEnabled(False)
 
-        self.savefolder = QtGui.QPushButton("Output folder \u2b07")
-        self.savefolder.setFont(QtGui.QFont("Arial", 10, QtGui.QFont.Bold))
-        self.savefolder.clicked.connect(self.save_folder)
-        self.savefolder.setEnabled(False)
-        self.savelabel = QtGui.QLabel('same as video')
+        self.savelabel = QLabel('same as video')
         self.savelabel.setStyleSheet("color: white;")
         self.savelabel.setAlignment(QtCore.Qt.AlignCenter)
 
-        self.saverois = QtGui.QPushButton('save ROIs')
-        self.saverois.setFont(QtGui.QFont("Arial", 10, QtGui.QFont.Bold))
+        self.saverois = QPushButton('save ROIs')
+        self.saverois.setFont(QFont("Arial", 10, QFont.Bold))
         self.saverois.clicked.connect(self.save_ROIs)
         self.saverois.setEnabled(False)
 
         # Pose/labels variables
-        self.poseEstimatesButton = QtGui.QPushButton("Run tracker")
-        self.poseEstimatesButton.setFont(QtGui.QFont("Arial", 10, QtGui.QFont.Bold))
-        self.poseEstimatesButton.clicked.connect(self.get_pose_labels)
-        self.poseEstimatesButton.setEnabled(False)
-        self.loadPose = QtGui.QPushButton("Load pose data")
-        self.loadPose.setFont(QtGui.QFont("Arial", 10, QtGui.QFont.Bold))
-        self.loadPose.clicked.connect(lambda: io.get_pose_file(parent=self))
-        self.loadPose.setEnabled(False)
         self.poseFileLoaded = False
-        self.Labels_checkBox = QtGui.QCheckBox("Keypoints")
+        self.Labels_checkBox = QCheckBox("Keypoints")
         self.Labels_checkBox.setStyleSheet("color: gray;")
         self.Labels_checkBox.stateChanged.connect(self.update_pose)
         self.Labels_checkBox.setEnabled(False)
 
         # Process features
         self.batchlist=[]
-        """
         self.batchname=[]
-        for k in range(6):
+        for k in range(5):
             self.batchname.append(QtGui.QLabel(''))
             self.batchname[-1].setStyleSheet("color: white;")
-            self.l0.addWidget(self.batchname[-1],18+k,0,1,4)
-        """
+            self.l0.addWidget(self.batchname[-1],9+k,0,1,4)
 
-        self.processbatch = QtGui.QPushButton(u"process batch \u2b07")
-        self.processbatch.setFont(QtGui.QFont("Arial", 10, QtGui.QFont.Bold))
+        self.processbatch = QPushButton(u"process batch \u2b07")
+        self.processbatch.setFont(QFont("Arial", 10, QFont.Bold))
         self.processbatch.clicked.connect(self.process_batch)
         self.processbatch.setEnabled(False)
 
         # Play/pause features
         iconSize = QtCore.QSize(30, 30)
-        self.playButton = QtGui.QToolButton()
+        self.playButton = QToolButton()
         self.playButton.setIcon(self.style().standardIcon(QtGui.QStyle.SP_MediaPlay))
         self.playButton.setIconSize(iconSize)
         self.playButton.setToolTip("Play")
         self.playButton.setCheckable(True)
         self.playButton.clicked.connect(self.start)
-        self.pauseButton = QtGui.QToolButton()
+        self.pauseButton = QToolButton()
         self.pauseButton.setCheckable(True)
         self.pauseButton.setIcon(self.style().standardIcon(QtGui.QStyle.SP_MediaPause))
         self.pauseButton.setIconSize(iconSize)
         self.pauseButton.setToolTip("Pause")
         self.pauseButton.clicked.connect(self.pause)
-        btns = QtGui.QButtonGroup(self)
+        btns = QButtonGroup(self)
         btns.addButton(self.playButton,0)
         btns.addButton(self.pauseButton,1)
         btns.setExclusive(True)
 
         # Create ROI features
-        self.comboBox = QtGui.QComboBox(self)
+        self.comboBox = QComboBox(self)
         self.comboBox.setFixedWidth(110)
         self.comboBox.addItem("Select ROI")
         self.comboBox.addItem("Pupil")
@@ -325,57 +309,56 @@ class MainW(QtGui.QMainWindow):
         self.newROI = 0
         self.comboBox.setCurrentIndex(0)
         #self.comboBox.currentIndexChanged.connect(self.mode_change)
-        self.addROI = QtGui.QPushButton("Add ROI")
-        self.addROI.setFont(QtGui.QFont("Arial", 10, QtGui.QFont.Bold))
+        self.addROI = QPushButton("Add ROI")
+        self.addROI.setFont(QFont("Arial", 10, QFont.Bold))
         self.addROI.clicked.connect(lambda clicked: self.add_ROI())
         self.addROI.setFixedWidth(70)
         self.addROI.setEnabled(False)
 
         # Add clustering analysis/visualization features
-        self.clusteringVisComboBox = QtGui.QComboBox(self)
+        self.clusteringVisComboBox = QComboBox(self)
         self.clusteringVisComboBox.setFixedWidth(200)
         self.clusteringVisComboBox.addItem("--Select display--")
         self.clusteringVisComboBox.addItem("ROI")
         self.clusteringVisComboBox.addItem("UMAP")
         self.clusteringVisComboBox.currentIndexChanged.connect(self.vis_combobox_selection_changed)
         self.clusteringVisComboBox.setFixedWidth(140)
-        self.roiVisComboBox = QtGui.QComboBox(self)
+        self.roiVisComboBox = QComboBox(self)
         self.roiVisComboBox.setFixedWidth(100)
         self.roiVisComboBox.hide()
         self.roiVisComboBox.activated.connect(self.display_ROI)
-        self.run_clustering_button = QtGui.QPushButton("Run")
-        self.run_clustering_button.setFont(QtGui.QFont("Arial", 10, QtGui.QFont.Bold))
+        self.run_clustering_button = QPushButton("Run")
+        self.run_clustering_button.setFont(QFont("Arial", 10, QFont.Bold))
         self.run_clustering_button.clicked.connect(lambda clicked: self.cluster_model.run(clicked, self))
         self.run_clustering_button.hide()
-        self.save_clustering_button = QtGui.QPushButton("Save")
-        self.save_clustering_button.setFont(QtGui.QFont("Arial", 10, QtGui.QFont.Bold))
+        self.save_clustering_button = QPushButton("Save")
+        self.save_clustering_button.setFont(QFont("Arial", 10, QFont.Bold))
         self.save_clustering_button.clicked.connect(lambda clicked: self.cluster_model.save_dialog(clicked, self))
         self.save_clustering_button.hide()
-        self.data_clustering_combobox = QtGui.QComboBox(self)
+        self.data_clustering_combobox = QComboBox(self)
         self.data_clustering_combobox.setFixedWidth(100)
         self.data_clustering_combobox.hide()
-        self.zoom_in_button = QtGui.QPushButton('+')
+        self.zoom_in_button = QPushButton('+')
         self.zoom_in_button.setMaximumWidth(0.3*self.data_clustering_combobox.width())    
         self.zoom_in_button.clicked.connect(lambda clicked: self.cluster_plot_zoom_buttons("in"))
         self.zoom_in_button.hide()
-        self.zoom_out_button = QtGui.QPushButton('-')
+        self.zoom_out_button = QPushButton('-')
         self.zoom_out_button.setMaximumWidth(0.3*self.data_clustering_combobox.width())    
         self.zoom_out_button.clicked.connect(lambda clicked: self.cluster_plot_zoom_buttons("out"))
         self.zoom_out_button.hide()
 
         # Check boxes
-        self.checkBox = QtGui.QCheckBox("multivideo SVD")
+        self.checkBox = QCheckBox("multivideo SVD")
         self.checkBox.setStyleSheet("color: gray;")
         if self.ops['fullSVD']:
             self.checkBox.toggle()
-        self.save_mat = QtGui.QCheckBox("Save *.mat")
+        self.save_mat = QCheckBox("Save *.mat")
         self.save_mat.setStyleSheet("color: gray;")
         if self.ops['save_mat']:
             self.save_mat.toggle()
-        self.motSVD_checkbox = QtGui.QCheckBox("motSVD")
+        self.motSVD_checkbox = QCheckBox("motSVD")
         self.motSVD_checkbox.setStyleSheet("color: gray;")
-        self.motSVD_checkbox.setChecked(True)
-        self.movSVD_checkbox = QtGui.QCheckBox("movSVD")
+        self.movSVD_checkbox = QCheckBox("movSVD")
         self.movSVD_checkbox.setStyleSheet("color: gray;")
 
         # Add features to window
@@ -383,25 +366,22 @@ class MainW(QtGui.QMainWindow):
         self.l0.addWidget(VideoLabel,0,0,1,2)
         self.l0.addWidget(self.comboBox,1,0,1,2)
         self.l0.addWidget(self.addROI,1,1,1,1)
-        self.l0.addWidget(self.reflector, 2, 0, 1, 2)
-        self.l0.addWidget(SVDbinLabel, 3, 0, 1, 2)
-        self.l0.addWidget(self.binSpinBox,3, 1, 1, 2)
-        self.l0.addWidget(binLabel, 4, 0, 1, 1)
-        self.l0.addWidget(self.sigmaBox, 4, 1, 1, 1)
-        self.l0.addWidget(self.motSVD_checkbox, 5, 0, 1, 1)
-        self.l0.addWidget(self.movSVD_checkbox, 5, 1, 1, 1)
-        self.l0.addWidget(self.checkBox, 6, 0, 1, 1)
-        self.l0.addWidget(self.save_mat, 6, 1, 1, 1)
-        self.l0.addWidget(self.saverois, 7, 0, 1, 1)
-        self.l0.addWidget(self.process,  7, 1, 1, 1)
-        self.l0.addWidget(self.processbatch, 8, 0, 1, 1)
+        self.l0.addWidget(self.reflector, 0, 14, 1, 2)
+        self.l0.addWidget(SVDbinLabel, 2, 0, 1, 2)
+        self.l0.addWidget(self.binSpinBox,2, 1, 1, 2)
+        self.l0.addWidget(binLabel, 3, 0, 1, 1)
+        self.l0.addWidget(self.sigmaBox, 3, 1, 1, 1)
+        self.l0.addWidget(self.motSVD_checkbox, 4, 0, 1, 1)
+        self.l0.addWidget(self.movSVD_checkbox, 4, 1, 1, 1)
+        self.l0.addWidget(self.checkBox, 5, 0, 1, 1)
+        self.l0.addWidget(self.save_mat, 5, 1, 1, 1)
+        self.l0.addWidget(self.saverois, 6, 1, 1, 1)
+        self.l0.addWidget(self.process,  7, 0, 1, 1)
+        self.l0.addWidget(self.processbatch, 7, 1, 1, 1)
         # ~~~~~~~~~~ Save/file IO ~~~~~~~~~~
-        self.l0.addWidget(self.savefolder, 8, 1, 1, 1)
-        self.l0.addWidget(self.savelabel, 9, 0, 1, 2)
+        self.l0.addWidget(self.savelabel, 8, 0, 1, 2)
         # ~~~~~~~~~~ Pose features ~~~~~~~~~~ 
-        self.l0.addWidget(self.poseEstimatesButton, 10, 0, 1, 2)          
-        self.l0.addWidget(self.loadPose, 11, 0, 1, 1)                    
-        self.l0.addWidget(self.Labels_checkBox, 11, 1, 1, 1)     
+        self.l0.addWidget(self.Labels_checkBox, 6, 0, 1, 1)     
         # ~~~~~~~~~~ clustering & ROI visualization window features   
         self.l0.addWidget(self.clusteringVisComboBox, 0, 11, 1, 1)      
         self.l0.addWidget(self.data_clustering_combobox, 0, 12, 1, 2)      
@@ -416,29 +396,27 @@ class MainW(QtGui.QMainWindow):
         self.playButton.setEnabled(False)
         self.pauseButton.setEnabled(False)
         self.pauseButton.setChecked(True)
-        self.l0.addWidget(QtGui.QLabel(''),istretch,0,1,3)
+        self.l0.addWidget(QLabel(''),istretch,0,1,3)
         self.l0.setRowStretch(istretch,1)
-        self.l0.addWidget(self.frameLabel, istretch+7,0,1,1)
-        self.l0.addWidget(self.setFrame, istretch+7,1,1,1)    
-        self.l0.addWidget(self.totalFrameLabel, istretch+8,0,1,1)
-        self.l0.addWidget(self.totalFrameNumber, istretch+8,1,1,1)
+        self.l0.addWidget(self.setFrame, istretch+7,0,1,1)    
+        self.l0.addWidget(self.totalFrameNumber, istretch+7,1,1,1)
         self.l0.addWidget(self.frameSlider, istretch+10,2,1,15)
 
         # Plot 1 and 2 features
-        pl = QtGui.QLabel("Plot 1")
+        pl = QLabel("Plot 1")
         pl.setStyleSheet("color: gray;")
         self.l0.addWidget(pl, istretch, 0, 1, 1)
-        pl = QtGui.QLabel("Plot 2")
+        pl = QLabel("Plot 2")
         pl.setStyleSheet("color: gray;")
         self.l0.addWidget(pl, istretch, 1, 1, 1)
-        self.load_trace1_button = QtGui.QPushButton('Load 1D data')
-        self.load_trace1_button.setFont(QtGui.QFont("Arial", 12))
+        self.load_trace1_button = QPushButton('Load 1D data')
+        self.load_trace1_button.setFont(QFont("Arial", 12))
         self.load_trace1_button.clicked.connect(lambda: self.load_trace_button_clicked(1))
         self.load_trace1_button.setEnabled(False)
         self.trace1_data_loaded = None
         self.trace1_legend = pg.LegendItem(labelTextSize='12pt', horSpacing=30)
-        self.load_trace2_button = QtGui.QPushButton('Load 1D data')
-        self.load_trace2_button.setFont(QtGui.QFont("Arial", 12))
+        self.load_trace2_button = QPushButton('Load 1D data')
+        self.load_trace2_button.setFont(QFont("Arial", 12))
         self.load_trace2_button.clicked.connect(lambda: self.load_trace_button_clicked(2))
         self.load_trace2_button.setEnabled(False)
         self.trace2_data_loaded = None
@@ -449,9 +427,9 @@ class MainW(QtGui.QMainWindow):
         self.cbs2 = []
         self.lbls = []
         for k in range(4):
-            self.cbs1.append(QtGui.QCheckBox(""))
+            self.cbs1.append(QCheckBox(""))
             self.l0.addWidget(self.cbs1[-1], istretch+2+k, 0, 1, 1)
-            self.cbs2.append(QtGui.QCheckBox(""))
+            self.cbs2.append(QCheckBox(""))
             self.l0.addWidget(self.cbs2[-1], istretch+2+k, 1, 1, 1)
             self.cbs1[-1].toggled.connect(self.plot_processed)
             self.cbs2[-1].toggled.connect(self.plot_processed)
@@ -459,7 +437,7 @@ class MainW(QtGui.QMainWindow):
             self.cbs2[-1].setEnabled(False)
             self.cbs1[k].setStyleSheet("color: gray;")
             self.cbs2[k].setStyleSheet("color: gray;")
-            self.lbls.append(QtGui.QLabel(''))
+            self.lbls.append(QLabel(''))
             self.lbls[-1].setStyleSheet("color: white;")
         self.update_frame_slider()
 
@@ -534,10 +512,10 @@ class MainW(QtGui.QMainWindow):
             self.bbox, self.bbox_set, cancel = self.set_pose_bbox()
         elif roitype > 0:
             if self.online_mode and roitype>1:
-                msg = QtGui.QMessageBox(self)
-                msg.setIcon(QtGui.QMessageBox.Warning)
+                msg = QMessageBox(self)
+                msg.setIcon(QMessageBox.Warning)
                 msg.setText("only pupil ROI allowed during online mode")
-                msg.setStandardButtons(QtGui.QMessageBox.Ok)
+                msg.setStandardButtons(QMessageBox.Ok)
                 msg.exec_()
                 return
             self.saturation.append(255.)
@@ -555,10 +533,10 @@ class MainW(QtGui.QMainWindow):
             self.update_ROI_vis_comboBox()
             self.ROIs[-1].position(self)
         else:
-            msg = QtGui.QMessageBox(self)
-            msg.setIcon(QtGui.QMessageBox.Warning)
+            msg = QMessageBox(self)
+            msg.setIcon(QMessageBox.Warning)
             msg.setText("Please select an ROI type")
-            msg.setStandardButtons(QtGui.QMessageBox.Ok)
+            msg.setStandardButtons(QMessageBox.Ok)
             msg.exec_()
             return
 
@@ -573,17 +551,6 @@ class MainW(QtGui.QMainWindow):
         else: 
             self.progressBar.hide()
             self.statusBar.showMessage(message)
-
-    def save_folder(self):
-        folderName = QtGui.QFileDialog.getExistingDirectory(self,
-                            "Choose save folder")
-        # load ops in same folder
-        if folderName:
-            self.save_path = folderName
-            if len(folderName) > 30:
-                self.savelabel.setText("..."+folderName[-30:])
-            else:
-                self.savelabel.setText(folderName)
 
     def keyPressEvent(self, event):
         bid = -1
@@ -616,8 +583,6 @@ class MainW(QtGui.QMainWindow):
     def update_frame_slider(self):
         self.frameSlider.setMaximum(self.nframes-1)
         self.frameSlider.setMinimum(0)
-        self.frameLabel.setEnabled(True)
-        self.totalFrameLabel.setEnabled(True)
         self.frameSlider.setEnabled(True)
 
     def jump_to_frame(self):
@@ -662,7 +627,7 @@ class MainW(QtGui.QMainWindow):
         self.setFrame.setText(str(self.cframe))
         self.update_pose()
         #self.frameNumber.setText(str(self.cframe))
-        self.totalFrameNumber.setText(str(self.nframes))
+        self.totalFrameNumber.setText("/ "+str(self.nframes)+" frames")
         self.win.show()
         self.show()
 
@@ -700,49 +665,43 @@ class MainW(QtGui.QMainWindow):
         return ops
 
     def save_ROIs(self):
-        if self.motSVD_checkbox.isChecked() or self.movSVD_checkbox.isChecked():
-            self.sbin = int(self.binSpinBox.value())
-            # save running parameters as defaults
-            ops = self.save_ops()
-            if len(self.save_path) > 0:
-                savepath = self.save_path
-            else:
-                savepath = None
-            if len(self.ROIs)>0:
-                rois = utils.roi_to_dict(self.ROIs, self.rROI)
-            else:
-                rois = None
-            proc = {'Ly':self.Ly, 'Lx':self.Lx, 'sy': self.sy, 'sx': self.sx, 'LY':self.LY, 'LX':self.LX,
-                    'sbin': ops['sbin'], 'fullSVD': ops['fullSVD'], 'rois': rois,
-                    'motSVD': self.motSVD_checkbox.isChecked(), 'movSVD': self.movSVD_checkbox.isChecked(),
-                    'bbox': self.bbox, 'bbox_set': self.bbox_set, 
-                    'save_mat': ops['save_mat'], 'save_path': ops['save_path'],
-                    'filenames': self.filenames}
-            savename = process.save(proc, savepath=savepath)
-            self.update_status_bar("ROIs saved in "+savepath) 
-            self.batchlist.append(savename)
-            _,filename = os.path.split(savename)
-            filename, _ = os.path.splitext(filename)
-            #self.batchname[len(self.batchlist)-1].setText(filename)
-            self.processbatch.setEnabled(True)
+        self.sbin = int(self.binSpinBox.value())
+        # save running parameters as defaults
+        ops = self.save_ops()
+        if len(self.save_path) > 0:
+            savepath = self.save_path
         else:
-            msg = QtGui.QMessageBox(self)
-            msg.setIcon(QtGui.QMessageBox.Warning)
-            msg.setText("Please check at least one of: motSVD, movSVD")
-            msg.setStandardButtons(QtGui.QMessageBox.Ok)
-            msg.exec_()
-            return
+            savepath = None
+        if len(self.ROIs)>0:
+            rois = utils.roi_to_dict(self.ROIs, self.rROI)
+        else:
+            rois = None
+        proc = {'Ly':self.Ly, 'Lx':self.Lx, 'sy': self.sy, 'sx': self.sx, 'LY':self.LY, 'LX':self.LX,
+                'sbin': ops['sbin'], 'fullSVD': ops['fullSVD'], 'rois': rois,
+                'motSVD': self.motSVD_checkbox.isChecked(), 'movSVD': self.movSVD_checkbox.isChecked(),
+                'bbox': self.bbox, 'bbox_set': self.bbox_set, 
+                'save_mat': ops['save_mat'], 'save_path': ops['save_path'],
+                'filenames': self.filenames}
+        savename = process.save(proc, savepath=savepath)
+        self.update_status_bar("ROIs saved in "+savepath) 
+        self.batchlist.append(savename)
+        _,filename = os.path.split(savename)
+        filename, _ = os.path.splitext(filename)
+        self.batchname[len(self.batchlist)-1].setText(filename)
+        self.processbatch.setEnabled(True)
 
     def process_batch(self):
         files = self.batchlist
         for f in files:
             proc = np.load(f, allow_pickle=True).item()
-            savename = process.run(proc['filenames'], motSVD=proc['motSVD'], movSVD=proc['movSVD'],
+            if proc['motSVD'] or proc['movSVD']:
+                savename = process.run(proc['filenames'], motSVD=proc['motSVD'], movSVD=proc['movSVD'],
                                         GUIobject=QtGui, proc=proc, savepath=proc['save_path'])
+                self.update_status_bar("Processed "+savename)
+
             pose.Pose(gui=None, filenames=proc['filenames'], 
                         bbox=proc['bbox'], bbox_set=proc['bbox_set']).run(plot=False)
-            self.update_status_bar("Processed "+savename)
-        if len(files)==1:
+        if len(files)==1 and (proc['motSVD'] or proc['movSVD']):
             io.open_proc(self, file_name=savename)
 
     def process_ROIs(self):
@@ -758,13 +717,8 @@ class MainW(QtGui.QMainWindow):
             io.open_proc(self, file_name=savename)
             print("Output saved in",savepath)
             self.update_status_bar("Output saved in "+savepath)
-        else: 
-            msg = QtGui.QMessageBox(self)
-            msg.setIcon(QtGui.QMessageBox.Warning)
-            msg.setText("Please select at least one of: motSVD, movSVD")
-            msg.setStandardButtons(QtGui.QMessageBox.Ok)
-            msg.exec_()
-            return
+        self.get_pose_labels()
+        self.update_status_bar("Pose labels saved in "+savepath)
         
     def update_buttons(self):
         self.playButton.setEnabled(True)
@@ -772,7 +726,6 @@ class MainW(QtGui.QMainWindow):
         self.addROI.setEnabled(True)
         self.pauseButton.setChecked(True)
         self.process.setEnabled(True)
-        self.savefolder.setEnabled(True)
         self.saverois.setEnabled(True)
         self.checkBox.setChecked(True)
         self.save_mat.setChecked(True)
@@ -781,8 +734,6 @@ class MainW(QtGui.QMainWindow):
 
         # Enable pose features for single video only
         self.Labels_checkBox.setEnabled(True)
-        self.poseEstimatesButton.setEnabled(True)
-        self.loadPose.setEnabled(True)
     
     def button_status(self, status):
         self.playButton.setEnabled(status)
@@ -798,6 +749,7 @@ class MainW(QtGui.QMainWindow):
         """
         self.clear_visualization_window()
         visualization_request = self.clusteringVisComboBox.currentText()
+        self.reflector.show()
         if visualization_request == "ROI":
             self.cluster_model.disable_data_clustering_features(self)
             if len(self.ROIs)>0:
@@ -806,6 +758,7 @@ class MainW(QtGui.QMainWindow):
             else:
                 self.update_status_bar("Please add ROIs for display")
         elif visualization_request == "UMAP":
+            self.reflector.hide()
             self.cluster_model.enable_data_clustering_features(parent=self)
             self.update_status_bar("")
         else:
@@ -1027,7 +980,7 @@ class MainW(QtGui.QMainWindow):
                     pen_list = np.empty(len(data), dtype=object)
                     for j, value in enumerate(np.unique(data)):
                         ind = np.where(data==value)[0]
-                        pen_list[ind] = pg.mkPen(QtGui.QColor(color_palette[j][0], color_palette[j][1], color_palette[j][2]))
+                        pen_list[ind] = pg.mkPen(QColor(color_palette[j][0], color_palette[j][1], color_palette[j][2]))
                     vtick = QPainterPath()
                     vtick.moveTo(0, -0.5)
                     vtick.lineTo(0, 0.5)
@@ -1299,7 +1252,7 @@ def run(moviefile=None,savedir=None):
     icon_path = os.path.join(
          os.path.dirname(os.path.realpath(__file__)), "mouse.png"
     )
-    app_icon = QtGui.QIcon()
+    app_icon = QIcon()
     app_icon.addFile(icon_path, QtCore.QSize(16, 16))
     app_icon.addFile(icon_path, QtCore.QSize(24, 24))
     app_icon.addFile(icon_path, QtCore.QSize(32, 32))

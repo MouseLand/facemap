@@ -6,10 +6,11 @@ from . import guiparts
 from .. import roi, utils
 from natsort import natsorted
 import pickle
+from PyQt5.QtWidgets import (QFileDialog, QMessageBox)
 
 def open_file(parent, file_name=None):
     if file_name is None:
-        file_name = QtGui.QFileDialog.getOpenFileName(parent,
+        file_name = QFileDialog.getOpenFileName(parent,
                             "Open movie file", "", "Movie files (*.h5 *.mj2 *.mp4 *.mkv *.avi *.mpeg *.mpg *.asf)")
     # load ops in same folder
     if file_name:
@@ -18,7 +19,7 @@ def open_file(parent, file_name=None):
 
 def open_folder(parent, folder_name=None):
     if folder_name is None:
-        folder_name = QtGui.QFileDialog.getExistingDirectory(parent,
+        folder_name = QFileDialog.getExistingDirectory(parent,
                             "Choose folder with movies")
     # load ops in same folder
     if folder_name:
@@ -45,13 +46,13 @@ def choose_files(parent, file_name):
         parent.filelist=file_name
     parent.filelist = natsorted(parent.filelist)
     if len(parent.filelist)>1:
-        dm = QtGui.QMessageBox.question(
+        dm = QMessageBox.question(
             parent,
             "multiple videos found",
             "are you processing multiple videos taken simultaneously?",
-            QtGui.QMessageBox.Yes | QtGui.QMessageBox.No,
+            QMessageBox.Yes | QMessageBox.No,
         )
-        if dm == QtGui.QMessageBox.Yes:
+        if dm == QMessageBox.Yes:
             print('multi camera view')
             # expects first 4 letters to be different e.g. cam0, cam1, ...
             files = []
@@ -84,7 +85,7 @@ def choose_files(parent, file_name):
 
 def open_proc(parent, file_name=None):
     if file_name is None:
-        file_name = QtGui.QFileDialog.getOpenFileName(parent,
+        file_name = QFileDialog.getOpenFileName(parent,
                         "Open processed file", filter="*.npy")
         file_name = file_name[0]
     try:
@@ -251,11 +252,22 @@ def load_movies(parent, filelist=None):
         parent.jump_to_frame()
     return good
 
+def save_folder(parent):
+    folderName = QFileDialog.getExistingDirectory(parent,
+                        "Choose save folder")
+    # load ops in same folder
+    if folderName:
+        parent.save_path = folderName
+        if len(folderName) > 30:
+            parent.savelabel.setText("..."+folderName[-30:])
+        else:
+            parent.savelabel.setText(folderName)
+
 def get_pose_file(parent):
     # Open a folder and allow selection of multiple files with extension *.h5 only
     # Returns a list of files
     filelist = []
-    filelist = QtGui.QFileDialog.getOpenFileNames(parent, 'Open Pose File', parent.save_path, '*.h5')
+    filelist = QFileDialog.getOpenFileNames(parent, 'Open Pose File', parent.save_path, '*.h5')
     if filelist[0] == '':
         return
     else:
@@ -267,7 +279,7 @@ def get_pose_file(parent):
 
 def load_cluster_labels(parent):
     try:
-        file_name = QtGui.QFileDialog.getOpenFileName(parent,
+        file_name = QFileDialog.getOpenFileName(parent,
                         "Select cluster labels file", "", "Cluster label files (*.npy *.pkl)")[0]
         extension = file_name.split(".")[-1]
         if extension == "npy":
@@ -280,16 +292,16 @@ def load_cluster_labels(parent):
         else:
             return
     except Exception as e:
-        msg = QtGui.QMessageBox(parent)
-        msg.setIcon(QtGui.QMessageBox.Warning)
+        msg = QMessageBox(parent)
+        msg.setIcon(QMessageBox.Warning)
         msg.setText("Error: not a supported filetype")
-        msg.setStandardButtons(QtGui.QMessageBox.Ok)
+        msg.setStandardButtons(QMessageBox.Ok)
         msg.exec_()
         print(e)
 
 def load_umap(parent):
     try:
-        file_name = QtGui.QFileDialog.getOpenFileName(parent,
+        file_name = QFileDialog.getOpenFileName(parent,
                         "Select UMAP data file", "", "UMAP label files (*.npy *.pkl)")[0]
         extension = file_name.split(".")[-1]
         if extension == "npy":
@@ -301,16 +313,16 @@ def load_umap(parent):
             return
         return embedded_data
     except Exception as e:
-        msg = QtGui.QMessageBox(parent)
-        msg.setIcon(QtGui.QMessageBox.Warning)
+        msg = QMessageBox(parent)
+        msg.setIcon(QMessageBox.Warning)
         msg.setText("Error: not a supported filetype")
-        msg.setStandardButtons(QtGui.QMessageBox.Ok)
+        msg.setStandardButtons(QMessageBox.Ok)
         msg.exec_()
         print(e)
 
 def load_trace_data(parent):
     try:
-        file_name = QtGui.QFileDialog.getOpenFileName(parent,
+        file_name = QFileDialog.getOpenFileName(parent,
                         "Select data file", "", "(*.npy *.pkl)")[0]
         extension = file_name.split(".")[-1]
         if extension == "npy":
@@ -322,10 +334,10 @@ def load_trace_data(parent):
             return
         return dat
     except Exception as e:
-        msg = QtGui.QMessageBox(parent)
-        msg.setIcon(QtGui.QMessageBox.Warning)
+        msg = QMessageBox(parent)
+        msg.setIcon(QMessageBox.Warning)
         msg.setText("Error: not a supported filetype")
-        msg.setStandardButtons(QtGui.QMessageBox.Ok)
+        msg.setStandardButtons(QMessageBox.Ok)
         msg.exec_()
         print(e)
 

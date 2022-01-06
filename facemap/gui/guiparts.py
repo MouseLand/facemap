@@ -3,25 +3,29 @@ import pyqtgraph as pg
 from pyqtgraph import functions as fn
 from pyqtgraph import Point
 import numpy as np
+from PyQt5.QtWidgets import (
+    QListWidget, QDialog, QPushButton, QWidget, QGridLayout, QRadioButton, QLabel, QLineEdit, 
+    QAbstractItemView, QSlider, QButtonGroup, QStyleOptionSlider
+)
 
 ### custom QDialog which makes a list of items you can include/exclude
-class ListChooser(QtGui.QDialog):
+class ListChooser(QDialog):
     def __init__(self, title, parent):
         super(ListChooser, self).__init__(parent)
         self.setGeometry(300,300,320,320)
         self.setWindowTitle(title)
-        self.win = QtGui.QWidget(self)
-        layout = QtGui.QGridLayout()
+        self.win = QWidget(self)
+        layout = QGridLayout()
         self.win.setLayout(layout)
         #self.setCentralWidget(self.win)
-        layout.addWidget(QtGui.QLabel('click to select videos (none selected => all used)'),0,0,1,1)
-        self.list = QtGui.QListWidget(parent)
+        layout.addWidget(QLabel('click to select videos (none selected => all used)'),0,0,1,1)
+        self.list = QListWidget(parent)
         for f in parent.filelist:
             self.list.addItem(f)
         layout.addWidget(self.list,1,0,7,4)
         #self.list.resize(450,250)
-        self.list.setSelectionMode(QtGui.QAbstractItemView.MultiSelection)
-        done = QtGui.QPushButton('done')
+        self.list.setSelectionMode(QAbstractItemView.MultiSelection)
+        done = QPushButton('done')
         done.clicked.connect(lambda: self.exit_list(parent))
         layout.addWidget(done,8,0,1,1)
 
@@ -32,7 +36,7 @@ class ListChooser(QtGui.QDialog):
             parent.filelist.append(str(self.list.selectedItems()[i].text()))
         self.accept()
 
-class Slider(QtGui.QSlider):
+class Slider(QSlider):
     def __init__(self, bid, parent=None):
         super(self.__class__, self).__init__()
         initval = [99,99]
@@ -57,18 +61,18 @@ class Slider(QtGui.QSlider):
         parent.win.show()
 
 
-class TextChooser(QtGui.QDialog):
+class TextChooser(QDialog):
     def __init__(self,parent=None):
         super(TextChooser, self).__init__(parent)
         self.setGeometry(300,300,350,100)
         self.setWindowTitle('folder path')
-        self.win = QtGui.QWidget(self)
-        layout = QtGui.QGridLayout()
+        self.win = QWidget(self)
+        layout = QGridLayout()
         self.win.setLayout(layout)
-        self.qedit = QtGui.QLineEdit('')
-        layout.addWidget(QtGui.QLabel('folder name (does not have to exist yet)'),0,0,1,3)
+        self.qedit = QLineEdit('')
+        layout.addWidget(QLabel('folder name (does not have to exist yet)'),0,0,1,3)
         layout.addWidget(self.qedit,1,0,1,3)
-        done = QtGui.QPushButton('OK')
+        done = QPushButton('OK')
         done.clicked.connect(self.exit)
         layout.addWidget(done,2,1,1,1)
 
@@ -76,16 +80,15 @@ class TextChooser(QtGui.QDialog):
         self.folder = self.qedit.text()
         self.accept()
 
-class RGBRadioButtons(QtGui.QButtonGroup):
+class RGBRadioButtons(QButtonGroup):
     def __init__(self, parent=None, row=0, col=0):
         super(RGBRadioButtons, self).__init__()
         parent.color = 0
         self.parent = parent
         self.bstr = ["image", "flowsX", "flowsY", "flowsZ", "cellprob"]
-        #self.buttons = QtGui.QButtonGroup()
         self.dropdown = []
         for b in range(len(self.bstr)):
-            button = QtGui.QRadioButton(self.bstr[b])
+            button = QRadioButton(self.bstr[b])
             button.setStyleSheet('color: white;')
             if b==0:
                 button.setChecked(True)
@@ -318,7 +321,7 @@ class ImageDraw(pg.ImageItem):
         self.greenmask = np.concatenate((onmask,offmask,onmask,opamask), axis=-1)
 
 
-class RangeSlider(QtGui.QSlider):
+class RangeSlider(QSlider):
     """ A slider for ranges.
 
         This class provides a dual-slider for ranges, where there is a defined
@@ -337,12 +340,12 @@ class RangeSlider(QtGui.QSlider):
         self._low = self.minimum()
         self._high = self.maximum()
 
-        self.pressed_control = QtGui.QStyle.SC_None
-        self.hover_control = QtGui.QStyle.SC_None
+        self.pressed_control = QStyle.SC_None
+        self.hover_control = QStyle.SC_None
         self.click_offset = 0
 
         self.setOrientation(QtCore.Qt.Vertical)
-        self.setTickPosition(QtGui.QSlider.TicksRight)
+        self.setTickPosition(QSlider.TicksRight)
         self.setStyleSheet(\
                 "QSlider::handle:horizontal {\
                 background-color: white;\
@@ -389,7 +392,7 @@ class RangeSlider(QtGui.QSlider):
         style = QtGui.QApplication.style()
 
         for i, value in enumerate([self._low, self._high]):
-            opt = QtGui.QStyleOptionSlider()
+            opt = QStyleOptionSlider()
             self.initStyleOption(opt)
 
             # Only draw the groove for the first slider so it doesn't get drawn

@@ -2,29 +2,40 @@ from PyQt5 import QtGui, QtCore, QtWidgets
 import pyqtgraph as pg
 import os
 from . import guiparts, io
-from PyQt5.QtGui import QPixmap 
+from PyQt5.QtGui import QPixmap, QFont, QPainterPath, QPainter, QBrush
+from PyQt5.QtWidgets import QAction, QLabel
 
 def mainmenu(parent):    
     # --------------- MENU BAR --------------------------
     # run suite2p from scratch
-    openFile = QtGui.QAction("&Load single movie file", parent)
+    openFile = QAction("&Load single movie file", parent)
     openFile.setShortcut("Ctrl+L")
     openFile.triggered.connect(lambda: io.open_file(parent))
     parent.addAction(openFile)
 
-    openFolder = QtGui.QAction("Open &Folder of movies", parent)
+    openFolder = QAction("Open &Folder of movies", parent)
     openFolder.setShortcut("Ctrl+F")
     openFolder.triggered.connect(lambda: io.open_folder(parent))
     parent.addAction(openFolder)
 
     # load processed data
-    loadProc = QtGui.QAction("Load &Processed data", parent)
+    loadProc = QAction("Load &Processed data", parent)
     loadProc.setShortcut("Ctrl+P")
     loadProc.triggered.connect(lambda: io.open_proc(parent))
     parent.addAction(loadProc)
 
+    # Set output folder
+    setOutputFolder = QAction("Set &Output folder", parent)
+    setOutputFolder.setShortcut("Ctrl+O")
+    setOutputFolder.triggered.connect(lambda: io.save_folder(parent))
+    parent.addAction(setOutputFolder)
+
+    loadPose = QAction("Load &pose data", parent)
+    loadPose.triggered.connect(lambda: io.get_pose_file(parent))
+    parent.addAction(loadPose)
+
     # Help menu actions
-    helpContent = QtGui.QAction("Help Content", parent)
+    helpContent = QAction("Help Content", parent)
     helpContent.setShortcut("Ctrl+H")
     helpContent.triggered.connect(lambda: launch_user_manual(parent))
     parent.addAction(helpContent)
@@ -35,6 +46,8 @@ def mainmenu(parent):
     file_menu.addAction(openFile)
     file_menu.addAction(openFolder)
     file_menu.addAction(loadProc)
+    file_menu.addAction(loadPose)
+    file_menu.addAction(setOutputFolder)
     help_menu = main_menu.addMenu("&Help")
     help_menu.addAction(helpContent)
 
@@ -49,7 +62,7 @@ class DrawWidget(QtWidgets.QWidget):
         self.setFixedSize(630, 470)
         icon_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "mouse.png")
         self.logo = QPixmap(icon_path).scaled(120, 90, QtCore.Qt.KeepAspectRatio, QtCore.Qt.SmoothTransformation)
-        self.logoLabel = QtGui.QLabel(self) 
+        self.logoLabel = QLabel(self) 
         self.logoLabel.setPixmap(self.logo) 
         self.logoLabel.setScaledContents(True)
         self.logoLabel.move(240,10)
@@ -63,14 +76,14 @@ class DrawWidget(QtWidgets.QWidget):
         self.helpText.setReadOnly(True)
 
     def paintEvent(self, event):
-        painter = QtGui.QPainter(self)
-        painter.setRenderHint(QtGui.QPainter.Antialiasing)
-        painter.setBrush(QtGui.QBrush(QtCore.Qt.black))
+        painter = QPainter(self)
+        painter.setRenderHint(QPainter.Antialiasing)
+        painter.setBrush(QBrush(QtCore.Qt.black))
         painter.setPen(QtCore.Qt.NoPen)
-        path = QtGui.QPainterPath()
-        path.addText(QtCore.QPoint(235, 130), QtGui.QFont("Times", 30, QtGui.QFont.Bold), "Facemap")
+        path = QPainterPath()
+        path.addText(QtCore.QPoint(235, 130), QFont("Times", 30, QFont.Bold), "Facemap")
         help_text = "Help content"
-        path.addText(QtCore.QPoint(10, 150), QtGui.QFont("Times", 20), help_text)
+        path.addText(QtCore.QPoint(10, 150), QFont("Times", 20), help_text)
         painter.drawPath(path)
 
 

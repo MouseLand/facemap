@@ -10,6 +10,10 @@ from . import utils
 from .gui import io
 import cv2
 import os
+from PyQt5.QtGui import QFont
+from PyQt5.QtWidgets import (QLabel, QPushButton, QRadioButton, QSpinBox, QButtonGroup,
+        QMessageBox, QLineEdit, QCheckBox)
+
 
 class Cluster():
     def __init__(self, parent, method=None, cluster_labels=None, cluster_labels_method=None, data_type=None):
@@ -25,58 +29,58 @@ class Cluster():
 
     def create_clustering_widgets(self, parent):
         # Add options to change params for embedding using user input
-        parent.ClusteringLabel = QtGui.QLabel("Clustering")
+        parent.ClusteringLabel = QLabel("Clustering")
         parent.ClusteringLabel.setStyleSheet("color: white;")
         parent.ClusteringLabel.setAlignment(QtCore.Qt.AlignCenter)
-        parent.ClusteringLabel.setFont(QtGui.QFont("Arial", 12, QtGui.QFont.Bold))
+        parent.ClusteringLabel.setFont(QFont("Arial", 12, QFont.Bold))
 
-        parent.min_dist_label = QtGui.QLabel("min_dist:")
+        parent.min_dist_label = QLabel("min_dist:")
         parent.min_dist_label.setStyleSheet("color: gray;")
-        parent.min_dist_value = QtGui.QLineEdit()
+        parent.min_dist_value = QLineEdit()
         parent.min_dist_value.setText(str(0.5))
         parent.min_dist_value.setFixedWidth(50)
 
-        parent.n_neighbors_label = QtGui.QLabel("n_neighbors:")
+        parent.n_neighbors_label = QLabel("n_neighbors:")
         parent.n_neighbors_label.setStyleSheet("color: gray;")
-        parent.n_neighbors_value = QtGui.QLineEdit()
+        parent.n_neighbors_value = QLineEdit()
         parent.n_neighbors_value.setText(str(30))
         parent.n_neighbors_value.setFixedWidth(50)
 
-        parent.n_components_label = QtGui.QLabel("n_components:")
+        parent.n_components_label = QLabel("n_components:")
         parent.n_components_label.setStyleSheet("color: gray;")
-        parent.n_components_value = QtGui.QSpinBox()
+        parent.n_components_value = QSpinBox()
         parent.n_components_value.setRange(2, 3)
         parent.n_components_value.setValue(2)
         parent.n_components_value.setFixedWidth(50)
         #metric
 
-        parent.cluster_method_label = QtGui.QLabel("Cluster labels")
+        parent.cluster_method_label = QLabel("Cluster labels")
         parent.cluster_method_label.setStyleSheet("color: gray;")
         parent.cluster_method_label.setAlignment(QtCore.Qt.AlignCenter)
 
-        parent.load_umap_embedding_button = QtGui.QPushButton('Load emmbedding')
+        parent.load_umap_embedding_button = QPushButton('Load emmbedding')
 
-        parent.RadioGroup = QtGui.QButtonGroup()
-        parent.load_cluster_labels_button = QtGui.QPushButton('Load')
-        parent.loadlabels_radiobutton = QtGui.QRadioButton("Load labels")
+        parent.RadioGroup = QButtonGroup()
+        parent.load_cluster_labels_button = QPushButton('Load')
+        parent.loadlabels_radiobutton = QRadioButton("Load labels")
         parent.loadlabels_radiobutton.setStyleSheet("color: gray;")
         parent.RadioGroup.addButton(parent.loadlabels_radiobutton)
-        parent.kmeans_radiobutton = QtGui.QRadioButton("KMeans")
+        parent.kmeans_radiobutton = QRadioButton("KMeans")
         parent.kmeans_radiobutton.setStyleSheet("color: gray;")
         parent.RadioGroup.addButton(parent.kmeans_radiobutton)
-        parent.hdbscan_radiobutton = QtGui.QRadioButton("HDBSCAN")
+        parent.hdbscan_radiobutton = QRadioButton("HDBSCAN")
         parent.hdbscan_radiobutton.setStyleSheet("color: gray;")
         parent.RadioGroup.addButton(parent.hdbscan_radiobutton)
 
-        parent.min_cluster_size_label = QtGui.QLabel("min_cluster_size:")
+        parent.min_cluster_size_label = QLabel("min_cluster_size:")
         parent.min_cluster_size_label.setStyleSheet("color: gray;")
-        parent.min_cluster_size = QtGui.QLineEdit()
+        parent.min_cluster_size = QLineEdit()
         parent.min_cluster_size.setFixedWidth(50)
         parent.min_cluster_size.setText(str(500))
 
-        parent.num_clusters_label = QtGui.QLabel("num_clusters:")
+        parent.num_clusters_label = QLabel("num_clusters:")
         parent.num_clusters_label.setStyleSheet("color: gray;")
-        parent.num_clusters = QtGui.QLineEdit()
+        parent.num_clusters = QLineEdit()
         parent.num_clusters.setFixedWidth(50)
         parent.num_clusters.setText(str(5))
 
@@ -247,12 +251,12 @@ class Cluster():
                     self.cluster_labels = parent.loaded_cluster_labels
                     self.cluster_labels_method = "User labels"
                 else:
-                    QtGui.QMessageBox.about(parent, 'Error','Please load cluster labels file')
+                    QMessageBox.about(parent, 'Error','Please load cluster labels file')
                     pass
             else:
                 return
         except Exception as e:
-            QtGui.QMessageBox.about(parent, 'Error','Invalid input entered')
+            QMessageBox.about(parent, 'Error','Invalid input entered')
             print(e)
             pass
 
@@ -286,7 +290,7 @@ class Cluster():
             self.data_type = parent.data_clustering_combobox.currentText()
             self.cluster_method = parent.clusteringVisComboBox.currentText()
         except Exception as e:
-            QtGui.QMessageBox.about(parent, 'Error','Parameter input can only be a number')
+            QMessageBox.about(parent, 'Error','Parameter input can only be a number')
             print(e)
             pass
 
@@ -305,10 +309,10 @@ class Cluster():
             """
         else:
             self.data_type = None
-            msg = QtGui.QMessageBox(parent)
-            msg.setIcon(QtGui.QMessageBox.Warning)
+            msg = QMessageBox(parent)
+            msg.setIcon(QMessageBox.Warning)
             msg.setText("Please select data for clustering")
-            msg.setStandardButtons(QtGui.QMessageBox.Ok)
+            msg.setStandardButtons(QMessageBox.Ok)
             msg.exec_()
             return
         if self.cluster_method == "UMAP":
@@ -463,24 +467,24 @@ class Cluster():
         dialog.label.setText("Save files:")
         dialog.verticalLayout.addWidget(dialog.label)
 
-        dialog.data_checkbox = QtGui.QCheckBox("Cluster data (*.npy)")
+        dialog.data_checkbox = QCheckBox("Cluster data (*.npy)")
         dialog.data_checkbox.setChecked(True)
-        dialog.videos_checkbox = QtGui.QCheckBox("Cluster videos (*.avi)")
+        dialog.videos_checkbox = QCheckBox("Cluster videos (*.avi)")
         dialog.videos_checkbox.stateChanged.connect(lambda: self.enable_video_options(dialog))
 
-        dialog.num_frames_label = QtGui.QLabel("#Frames/cluster:")
-        dialog.num_frames = QtGui.QLineEdit()
+        dialog.num_frames_label = QLabel("#Frames/cluster:")
+        dialog.num_frames = QLineEdit()
         dialog.num_frames.setText(str(30))
         dialog.num_frames.setEnabled(False)
-        dialog.fps_label = QtGui.QLabel("FPS:")
-        dialog.fps = QtGui.QLineEdit()
+        dialog.fps_label = QLabel("FPS:")
+        dialog.fps = QLineEdit()
         dialog.fps.setText(str(10.0))
         dialog.fps.setEnabled(False)
 
-        dialog.ok_button = QtGui.QPushButton('Ok')
+        dialog.ok_button = QPushButton('Ok')
         dialog.ok_button.setDefault(True)
         dialog.ok_button.clicked.connect(lambda: self.ok_save(dialog, parent))
-        dialog.cancel_button = QtGui.QPushButton('Cancel')
+        dialog.cancel_button = QPushButton('Cancel')
         dialog.cancel_button.clicked.connect(dialog.close)
 
         # Add options to dialog box
@@ -518,14 +522,14 @@ class Cluster():
                 try:
                     self.save_cluster_video(parent, float(dialogBox.fps.text()), int(dialogBox.num_frames.text()))
                 except Exception as e:
-                    QtGui.QMessageBox.about(parent, 'Error','Invalid input entered')
+                    QMessageBox.about(parent, 'Error','Invalid input entered')
                     print(e)
                     pass
             else:
-                msg = QtGui.QMessageBox(parent)
-                msg.setIcon(QtGui.QMessageBox.Warning)
+                msg = QMessageBox(parent)
+                msg.setIcon(QMessageBox.Warning)
                 msg.setText("Please generate cluster labels for saving cluster videos")
-                msg.setStandardButtons(QtGui.QMessageBox.Ok)
+                msg.setStandardButtons(QMessageBox.Ok)
                 msg.exec_()
         if dialogBox.data_checkbox.isChecked():
             self.save_cluster_output(parent)

@@ -20,6 +20,8 @@ from pyqtgraph import GraphicsScene
 from scipy.interpolate import interp1d
 from scipy.ndimage import gaussian_filter1d
 from skimage import draw, io, measure, segmentation, transform
+from PyQt5.QtWidgets import (QLabel, QPushButton, QFileDialog, QWidget, QAction, QGridLayout,
+                            QSlider, QComboBox, QCheckBox)
 
 from .gui import guiparts
 
@@ -63,7 +65,7 @@ class MainW(QtGui.QMainWindow):
         main_menu = self.menuBar()
         file_menu = main_menu.addMenu("&File")
         # load processed data
-        loadImg = QtGui.QAction("&Load image (*.tif, *.png, *.jpg)", self)
+        loadImg = QAction("&Load image (*.tif, *.png, *.jpg)", self)
         loadImg.setShortcut("Ctrl+L")
         loadImg.triggered.connect(lambda: self.load_images(images))
         file_menu.addAction(loadImg)
@@ -82,8 +84,8 @@ class MainW(QtGui.QMainWindow):
         self.loaded = False
 
         # ---- MAIN WIDGET LAYOUT ---- #
-        self.cwidget = QtGui.QWidget(self)
-        self.l0 = QtGui.QGridLayout()
+        self.cwidget = QWidget(self)
+        self.l0 = QGridLayout()
         self.cwidget.setLayout(self.l0)
         self.setCentralWidget(self.cwidget)
         self.l0.setVerticalSpacing(4)
@@ -122,15 +124,15 @@ class MainW(QtGui.QMainWindow):
         self.slider.setMaximum(255)
         self.slider.setLow(0)
         self.slider.setHigh(255)
-        self.slider.setTickPosition(QtGui.QSlider.TicksBelow)
+        self.slider.setTickPosition(QSlider.TicksBelow)
         self.l0.addWidget(self.slider, 3,0,1,1)
 
         self.brush_size = 3
-        self.BrushChoose = QtGui.QComboBox()
+        self.BrushChoose = QComboBox()
         self.BrushChoose.addItems(["1","3","5","7"])
         self.BrushChoose.currentIndexChanged.connect(self.brush_choose)
         self.l0.addWidget(self.BrushChoose, 1, 5,1,1)
-        label = QtGui.QLabel('brush size:')
+        label = QLabel('brush size:')
         label.setStyleSheet('color: white;')
         self.l0.addWidget(label, 0, 5,1,1)
 
@@ -139,13 +141,13 @@ class MainW(QtGui.QMainWindow):
         self.hLine = pg.InfiniteLine(angle=0, movable=False)
 
         # turn on crosshairs
-        self.CHCheckBox = QtGui.QCheckBox('cross-hairs')
+        self.CHCheckBox = QCheckBox('cross-hairs')
         self.CHCheckBox.setStyleSheet('color: white;')
         self.CHCheckBox.toggled.connect(self.cross_hairs)
         self.l0.addWidget(self.CHCheckBox, 1,4,1,1)
 
         # turn off masks
-        self.MCheckBox = QtGui.QCheckBox('masks on [SPACE]')
+        self.MCheckBox = QCheckBox('masks on [SPACE]')
         self.MCheckBox.setStyleSheet('color: white;')
         self.MCheckBox.setChecked(True)
         self.MCheckBox.toggled.connect(self.masks_on)
@@ -153,25 +155,25 @@ class MainW(QtGui.QMainWindow):
         self.masksOn=True
 
         # clear all masks
-        self.ClearButton = QtGui.QPushButton('clear all masks')
+        self.ClearButton = QPushButton('clear all masks')
         self.ClearButton.clicked.connect(self.clear_all)
         self.l0.addWidget(self.ClearButton, 1,6,1,1)
         self.ClearButton.setEnabled(False)
 
         # choose models
-        self.ModelChoose = QtGui.QComboBox()
+        self.ModelChoose = QComboBox()
         self.model_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'models'))
         models = glob(self.model_dir+'/*')
         models = [os.path.split(m)[-1] for m in models]
         print(models)
         self.ModelChoose.addItems(models)
         self.l0.addWidget(self.ModelChoose, 1, 7,1,1)
-        label = QtGui.QLabel('model: ')
+        label = QLabel('model: ')
         label.setStyleSheet('color: white;')
         self.l0.addWidget(label, 0, 7,1,1)
 
         # recompute model
-        self.ModelButton = QtGui.QPushButton('compute masks')
+        self.ModelButton = QPushButton('compute masks')
         self.ModelButton.clicked.connect(self.compute_model)
         self.l0.addWidget(self.ModelButton, 1,10,1,1)
         self.ModelButton.setEnabled(False)
@@ -478,7 +480,7 @@ class MainW(QtGui.QMainWindow):
 
     def load_manual(self, filename=None, image=None, image_file=None):
         if filename is None:
-            name = QtGui.QFileDialog.getOpenFileName(
+            name = QFileDialog.getOpenFileName(
                 self, "Load manual labels", filter="*_manual.npy"
                 )
             filename = name[0]
@@ -628,7 +630,7 @@ class MainW(QtGui.QMainWindow):
         QtWidgets.QApplication.setOverrideCursor(QtCore.Qt.WaitCursor)
         types = ["*.png","*.jpg","*.tif","*.tiff"] # supported image types
         if filename is None:
-            name = QtGui.QFileDialog.getOpenFileName(
+            name = QFileDialog.getOpenFileName(
                 self, "Load image"
                 )
             filename = name[0]

@@ -1,10 +1,9 @@
 import numpy as np
 import pyqtgraph as pg
-from PyQt5 import QtGui, QtWidgets
+from PyQt5 import QtWidgets
 from PyQt5.QtWidgets import (
     QDialog,
-    QPushButton,
-    QLabel)
+    QPushButton)
 
 from .. import roi
 from .pose import Pose
@@ -83,17 +82,17 @@ class ROI_popup(QDialog):
         self.verticalLayout.addWidget(self.win)
 
         # Add buttons to dialog box
-        self.done_button = QtGui.QPushButton('Done')
+        self.done_button = QPushButton('Done')
         self.done_button.setDefault(True)
         self.done_button.clicked.connect(self.done_exec)
-        self.cancel_button = QtGui.QPushButton('Cancel')
+        self.cancel_button = QPushButton('Cancel')
         self.cancel_button.clicked.connect(self.cancel_exec)
         # Add a next button to the dialog box horizontally centered with cancel button and done button
-        self.next_button = QtGui.QPushButton('Next')
+        self.next_button = QPushButton('Next')
         self.next_button.setDefault(True)
         self.next_button.clicked.connect(self.next_exec)
         # Add a skip button to the dialog box horizontally centered with cancel button and done button
-        self.skip_button = QtGui.QPushButton('Skip')
+        self.skip_button = QPushButton('Skip')
         self.skip_button.setDefault(True)
         self.skip_button.clicked.connect(self.skip_exec)
 
@@ -156,7 +155,7 @@ class test_popup(QDialog):
         self.win.show()
         self.verticalLayout.addWidget(self.win)
 
-        self.cancel_button = QtGui.QPushButton('Cancel')
+        self.cancel_button = QPushButton('Cancel')
         self.cancel_button.clicked.connect(self.close)
         
         # Position buttons
