@@ -468,6 +468,7 @@ class MainW(QtGui.QMainWindow):
         self.cluster_model.disable_data_clustering_features(self)
         self.clusteringVisComboBox.setCurrentIndex(0)
         self.ClusteringPlot.clear()
+        self.ClusteringPlot_legend.clear()
         # Clear keypoints when a new file is loaded
         self.Pose_scatterplot.clear()
         #self.p0.clear()

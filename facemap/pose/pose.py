@@ -155,8 +155,8 @@ class Pose():
         Load pre-trained UNet model for labels prediction 
         """
         # Replace following w/ a function that downloads model from a server
-        model_file = "/Users/Atika/Neuroverse/Janelia/facemap-mac/model_state.pt"# "/home/stringlab/Facemap/facemap/facemap/model_state.pt" 
-        model_params_file = "/Users/Atika/Neuroverse/Janelia/facemap-mac/model_params.pth" #"/home/stringlab/Facemap/facemap/facemap/model_params.pth"  
+        model_file = os.getcwd()+"/model_state.pt"
+        model_params_file = os.getcwd()+"/model_params.pth"
         model_params = torch.load(model_params_file)
         self.bodyparts = model_params['landmarks'] 
         kernel_size = 3
@@ -165,11 +165,12 @@ class Pose():
                                 filters=64, kernel=kernel_size, device=self.device)
         if torch.cuda.is_available():
             cpu_is_device = False
+            print("Using cuda as device")
         else:
             cpu_is_device = True
+            print("Using cpu as device")
         net.load_model(model_file, cpu=cpu_is_device)
         net.to(self.device)
-        print("Using cpu as device:", cpu_is_device)
         return net
 
     def get_batch_imgs(self, batch_size=1, nchannels=1):
