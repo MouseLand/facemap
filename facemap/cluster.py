@@ -326,7 +326,6 @@ class Cluster():
             pass
 
     def get_colors(self):
-        """
         num_classes = len(np.unique(self.cluster_labels))
         colors = cm.get_cmap('gist_rainbow')(np.linspace(0, 1., num_classes))
         colors *= 255
@@ -336,7 +335,7 @@ class Cluster():
         """
         num_classes = len(np.unique(self.cluster_labels))
         brushes = [pg.mkBrush(color=c) for c in colors_list[:num_classes]]
-        colors = colors_list[:num_classes]
+        colors = colors_list[:num_classes]"""
         #if -1 in np.unique(self.cluster_labels):
         #    brushes[0] = pg.mkBrush(color=(220,220,220))
         return brushes, colors

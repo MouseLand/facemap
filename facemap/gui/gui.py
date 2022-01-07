@@ -9,7 +9,7 @@ import pandas as pd
 from .. import process, roi, utils, cluster
 from ..pose import pose_gui, pose
 from . import io, menus, guiparts
-from PyQt5.QtGui import QPixmap, QFont, QPainterPath, QIcon
+from PyQt5.QtGui import QPixmap, QFont, QPainterPath, QIcon, QColor
 from PyQt5.QtWidgets import ( QLabel, QPushButton, QLineEdit, QCheckBox, 
                             QComboBox, QToolButton, QStatusBar, QSlider,
                             QProgressBar, QSpinBox, QMessageBox, QButtonGroup, 
@@ -969,22 +969,23 @@ class MainW(QtGui.QMainWindow):
                     # The color palette is used to color the points in the scatter 
                     if len(np.unique(data))<=10:
                         color_palette = np.array(plt.get_cmap('tab10').colors)
-                    elif len(np.unique(data))<=10:
+                    elif len(np.unique(data))<=20:
                         color_palette = np.array(plt.get_cmap('tab20').colors)
                     else:
-                        color_palette = np.array(plt.get_cmap('tab20').colors)
+                        num_classes = len(np.unique(data))
+                        color_palette = cm.get_cmap('gist_rainbow')(np.linspace(0, 1., num_classes))
                     color_palette *= 255
                     color_palette = color_palette.astype(int)
-                    color_palette = color_palette[:len(np.unique(data))]
+                    #color_palette = color_palette[:len(np.unique(data))]
                     # Create a list of pens for each unique value in data
-                    # The pen is used to color the points in the scatter plot                    
+                    # The pen is used to color the points in the scatter plot     
                     pen_list = np.empty(len(data), dtype=object)
                     for j, value in enumerate(np.unique(data)):
                         ind = np.where(data==value)[0]
-                        pen_list[ind] = pg.mkPen(QColor(color_palette[j][0], color_palette[j][1], color_palette[j][2]))
+                        pen_list[ind] = pg.mkPen(color_palette[j])
                     vtick = QPainterPath()
-                    vtick.moveTo(0, -0.5)
-                    vtick.lineTo(0, 0.5)
+                    vtick.moveTo(0, -1)
+                    vtick.lineTo(0, 1)
 
                 if plot_id == 1:
                     self.trace1_data_loaded = data
@@ -992,8 +993,9 @@ class MainW(QtGui.QMainWindow):
                     self.trace1_name = data_name   
                     if data_type == "discrete":
                         x = np.arange(len(data))
+                        y = np.ones((len(x)))
                         self.trace1_plot = pg.ScatterPlotItem()
-                        self.trace1_plot.setData(x, data, pen=pen_list, brush='g',pxMode=False, 
+                        self.trace1_plot.setData(x, y, pen=pen_list, brush='g',pxMode=False, 
                                                 symbol=vtick, size=1, symbol_pen=pen_list)
                     else:
                         self.trace1_plot = pg.PlotDataItem()
@@ -1003,8 +1005,6 @@ class MainW(QtGui.QMainWindow):
                     self.trace1_legend.setPos(self.trace1_plot.x(), self.trace1_plot.y())
                     self.trace1_legend.setParentItem(self.p1)
                     self.trace1_legend.setVisible(True)
-                    self.load_trace1_button.setText("Loaded")
-                    self.load_trace1_button.setEnabled(False)
                     self.trace1_plot.setVisible(True)
                     self.update_status_bar("Trace 1 data updated")
                     try:
@@ -1017,8 +1017,9 @@ class MainW(QtGui.QMainWindow):
                     self.trace2_name = data_name
                     if data_type == "discrete":
                         x = np.arange(len(data))
+                        y = np.ones((len(x)))
                         self.trace2_plot = pg.ScatterPlotItem()
-                        self.trace2_plot.setData(x, data, pen=pen_list, brush='g',pxMode=False, 
+                        self.trace2_plot.setData(x, y, pen=pen_list, brush='g',pxMode=False, 
                                                 symbol=vtick, size=1, symbol_pen=pen_list)
                     else:
                         self.trace2_plot = pg.PlotDataItem()
@@ -1028,8 +1029,6 @@ class MainW(QtGui.QMainWindow):
                     self.trace2_legend.setPos(self.trace2_plot.x(), self.trace2_plot.y())
                     self.trace2_legend.setParentItem(self.p2)
                     self.trace2_legend.setVisible(True)
-                    self.load_trace2_button.setText("Loaded")
-                    self.load_trace2_button.setEnabled(False)
                     self.trace2_plot.setVisible(True)
                     self.update_status_bar("Trace 2 data updated")
                     try:
@@ -1068,8 +1067,6 @@ class MainW(QtGui.QMainWindow):
         self.trace1_legend.setPos(self.trace1_plot.x(), self.trace1_plot.y())
         self.trace1_legend.setParentItem(self.p1)
         self.trace1_legend.setVisible(True)
-        self.load_trace1_button.setText("Loaded")
-        self.load_trace1_button.setEnabled(False)
         self.trace1_plot.setVisible(True)
         self.update_status_bar("Trace 1 data updated")
         try:
