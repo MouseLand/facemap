@@ -13,6 +13,8 @@ from . import UNet_helper_functions as UNet_utils
 from . import unet_torch
 from . import transforms
 
+import time
+
 """
 Base class for generating pose estimates using command line interface.
 Currently supports single video processing only.
@@ -54,7 +56,7 @@ class Pose():
         if plot:
             self.plot_pose_estimates()
 
-    def predict_landmarks(self, video_id):
+    def predict_landmarks(self, video_id, verbose=True):
         """
         Predict labels for all frames in video and save output as .h5 file
         """
@@ -62,9 +64,9 @@ class Pose():
         bodyparts = self.net.labels_id 
         nchannels = 1
         if torch.cuda.is_available():
-            batch_size = 16
+            batch_size = 1
         else:
-            batch_size = 2
+            batch_size = 1
         # Create an empty dataframe
         for index, bodypart in enumerate(bodyparts):
             columnindex = pd.MultiIndex.from_product(
@@ -84,33 +86,45 @@ class Pose():
         start = 0
         end = batch_size
         Xstart, Xstop, Ystart, Ystop, resize = self.bbox[video_id]
-        with tqdm(total=self.cumframes[-1], unit='frame', unit_scale=True) as pbar:
-            while start != self.cumframes[-1]:
+        img_time = []
+        net_time = []
+        proc_time = []
+        total_time = []
+        with tqdm(total=100, unit='frame', unit_scale=True) as pbar:
+            im = np.zeros((end-start, nchannels, 256, 256))
+            while start <100:#!= self.cumframes[-1]:
+                # Time image processing step
+                img_proc_time = time.time()
                 # Pre-pocess images
-                im = np.zeros((end-start, nchannels, 256, 256))
                 for i, frame_ind in enumerate(np.arange(start,end)):
                     frame = utils.get_frame(frame_ind, self.nframes, self.cumframes, self.containers)[video_id]  
                     frame_grayscale = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
                     frame_grayscale_preprocessed = transforms.preprocess_img(frame_grayscale)
                     im[i,0] = transforms.crop_resize(frame_grayscale_preprocessed.squeeze(), Ystart, Ystop,
                                                     Xstart, Xstop, resize)
+                img_time.append(time.time() - img_proc_time)     
 
                 # Network prediction 
+                network_time = time.time() 
                 hm_pred, locref_pred = self.net(torch.tensor(im).to(device=self.net.DEVICE, dtype=torch.float32)) # convert to tensor and send to device
-                del im
-                hm_pred = UNet_utils.gaussian_smoothing(hm_pred.cpu(), sigma=2, nms_size=6, sigmoid=True)
+                net_time.append(time.time() - network_time)
+
+                # Post-process predictions
+                post_proc_time = time.time()
+                hm_pred = UNet_utils.gaussian_smoothing(hm_pred.cpu(), sigmoid=True)
                 pose = UNet_utils.argmax_pose_predict_batch(hm_pred.cpu().detach().numpy(), 
                                                                 locref_pred.cpu().detach().numpy(),
                                                                 UNet_utils.STRIDE)
                 # Get adjusted landmarks that fit to original image size
-                landmarks = pose[:,:,:2].squeeze()
-                likelihood = pose[:,:,-1].squeeze()
-                del hm_pred, locref_pred
+                landmarks = pose[:,:,:2]#.squeeze()
+                likelihood = pose[:,:,-1]#.squeeze()
                 Xlabel, Ylabel = transforms.labels_crop_resize(landmarks[:,:,0], landmarks[:,:,1], 
                                                                 Ystart, Xstart,
                                                                 current_size=(256, 256), 
-                                                                desired_size=(self.bbox[video_id][1]-self.bbox[video_id][0],
-                                                                                self.bbox[video_id][3]-self.bbox[video_id][2]))
+                                                                desired_size=(Xstop-Xstart, Ystop-Ystart))
+                proc_time.append(time.time() - post_proc_time)
+                total_time.append(img_time[-1] + net_time[-1] + proc_time[-1])
+                # Save predictions to dataframe
                 dataFrame.iloc[start:end,::3] = Xlabel
                 dataFrame.iloc[start:end,1::3] = Ylabel
                 dataFrame.iloc[start:end,2::3] = likelihood
@@ -119,12 +133,23 @@ class Pose():
                 start = end 
                 end += batch_size
                 end = min(end, self.cumframes[-1])
+                if verbose:
+                    print("img proc", 1/np.mean(img_time))
+                    print("network", 1/np.mean(net_time))
+                    print("post proc", 1/np.mean(proc_time))
+                    print("total freq", 1/np.mean(total_time))
+                print("bodyparts", len(bodyparts))
         return dataFrame
 
     def save_pose_prediction(self, dataFrame, video_id):
         # Save prediction to .h5 file
-        basename, filename = os.path.split(self.filenames[0][video_id])
-        videoname, _ = os.path.splitext(filename)
+        if self.gui is not None:
+            basename = self.gui.save_path
+            _, filename = os.path.split(self.filenames[0][video_id])
+            videoname, _ = os.path.splitext(filename)
+        else:
+            basename, filename = os.path.split(self.filenames[0][video_id])
+            videoname, _ = os.path.splitext(filename)
         poseFilepath = os.path.join(basename, videoname+"_FacemapPose.h5")
         dataFrame.to_hdf(poseFilepath, "df_with_missing", mode="w")
         return poseFilepath  

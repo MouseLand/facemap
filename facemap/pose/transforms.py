@@ -32,8 +32,8 @@ def preprocess_img(im):
     im = UNet_helper_functions.normalize_mean(im)
     for i in range(im.shape[0]):
         im[i,0] = normalize99(im[i,0]) 
-    im = np.squeeze(im, axis=0)
-    return im
+    #im = np.squeeze(im, axis=0)
+    return im[0]
 
 def get_cropped_imgs(imgs, bbox):
     """ 
@@ -201,11 +201,11 @@ def labels_crop_resize(Xlabel, Ylabel, Xstart, Ystart, current_size, desired_siz
     Ylabel: ND-array
             adjusted y values on new/desired_size of image
     """
-    Xlabel, Ylabel = Xlabel.astype(float), Ylabel.astype(float)
+    #Xlabel, Ylabel = Xlabel.astype(float), Ylabel.astype(float)
     Xlabel *= (desired_size[1]/current_size[1])  # x_scale
     Ylabel *= (desired_size[0]/current_size[0])  # y_scale
-    Xlabel = Xlabel+Xstart
-    Ylabel = Ylabel+Ystart
+    Xlabel += Xstart
+    Ylabel += Ystart
     return Xlabel, Ylabel
 
 def adjust_bbox(prev_bbox, img_yx, div=16, extra=1):
