@@ -546,7 +546,8 @@ class MainW(QtGui.QMainWindow):
             self.progressBar.show()
             progressBar_value = [int(s) for s in message.split("%")[0].split() if s.isdigit()]
             self.progressBar.setValue(progressBar_value[0])
-            frames_processed = np.floor((progressBar_value[0]/100)*float(self.totalFrameNumber.text()))
+            total_frames = float(self.totalFrameNumber.text().split()[1])
+            frames_processed = np.floor((progressBar_value[0]/100)*total_frames)
             self.setFrame.setText(str(frames_processed))
             self.statusBar.showMessage(message.split("|")[0])
         else: 

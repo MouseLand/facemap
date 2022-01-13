@@ -1,6 +1,8 @@
 import os
 import time
 
+from numpy.core.fromnumeric import argmax
+
 from tqdm import tqdm
 
 import cv2
@@ -87,31 +89,22 @@ class Pose():
         end = batch_size
         Xstart, Xstop, Ystart, Ystop, resize = self.bbox[video_id]
         img_time = []
-        net_time = []
-        proc_time = []
-        total_time = []
         with tqdm(total=100, unit='frame', unit_scale=True) as pbar:
-            im = np.zeros((end-start, nchannels, 256, 256))
-            while start <100:#!= self.cumframes[-1]:
-                # Time image processing step
-                img_proc_time = time.time()
+            im = torch.zeros((end-start, nchannels, 256, 256), device=self.device)
+            while start<=100:#!= self.cumframes[-1]:
                 # Pre-pocess images
                 for i, frame_ind in enumerate(np.arange(start,end)):
                     frame = utils.get_frame(frame_ind, self.nframes, self.cumframes, self.containers)[video_id]  
                     frame_grayscale = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-                    frame_grayscale_preprocessed = transforms.preprocess_img(frame_grayscale)
-                    im[i,0] = transforms.crop_resize(frame_grayscale_preprocessed.squeeze(), Ystart, Ystop,
+                    frame_grayscale = transforms.crop_resize(frame_grayscale.squeeze(), Ystart, Ystop,
                                                     Xstart, Xstop, resize)
-                img_time.append(time.time() - img_proc_time)     
+                    im[i,0] = transforms.preprocess_img(frame_grayscale, device=self.device) 
 
                 # Network prediction 
-                network_time = time.time() 
-                hm_pred, locref_pred = self.net(torch.tensor(im).to(device=self.net.DEVICE, dtype=torch.float32)) # convert to tensor and send to device
-                net_time.append(time.time() - network_time)
+                hm_pred, locref_pred = self.net(im) # convert to tensor and send to device
 
                 # Post-process predictions
-                post_proc_time = time.time()
-                hm_pred = UNet_utils.gaussian_smoothing(hm_pred.cpu(), sigmoid=True)
+                hm_pred = UNet_utils.gaussian_smoothing(hm_pred, sigmoid=True, device=self.device)
                 pose = UNet_utils.argmax_pose_predict_batch(hm_pred.cpu().detach().numpy(), 
                                                                 locref_pred.cpu().detach().numpy(),
                                                                 UNet_utils.STRIDE)
@@ -122,23 +115,19 @@ class Pose():
                                                                 Ystart, Xstart,
                                                                 current_size=(256, 256), 
                                                                 desired_size=(Xstop-Xstart, Ystop-Ystart))
-                proc_time.append(time.time() - post_proc_time)
-                total_time.append(img_time[-1] + net_time[-1] + proc_time[-1])
                 # Save predictions to dataframe
                 dataFrame.iloc[start:end,::3] = Xlabel
                 dataFrame.iloc[start:end,1::3] = Ylabel
                 dataFrame.iloc[start:end,2::3] = likelihood
-                if end%2==0:
-                    pbar.update(batch_size)
+                
+                # Update progress bar
                 start = end 
                 end += batch_size
                 end = min(end, self.cumframes[-1])
-                if verbose:
-                    print("img proc", 1/np.mean(img_time))
-                    print("network", 1/np.mean(net_time))
-                    print("post proc", 1/np.mean(proc_time))
-                    print("total freq", 1/np.mean(total_time))
-                print("bodyparts", len(bodyparts))
+                pbar.update(batch_size)
+
+            if verbose:
+                print("img proc", np.round(1/np.mean(img_time),2))
         return dataFrame
 
     def save_pose_prediction(self, dataFrame, video_id):

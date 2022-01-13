@@ -54,14 +54,14 @@ def get_2d_gaussian_kernel_map(sigma, nms_radius, num_landmarks):
 
 FILTERS = get_2d_gaussian_kernel_map(sigma=2, nms_radius=6, num_landmarks=15)
 
-def gaussian_smoothing(hm, sigmoid=False):
+def gaussian_smoothing(hm, sigmoid=False, device=None):
     if sigmoid:
         s_fn = torch.nn.Sigmoid()
         image = s_fn(hm)
     else:
         image = hm
     cin = image.shape[1]
-    features = F.conv2d(image, FILTERS, groups=cin, padding='same')
+    features = F.conv2d(image, FILTERS.to(device=device), groups=cin, padding='same')
     return features
 
 def argmax_pose_predict_batch(scmap_batch, offmat_batch, stride):
@@ -91,26 +91,15 @@ CLAHE = cv2.createCLAHE(
 
 def clahe_adjust_contrast(in_img):
     """
-    in_img : LIST of ND-arrays, float
-            list of image arrays of size [nchan x Ly x Lx] or [Ly x Lx]
+    in_img : ND-arrays, float
+            image arrays of size [nchan x Ly x Lx] or [Ly x Lx] where nchan is 1
     """
-    in_img = np.array(in_img)
-    simg = np.zeros(in_img.shape)
-    if in_img.shape[1] == 1:
-        for ndx in range(in_img.shape[0]): # for each image ndx
-            simg[ndx,0,:,:] = CLAHE.apply(in_img[ndx, 0,:,:])#.astype('uint8'))#.astype('float')
-    else: # color adjustment
-        for ndx in range(in_img.shape[0]):
-            lab = cv2.cvtColor(in_img[ndx,...], cv2.COLOR_RGB2LAB)
-            lab_planes = cv2.split(lab)
-            lab_planes[0] = CLAHE.apply(lab_planes[0])
-            lab = cv2.merge(lab_planes)
-            rgb = cv2.cvtColor(lab, cv2.COLOR_LAB2RGB)
-            simg[ndx,...] = rgb
-    return simg
+    for ndx in range(in_img.shape[0]): # for each image index
+        in_img[ndx,0,:,:] = CLAHE.apply(in_img[ndx, 0,:,:])
+    return in_img
 
 def normalize_mean(in_img):
-    zz = in_img.astype('float')
+    zz = in_img#.astype('float')
     # subtract mean for each img.
     mm = zz.mean(axis=(2,3))
     xx = zz - mm[:, :, np.newaxis, np.newaxis]
@@ -118,11 +107,10 @@ def normalize_mean(in_img):
 
 def normalize99(img):
     """ normalize image so 0.0 is 1st percentile and 1.0 is 99th percentile """
-    X = img.copy()
-    x01 = np.percentile(X, 1)
-    x99 = np.percentile(X, 99)
-    X = (X - x01) / (x99 - x01)
-    return X
+    x01 = torch.quantile(img, .01)
+    x99 = torch.quantile(img, .99)
+    img = (img - x01) / (x99 - x01)
+    return img
 
 def analyze_frames(frames_dir, bodyparts, scorer, net, img_xy):
     """
