@@ -374,14 +374,14 @@ class MainW(QtGui.QMainWindow):
         self.l0.addWidget(self.motSVD_checkbox, 4, 0, 1, 1)
         self.l0.addWidget(self.movSVD_checkbox, 4, 1, 1, 1)
         self.l0.addWidget(self.checkBox, 5, 0, 1, 1)
-        self.l0.addWidget(self.save_mat, 5, 1, 1, 1)
+        self.l0.addWidget(self.save_mat, 6, 0, 1, 1)
         self.l0.addWidget(self.saverois, 6, 1, 1, 1)
         self.l0.addWidget(self.process,  7, 0, 1, 1)
         self.l0.addWidget(self.processbatch, 7, 1, 1, 1)
         # ~~~~~~~~~~ Save/file IO ~~~~~~~~~~
         self.l0.addWidget(self.savelabel, 8, 0, 1, 2)
         # ~~~~~~~~~~ Pose features ~~~~~~~~~~ 
-        self.l0.addWidget(self.Labels_checkBox, 6, 0, 1, 1)     
+        self.l0.addWidget(self.Labels_checkBox, 5, 1, 1, 1)     
         # ~~~~~~~~~~ clustering & ROI visualization window features   
         self.l0.addWidget(self.clusteringVisComboBox, 0, 11, 1, 1)      
         self.l0.addWidget(self.data_clustering_combobox, 0, 12, 1, 2)      
@@ -719,8 +719,9 @@ class MainW(QtGui.QMainWindow):
             io.open_proc(self, file_name=savename)
             print("Output saved in",savepath)
             self.update_status_bar("Output saved in "+savepath)
-        self.get_pose_labels()
-        self.update_status_bar("Pose labels saved in "+savepath)
+        if self.Labels_checkBox.isChecked():
+            self.get_pose_labels()
+            self.update_status_bar("Pose labels saved in "+savepath)
         
     def update_buttons(self):
         self.playButton.setEnabled(True)

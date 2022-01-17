@@ -184,6 +184,7 @@ def open_proc(parent, file_name=None):
             if parent.processed:
                 for k in range(parent.kroi):
                     parent.cbs1[k].setEnabled(True)
+                    parent.cbs1[k].setChecked(True)
                     parent.cbs2[k].setEnabled(True)
                 if parent.fullSVD:
                     parent.cbs1[0].setEnabled(True)
