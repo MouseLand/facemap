@@ -170,11 +170,6 @@ class MainW(QtGui.QMainWindow):
         self.win.show()
         self.show()
         self.processed = False
-        if moviefile is not None:
-            self.load_movies([[moviefile]])
-        if savedir is not None:
-            self.save_path = savedir
-            self.savelabel.setText("..."+savedir[-20:])
 
         # Status bar
         self.statusBar = QtGui.QStatusBar()
@@ -184,6 +179,12 @@ class MainW(QtGui.QMainWindow):
         self.progressBar.setGeometry(0, 0, 300, 25)
         self.progressBar.setMaximum(100)
         self.progressBar.hide()
+
+        if moviefile is not None:
+            io.load_movies(self, [[moviefile]])
+        if savedir is not None:
+            self.save_path = savedir
+            self.savelabel.setText("..."+savedir[-20:])
 
     def set_saturation_label(self):
         self.saturationLevelLabel.setText(str(self.sl[0].value()))
