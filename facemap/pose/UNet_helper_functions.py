@@ -125,16 +125,16 @@ def normalize99(X):
     X = (X - x01) / (x99 - x01)
     return X
 
+n_factor =  2**4 // (2 ** 2)
+sigma  = 3 * 4 / n_factor
+Lx = 64
 
 def get_predicted_landmarks(net, im_input, batchsize=1, smooth=True):
     
-    n_factor =  2**4 // (2 ** net.n_upsample)
     xmesh, ymesh = np.meshgrid(torch.arange(net.image_shape[0]/n_factor), torch.arange(net.image_shape[1]/n_factor))
     ymesh = torch.from_numpy(ymesh).to(device)
     xmesh = torch.from_numpy(xmesh).to(device)
-    sigma  = 3 * 4 / n_factor
-    Lx = 64
-    
+
     # Predict
     with torch.no_grad():
         if im_input.ndim == 3:
@@ -144,7 +144,7 @@ def get_predicted_landmarks(net, im_input, batchsize=1, smooth=True):
         hm_pred = hm_pred.squeeze()
         locx_pred = locx_pred.squeeze()
         locy_pred = locy_pred.squeeze()
-        
+
         if smooth:
             hm_smo = gaussian_filter(hm_pred.cpu().numpy(), [0, 1, 1])
             hm_smo = hm_smo.reshape(hm_smo.shape[0], hm_smo.shape[1], Lx*Lx)
