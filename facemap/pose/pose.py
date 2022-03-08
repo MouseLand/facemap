@@ -91,52 +91,76 @@ class Pose():
 
         # Store predictions in dataframe
         print("Predicting pose for video:", self.filenames[0][video_id])
-        start = time.time()
+        start_time = time.time()
 
         self.net.eval()
         start = 0
         end = batch_size
         Xstart, Xstop, Ystart, Ystop, resize = self.bbox[video_id]
+        
+        img_load_time = 0
+        preprocess_time = 0
+        inference_time = 0
+        postprocess_time = 0
+
         with tqdm(total=self.cumframes[-1], unit='frame', unit_scale=True) as pbar:
             #while start <500:  # for checking bbox
             while start != self.cumframes[-1]: #  for analyzing entire video
+                
                 # Pre-pocess images
-                im = torch.zeros((end-start, nchannels, 256, 256), device=self.net.device)
-                for i, frame_ind in enumerate(np.arange(start,end)):
-                    frame = utils.get_frame(frame_ind, self.nframes, self.cumframes, self.containers)[video_id]  
-                    frame_grayscale = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-                    frame_grayscale = torch.tensor(transforms.crop_resize(frame_grayscale.squeeze(), Ystart, Ystop,
-                                                    Xstart, Xstop, resize)).to(self.net.device, dtype=torch.float32)
-                    im[i,0] = transforms.preprocess_img(frame_grayscale)
+                t0 = time.time()
+                imall = np.zeros((end-start, nchannels, 256, 256))
+                cframes = np.arange(start, end)
+                utils.get_frames(imall, self.containers, cframes, self.cumframes)
+                img_load_time += time.time() - t0
+                t0 = time.time()
+                frame_grayscale = torch.tensor(transforms.crop_resize(imall.squeeze(), Ystart, Ystop,
+                                Xstart, Xstop, resize)).to(self.net.device, dtype=torch.float32)
+                imall = transforms.preprocess_img(frame_grayscale)
+                preprocess_time += time.time() - t0
 
+                t0 = time.time()
                 # Network prediction 
-                landmarks, likelihood = UNet_utils.get_predicted_landmarks(self.net, im, 
-                                                                        batchsize=batch_size, smooth=True)
-                del im
+                Xlabel, Ylabel, likelihood = UNet_utils.get_predicted_landmarks(self.net, imall, 
+                                                                        batchsize=batch_size, smooth=False)
+                inference_time += time.time() - t0
 
+                t0 = time.time()
                 # Get adjusted landmarks that fit to original image size
-                Xlabel, Ylabel = transforms.labels_crop_resize(landmarks[:,0], landmarks[:,1], 
+                Xlabel, Ylabel = transforms.labels_crop_resize(Xlabel, Ylabel, 
                                                                 Ystart, Xstart,
                                                                 current_size=(256, 256), 
                                                                 desired_size=(self.bbox[video_id][1]-self.bbox[video_id][0],
                                                                             self.bbox[video_id][3]-self.bbox[video_id][2]))
-                dataFrame.iloc[start:end,::3] = Xlabel
-                dataFrame.iloc[start:end,1::3] = Ylabel
-                dataFrame.iloc[start:end,2::3] = likelihood
+                postprocess_time += time.time() - t0
+
+                dataFrame.iloc[start:end,::3] = Xlabel.cpu().numpy()
+                dataFrame.iloc[start:end,1::3] = Ylabel.cpu().numpy()
+                dataFrame.iloc[start:end,2::3] = likelihood.cpu().numpy()
                 pbar.update(batch_size)
 
                 start = end 
                 end += batch_size
                 end = min(end, self.cumframes[-1])
+
         stop = time.time()
-        time_elapsed = stop - start
-        print("Time taken:", time_elapsed)
+        time_elapsed = stop - start_time
+        if batch_size == 1:
+            print("Elapsed time:", time_elapsed)
+            print("cumframes:", self.cumframes[-1])
+            print("Total speed:", self.cumframes[-1]/time_elapsed, "fps")
+            print("Image load speed:", self.cumframes[-1]/img_load_time, "fps")
+            print("Preprocess speed:", self.cumframes[-1]/preprocess_time, "fps")
+            print("Inference speed:", self.cumframes[-1]/inference_time, "fps")
+            print("Postprocess speed:", self.cumframes[-1]/postprocess_time, "fps")
+
         metadata = {"batch_size": batch_size,
                     "run_duration": time_elapsed,
                     "image_size": (self.Ly, self.Lx),
                     "bbox": self.bbox[video_id],
                     "total_frames": self.cumframes[-1],
-                    "bodyparts": bodyparts
+                    "bodyparts": bodyparts,
+                    "inference_speed": self.cumframes[-1]/time_elapsed
                     }
         return dataFrame, metadata
 

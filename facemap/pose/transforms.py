@@ -27,8 +27,8 @@ def preprocess_img(im):
     im: ND-array
         preprocessed image of size [1 x Ly x Lx] if input dimensions==2, else [Lz x Ly x Lx]
     """
-    if im.ndim == 2:
-        im = im[np.newaxis,...]
+    if im.ndim==2:
+        im = im[np.newaxis, ...]
     # Adjust image contrast
     im = UNet_helper_functions.normalize99(im)
     return im
@@ -199,7 +199,7 @@ def labels_crop_resize(Xlabel, Ylabel, Xstart, Ystart, current_size, desired_siz
     Ylabel: ND-array
             adjusted y values on new/desired_size of image
     """
-    Xlabel, Ylabel = Xlabel.astype(float), Ylabel.astype(float)
+    #Xlabel, Ylabel = Xlabel.astype(float), Ylabel.astype(float)
     Xlabel *= (desired_size[1]/current_size[1])  # x_scale
     Ylabel *= (desired_size[0]/current_size[0])  # y_scale
     Xlabel = Xlabel+Xstart

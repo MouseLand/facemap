@@ -4,7 +4,9 @@ import numpy as np
 print('numpy version: %s'%np.__version__)
 import cv2  # opencv
 import torch  # pytorch
-
+import numbers
+import math
+import time
 print('CUDA available: %d'%torch.cuda.is_available())
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 print('torch version: %s'%torch.__version__)
@@ -123,32 +125,31 @@ def normalize99(X):
     X = (X - x01) / (x99 - x01)
     return X
 
+
 def get_predicted_landmarks(net, im_input, batchsize=1, smooth=True):
     
     n_factor =  2**4 // (2 ** net.n_upsample)
-    xmesh, ymesh = np.meshgrid(np.arange(net.image_shape[0]/n_factor), np.arange(net.image_shape[1]/n_factor))
+    xmesh, ymesh = np.meshgrid(torch.arange(net.image_shape[0]/n_factor), torch.arange(net.image_shape[1]/n_factor))
     ymesh = torch.from_numpy(ymesh).to(device)
     xmesh = torch.from_numpy(xmesh).to(device)
     sigma  = 3 * 4 / n_factor
     Lx = 64
     
-    # Pre-process frame
-    if im_input.dim() <4:
-        # Add a dimension for batch
-        im_input = im_input.unsqueeze(0)
-        
     # Predict
     with torch.no_grad():
+        if im_input.ndim == 3:
+            im_input = im_input[np.newaxis, ...]
         hm_pred, locx_pred, locy_pred = net(im_input)
+
         hm_pred = hm_pred.squeeze()
         locx_pred = locx_pred.squeeze()
         locy_pred = locy_pred.squeeze()
-
+        
         if smooth:
             hm_smo = gaussian_filter(hm_pred.cpu().numpy(), [0, 1, 1])
-            hm_smo = hm_smo.reshape(hm_smo.shape[0], Lx*Lx)
-            imax = np.argmax(hm_smo, 1)
-            likelihood = np.diag(hm_smo[:,imax])
+            hm_smo = hm_smo.reshape(hm_smo.shape[0], hm_smo.shape[1], Lx*Lx)
+            imax = torch.argmax(hm_smo, -1)
+            likelihood = torch.diag(hm_smo[:,:,imax])
         else:
             hm_pred = hm_pred.reshape(hm_pred.shape[0], Lx*Lx)
             imax = torch.argmax(hm_pred, 1)
@@ -159,14 +160,10 @@ def get_predicted_landmarks(net, im_input, batchsize=1, smooth=True):
         locy_pred = locy_pred.reshape(locy_pred.shape[0], Lx*Lx)
 
         nn = hm_pred.shape[0]
+        x_pred = ymesh.flatten()[imax] - (2*sigma) * locx_pred[torch.arange(nn), imax]
+        y_pred = xmesh.flatten()[imax] - (2*sigma) * locy_pred[torch.arange(nn), imax]
 
-        x_pred = ymesh.flatten()[imax] - (2*sigma) * locx_pred[np.arange(nn), imax]
-        y_pred = xmesh.flatten()[imax] - (2*sigma) * locy_pred[np.arange(nn), imax]
-
-        xy = np.nan * np.ones((im_input.shape[0], hm_pred.shape[0], 2))
-        xy = np.stack((y_pred.cpu().numpy(), x_pred.cpu().numpy()), axis=-1) * n_factor
-        
-    return xy, likelihood
+    return y_pred*n_factor, x_pred*n_factor, likelihood
 
 def analyze_frames(frames_dir, bodyparts, scorer, net, img_xy):
     """
@@ -390,256 +387,3 @@ def random_rotate_and_resize(X, Y, scale_range=1., xy=(256,256),do_flip=True, ro
     
     return imgi, lbl, scale
 
-# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Dataset loader ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-class COCODataset(torch.utils.data.Dataset):
-    """
-    COCODataset
-    Torch Dataset based on the COCO keypoint file format.
-    """
-    def __init__(self, datadir, sigma, multiview=False, img_xy=(256,256),
-                 scale=0.5, flip=True, rotation=10):
-        
-        self.label_filter = None
-        self.label_sigma = sigma #8 
-        self.init_label_filter()
-        self.flip = flip
-        self.img_xy = img_xy
-        self.rotation = rotation
-        self.scale = scale
-        
-        if multiview:
-            print("processing multiview files")
-            views = glob(os.path.join(datadir,"*"))
-            self.img_files = []
-            for v in views:
-                view = v.split("/")[-1]
-                self.img_files.append(sorted(glob(os.path.join(datadir,"{}/*/*.png".format(view)))))
-                annfiles = sorted(glob(os.path.join(datadir,"{}/*/*.h5".format(view))))
-                self.img_files = list(itertools.chain(*self.img_files))
-        else:
-            print("processing single view files")
-            self.datadir = datadir
-            self.img_files = sorted(glob(os.path.join(self.datadir,'*/*.png')))
-            # Lanmarks/key points info
-            annfiles = sorted(glob(os.path.join(self.datadir,'*/*.h5')))
-        
-        # Landmarks dataframe concatentation
-        self.landmarks = pd.DataFrame()        
-        for f in annfiles:
-            df = pd.read_hdf(f)
-            df = df.iloc[np.argsort(df.T.columns)] # sort annotations to match img_file order
-            self.landmarks = self.landmarks.append(df)
-        
-        self.im = []
-        for file in self.img_files:
-            im = cv2.imread(file, cv2.IMREAD_GRAYSCALE)
-            im = im.astype('uint8') # APT method only
-            if im.ndim < 3:
-                self.im.append(im[np.newaxis,...])
-    
-        # Adjust image contrast
-        self.im = clahe_adjust_contrast(self.im)
-        self.im = normalize_mean(self.im)
-        for i in range(self.im.shape[0]):
-            self.im[i,0] = normalize99(self.im[i,0]) 
-
-        self.landmark_names = pd.unique(self.landmarks.columns.get_level_values("bodyparts"))
-        self.nlandmarks = len(self.landmark_names)
-        # Create heatmap target prediction
-        self.landmark_heatmaps = []
-        for i in range(len(self.im)):
-            # locs: y_pos x x_pos for data augmentation
-            locs = np.array([self.landmarks.values[i][::2], self.landmarks.values[i][1::2]]).T
-            target = self.make_heatmap_target(locs, np.squeeze(self.im[i]).shape)
-            self.landmark_heatmaps.append(target.detach().numpy())
-            if self.im[i].ndim < 3:
-                self.im[i] = self.im[i][np.newaxis,...]
-        
-    def __len__(self):
-        return len(self.img_files)
-    
-
-    def __getitem__(self, item):
-        """ 
-        Input :- 
-            item: scalar integer. 
-        Output (dict):
-            image: torch float32 tensor of size ncolors x height x width
-            landmarks: nlandmarks x 2 float ndarray
-            heatmaps: torch float32 tensor of size nlandmarks x height x width
-            id: scalar integer, contains item
-        """
-        # Data augmentation
-        im, lm_heatmap, _ = random_rotate_and_resize([self.im[item]],
-                                                    [self.landmark_heatmaps[item]],                         
-                                                    xy = self.img_xy,
-                                                    scale_range=self.scale,
-                                                    do_flip=self.flip,
-                                                    rotation=self.rotation)
-        lm = heatmap2landmarks(lm_heatmap)
-        
-        locs = np.squeeze(lm)
-        scmap, locref_map, _ = compute_locref_maps(locs, self.img_xy,
-                                               self.landmark_names, lowres=True)
-        # Return tensors only
-        im = np.squeeze(im,axis=0)
-        lm_heatmap = np.squeeze(lm_heatmap,axis=0)
-        lm = np.squeeze(lm,axis=0)
-        locref_map = torch.tensor(locref_map, dtype=torch.float32) 
-        scmap = torch.tensor(scmap, dtype=torch.float32) 
-
-        features = {'image': im,
-                   'landmarks': lm,
-                    'heatmap' : lm_heatmap, 
-                    'locref_map' : locref_map,
-                    'scmap' : scmap,
-                    'id': item}
-        return features
-
-    @staticmethod
-    def get_landmarks(d,i=None):
-        if i is None:
-            locs = d['landmarks']
-        else:
-            locs = d['landmarks'][i]
-        return locs
-
-    @staticmethod
-    def get_heatmap_image(d,i,cmap='jet',colors=None):
-        if i is None:
-            hm = d['heatmap']
-        else:
-            hm = d['heatmap'][i,...]
-        hm = hm.numpy()
-        im = heatmap2image(hm,cmap=cmap,colors=colors)
-        return im
-    
-    @staticmethod
-    def get_image(d,i=None):
-        """
-        static function, used for visualization
-        COCODataset.get_image(d,i=None)
-        Returns an image usable with plt.imshow()
-        Inputs: 
-        d: if i is None, item from a COCODataset. 
-        if i is a scalar, batch of examples from a COCO Dataset returned 
-        by a DataLoader. 
-        i: Index of example into the batch d, or None if d is a single example
-        Returns the ith image from the patch as an ndarray plottable with 
-        plt.imshow()
-        """
-        if i is None:
-            im = np.squeeze(np.transpose(d['image'].numpy(),(1,2,0)),axis=2)
-        else:
-            im = np.squeeze(np.transpose(d['image'][i,...].numpy(),(1,2,0)),axis=2)
-        return im
-
-    def make_heatmap_target(self,locs,imsz):
-        """
-        Inputs:
-            locs: nlandmarks x 2 ndarray 
-            imsz: image shape
-        Returns:
-            target: torch tensor of size nlandmarks x imsz[0] x imsz[1]
-        """
-        # allocate the tensor
-        target = torch.zeros((locs.shape[0],imsz[0],imsz[1]),dtype=torch.float32)
-        # loop through landmarks
-        for i in range(locs.shape[0]):
-            # location of this landmark to the nearest pixel
-            if ~np.isnan(locs[i,0]) and ~np.isnan(locs[i,1]):
-                # location of this landmark to the nearest pixel
-                x = int(np.round(locs[i,0])) # losing sub-pixel accuracy
-                y = int(np.round(locs[i,1]))
-                # edges of the Gaussian filter to place, minding border of image
-                x0 = np.maximum(0,x-self.label_filter_r)
-                x1 = np.minimum(imsz[1]-1,x+self.label_filter_r)
-                y0 = np.maximum(0,y-self.label_filter_r)
-                y1 = np.minimum(imsz[0]-1,y+self.label_filter_r)
-                # crop filter if it goes outside of the image
-                fil_x0 = self.label_filter_r-(x-x0)
-                fil_x1 = self.label_filter_d-(self.label_filter_r-(x1-x))
-                fil_y0 = self.label_filter_r-(y-y0)
-                fil_y1 = self.label_filter_d-(self.label_filter_r-(y1-y))
-                # copy the filter to the relevant part of the heatmap image
-                if len(np.arange(y0,y1+1)) != len(np.arange(fil_y0,fil_y1+1)) or len(np.arange(x0,x1+1)) != len(np.arange(fil_x0,fil_x1+1)):
-                    target[i,y0:y1+1,x0:x1+1] = self.label_filter[fil_y0:fil_y0+len(np.arange(y0,y1+1)),fil_x0:fil_x0+len(np.arange(x0,x1+1))]
-                else:
-                    target[i,y0:y1+1,x0:x1+1] = self.label_filter[fil_y0:fil_y1+1,fil_x0:fil_x1+1]
-        return target
-    
-    def init_label_filter(self):
-        """
-        init_label_filter(self)
-        Helper function
-        Create a Gaussian filter for the heatmap target output
-        """
-        # radius of the filter
-        self.label_filter_r = max(int(round(3 * self.label_sigma)),1)
-        # diameter of the filter
-        self.label_filter_d = 2*self.label_filter_r+1
-
-        # allocate
-        self.label_filter = np.zeros([self.label_filter_d,self.label_filter_d])
-        # set the middle pixel to 1. 
-        self.label_filter[self.label_filter_r,self.label_filter_r] = 1.
-        # blur with a Gaussian
-        self.label_filter = cv2.GaussianBlur(self.label_filter, (self.label_filter_d,self.label_filter_d), self.label_sigma)
-        # normalize
-        self.label_filter = self.label_filter / np.max(self.label_filter) 
-        # convert to torch tensor
-        self.label_filter = torch.from_numpy(self.label_filter)
-
-## ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ DeeperCut's methods ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-## Local refinement
-def set_locref(scmap, locref_map, locref_mask, locref_scale, j, i, j_id, dx, dy):
-    locref_mask[j, i, j_id * 2 + 0] = 1
-    locref_mask[j, i, j_id * 2 + 1] = 1
-    locref_map[j, i, j_id * 2 + 0] = dx * locref_scale
-    locref_map[j, i, j_id * 2 + 1] = dy * locref_scale
-    scmap[j, i, j_id] = 1
-    
-def compute_locref_maps(landmarks, size, landmark_names, lowres=False):
-    # Set params
-    stride = STRIDE
-    half_stride = STRIDE/2
-    scale = 1
-    scaled_img_size = np.array(size)*scale
-    size = np.ceil(scaled_img_size / (stride * 2)).astype(int) * 2
-    dist_thresh = DIST_THRESHOLD * scale
-    locref_stdev = LOCREF_STDEV
-    
-    width = size[1]
-    height = size[0]
-    dist_thresh_sq = dist_thresh ** 2
-    
-    nlandmarks = len(landmark_names)
-    scmap = np.zeros(np.concatenate([size, np.array([nlandmarks])]))
-    locref_shape = np.concatenate([size, np.array([nlandmarks * 2])])
-    locref_mask = np.zeros(locref_shape)
-    locref_map = np.zeros(locref_shape)
-    
-    for k, j_id in enumerate(landmark_names):
-        joint_pt = landmarks[k][::-1]
-        j_x = joint_pt[0]
-        j_y = joint_pt[1]
-        if ~np.isnan(j_x) or ~np.isnan(j_y):
-            # don't loop over entire heatmap, but just relevant locations
-            j_x_sm = round((j_x - half_stride) / stride)
-            j_y_sm = round((j_y - half_stride) / stride)
-            min_x = int(round(max(j_x_sm - dist_thresh - 1, 0)))
-            max_x = int(round(min(j_x_sm + dist_thresh + 1, width - 1)))
-            min_y = int(round(max(j_y_sm - dist_thresh - 1, 0)))
-            max_y = int(round(min(j_y_sm + dist_thresh + 1, height - 1)))
-            
-            for j in range(min_y, max_y + 1):  # range(height):
-                pt_y = j * stride + half_stride
-                for i in range(min_x, max_x + 1):  # range(width):
-                    pt_x = i * stride + half_stride
-                    dx = j_x - pt_x
-                    dy = j_y - pt_y
-                    dist = dx ** 2 + dy ** 2
-                    if dist <= dist_thresh_sq:
-                        locref_scale = 1.0 / locref_stdev
-                        set_locref(scmap, locref_map, locref_mask, locref_scale, j, i, k, dx, dy)
-    return scmap.T, locref_map.T, locref_mask.T

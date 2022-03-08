@@ -215,7 +215,6 @@ def get_frames(imall, containers, cframes, cumframes):
         for ii,im in enumerate(imall):
             imall[ii] = im[:nk].copy()
 
-
 def close_videos(containers):
     ''' Method is called to close all videos/containers open for reading 
     using openCV.
