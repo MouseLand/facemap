@@ -11,7 +11,7 @@ from PyQt5.QtWidgets import (QFileDialog, QMessageBox)
 def open_file(parent, file_name=None):
     if file_name is None:
         file_name = QFileDialog.getOpenFileName(parent,
-                            "Open movie file", "", "Movie files (*.h5 *.mj2 *.mp4 *.mkv *.avi *.mpeg *.mpg *.asf)")
+                            "Open movie file", "", "Movie files (*.h5 *.mj2 *.mp4 *.mkv *.avi *.mpeg *.mpg *.asf *m4v)")
     # load ops in same folder
     if file_name:
         parent.filelist = [[file_name[0]]]
@@ -184,7 +184,6 @@ def open_proc(parent, file_name=None):
             if parent.processed:
                 for k in range(parent.kroi):
                     parent.cbs1[k].setEnabled(True)
-                    parent.cbs1[k].setChecked(True)
                     parent.cbs2[k].setEnabled(True)
                 if parent.fullSVD:
                     parent.cbs1[0].setEnabled(True)

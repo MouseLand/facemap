@@ -19,6 +19,7 @@ from tqdm import tqdm  # waitbar
 import torch.nn as nn
 import torch.nn.functional as F
 from torch import optim
+from scipy.ndimage import gaussian_filter
 
 print("python version:", python_version())
 import matplotlib
@@ -40,6 +41,18 @@ def set_seed(seed):
     np.random.seed(seed)
     random.seed(seed)
 
+def gaussian_smoothing(hm, sigma, nms_size, sigmoid=False):
+    num_bodyparts = hm.shape[1]
+    filters = get_2d_gaussian_kernel_map(sigma, nms_size, num_bodyparts)
+    if sigmoid:
+        s_fn = torch.nn.Sigmoid()
+        image = s_fn(hm)
+    else:
+        image = hm
+    cin = image.shape[1]
+    features = F.conv2d(image, filters, groups=cin, padding='same')
+    return features
+
 def get_2d_gaussian_kernel_map(sigma, nms_radius, num_landmarks):
     size = nms_radius * 2 + 1
     k = torch.range(-size // 2 + 1, size // 2 + 1)
@@ -51,18 +64,6 @@ def get_2d_gaussian_kernel_map(sigma, nms_radius, num_landmarks):
     kernel = torch.unsqueeze(kernel, dim=0)
     kernel_sc = kernel.repeat([num_landmarks, 1, 1, 1])
     return kernel_sc
-
-FILTERS = get_2d_gaussian_kernel_map(sigma=2, nms_radius=6, num_landmarks=15)
-
-def gaussian_smoothing(hm, sigmoid=False, device=None):
-    if sigmoid:
-        s_fn = torch.nn.Sigmoid()
-        image = s_fn(hm)
-    else:
-        image = hm
-    cin = image.shape[1]
-    features = F.conv2d(image, FILTERS.to(device=device), groups=cin, padding='same')
-    return features
 
 def argmax_pose_predict_batch(scmap_batch, offmat_batch, stride):
     """Combine scoremat and offsets to the final pose."""
@@ -79,38 +80,93 @@ def argmax_pose_predict_batch(scmap_batch, offmat_batch, stride):
                 np.argmax(scmap[:, :, joint_idx]), scmap[:, :, joint_idx].shape
             )
             offset = np.array(offmat[maxloc][joint_idx])[::-1]
-            pos_f8 = np.array(maxloc) * stride + 0.5 * stride + offset
+            pos_f8 = np.array(maxloc).astype("float") * stride + 0.5 * stride + offset
             pose.append(np.hstack((pos_f8, [scmap[maxloc][joint_idx]])))
         pose_batch.append(pose)
     return np.array(pose_batch)
 
-clahe_grid_size = 20
-CLAHE = cv2.createCLAHE(
-    clipLimit=2.0,
-    tileGridSize=(clahe_grid_size, clahe_grid_size)) 
-
 def clahe_adjust_contrast(in_img):
     """
-    in_img : ND-arrays, float
-            image arrays of size [nchan x Ly x Lx] or [Ly x Lx] where nchan is 1
+    in_img : LIST of ND-arrays, float
+            list of image arrays of size [nchan x Ly x Lx] or [Ly x Lx]
     """
-    for ndx in range(in_img.shape[0]): # for each image index
-        in_img[ndx,0,:,:] = CLAHE.apply(in_img[ndx, 0,:,:])
-    return in_img
+    in_img = np.array(in_img)
+    clahe_grid_size = 20
+    clahe = cv2.createCLAHE(
+        clipLimit=2.0,
+        tileGridSize=(clahe_grid_size, clahe_grid_size))
+    simg = np.zeros(in_img.shape)
+    if in_img.shape[1] == 1:
+        for ndx in range(in_img.shape[0]): # for each image ndx
+            simg[ndx,0,:,:] = clahe.apply(in_img[ndx, 0,:,:].astype('uint8')).astype('float')
+    else:
+        for ndx in range(in_img.shape[0]):
+            lab = cv2.cvtColor(in_img[ndx,...], cv2.COLOR_RGB2LAB)
+            lab_planes = cv2.split(lab)
+            lab_planes[0] = clahe.apply(lab_planes[0])
+            lab = cv2.merge(lab_planes)
+            rgb = cv2.cvtColor(lab, cv2.COLOR_LAB2RGB)
+            simg[ndx,...] = rgb
+    return simg
 
 def normalize_mean(in_img):
-    zz = in_img#.astype('float')
+    zz = in_img.astype('float')
     # subtract mean for each img.
     mm = zz.mean(axis=(2,3))
     xx = zz - mm[:, :, np.newaxis, np.newaxis]
     return xx
 
-def normalize99(img):
+def normalize99(X):
     """ normalize image so 0.0 is 1st percentile and 1.0 is 99th percentile """
-    x01 = torch.quantile(img, .01)
-    x99 = torch.quantile(img, .99)
-    img = (img - x01) / (x99 - x01)
-    return img
+    x01 = torch.quantile(X, .01)
+    x99 = torch.quantile(X, .99)
+    X = (X - x01) / (x99 - x01)
+    return X
+
+def get_predicted_landmarks(net, im_input, batchsize=1, smooth=True):
+    
+    n_factor =  2**4 // (2 ** net.n_upsample)
+    xmesh, ymesh = np.meshgrid(np.arange(net.image_shape[0]/n_factor), np.arange(net.image_shape[1]/n_factor))
+    ymesh = torch.from_numpy(ymesh).to(device)
+    xmesh = torch.from_numpy(xmesh).to(device)
+    sigma  = 3 * 4 / n_factor
+    Lx = 64
+    
+    # Pre-process frame
+    if im_input.dim() <4:
+        # Add a dimension for batch
+        im_input = im_input.unsqueeze(0)
+        
+    # Predict
+    with torch.no_grad():
+        hm_pred, locx_pred, locy_pred = net(im_input)
+        hm_pred = hm_pred.squeeze()
+        locx_pred = locx_pred.squeeze()
+        locy_pred = locy_pred.squeeze()
+
+        if smooth:
+            hm_smo = gaussian_filter(hm_pred.cpu().numpy(), [0, 1, 1])
+            hm_smo = hm_smo.reshape(hm_smo.shape[0], Lx*Lx)
+            imax = np.argmax(hm_smo, 1)
+            likelihood = np.diag(hm_smo[:,imax])
+        else:
+            hm_pred = hm_pred.reshape(hm_pred.shape[0], Lx*Lx)
+            imax = torch.argmax(hm_pred, 1)
+            likelihood = torch.diag(hm_pred[:,imax])
+
+        # this part computes the position error on the training set
+        locx_pred = locx_pred.reshape(locx_pred.shape[0], Lx*Lx)
+        locy_pred = locy_pred.reshape(locy_pred.shape[0], Lx*Lx)
+
+        nn = hm_pred.shape[0]
+
+        x_pred = ymesh.flatten()[imax] - (2*sigma) * locx_pred[np.arange(nn), imax]
+        y_pred = xmesh.flatten()[imax] - (2*sigma) * locy_pred[np.arange(nn), imax]
+
+        xy = np.nan * np.ones((im_input.shape[0], hm_pred.shape[0], 2))
+        xy = np.stack((y_pred.cpu().numpy(), x_pred.cpu().numpy()), axis=-1) * n_factor
+        
+    return xy, likelihood
 
 def analyze_frames(frames_dir, bodyparts, scorer, net, img_xy):
     """

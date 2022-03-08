@@ -7,11 +7,14 @@ Facemap functions for:
 import cv2
 import numpy as np
 import torch
+import torchvision
+import torchvision.transforms as transforms
 
 from . import UNet_helper_functions
-import time
 
-def preprocess_img(im, device=None):
+normalize = transforms.Normalize(mean=[0.445], std=[0.269])
+
+def preprocess_img(im):
     """ 
     Preproccesing of image involves: conversion to float32 in range0-1, normalize99, and padding image size to be
     compatible with UNet model input i.e. divisible by 16
@@ -24,15 +27,11 @@ def preprocess_img(im, device=None):
     im: ND-array
         preprocessed image of size [1 x Ly x Lx] if input dimensions==2, else [Lz x Ly x Lx]
     """
-    im = im.astype('uint8') # APT method only
     if im.ndim == 2:
-        im = im[np.newaxis,np.newaxis,...]
+        im = im[np.newaxis,...]
     # Adjust image contrast
-    im = UNet_helper_functions.clahe_adjust_contrast(im)
-    im = torch.tensor(im).to(device=device, dtype=torch.float32)
-    for i in range(im.shape[0]):
-        im[i,0] = UNet_helper_functions.normalize99(im)
-    return im[0]
+    im = UNet_helper_functions.normalize99(im)
+    return im
 
 def get_cropped_imgs(imgs, bbox):
     """ 
@@ -200,11 +199,11 @@ def labels_crop_resize(Xlabel, Ylabel, Xstart, Ystart, current_size, desired_siz
     Ylabel: ND-array
             adjusted y values on new/desired_size of image
     """
-    #Xlabel, Ylabel = Xlabel.astype(float), Ylabel.astype(float)
+    Xlabel, Ylabel = Xlabel.astype(float), Ylabel.astype(float)
     Xlabel *= (desired_size[1]/current_size[1])  # x_scale
     Ylabel *= (desired_size[0]/current_size[0])  # y_scale
-    Xlabel += Xstart
-    Ylabel += Ystart
+    Xlabel = Xlabel+Xstart
+    Ylabel = Ylabel+Ystart
     return Xlabel, Ylabel
 
 def adjust_bbox(prev_bbox, img_yx, div=16, extra=1):
@@ -255,6 +254,26 @@ def adjust_bbox(prev_bbox, img_yx, div=16, extra=1):
         x2 = min(x2+xpad//2, img_yx[1])
     adjusted_bbox = (x1, x2, y1, y2)
     return adjusted_bbox
+
+#  Following Function adopted from cellpose:
+#  https://github.com/MouseLand/cellpose/blob/35c16c94e285a4ec2fa17f148f06bbd414deb5b8/cellpose/transforms.py#L187
+def normalize99(img):
+    """ 
+    Normalize image so 0.0 is 1st percentile and 1.0 is 99th percentile 
+     Parameters
+    -------------
+    img: ND-array
+        image of size [Ly x Lx]
+    Returns
+    --------------
+    X: ND-array
+        normalized image of size [Ly x Lx]
+    """
+    X = img.copy()
+    x01 = np.percentile(X, 1)
+    x99 = np.percentile(X, 99)
+    X = (X - x01) / (x99 - x01)
+    return X
 
 #  Following Function adopted from cellpose:
 #  https://github.com/MouseLand/cellpose/blob/35c16c94e285a4ec2fa17f148f06bbd414deb5b8/cellpose/transforms.py#L547

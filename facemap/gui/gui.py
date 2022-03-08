@@ -374,14 +374,14 @@ class MainW(QtGui.QMainWindow):
         self.l0.addWidget(self.motSVD_checkbox, 4, 0, 1, 1)
         self.l0.addWidget(self.movSVD_checkbox, 4, 1, 1, 1)
         self.l0.addWidget(self.checkBox, 5, 0, 1, 1)
-        self.l0.addWidget(self.save_mat, 6, 0, 1, 1)
+        self.l0.addWidget(self.save_mat, 5, 1, 1, 1)
         self.l0.addWidget(self.saverois, 6, 1, 1, 1)
         self.l0.addWidget(self.process,  7, 0, 1, 1)
         self.l0.addWidget(self.processbatch, 7, 1, 1, 1)
         # ~~~~~~~~~~ Save/file IO ~~~~~~~~~~
         self.l0.addWidget(self.savelabel, 8, 0, 1, 2)
         # ~~~~~~~~~~ Pose features ~~~~~~~~~~ 
-        self.l0.addWidget(self.Labels_checkBox, 5, 1, 1, 1)     
+        self.l0.addWidget(self.Labels_checkBox, 6, 0, 1, 1)     
         # ~~~~~~~~~~ clustering & ROI visualization window features   
         self.l0.addWidget(self.clusteringVisComboBox, 0, 11, 1, 1)      
         self.l0.addWidget(self.data_clustering_combobox, 0, 12, 1, 2)      
@@ -546,8 +546,8 @@ class MainW(QtGui.QMainWindow):
             self.progressBar.show()
             progressBar_value = [int(s) for s in message.split("%")[0].split() if s.isdigit()]
             self.progressBar.setValue(progressBar_value[0])
-            total_frames = float(self.totalFrameNumber.text().split()[1])
-            frames_processed = np.floor((progressBar_value[0]/100)*total_frames)
+            total_frames = self.totalFrameNumber.text().split()[1]
+            frames_processed = np.floor((progressBar_value[0]/100)*float(total_frames))
             self.setFrame.setText(str(frames_processed))
             self.statusBar.showMessage(message.split("|")[0])
         else: 
@@ -641,12 +641,12 @@ class MainW(QtGui.QMainWindow):
             self.playButton.setEnabled(False)
             self.pauseButton.setEnabled(True)
             self.frameSlider.setEnabled(False)
-            self.updateTimer.start(25)
+            self.updateTimer.start(50) #25
         elif self.cframe < self.nframes - 1:
             self.playButton.setEnabled(False)
             self.pauseButton.setEnabled(True)
             self.frameSlider.setEnabled(False)
-            self.updateTimer.start(25)
+            self.updateTimer.start(50) #25
         self.update_pose()
 
     def pause(self):
@@ -859,16 +859,18 @@ class MainW(QtGui.QMainWindow):
         # Read Pose file
         for video_id in range(len(self.poseFilepath)):
             pose_data = pd.read_hdf(self.poseFilepath[video_id], 'df_with_missing')
+            # Remove paw bodypart
+            pose_data = pose_data.T[pose_data.columns.get_level_values("bodyparts") != "paw"].T
             # Append pose data to list for each video_id
             self.keypoints_labels.append(pd.unique(pose_data.columns.get_level_values("bodyparts")))
             self.pose_x_coord.append(pose_data.T[pose_data.columns.get_level_values("coords").values=="x"].values) #size: key points x frames
             self.pose_y_coord.append(pose_data.T[pose_data.columns.get_level_values("coords").values=="y"].values) #size: key points x frames
             self.pose_likelihood.append(pose_data.T[pose_data.columns.get_level_values("coords").values=="likelihood"].values) #size: key points x frames
             # Choose colors for each label: provide option for paltter that is color-blindness friendly
-            colors = cm.get_cmap('gist_rainbow')(np.linspace(0, 1., len(self.keypoints_labels[video_id])))
+            colors = cm.get_cmap('jet')(np.linspace(0, 1., len(self.keypoints_labels[video_id])))
             colors *= 255
             colors = colors.astype(int)
-            colors[:,-1] = 127
+            #colors[:,-1] = 200#127
             self.keypoints_brushes.append(np.array([pg.mkBrush(color=c) for c in colors]))
     
     def update_pose(self):
@@ -876,7 +878,7 @@ class MainW(QtGui.QMainWindow):
             self.statusBar.clearMessage()
             self.p0.addItem(self.Pose_scatterplot)
             self.p0.setRange(xRange=(0,self.LX), yRange=(0,self.LY), padding=0.0)
-            threshold = 0#np.nanpercentile(self.pose_likelihood, 30) # Determine threshold
+            threshold = 0#np.nanpercentile(self.pose_likelihood, 0) # Determine threshold
             x, y, labels, brushes = np.array([]), np.array([]), np.array([]), np.array([])
             for video_id in range(len(self.poseFilepath)):
                 filtered_keypoints = np.where(self.pose_likelihood[video_id][:,self.cframe] > threshold)[0]
@@ -886,7 +888,7 @@ class MainW(QtGui.QMainWindow):
                 y = np.append(y, y_coord[filtered_keypoints,self.cframe])
                 labels = np.append(labels, self.keypoints_labels[video_id][filtered_keypoints])
                 brushes = np.append(brushes, self.keypoints_brushes[video_id][filtered_keypoints])
-            self.Pose_scatterplot.setData(x, y, size=10, symbol='o', brush=brushes, hoverable=True, hoverSize=10, 
+            self.Pose_scatterplot.setData(x, y, size=12, symbol='o', brush=brushes, hoverable=True, hoverSize=10, 
                                             data=labels)
         elif not self.poseFileLoaded and self.Labels_checkBox.isChecked():
             self.update_status_bar("Please upload a pose (*.h5) file")

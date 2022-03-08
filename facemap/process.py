@@ -324,14 +324,11 @@ def process_ROIs(containers, cumframes, Ly, Lx, avgframe, avgmotion, U_mot, U_mo
         nt1 = img[0].shape[0]
         
         if len(pupind)>0:     # compute pupil
-            pups = process_pupil_ROIs(t, nt1, img, ivid, rois, pupind, pups, pupreflector)
+            pups = self.process_pupil_ROIs(t, nt, img, ivid, rois, pupind, pups)
         if len(blind)>0:
-            blinks = process_blink_ROIs(t, nt0, img, ivid, rois, blind, blinks)
+            blinks = self.process_blink_ROIs(t, nt, img, ivid, rois, blind, blinks)
         if len(runind)>0:     # compute running
-            if n>0:
-                runs, rend = process_running(t, n, nt1, img, ivid, rois, runind, runs, rend)
-            else:
-                runs, rend = process_running(t, n, nt1, img, ivid, rois, runind, runs, rend=None)
+            runs = self.process_running(t, nt, img, ivid, rois, runind, runs)
 
         # bin and get motion
         if fullSVD:
@@ -417,7 +414,7 @@ def update_mainwindow(MainWindow, GUIobject, s, prompt):
         MainWindow.update_status_bar(prompt+message, update_progress=True)
         GUIobject.QApplication.processEvents()
         
-def process_pupil_ROIs(t, nt1, img, ivid, rois, pupind, pups, pupreflector):
+def process_pupil_ROIs(self, t, nt, img, ivid, rois, pupind, pups):
     """
     docstring
     """
@@ -433,7 +430,7 @@ def process_pupil_ROIs(t, nt1, img, ivid, rois, pupind, pups, pupreflector):
         pups[k]['axlen'][t:t+nt1,:] = axlen
     return pups
 
-def process_blink_ROIs(t, nt0, img, ivid, rois, blind, blinks):
+def process_blink_ROIs(self, t, nt, img, ivid, rois, blind, blinks):
     """
     docstring
     """
@@ -445,7 +442,7 @@ def process_blink_ROIs(t, nt0, img, ivid, rois, blind, blinks):
         blinks[k][t:t+nt0] = bl
     return blinks
 
-def process_running(t, n, nt1, img, ivid, rois, runind, runs, rend):
+def process_running(self, t, nt, img, ivid, rois, runind, runs):
     """
     docstring
     """
@@ -465,7 +462,7 @@ def process_running(t, n, nt1, img, ivid, rois, runind, runs, rend):
             runs[k][t:t+nt1] = np.concatenate((dy[:,np.newaxis], dx[:,np.newaxis]),axis=1)
         else:
             runs[k][t+1:t+nt1] = np.concatenate((dy[:,np.newaxis], dx[:,np.newaxis]),axis=1)
-    return runs, rend
+    return runs
 
 def save(proc, savepath=None):
     # save ROIs and traces
@@ -519,7 +516,7 @@ def run(filenames, sbin=1, motSVD=True, movSVD=False, GUIobject=None, parent=Non
         save_mat = parent.save_mat.isChecked()
         sy = parent.sy
         sx = parent.sx
-        motSVD, movSVD = parent.motSVD_checkbox.isChecked(), parent.movSVD_checkbox.isChecked(),
+        motSVD, movSVD = parent.motSVD_checkbox.isChecked(), parent.movSVD_checkbox.isChecked()
     else:
         cumframes, Ly, Lx, containers = utils.get_frame_details(filenames)
         if proc is None:

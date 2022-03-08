@@ -5,114 +5,79 @@ from torch import optim
 import torch.nn.functional as F
 
 class FMnet(nn.Module):
-    def __init__(self, img_ch, output_ch, labels_id, filters=64, kernel=3, device=None):
-        super(FMnet, self).__init__()
-        self.img_ch = img_ch
-        self.output_ch = output_ch
-        self.labels_id = labels_id
-        self.filters = filters
-        self.kernel = kernel
-        self.DEVICE = device
+    def __init__(self,img_ch, output_ch, labels_id, channels, device, 
+                kernel=3, shape=(256,256), n_upsample=2):
+        super().__init__()
+        self.n_upsample = n_upsample
+        self.image_shape = shape
+        self.bodyparts = labels_id
+        self.device = device
 
-        self.Maxpool = nn.MaxPool2d(kernel_size=2, stride=2)
-        self.heatmap_labels = self.labels_id
+        self.Conv = nn.Sequential()
+        self.Conv.add_module('conv0', convblock(ch_in=img_ch,ch_out=channels[0],
+                                                kernel_sz=kernel, block=0))
+        for k in range(1,len(channels)):
+            self.Conv.add_module(f'conv{k}', convblock(ch_in=channels[k-1],ch_out=channels[k], 
+                                kernel_sz=kernel, block=k))
 
-        channels = [self.filters]
-        for i in range(4):
-            channels.append(channels[-1]*2)
-            
-        self.Conv1 = conv_block(ch_in=img_ch, ch_out=channels[0], kernel_sz=self.kernel)
-        self.Conv2 = conv_block(ch_in=channels[0],ch_out=channels[1], kernel_sz=self.kernel)
-        self.Conv3 = conv_block(ch_in=channels[1],ch_out=channels[2], kernel_sz=self.kernel)
-        self.Conv4 = conv_block(ch_in=channels[2],ch_out=channels[3], kernel_sz=self.kernel)
-        self.Conv5 = conv_block(ch_in=channels[3],ch_out=channels[4], kernel_sz=self.kernel)
+        self.Up_conv = nn.Sequential()
+        for k in range(n_upsample):
+            self.Up_conv.add_module(f'upconv{k}', convblock(ch_in=channels[-1-k]+channels[-2-k],
+                                                              ch_out=channels[-2-k], kernel_sz=kernel))
 
-        self.Up5 = up_conv(ch_in=channels[4], ch_out=channels[3], kernel_sz=kernel)
-        self.Up_conv5 = conv_block(ch_in=channels[4], ch_out=channels[3], kernel_sz=self.kernel)
+        self.Conv2_1x1 = nn.Sequential()
+        for j in range(3):
+            self.Conv2_1x1.add_module(f'conv{j}', nn.Conv2d(channels[-2-k], output_ch, kernel_size=1, 
+                                                            padding=0))
 
-        self.Up4 = up_conv(ch_in=channels[3], ch_out=channels[2], kernel_sz=kernel)
-        self.Up_conv4 = conv_block(ch_in=channels[3], ch_out=channels[2], kernel_sz=self.kernel)
-        
-        self.Conv_1x1_hm = nn.Conv2d(channels[2],output_ch,kernel_size=self.kernel,
-                                  padding=self.kernel//2)
-        self.Conv_1x1_locref = nn.Conv2d(channels[2],output_ch*2,kernel_size=self.kernel,
-                                  padding=self.kernel//2)
-
-    def forward(self, x, verbose=False):
+    def forward(self,x,verbose=False):
         # encoding path
-        x1 = self.Conv1(x)
+        xout = []
+        x = self.Conv[0](x)
+        xout.append(x)
+        for k in range(1, len(self.Conv)):
+            x = F.max_pool2d(x, kernel_size=3, stride=2, padding=1)
+            x = self.Conv[k](x )
+            xout.append(x)
 
-        x2 = self.Maxpool(x1)
-        x2 = self.Conv2(x2)
-        
-        x3 = self.Maxpool(x2)
-        x3 = self.Conv3(x3)
+        for k in range(len(self.Up_conv)):
+            x = F.upsample(x, scale_factor=2, mode='nearest')
+            x = self.Up_conv[k](torch.cat((x, xout[-2-k]), axis=1))
 
-        x4 = self.Maxpool(x3)
-        x4 = self.Conv4(x4)
+        locx = self.Conv2_1x1[1](x)
+        locy = self.Conv2_1x1[2](x)
+        hm = self.Conv2_1x1[0](x)
+        hm = F.relu(hm)
+        hm = 10 * hm / (1e-4 + hm.sum(axis=(-2,-1)).unsqueeze(-1).unsqueeze(-1))
 
-        x5 = self.Maxpool(x4)
-        x5 = self.Conv5(x5)
+        return hm, locx, locy
 
-        # decoding + concat path
-        d5 = self.Up5(x5)
-        d5 = torch.cat((x4,d5), dim=1) 
-        d5 = self.Up_conv5(d5)
-        
-        d4 = self.Up4(d5)
-        d4 = torch.cat((x3,d4), dim=1)
-        d4 = self.Up_conv4(d4)
 
-        hm = self.Conv_1x1_hm(d4)
-        locref = self.Conv_1x1_locref(d4)
-        
-        if verbose:
-            print("down:",x1.shape, x2.shape, x3.shape, x4.shape, x5.shape)
-            print("up", d5.shape, d4.shape)
-            print('outc:', hm.shape, locref.shape)
-
-        return hm, locref
-    
-    def save_model(self, filename):
-        torch.save(self.state_dict(), filename)
-
-    def load_model(self, filename, cpu=False):
-        if not cpu:
-            self.load_state_dict(torch.load(filename))
+class convblock(nn.Module):
+    def __init__(self, ch_in, ch_out, kernel_sz, block=-1):
+        super().__init__()
+        self.conv = nn.Sequential()
+        self.block = block
+        if self.block!=0:
+            self.conv.add_module('conv_0', batchconv(ch_in, ch_out, kernel_sz))
         else:
-            self.__init__(self.img_ch, self.output_ch, 
-                        self.labels_id, self.filters, 
-                        self.kernel)
+            self.conv.add_module('conv_0', batchconv0(ch_in, ch_out, kernel_sz))
+        self.conv.add_module('conv_1', batchconv(ch_out, ch_out, kernel_sz))
 
-            self.load_state_dict(torch.load(filename,
-                                          map_location=torch.device('cpu')))
-
-class conv_block(nn.Module):
-    def __init__(self, ch_in, ch_out, kernel_sz):
-        super(conv_block,self).__init__()
-        self.conv = nn.Sequential(
-            nn.Conv2d(ch_in, ch_out, kernel_size=kernel_sz, padding=kernel_sz//2),
-            nn.BatchNorm2d(ch_out, eps=1e-5),
-            nn.ReLU(inplace=True),
-            nn.Conv2d(ch_out, ch_out, kernel_size=kernel_sz, padding=kernel_sz//2),
-            nn.BatchNorm2d(ch_out, eps=1e-5),
-            nn.ReLU(inplace=True)
-        )
-
-    def forward(self,x):
-        x = self.conv(x)
+    def forward(self, x):
+        x = self.conv[1](self.conv[0](x) )
         return x
 
-class up_conv(nn.Module):
-    def __init__(self, ch_in, ch_out, kernel_sz):
-        super(up_conv,self).__init__()
-        self.up = nn.Sequential(
-            nn.Upsample(scale_factor=2, mode='nearest'),
-            nn.Conv2d(ch_in, ch_out, kernel_size=3, padding=kernel_sz//2),
-		    nn.BatchNorm2d(ch_out, eps=1e-5),
-			nn.ReLU(inplace=True)
-        )
+def batchconv0(ch_in, ch_out, kernel_sz):
+    return nn.Sequential(
+        nn.BatchNorm2d(ch_in, eps=1e-5, momentum = 0.1),
+        nn.Conv2d(ch_in, ch_out, kernel_sz, padding=kernel_sz//2, bias=False),
+    )
 
-    def forward(self,x):
-        x = self.up(x)
-        return x
+def batchconv(ch_in, ch_out, sz):
+    return nn.Sequential(
+        nn.BatchNorm2d(ch_in, eps=1e-5, momentum = 0.1),
+        nn.ReLU(inplace=True),
+        nn.Conv2d(ch_in, ch_out, sz, padding=sz//2, bias=False),
+    )
+

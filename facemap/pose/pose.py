@@ -1,21 +1,20 @@
 import os
 import time
-
-from numpy.core.fromnumeric import argmax
+from sklearn.covariance import log_likelihood
 
 from tqdm import tqdm
 
 import cv2
+from zmq import device
 import numpy as np
 import pandas as pd
 import torch
+import pickle
 
 from .. import utils
 from . import UNet_helper_functions as UNet_utils
 from . import unet_torch
 from . import transforms
-
-import time
 
 """
 Base class for generating pose estimates using command line interface.
@@ -49,21 +48,28 @@ class Pose():
         t0 = time.time()
         for video_id in range(len(self.bbox)):
             print("Processing video:", self.filenames[0][video_id])
-            dataFrame = self.predict_landmarks(video_id)
+            dataFrame, metadata = self.predict_landmarks(video_id)
             savepath = self.save_pose_prediction(dataFrame, video_id)
+            print("Saved pose prediction to:", savepath)
+            # Save metadata to a pickle file
+            metadata_file = os.path.splitext(savepath)[0]+"_Facemap_metadata.pkl"
+            with open(metadata_file, 'wb') as f:
+                pickle.dump(metadata, f, pickle.HIGHEST_PROTOCOL)
             if self.gui is not None:
                 self.gui.poseFilepath.append(savepath)
+                self.gui.Labels_checkBox.setChecked(True)
+                self.gui.start()
         print("~~~~~~~~~~~~~~~~~~~~~DONE~~~~~~~~~~~~~~~~~~~~~")
         print("Time taken:", time.time()-t0)
         if plot:
             self.plot_pose_estimates()
 
-    def predict_landmarks(self, video_id, verbose=True):
+    def predict_landmarks(self, video_id):
         """
         Predict labels for all frames in video and save output as .h5 file
         """
         scorer = "Facemap" 
-        bodyparts = self.net.labels_id 
+        bodyparts = self.net.bodyparts 
         nchannels = 1
         if torch.cuda.is_available():
             batch_size = 1
@@ -72,7 +78,7 @@ class Pose():
         # Create an empty dataframe
         for index, bodypart in enumerate(bodyparts):
             columnindex = pd.MultiIndex.from_product(
-                [[scorer], [bodypart], ["x", "y","likelihood"]],
+                [[scorer], [bodypart], ["x", "y", "likelihood"]],
                 names=["scorer", "bodyparts", "coords"])
             frame = pd.DataFrame(
                                 np.nan,
@@ -84,51 +90,55 @@ class Pose():
                 dataFrame = pd.concat([dataFrame, frame], axis=1)
 
         # Store predictions in dataframe
+        print("Predicting pose for video:", self.filenames[0][video_id])
+        start = time.time()
+
         self.net.eval()
         start = 0
         end = batch_size
         Xstart, Xstop, Ystart, Ystop, resize = self.bbox[video_id]
-        img_time = []
-        with tqdm(total=100, unit='frame', unit_scale=True) as pbar:
-            im = torch.zeros((end-start, nchannels, 256, 256), device=self.device)
-            while start<=100:#!= self.cumframes[-1]:
+        with tqdm(total=self.cumframes[-1], unit='frame', unit_scale=True) as pbar:
+            #while start <500:  # for checking bbox
+            while start != self.cumframes[-1]: #  for analyzing entire video
                 # Pre-pocess images
+                im = torch.zeros((end-start, nchannels, 256, 256), device=self.net.device)
                 for i, frame_ind in enumerate(np.arange(start,end)):
                     frame = utils.get_frame(frame_ind, self.nframes, self.cumframes, self.containers)[video_id]  
                     frame_grayscale = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-                    frame_grayscale = transforms.crop_resize(frame_grayscale.squeeze(), Ystart, Ystop,
-                                                    Xstart, Xstop, resize)
-                    im[i,0] = transforms.preprocess_img(frame_grayscale, device=self.device) 
+                    frame_grayscale = torch.tensor(transforms.crop_resize(frame_grayscale.squeeze(), Ystart, Ystop,
+                                                    Xstart, Xstop, resize)).to(self.net.device, dtype=torch.float32)
+                    im[i,0] = transforms.preprocess_img(frame_grayscale)
 
                 # Network prediction 
-                hm_pred, locref_pred = self.net(im) # convert to tensor and send to device
+                landmarks, likelihood = UNet_utils.get_predicted_landmarks(self.net, im, 
+                                                                        batchsize=batch_size, smooth=True)
+                del im
 
-                # Post-process predictions
-                hm_pred = UNet_utils.gaussian_smoothing(hm_pred, sigmoid=True, device=self.device)
-                pose = UNet_utils.argmax_pose_predict_batch(hm_pred.cpu().detach().numpy(), 
-                                                                locref_pred.cpu().detach().numpy(),
-                                                                UNet_utils.STRIDE)
                 # Get adjusted landmarks that fit to original image size
-                landmarks = pose[:,:,:2]#.squeeze()
-                likelihood = pose[:,:,-1]#.squeeze()
-                Xlabel, Ylabel = transforms.labels_crop_resize(landmarks[:,:,0], landmarks[:,:,1], 
+                Xlabel, Ylabel = transforms.labels_crop_resize(landmarks[:,0], landmarks[:,1], 
                                                                 Ystart, Xstart,
                                                                 current_size=(256, 256), 
-                                                                desired_size=(Xstop-Xstart, Ystop-Ystart))
-                # Save predictions to dataframe
+                                                                desired_size=(self.bbox[video_id][1]-self.bbox[video_id][0],
+                                                                            self.bbox[video_id][3]-self.bbox[video_id][2]))
                 dataFrame.iloc[start:end,::3] = Xlabel
                 dataFrame.iloc[start:end,1::3] = Ylabel
                 dataFrame.iloc[start:end,2::3] = likelihood
-                
-                # Update progress bar
+                pbar.update(batch_size)
+
                 start = end 
                 end += batch_size
                 end = min(end, self.cumframes[-1])
-                pbar.update(batch_size)
-
-            if verbose:
-                print("img proc", np.round(1/np.mean(img_time),2))
-        return dataFrame
+        stop = time.time()
+        time_elapsed = stop - start
+        print("Time taken:", time_elapsed)
+        metadata = {"batch_size": batch_size,
+                    "run_duration": time_elapsed,
+                    "image_size": (self.Ly, self.Lx),
+                    "bbox": self.bbox[video_id],
+                    "total_frames": self.cumframes[-1],
+                    "bodyparts": bodyparts
+                    }
+        return dataFrame, metadata
 
     def save_pose_prediction(self, dataFrame, video_id):
         # Save prediction to .h5 file
@@ -169,22 +179,24 @@ class Pose():
         Load pre-trained UNet model for labels prediction 
         """
         # Replace following w/ a function that downloads model from a server
-        model_file = os.getcwd()+"/model_state.pt"
-        model_params_file = os.getcwd()+"/model_params.pth"
+        model_file = os.getcwd()+"/facemap/pose/facemap_model_state.pt"
+        model_params_file = os.getcwd()+"/facemap/pose/facemap_model_params.pth"
+        print("LOADING MODEL....", model_file)
         model_params = torch.load(model_params_file)
-        self.bodyparts = model_params['landmarks'] 
+        self.bodyparts = model_params['params']['bodyparts'] 
+        channels = model_params['params']['channels']
         kernel_size = 3
         nout = len(self.bodyparts)  # number of outputs
         net = unet_torch.FMnet(img_ch=1, output_ch=nout, labels_id=self.bodyparts, 
-                                filters=64, kernel=kernel_size, device=self.device)
+                                channels=channels, kernel=kernel_size, device=self.device)
         if torch.cuda.is_available():
             cpu_is_device = False
             print("Using cuda as device")
         else:
             cpu_is_device = True
             print("Using cpu as device")
-        net.load_model(model_file, cpu=cpu_is_device)
-        net.to(self.device)
+        net.load_state_dict(torch.load(model_file))#(model_file, cpu=cpu_is_device)
+        net.to(self.device);
         return net
 
     def get_batch_imgs(self, batch_size=1, nchannels=1):
