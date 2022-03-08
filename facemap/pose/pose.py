@@ -37,6 +37,8 @@ class Pose():
         self.bbox_set = bbox_set
 
     def run(self, plot=True):
+
+        t0 = time.time()
         # Predict and save pose
         if not self.bbox_set:
             resize = True 
@@ -45,10 +47,10 @@ class Pose():
                 self.bbox.append([x1, x2, y1, y2, resize])
             print("No bbox set. Using full image size:", self.bbox)
             self.bbox_set = True    
-        t0 = time.time()
         for video_id in range(len(self.bbox)):
             print("Processing video:", self.filenames[0][video_id])
-            dataFrame, metadata = self.predict_landmarks(video_id)
+            pred_data, metadata = self.predict_landmarks(video_id)
+            dataFrame = self.write_dataframe(pred_data)
             savepath = self.save_pose_prediction(dataFrame, video_id)
             print("Saved pose prediction to:", savepath)
             # Save metadata to a pickle file
@@ -60,21 +62,13 @@ class Pose():
                 self.gui.Labels_checkBox.setChecked(True)
                 self.gui.start()
         print("~~~~~~~~~~~~~~~~~~~~~DONE~~~~~~~~~~~~~~~~~~~~~")
-        print("Time taken:", time.time()-t0)
+        print("Time elapsed:", time.time()-t0)
         if plot:
             self.plot_pose_estimates()
 
-    def predict_landmarks(self, video_id):
-        """
-        Predict labels for all frames in video and save output as .h5 file
-        """
+    def write_dataframe(self, data):
         scorer = "Facemap" 
         bodyparts = self.net.bodyparts 
-        nchannels = 1
-        if torch.cuda.is_available():
-            batch_size = 1
-        else:
-            batch_size = 1
         # Create an empty dataframe
         for index, bodypart in enumerate(bodyparts):
             columnindex = pd.MultiIndex.from_product(
@@ -89,6 +83,26 @@ class Pose():
             else:
                 dataFrame = pd.concat([dataFrame, frame], axis=1)
 
+        # Fill dataframe with data
+        dataFrame.iloc[:,::3] = data[:,:,0].cpu().numpy()
+        dataFrame.iloc[:,1::3] = data[:,:,1].cpu().numpy()
+        dataFrame.iloc[:,2::3] = data[:,:,2].cpu().numpy()
+
+        return dataFrame
+
+    def predict_landmarks(self, video_id):
+        """
+        Predict labels for all frames in video and save output as .h5 file
+        """
+        nchannels = 1
+        if torch.cuda.is_available():
+            batch_size = 1
+        else:
+            batch_size = 1
+
+        # Create array for storing predictions
+        pred_data = torch.zeros(self.cumframes[-1], len(self.net.bodyparts), 3)
+
         # Store predictions in dataframe
         print("Predicting pose for video:", self.filenames[0][video_id])
         start_time = time.time()
@@ -98,71 +112,58 @@ class Pose():
         end = batch_size
         Xstart, Xstop, Ystart, Ystop, resize = self.bbox[video_id]
         
-        img_load_time = 0
-        preprocess_time = 0
         inference_time = 0
-        postprocess_time = 0
 
         with tqdm(total=self.cumframes[-1], unit='frame', unit_scale=True) as pbar:
             #while start <500:  # for checking bbox
             while start != self.cumframes[-1]: #  for analyzing entire video
                 
                 # Pre-pocess images
-                t0 = time.time()
                 imall = np.zeros((end-start, nchannels, 256, 256))
                 cframes = np.arange(start, end)
                 utils.get_frames(imall, self.containers, cframes, self.cumframes)
-                img_load_time += time.time() - t0
-                t0 = time.time()
-                frame_grayscale = torch.tensor(transforms.crop_resize(imall.squeeze(), Ystart, Ystop,
-                                Xstart, Xstop, resize)).to(self.net.device, dtype=torch.float32)
-                imall = transforms.preprocess_img(frame_grayscale)
-                preprocess_time += time.time() - t0
 
+                # Inference time includes: pre-processing, inference, post-processing
                 t0 = time.time()
+                imall = torch.from_numpy(imall).to(self.net.device, dtype=torch.float32)
+                frame_grayscale = torch.tensor(transforms.crop_resize(imall, Ystart, Ystop,
+                                Xstart, Xstop, resize))
+                imall = transforms.preprocess_img(frame_grayscale)
+
                 # Network prediction 
                 Xlabel, Ylabel, likelihood = UNet_utils.get_predicted_landmarks(self.net, imall, 
                                                                         batchsize=batch_size, smooth=False)
-                inference_time += time.time() - t0
 
-                t0 = time.time()
                 # Get adjusted landmarks that fit to original image size
                 Xlabel, Ylabel = transforms.labels_crop_resize(Xlabel, Ylabel, 
                                                                 Ystart, Xstart,
                                                                 current_size=(256, 256), 
                                                                 desired_size=(self.bbox[video_id][1]-self.bbox[video_id][0],
                                                                             self.bbox[video_id][3]-self.bbox[video_id][2]))
-                postprocess_time += time.time() - t0
 
-                dataFrame.iloc[start:end,::3] = Xlabel.cpu().numpy()
-                dataFrame.iloc[start:end,1::3] = Ylabel.cpu().numpy()
-                dataFrame.iloc[start:end,2::3] = likelihood.cpu().numpy()
+                # Assign predictions to dataframe
+                pred_data[start:end, :, 0] = Xlabel
+                pred_data[start:end, :, 1] = Ylabel
+                pred_data[start:end, :, 2] = likelihood
+                inference_time += time.time() - t0
+
                 pbar.update(batch_size)
-
                 start = end 
                 end += batch_size
                 end = min(end, self.cumframes[-1])
 
-        stop = time.time()
-        time_elapsed = stop - start_time
         if batch_size == 1:
-            print("Elapsed time:", time_elapsed)
-            print("cumframes:", self.cumframes[-1])
-            print("Total speed:", self.cumframes[-1]/time_elapsed, "fps")
-            print("Image load speed:", self.cumframes[-1]/img_load_time, "fps")
-            print("Preprocess speed:", self.cumframes[-1]/preprocess_time, "fps")
-            print("Inference speed:", self.cumframes[-1]/inference_time, "fps")
-            print("Postprocess speed:", self.cumframes[-1]/postprocess_time, "fps")
+            inference_speed = self.cumframes[-1] / inference_time
+            print("Inference speed:", inference_speed, "fps")
 
         metadata = {"batch_size": batch_size,
-                    "run_duration": time_elapsed,
                     "image_size": (self.Ly, self.Lx),
                     "bbox": self.bbox[video_id],
                     "total_frames": self.cumframes[-1],
-                    "bodyparts": bodyparts,
-                    "inference_speed": self.cumframes[-1]/time_elapsed
+                    "bodyparts": self.net.bodyparts,
+                    "inference_speed": inference_speed
                     }
-        return dataFrame, metadata
+        return pred_data, metadata
 
     def save_pose_prediction(self, dataFrame, video_id):
         # Save prediction to .h5 file

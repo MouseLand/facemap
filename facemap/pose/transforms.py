@@ -9,6 +9,7 @@ import numpy as np
 import torch
 import torchvision
 import torchvision.transforms as transforms
+from torch.nn import functional as F
 
 from . import UNet_helper_functions
 
@@ -163,7 +164,7 @@ def get_crop_resize_params(img, x_dims, y_dims, xy=(256,256)):
 
     return Xstart, Xstop, Ystart, Ystop, resize
 
-def crop_resize(img, Xstart, Xstop, Ystart, Ystop, resize, xy=(256,256)):
+def crop_resize(img, Xstart, Xstop, Ystart, Ystop, resize, xy=[256,256]):
     """
     Crop and resize image using dimensions provided
     Input:-
@@ -177,10 +178,10 @@ def crop_resize(img, Xstart, Xstop, Ystart, Ystop, resize, xy=(256,256)):
         im_cropped: (2D array) cropped image
     """
     # Crop image and landmarks
-    im_cropped = img[Ystart:Ystop,Xstart:Xstop]
+    im_cropped = img[:,:,Ystart:Ystop,Xstart:Xstop]
     # Resize image 
     if resize:
-        im_cropped = cv2.resize(im_cropped, xy)
+        im_cropped = F.interpolate(im_cropped, size=(256,256), mode='bilinear') #cv2.resize(im_cropped, xy)
     return im_cropped
 
 def labels_crop_resize(Xlabel, Ylabel, Xstart, Ystart, current_size, desired_size):
