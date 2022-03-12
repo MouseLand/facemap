@@ -15,8 +15,6 @@ from PyQt5.QtWidgets import ( QLabel, QPushButton, QLineEdit, QCheckBox,
                             QProgressBar, QSpinBox, QMessageBox, QButtonGroup, 
                             QGridLayout, QWidget, QPushButton, QWidget)
 
-# TODO - Match ehtogram/cluster labels w/ UMAP/embedding labels file
-
 istr = ['pupil', 'motSVD', 'blink', 'running']
 
 class MainW(QtGui.QMainWindow):
@@ -212,7 +210,7 @@ class MainW(QtGui.QMainWindow):
 
     def make_buttons(self):
         # create frame slider
-        VideoLabel = QLabel("Video analysis - SVD & Tracker")
+        VideoLabel = QLabel("Facemap - SVDs & Tracker")
         VideoLabel.setStyleSheet("color: white;")
         VideoLabel.setAlignment(QtCore.Qt.AlignCenter)
         VideoLabel.setFont(QFont("Arial", 12, QFont.Bold))
@@ -321,6 +319,7 @@ class MainW(QtGui.QMainWindow):
         self.clusteringVisComboBox.addItem("--Select display--")
         self.clusteringVisComboBox.addItem("ROI")
         self.clusteringVisComboBox.addItem("UMAP")
+        self.clusteringVisComboBox.addItem("tSNE")
         self.clusteringVisComboBox.currentIndexChanged.connect(self.vis_combobox_selection_changed)
         self.clusteringVisComboBox.setFixedWidth(140)
         self.roiVisComboBox = QComboBox(self)
@@ -339,11 +338,11 @@ class MainW(QtGui.QMainWindow):
         self.data_clustering_combobox.setFixedWidth(100)
         self.data_clustering_combobox.hide()
         self.zoom_in_button = QPushButton('+')
-        self.zoom_in_button.setMaximumWidth(0.3*self.data_clustering_combobox.width())    
+        self.zoom_in_button.setMaximumWidth(int(0.3*self.data_clustering_combobox.width()))    
         self.zoom_in_button.clicked.connect(lambda clicked: self.cluster_plot_zoom_buttons("in"))
         self.zoom_in_button.hide()
         self.zoom_out_button = QPushButton('-')
-        self.zoom_out_button.setMaximumWidth(0.3*self.data_clustering_combobox.width())    
+        self.zoom_out_button.setMaximumWidth(int(0.3*self.data_clustering_combobox.width()))    
         self.zoom_out_button.clicked.connect(lambda clicked: self.cluster_plot_zoom_buttons("out"))
         self.zoom_out_button.hide()
 
@@ -751,16 +750,16 @@ class MainW(QtGui.QMainWindow):
         Call clustering or ROI display functions upon user selection from combo box
         """
         self.clear_visualization_window()
-        visualization_request = self.clusteringVisComboBox.currentText()
+        visualization_request = int(self.clusteringVisComboBox.currentIndex())
         self.reflector.show()
-        if visualization_request == "ROI":
+        if visualization_request == 1: # ROI
             self.cluster_model.disable_data_clustering_features(self)
             if len(self.ROIs)>0:
                 self.update_ROI_vis_comboBox()
                 self.update_status_bar("")
             else:
                 self.update_status_bar("Please add ROIs for display")
-        elif visualization_request == "UMAP":
+        elif visualization_request == 2 or visualization_request == 3: # tSNE/UMAP
             self.reflector.hide()
             self.cluster_model.enable_data_clustering_features(parent=self)
             self.update_status_bar("")
@@ -860,7 +859,8 @@ class MainW(QtGui.QMainWindow):
         for video_id in range(len(self.poseFilepath)):
             pose_data = pd.read_hdf(self.poseFilepath[video_id], 'df_with_missing')
             # Remove paw bodypart
-            #pose_data = pose_data.T[pose_data.columns.get_level_values("bodyparts") != "paw"].T
+            pose_data = pose_data.T[pose_data.columns.get_level_values("bodyparts") != "paw"].T
+            pose_data = pose_data.T[pose_data.columns.get_level_values("bodyparts") != "nose(r)"].T
             # Append pose data to list for each video_id
             self.keypoints_labels.append(pd.unique(pose_data.columns.get_level_values("bodyparts")))
             self.pose_x_coord.append(pose_data.T[pose_data.columns.get_level_values("coords").values=="x"].values) #size: key points x frames

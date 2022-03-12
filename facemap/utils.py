@@ -45,14 +45,15 @@ def get_frame(cframe, nframes, cumframes, containers):
             print("Error reading frame")    
     return img
 
-def rrr_prediction(X, Y, rank=None, lam=0):
+def rrr_prediction(X, Y, rank=None, lam=0, itrain=None, itest=None):
     """ predict Y from X using regularized reduced rank regression 
     
     returns prediction accuracy on test data + model params
     
     """
     n_t, n_feats = Y.shape
-    itest, itrain =  split_testtrain(n_t)
+    if itrain is None and itest is None:
+        itest, itrain =  split_testtrain(n_t)
     A,B = reduced_rank_regression(X[itrain], Y[itrain], rank=rank, lam=lam)
     rank = A.shape[1]
     corrf = np.zeros((rank, n_feats))

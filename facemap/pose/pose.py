@@ -5,7 +5,6 @@ from sklearn.covariance import log_likelihood
 from tqdm import tqdm
 
 import cv2
-from zmq import device
 import numpy as np
 import pandas as pd
 import torch
@@ -115,11 +114,10 @@ class Pose():
         inference_time = 0
 
         with tqdm(total=self.cumframes[-1], unit='frame', unit_scale=True) as pbar:
-            #while start <500:  # for checking bbox
             while start != self.cumframes[-1]: #  for analyzing entire video
                 
                 # Pre-pocess images
-                imall = np.zeros((end-start, nchannels, 256, 256))
+                imall = np.zeros((end-start, nchannels, self.Ly[video_id], self.Lx[video_id]))
                 cframes = np.arange(start, end)
                 utils.get_frames(imall, self.containers, cframes, self.cumframes)
 
