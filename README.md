@@ -11,7 +11,7 @@
 
 GUI for face pose tracking of rodents from different camera views (python only) and svd processing of videos (python and MATLAB).
 
-## Installation (PYTHON)
+## Installation (Python)
 
 This package only supports python 3. We recommend installing python 3 with **[Anaconda](https://www.anaconda.com/download/)**.
 
@@ -80,9 +80,13 @@ Facemap python relies on these awesome packages:
 - [numba](http://numba.pydata.org/numba-doc/latest/user/5minguide.html)
 - [natsort](https://natsort.readthedocs.io/en/master/)
 
-## Installation MATLAB (SVD processing only)
+## Installation (MATLAB) [SVD processing only]
 
 The matlab version needs to be downloaded/cloned from github (no install required). It works in Matlab 2014b and above - please submit issues if it's not working. The Image Processing Toolbox is necessary to use the GUI. For GPU functionality, the Parallel Processing Toolbox is required. If you don't have the Parallel Processing Toolbox, uncheck the box next to "use GPU" in the GUI before processing.
+
+# Pose tracking
+
+The latest python version is integrated with Facemap network for tracking 15 distinct keypoints on mouse face. The keypoints can be tracked from different camera views as shown here. 
 
 # SVD processing
 
@@ -106,7 +110,7 @@ We use [ptgrey cameras](https://www.ptgrey.com/flea3-13-mp-mono-usb3-vision-vita
 
 For 2p imaging, you'll need a tighter filter around 850nm so you don't see the laser shining through the mouse's eye/head, for example [this](https://www.thorlabs.de/thorproduct.cfm?partnumber=FB850-40). Depending on your lenses you'll need to figure out the right adapter(s) for such a filter. For our 10x lens above, you might need all of these:  [adapter1](https://www.edmundoptics.com/optics/optical-filters/optical-filter-accessories/M52-to-M46-Filter-Thread-Adapter/), [adapter2](https://www.thorlabs.de/thorproduct.cfm?partnumber=SM2A53), [adapter3](https://www.thorlabs.de/thorproduct.cfm?partnumber=SM2A6), [adapter4](https://www.thorlabs.de/thorproduct.cfm?partnumber=SM1L03).
 
-## PYTHON *HOW TO GUI*
+## *HOW TO GUI* (Python)
 
 ([video](https://www.youtube.com/watch?v=Rq8fEQ-DOm4) with old install instructions)
 
@@ -142,7 +146,7 @@ Note this will only work if you only have one file that you need to load (can't 
 
 Load a video or a set of videos and draw your ROIs and choose your processing settings. Then click **save ROIs**. This will save a *_proc.npy file in the folder in the specified **save folder**. The name of this proc file will be listed below **process batch** (this button will also activate). You can then repeat this process: load the video(s), draw ROIs, choose settings, and click **save ROIs**. Then to process all the listed *_proc.npy files click **process batch**.
 
-## MATLAB *HOW TO GUI*
+## *HOW TO GUI* (MATLAB)
 
 To start the GUI, run the command `MovieGUI` in this folder. The following window should appear. After you click an ROI button and draw an area, you have to **double-click** inside the drawn box to confirm it. To compute the SVD across multiple simultaneously acquired videos you need to use the "multivideo SVD" options to draw ROI's on each video one at a time.
 
