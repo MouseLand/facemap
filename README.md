@@ -39,12 +39,25 @@ pip install facemap --upgrade
 
 # Pose tracking
 
-The latest python version is integrated with Facemap network for tracking 15 distinct keypoints on mouse face. The keypoints can be tracked from different camera views as shown below. 
+The latest python version is integrated with Facemap network for tracking 14 distinct keypoints on mouse face and an additional point for tracking paw. The keypoints can be tracked from different camera views as shown below. 
 
 <p float="middle">
 <img src="figs/mouse_face1_keypoints.png"  width="280" height="250" title="View 1" alt="view1" align="left" vspace = "10" hspace="30" style="border: 0.5px solid white"  />
 <img src="figs/mouse_face0_keypoints.png" width="280" height="250" title="View 2" alt="view2" algin="right" vspace = "10" style="border: 0.5px solid white">
 </p>
+  
+## [GUI Instructions]()
+For pose tracking, load video and check `keypoints` then click `process` button. A dialog box will appear for selecting a bounding box for the face. The keypoints will be tracked in the selected bounding box. Please ensure that the bouding box is focused on the face where all the keypoints shown above will be visible. See example frames [here](figs/mouse_views.png). 
+
+Use the file menu to set path of output folder. The processed keypoints file will be saved in the output folder with an extension of `.h5` and corresponding metadata file with extension `.pkl`.
+
+## [CLI Instructions]()
+
+For more examples, please see [tutorial notebooks](https://github.com/MouseLand/facemap/tree/dev/notebooks).
+
+## User contributions :video_camera:
+Facemap's goal is to provide a simple way to generate keypoints for rodent face tracking. However, we need a large dataset of images from different camera views to reduce any errors on new mice videos. Hence, we would like to get your help to further expand our dataset. You can contribute by sending us a video or few frames of your mouse on following email address(es): `syedaa[at]janelia.hhmi.org` or `stringerc[at]janelia.hhmi.org`. Please let us know of any issues using the software by sending us an email or [opening an issue on GitHub](https://github.com/MouseLand/facemap/issues).
+
 
 # SVD processing
 
