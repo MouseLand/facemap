@@ -46,16 +46,17 @@ class Pose():
                 x1, x2, y1, y2 = 0, self.Ly[i], 0, self.Lx[i]
                 self.bbox.append([x1, x2, y1, y2, resize])
                 prompt = "No bbox set. Using entire frame view: {} and resize={}".format(self.gui.bbox, resize)
-                utils.update_mainwindow_message(MainWindow=self.gui, GUIobject=self.GUIobject, prompt=prompt)
+                utils.update_mainwindow_message(MainWindow=self.gui, GUIobject=self.GUIobject, 
+                                                prompt=prompt, hide_progress=True)
             self.bbox_set = True    
         for video_id in range(len(self.bbox)):
             utils.update_mainwindow_message(MainWindow=self.gui, GUIobject=self.GUIobject, 
-                                    prompt="Processing video: {}".format(self.filenames[0][video_id]))
+                                    prompt="Processing video: {}".format(self.filenames[0][video_id]), hide_progress=True)
             pred_data, metadata = self.predict_landmarks(video_id)
             dataFrame = self.write_dataframe(pred_data)
             savepath = self.save_pose_prediction(dataFrame, video_id)
             utils.update_mainwindow_message(MainWindow=self.gui, GUIobject=self.GUIobject, 
-                        prompt="Saved pose prediction outputs to: {}".format(savepath))
+                        prompt="Saved pose prediction outputs to: {}".format(savepath),  hide_progress=True)
             print("Saved pose prediction outputs to:", savepath)
             # Save metadata to a pickle file
             metadata_file = os.path.splitext(savepath)[0]+"_Facemap_metadata.pkl"
@@ -65,12 +66,12 @@ class Pose():
                 self.gui.poseFilepath.append(savepath)
                 self.gui.Labels_checkBox.setChecked(True)
                 self.gui.start()
-        if plot:
+        if plot and self.gui is not None:
             self.plot_pose_estimates()
         end_time = time.time()
         print("Time elapsed:", end_time-start_time, "seconds")
         utils.update_mainwindow_message(MainWindow=self.gui, GUIobject=self.GUIobject, 
-                    prompt="Time elapsed: {} seconds".format(end_time-start_time))
+                    prompt="Time elapsed: {} seconds".format(end_time-start_time),  hide_progress=True)
 
     def write_dataframe(self, data):
         scorer = "Facemap" 
@@ -153,11 +154,11 @@ class Pose():
                 start = end 
                 end += batch_size
                 end = min(end, self.cumframes[-1])
-                # Update progress bar for every 5% of the total
-                if (end-start)//5 == 0:
+                # Update progress bar for every 5% of the total frames
+                if (end) % np.floor(self.cumframes[-1]*.05) == 0:
                     utils.update_mainwindow_progressbar(MainWindow=self.gui,
                                                         GUIobject=self.GUIobject, s=progress_output, 
-                                                        prompt="Predicting pose")
+                                                        prompt="Pose prediction progress:")
 
         if batch_size == 1:
             inference_speed = self.cumframes[-1] / inference_time

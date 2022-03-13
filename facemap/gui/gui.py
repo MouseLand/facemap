@@ -213,7 +213,7 @@ class MainW(QtGui.QMainWindow):
         VideoLabel = QLabel("Facemap - SVDs & Tracker")
         VideoLabel.setStyleSheet("color: white;")
         VideoLabel.setAlignment(QtCore.Qt.AlignCenter)
-        VideoLabel.setFont(QFont("Arial", 12, QFont.Bold))
+        VideoLabel.setFont(QFont("Arial", 16, QFont.Bold))
         SVDbinLabel = QLabel("SVD spatial bin:")
         SVDbinLabel.setStyleSheet("color: gray;")
         self.binSpinBox = QSpinBox()
