@@ -10,12 +10,12 @@ from tqdm import tqdm
 def update_mainwindow_progressbar(MainWindow, GUIobject, s, prompt):
     if MainWindow is not None and GUIobject is not None:
         message = s.getvalue().split('\x1b[A\n\r')[0].split('\r')[-1]
-        MainWindow.update_status_bar(prompt+message, update_progress=True)
+        MainWindow.update_status_bar(prompt+message, update_progress=True, hide_progress=False)
         GUIobject.QApplication.processEvents()
 
 def update_mainwindow_message(MainWindow, GUIobject, prompt, hide_progress=True):
     if MainWindow is not None and GUIobject is not None:
-        MainWindow.update_status_bar(prompt, update_progress=False)
+        MainWindow.update_status_bar(prompt, update_progress=False, hide_progress=hide_progress)
         GUIobject.QApplication.processEvents()
 
 def bin1d(X, tbin):

@@ -184,7 +184,7 @@ class MainW(QtGui.QMainWindow):
         self.show()
         self.processed = False
         if moviefile is not None:
-            self.load_movies([[moviefile]])
+            io.load_movies(self, [[moviefile]])
         if savedir is not None:
             self.save_path = savedir
             self.savelabel.setText("..."+savedir[-20:])
@@ -544,11 +544,14 @@ class MainW(QtGui.QMainWindow):
         if update_progress:
             self.progressBar.show()
             progressBar_value = [int(s) for s in message.split("%")[0].split() if s.isdigit()]
-            self.progressBar.setValue(progressBar_value[0])
-            total_frames = self.totalFrameNumber.text().split()[1]
-            frames_processed = np.floor((progressBar_value[0]/100)*float(total_frames))
-            self.setFrame.setText(str(frames_processed))
-            self.statusBar.showMessage(message.split("|")[0])
+            if len(progressBar_value)>0:
+                self.progressBar.setValue(progressBar_value[0])
+                total_frames = self.totalFrameNumber.text().split()[1]
+                frames_processed = np.floor((progressBar_value[0]/100)*float(total_frames))
+                self.setFrame.setText(str(frames_processed))
+                self.statusBar.showMessage(message.split("|")[0])
+            else:
+                self.statusBar.showMessage("Done!")
         else:
             if hide_progress:
                 self.progressBar.hide()
@@ -1245,7 +1248,7 @@ class MainW(QtGui.QMainWindow):
 
 ### ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Main ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ 
 
-def run(moviefile=None,savedir=None):
+def run(moviefile=None, savedir=None):
     # Always start by initializing Qt (only once per application)
     app = QtGui.QApplication(sys.argv)
     icon_path = os.path.join(
@@ -1259,6 +1262,6 @@ def run(moviefile=None,savedir=None):
     app_icon.addFile(icon_path, QtCore.QSize(96, 96))
     app_icon.addFile(icon_path, QtCore.QSize(256, 256))
     app.setWindowIcon(app_icon)
-    GUI = MainW(moviefile,savedir)
+    GUI = MainW(moviefile, savedir)
     ret = app.exec_()
     sys.exit(ret)
