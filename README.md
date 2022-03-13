@@ -41,8 +41,10 @@ pip install facemap --upgrade
 
 The latest python version is integrated with Facemap network for tracking 15 distinct keypoints on mouse face. The keypoints can be tracked from different camera views as shown below. 
 
-<img src="figs/mouse_face1_keypoints.png"  width="550" height="400" title="View 1" alt="view1" align="left" vspace = "50">
-<img src="figs/mouse_face0_keypoints.png" width="550" height="400" title="View 2" alt="view2" align="right" vspace = "50">  
+<p float="middle">
+<img src="figs/mouse_face1_keypoints.png"  width="280" height="250" title="View 1" alt="view1" align="left" vspace = "10" hspace="30" style="border: 0.5px solid white"  />
+<img src="figs/mouse_face0_keypoints.png" width="280" height="250" title="View 2" alt="view2" algin="right" vspace = "10" style="border: 0.5px solid white">
+</p>
 
 # SVD processing
 

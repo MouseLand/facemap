@@ -17,7 +17,6 @@ from torch import optim
 from scipy.ndimage import gaussian_filter
 
 print("python version:", python_version())
-import matplotlib
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~Global variables~~~~~~~~~~~~~~~~~~~~~~~~~~~~~`
 N_FACTOR =  2**4 // (2 ** 2)

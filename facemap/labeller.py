@@ -14,7 +14,6 @@ import pyqtgraph as pg
 from guiparts import (ImageDraw, RangeSlider, RGBRadioButtons,
                       ViewBoxNoRightDrag)
 from mxnet import nd
-from natsort import natsorted
 from PyQt5 import Qt, QtCore, QtGui, QtWidgets
 from pyqtgraph import GraphicsScene
 from scipy.interpolate import interp1d
