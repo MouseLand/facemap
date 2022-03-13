@@ -244,7 +244,7 @@ class sROI():
             parent.reflectors[self.iROI] = utils.get_reflector(parent.ROIs[self.iROI].yrange,
                                                          parent.ROIs[self.iROI].xrange,
                                                          rROI=parent.rROI[self.iROI])
-        parent.sl[1].setValue(parent.saturation[self.iROI] * 100 / 255)
+        parent.sl[1].setValue(int(parent.saturation[self.iROI] * 100 / 255))
         
         index = parent.clusteringVisComboBox.findText("ROI", QtCore.Qt.MatchFixedString)
         if index >= 0:

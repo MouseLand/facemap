@@ -12,7 +12,7 @@ from . import transforms
 from .. import utils
 
 """
-Pose subclass for generating pose estimates on GUI involving user validation for bbox.
+Pose subclass for generating obtaining bounding box from user input.
 Currently supports single video processing only.
 """
 class PoseGUI(Pose):

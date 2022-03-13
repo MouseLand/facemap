@@ -720,6 +720,8 @@ class MainW(QtGui.QMainWindow):
             self.update_status_bar("Output saved in "+savepath)
         if self.Labels_checkBox.isChecked():
             self.get_pose_labels()
+            if self.pose_model is not None:
+                self.pose_model.run()
             self.update_status_bar("Pose labels saved in "+savepath)
         
     def update_buttons(self):
@@ -846,13 +848,10 @@ class MainW(QtGui.QMainWindow):
         return self.bbox, self.bbox_set, cancel
 
     def get_pose_labels(self):
-        cancel = False
         if not self.bbox_set:
-            self.bbox, self.bbox_set, cancel = self.set_pose_bbox()
+            self.bbox, self.bbox_set, _ = self.set_pose_bbox()
         if self.pose_model is None:
             self.pose_model = pose.Pose(gui=self, filenames=self.filenames, bbox=self.bbox, bbox_set=self.bbox_set)
-        if not cancel:
-            self.pose_model.run()
 
     def load_labels(self):
         # Read Pose file

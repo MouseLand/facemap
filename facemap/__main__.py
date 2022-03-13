@@ -36,7 +36,7 @@ if __name__ == '__main__':
         savedir = None
 
     if args.poseGUI:
-        print("Running Facemap GUI w/ pose")
+        print("Running Facemap GUI w/ pose tracker")
     else:
         print("Running Facemap pose CLI")
 

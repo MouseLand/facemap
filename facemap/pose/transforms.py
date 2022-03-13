@@ -11,7 +11,7 @@ import torchvision
 import torchvision.transforms as transforms
 from torch.nn import functional as F
 
-from . import UNet_helper_functions
+from . import pose_helper_functions
 
 normalize = transforms.Normalize(mean=[0.445], std=[0.269])
 
@@ -31,7 +31,7 @@ def preprocess_img(im):
     if im.ndim==2:
         im = im[np.newaxis, ...]
     # Adjust image contrast
-    im = UNet_helper_functions.normalize99(im)
+    im = pose_helper_functions.normalize99(im)
     return im
 
 def get_cropped_imgs(imgs, bbox):
@@ -57,55 +57,6 @@ def get_cropped_imgs(imgs, bbox):
         for n in range(nchannels):
             cropped_imgs[i,n] = imgs[i, n, x1:x2, y1:y2]
     return cropped_imgs
-    
-def get_bounding_box(imgs, net, prev_bbox):
-    """
-    Predicts bounding box for face ROI used as input for UNet model.
-    Parameters
-    -------------
-    imgs: ND-array
-        images of size [batch_size x nchan x Ly x Lx]
-    net: NA
-        UNet model/network
-    prev_bbox: tuple of size (4,)
-        bounding box positions in order x1, x2, y1, y2 
-    Returns
-    --------------
-    bbox: tuple of size (4,)
-        bounding box positions in order x1, x2, y1, y2 
-    lm_mean: ND-array
-        avg. position of all landmarks/key points
-    """
-    prev_minx, prev_maxx, prev_miny, prev_maxy = prev_bbox
-    net.eval()
-    # pad image if not divisible by 16 
-    if imgs.shape[-1]%16!=0 or imgs.shape[-2]%16!=0:  
-        imgs, ysub, xsub = pad_image_ND(imgs)
-    # Network prediction using padded image
-    hm_pred, locref_pred = net(torch.tensor(imgs).to(device=net.DEVICE, dtype=torch.float32)) # convert to tensor and send to device
-    # Slice out padding
-    slc = [slice(0, imgs.shape[n]+1) for n in range(imgs.ndim)]
-    slc[-3] = slice(0, hm_pred.shape[-3])
-    slc[-2] = slice(ysub[0], ysub[-1]+1)
-    slc[-1] = slice(xsub[0], xsub[-1]+1)
-    hm_pred = hm_pred[slc]
-    slc[-3] = slice(0, locref_pred.shape[-3])
-    locref_pred = locref_pred[slc]
-    # Get landmark positions
-    pose = UNet_helper_functions.argmax_pose_predict_batch(hm_pred.cpu().detach().numpy(), 
-                                                            locref_pred.cpu().detach().numpy(),
-                                                            UNet_helper_functions.STRIDE)
-    lm = pose[:,:,:2].squeeze()
-    # avg. position of all landmarks/key points
-    lm_mean = lm.mean(axis=0) 
-    # Estimate bbox positions using landmark positions b/w 5th and 95th percentile 
-    pad = 10
-    min_x = np.nanmean([np.percentile(lm.T[0,:],5)-pad, prev_minx])
-    max_x = np.nanmean([np.percentile(lm.T[0,:],90)+pad, prev_maxx])
-    min_y = np.nanmean([np.percentile(lm.T[1,:],5)-pad, prev_miny])
-    max_y = np.nanmean([np.percentile(lm.T[1,:],90)+pad, prev_maxy])
-    bbox = (min_x, max_x, min_y, max_y)
-    return bbox, lm_mean
 
 def get_crop_resize_params(img, x_dims, y_dims, xy=(256,256)):
     """
@@ -121,9 +72,7 @@ def get_crop_resize_params(img, x_dims, y_dims, xy=(256,256)):
         Ystart: (int) y dim start pos
         Ystop: (int) y dim stop pos 
         resize: (bool) whether to resize image
-    """
-    xdiff, ydiff = x_dims[1] - x_dims[0], y_dims[1] - y_dims[0]
-    
+    """    
     Xstart = int(x_dims[0])
     Xstop = int(x_dims[1])
     Ystart = int(y_dims[0])
@@ -275,41 +224,3 @@ def normalize99(img):
     x99 = np.percentile(X, 99)
     X = (X - x01) / (x99 - x01)
     return X
-
-#  Following Function adopted from cellpose:
-#  https://github.com/MouseLand/cellpose/blob/35c16c94e285a4ec2fa17f148f06bbd414deb5b8/cellpose/transforms.py#L547
-def pad_image_ND(img0, div=16, extra = 1):
-    """ 
-    Pad image for test-time so that its dimensions are a multiple of 16 (2D or 3D)
-    Parameters
-    -------------
-    img0: ND-array
-        image of size [nchan (x Lz) x Ly x Lx]
-    div: int (optional, default 16)
-    Returns
-    --------------
-    I: ND-array
-        padded image
-    ysub: array, int
-        yrange of pixels in I corresponding to img0
-    xsub: array, int
-        xrange of pixels in I corresponding to img0
-    """
-    Lpad = int(div * np.ceil(img0.shape[-2]/div) - img0.shape[-2])
-    xpad1 = extra*div//2 + Lpad//2
-    xpad2 = extra*div//2 + Lpad - Lpad//2
-    Lpad = int(div * np.ceil(img0.shape[-1]/div) - img0.shape[-1])
-    ypad1 = extra*div//2 + Lpad//2
-    ypad2 = extra*div//2+Lpad - Lpad//2
-
-    if img0.ndim>3:
-        pads = np.array([[0,0], [0,0], [xpad1,xpad2], [ypad1, ypad2]])
-    else:
-        pads = np.array([[0,0], [xpad1,xpad2], [ypad1, ypad2]])
-
-    I = np.pad(img0, pads, mode='constant')
-
-    Ly, Lx = img0.shape[-2:]
-    ysub = np.arange(xpad1, xpad1+Ly)
-    xsub = np.arange(ypad1, ypad1+Lx)
-    return I, ysub, xsub
