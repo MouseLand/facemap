@@ -130,7 +130,7 @@ def crop_resize(img, Xstart, Xstop, Ystart, Ystop, resize, xy=[256,256]):
     im_cropped = img[:,:,Ystart:Ystop,Xstart:Xstop]
     # Resize image 
     if resize:
-        im_cropped = F.interpolate(im_cropped, size=(256,256), mode='bilinear') #cv2.resize(im_cropped, xy)
+        im_cropped = F.interpolate(im_cropped, size=(256,256), mode='bilinear') 
     return im_cropped
 
 def labels_crop_resize(Xlabel, Ylabel, Xstart, Ystart, current_size, desired_size):

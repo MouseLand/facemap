@@ -8,6 +8,7 @@ import numpy as np
 import pandas as pd
 import torch
 import pickle
+from io import StringIO
 
 from .. import utils
 from . import FMnet_torch, pose_helper_functions as pose_utils
@@ -20,8 +21,9 @@ Currently supports single video processing and multi-videos as processed sequent
 """
 
 class Pose():
-    def __init__(self, gui=None, filenames=None, bbox=[], bbox_set=False):
+    def __init__(self, filenames=None, bbox=[], bbox_set=False, gui=None, GUIobject=None):
         self.gui = gui
+        self.GUIobject = GUIobject
         if self.gui is not None:
             self.filenames = self.gui.filenames
         else:
@@ -43,14 +45,18 @@ class Pose():
             for i in range(len(self.Ly)):
                 x1, x2, y1, y2 = 0, self.Ly[i], 0, self.Lx[i]
                 self.bbox.append([x1, x2, y1, y2, resize])
-            print("No bbox set. Using full image size:", self.bbox)
+                prompt = "No bbox set. Using entire frame view: {} and resize={}".format(self.gui.bbox, resize)
+                utils.update_mainwindow_message(MainWindow=self.gui, GUIobject=self.GUIobject, prompt=prompt)
             self.bbox_set = True    
         for video_id in range(len(self.bbox)):
-            print("Processing video:", self.filenames[0][video_id])
+            utils.update_mainwindow_message(MainWindow=self.gui, GUIobject=self.GUIobject, 
+                                    prompt="Processing video: {}".format(self.filenames[0][video_id]))
             pred_data, metadata = self.predict_landmarks(video_id)
             dataFrame = self.write_dataframe(pred_data)
             savepath = self.save_pose_prediction(dataFrame, video_id)
-            print("Saved pose prediction to:", savepath)
+            utils.update_mainwindow_message(MainWindow=self.gui, GUIobject=self.GUIobject, 
+                        prompt="Saved pose prediction outputs to: {}".format(savepath))
+            print("Saved pose prediction outputs to:", savepath)
             # Save metadata to a pickle file
             metadata_file = os.path.splitext(savepath)[0]+"_Facemap_metadata.pkl"
             with open(metadata_file, 'wb') as f:
@@ -59,12 +65,12 @@ class Pose():
                 self.gui.poseFilepath.append(savepath)
                 self.gui.Labels_checkBox.setChecked(True)
                 self.gui.start()
-        print("~~~~~~~~~~~~~~~~~~~~~DONE~~~~~~~~~~~~~~~~~~~~~")
-        print("Time elapsed:", time.time()-start_time)
         if plot:
             self.plot_pose_estimates()
         end_time = time.time()
         print("Time elapsed:", end_time-start_time, "seconds")
+        utils.update_mainwindow_message(MainWindow=self.gui, GUIobject=self.GUIobject, 
+                    prompt="Time elapsed: {} seconds".format(end_time-start_time))
 
     def write_dataframe(self, data):
         scorer = "Facemap" 
@@ -110,7 +116,8 @@ class Pose():
         Xstart, Xstop, Ystart, Ystop, resize = self.bbox[video_id]
         inference_time = 0
 
-        with tqdm(total=self.cumframes[-1], unit='frame', unit_scale=True) as pbar:
+        progress_output = StringIO()
+        with tqdm(total=self.cumframes[-1], unit='frame', unit_scale=True, file=progress_output) as pbar:
             while start != self.cumframes[-1]: #  for analyzing entire video
                 
                 # Pre-pocess images
@@ -146,6 +153,11 @@ class Pose():
                 start = end 
                 end += batch_size
                 end = min(end, self.cumframes[-1])
+                # Update progress bar for every 5% of the total
+                if (end-start)//5 == 0:
+                    utils.update_mainwindow_progressbar(MainWindow=self.gui,
+                                                        GUIobject=self.GUIobject, s=progress_output, 
+                                                        prompt="Predicting pose")
 
         if batch_size == 1:
             inference_speed = self.cumframes[-1] / inference_time

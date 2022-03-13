@@ -41,7 +41,7 @@ class FMnet(nn.Module):
             xout.append(x)
 
         for k in range(len(self.Up_conv)):
-            x = F.upsample(x, scale_factor=2, mode='nearest')
+            x = F.interpolate(x, scale_factor=2, mode='nearest')
             x = self.Up_conv[k](torch.cat((x, xout[-2-k]), axis=1))
 
         locx = self.Conv2_1x1[1](x)
@@ -51,7 +51,6 @@ class FMnet(nn.Module):
         hm = 10 * hm / (1e-4 + hm.sum(axis=(-2,-1)).unsqueeze(-1).unsqueeze(-1))
 
         return hm, locx, locy
-
 
 class convblock(nn.Module):
     def __init__(self, ch_in, ch_out, kernel_sz, block=-1):

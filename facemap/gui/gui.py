@@ -851,15 +851,13 @@ class MainW(QtGui.QMainWindow):
         if not self.bbox_set:
             self.bbox, self.bbox_set, _ = self.set_pose_bbox()
         if self.pose_model is None:
-            self.pose_model = pose.Pose(gui=self, filenames=self.filenames, bbox=self.bbox, bbox_set=self.bbox_set)
+            self.pose_model = pose.Pose(gui=self, GUIobject=QtGui, filenames=self.filenames, 
+                                        bbox=self.bbox, bbox_set=self.bbox_set)
 
     def load_labels(self):
         # Read Pose file
         for video_id in range(len(self.poseFilepath)):
             pose_data = pd.read_hdf(self.poseFilepath[video_id], 'df_with_missing')
-            # Remove paw bodypart
-            pose_data = pose_data.T[pose_data.columns.get_level_values("bodyparts") != "paw"].T
-            pose_data = pose_data.T[pose_data.columns.get_level_values("bodyparts") != "nose(r)"].T
             # Append pose data to list for each video_id
             self.keypoints_labels.append(pd.unique(pose_data.columns.get_level_values("bodyparts")))
             self.pose_x_coord.append(pose_data.T[pose_data.columns.get_level_values("coords").values=="x"].values) #size: key points x frames
@@ -869,7 +867,6 @@ class MainW(QtGui.QMainWindow):
             colors = cm.get_cmap('jet')(np.linspace(0, 1., len(self.keypoints_labels[video_id])))
             colors *= 255
             colors = colors.astype(int)
-            #colors[:,-1] = 200#127
             self.keypoints_brushes.append(np.array([pg.mkBrush(color=c) for c in colors]))
     
     def update_pose(self):
@@ -877,7 +874,7 @@ class MainW(QtGui.QMainWindow):
             self.statusBar.clearMessage()
             self.p0.addItem(self.Pose_scatterplot)
             self.p0.setRange(xRange=(0,self.LX), yRange=(0,self.LY), padding=0.0)
-            threshold = 0#np.nanpercentile(self.pose_likelihood, 0) # Determine threshold
+            threshold = np.nanpercentile(self.pose_likelihood, 10) # Determine threshold
             x, y, labels, brushes = np.array([]), np.array([]), np.array([]), np.array([])
             for video_id in range(len(self.poseFilepath)):
                 filtered_keypoints = np.where(self.pose_likelihood[video_id][:,self.cframe] > threshold)[0]

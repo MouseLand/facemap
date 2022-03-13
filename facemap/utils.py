@@ -7,6 +7,16 @@ from scipy.sparse.linalg import eigsh
 from sklearn.decomposition import PCA
 from tqdm import tqdm
 
+def update_mainwindow_progressbar(MainWindow, GUIobject, s, prompt):
+    if MainWindow is not None and GUIobject is not None:
+        message = s.getvalue().split('\x1b[A\n\r')[0].split('\r')[-1]
+        MainWindow.update_status_bar(prompt+message, update_progress=True)
+        GUIobject.QApplication.processEvents()
+
+def update_mainwindow_message(MainWindow, GUIobject, prompt):
+    if MainWindow is not None and GUIobject is not None:
+        MainWindow.update_status_bar(prompt, update_progress=False)
+        GUIobject.QApplication.processEvents()
 
 def bin1d(X, tbin):
     """ bin over first axis of data with bin tbin """
