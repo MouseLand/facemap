@@ -46,16 +46,16 @@ The latest python version is integrated with Facemap network for tracking 14 dis
 <img src="figs/mouse_face0_keypoints.png" width="280" height="250" title="View 2" alt="view2" algin="right" vspace = "10" style="border: 0.5px solid white">
 </p>
   
-## [GUI Instructions]()
+## [GUI Instructions](docs/pose_tracking_gui_tutorial.md)
 For pose tracking, load video and check `keypoints` then click `process` button. A dialog box will appear for selecting a bounding box for the face. The keypoints will be tracked in the selected bounding box. Please ensure that the bouding box is focused on the face where all the keypoints shown above will be visible. See example frames [here](figs/mouse_views.png). 
 
 Use the file menu to set path of output folder. The processed keypoints file will be saved in the output folder with an extension of `.h5` and corresponding metadata file with extension `.pkl`.
 
-## [CLI Instructions]()
+## [CLI Instructions](docs/pose_tracking_cli_tutorial.md)
 
 For more examples, please see [tutorial notebooks](https://github.com/MouseLand/facemap/tree/dev/notebooks).
 
-## User contributions :video_camera:
+## :mega: User contributions :video_camera: :camera: 
 Facemap's goal is to provide a simple way to generate keypoints for rodent face tracking. However, we need a large dataset of images from different camera views to reduce any errors on new mice videos. Hence, we would like to get your help to further expand our dataset. You can contribute by sending us a video or few frames of your mouse on following email address(es): `syedaa[at]janelia.hhmi.org` or `stringerc[at]janelia.hhmi.org`. Please let us know of any issues using the software by sending us an email or [opening an issue on GitHub](https://github.com/MouseLand/facemap/issues).
 
 
@@ -81,6 +81,7 @@ We use [ptgrey cameras](https://www.ptgrey.com/flea3-13-mp-mono-usb3-vision-vita
 
 For 2p imaging, you'll need a tighter filter around 850nm so you don't see the laser shining through the mouse's eye/head, for example [this](https://www.thorlabs.de/thorproduct.cfm?partnumber=FB850-40). Depending on your lenses you'll need to figure out the right adapter(s) for such a filter. For our 10x lens above, you might need all of these:  [adapter1](https://www.edmundoptics.com/optics/optical-filters/optical-filter-accessories/M52-to-M46-Filter-Thread-Adapter/), [adapter2](https://www.thorlabs.de/thorproduct.cfm?partnumber=SM2A53), [adapter3](https://www.thorlabs.de/thorproduct.cfm?partnumber=SM2A6), [adapter4](https://www.thorlabs.de/thorproduct.cfm?partnumber=SM1L03).
 
+
 ## *HOW TO GUI* (Python)
 
 ([video](https://www.youtube.com/watch?v=Rq8fEQ-DOm4) with old install instructions)
@@ -93,98 +94,6 @@ python -m facemap
 ```
 Default starting folder is set to wherever you run `python -m FaceMap`
 
-The following window should appear. The upper left "file" button loads single files, the upper middle "folder" button loads whole folders (from which you can select movies), and the upper right "folder" button loads processed files ("_proc.npy" files). Load a video or a group of videos (see below for file formats for simultaneous videos). The video(s) will pop up in the left side of the GUI. You can zoom in and out with the mouse wheel, and you can drag by holding down the mouse. Double-click to return to the original, full view.
-
-Choose a type of ROI to add and then click "add ROI" to add it to the view. The pixels in the ROI will show up in the right window (with different processing depending on the ROI type - see below). You can move it and resize the ROI anytime. You can delete the ROI with "right-click" and selecting "remove". You can change the saturation of the ROI with the upper right saturation bar. You can also just click on the ROI at any time to see what it looks like in the right view.
-
-By default, the "Compute multivideo SVD" box is unchecked. If you check it, then the motion SVD is computed across ALL videos - all videos are concatenated at each timepoint, and the SVD of this matrix of ALL_PIXELS x timepoints is computed. If you have just one video acquired at a time, then it is the SVD of this video.
-
-<div align="center">
-<img src="figs/multivideo_fast.gif" width="100%" alt="multivideo gif" >
-</div>
-
-Once processing starts, the interface will no longer be clickable and all information about processing will be in the terminal in which you opened FaceMap:
-<div align="center">
-<img src="figs/terminal.png" width="50%" alt="terminal" >
-</div>
-
-If you want to open the GUI with a movie file specified and/or save path specified, the following command will allow this:
-~~~
-python -m facemap --movie '/home/carsen/movie.avi' --savedir '/media/carsen/SSD/'
-~~~
-Note this will only work if you only have one file that you need to load (can't have multiple in series / multiple views).
-
-#### Processing movies captured simultaneously (multiple camera setups)
-
-Both GUIs will then ask *"are you processing multiple videos taken simultaneously?"*. If you say yes, then the script will look if across movies the **FIRST FOUR** letters of the filename vary. If the first four letters of two movies are the same, then the GUI assumed that they were acquired *sequentially* not *simultaneously*.
-
-Example file list:
-+ cam1_G7c1_1.avi
-+ cam1_G7c1_2.avi
-+ cam2_G7c1_1.avi
-+ cam2_G7c1_2.avi
-+ cam3_G7c1_1.avi
-+ cam3_G7c1_2.avi
-
-*"are you processing multiple videos taken simultaneously?"* ANSWER: Yes
-
-Then the GUIs assume {cam1_G7c1_1.avi, cam2_G7c1_1.avi, cam3_G7c1_1.avi} were acquired simultaneously and {cam1_G7c1_2.avi, cam2_G7c1_2.avi, cam3_G7c1_2.avi} were acquired simultaneously. They will be processed in alphabetical order (1 before 2) and the results from the videos will be concatenated in time. If one of these files was missing, then the GUI will error and you will have to choose file folders again. Also you will get errors if the files acquired at the same time aren't the same frame length (e.g. {cam1_G7c1_1.avi, cam2_G7c1_1.avi, cam3_G7c1_1.avi} should all have the same number of frames).
-
-Note: if you have many simultaneous videos / overall pixels (e.g. 2000 x 2000) you will need around 32GB of RAM to compute the full SVD motion masks.
-
-You will be able to see all the videos that were simultaneously collected at once. However, you can only draw ROIs that are within ONE video. Only the "multivideo SVD" is computed over all videos.
-
-
-##### Batch processing (python only)
-
-Load a video or a set of videos and draw your ROIs and choose your processing settings. Then click **save ROIs**. This will save a *_proc.npy file in the folder in the specified **save folder**. The name of this proc file will be listed below **process batch** (this button will also activate). You can then repeat this process: load the video(s), draw ROIs, choose settings, and click **save ROIs**. Then to process all the listed *_proc.npy files click **process batch**.
-
-#### Multivideo SVD ROIs
-
-Check box "Compute multivideo SVD" to compute the SVD of all pixels in all videos.
-
-The GUIs create one file for all videos (saved in current folder), the processed .npy file has name "_proc.npy" which contains:
-
-**PYTHON**:
-- **filenames**: list of lists of video filenames - each list are the videos taken simultaneously
-- **Ly**, **Lx**: list of number of pixels in Y (Ly) and X (Lx) for each video taken simultaneously
-- **sbin**: spatial bin size for motion SVDs
-- **Lybin**, **Lxbin**: list of number of pixels binned by sbin in Y (Ly) and X (Lx) for each video taken simultaneously
-- **sybin**, **sxbin**: coordinates of multivideo (for plotting/reshaping ONLY)
-- **LYbin**, **LXbin**: full-size of all videos embedded in rectangle (binned)
-- **fullSVD**: whether or not "multivideo SVD" is computed
-- **save_mat**: whether or not to save proc as *.mat file
-- **avgframe**: list of average frames for each video from a subset of frames (binned by sbin)
-- **avgframe_reshape**: average frame reshaped to be y-pixels x x-pixels
-- **avgmotion**: list of average motions for each video from a subset of frames (binned by sbin)
-- **avgmotion_reshape**: average motion reshaped to be y-pixels x x-pixels
-- **iframes**: array containing number of frames in each consecutive video
-- **motion**: list of absolute motion energies across time - first is "multivideo" motion energy (empty if not computed)
-- **motSVD**: list of motion SVDs - first is "multivideo SVD" (empty if not computed) - each is nframes x components
-- **motMask**: list of motion masks for each motion SVD - each motMask is pixels x components
-- **motMask_reshape**: motion masks reshaped to be y-pixels x x-pixels x components
-- **pupil**: list of pupil ROI outputs - each is a dict with 'area', 'area_smooth', and 'com' (center-of-mass)
-- **blink**: list of blink ROI outputs - each is nframes, the blink area on each frame
-- **running**: list of running ROI outputs - each is nframes x 2, for X and Y motion on each frame
-- **rois**: ROIs that were drawn and computed
-    - *rind*: type of ROI in number
-    - *rtype*: what type of ROI ('motion SVD', 'pupil', 'blink', 'running')
-    - *ivid*: in which video is the ROI
-    - *color*: color of ROI
-    - *yrange*: y indices of ROI
-    - *xrange*: x indices of ROI
-    - *saturation*: saturation of ROI (0-255)
-    - *pupil_sigma*: number of stddevs used to compute pupil radius (for pupil ROIs)
-    - *yrange_bin*: binned indices in y (if motion SVD)
-    - *xrange_bin*: binned indices in x (if motion SVD)
-
-Note this is a dict, so say *.item() after loading:
-```
-import numpy as np
-proc = np.load('cam1_proc.npy').item()
-```
-
-These *_proc.npy* files can be loaded into the GUI (and will automatically be loaded after processing). The checkboxes in the lower left allow you to view different traces from the processing.
 
 ## [*HOW TO GUI* (MATLAB)](https://github.com/MouseLand/facemap/blob/dev/docs/svd_tutorial_matlab.md)
 
