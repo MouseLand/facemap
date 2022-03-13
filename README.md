@@ -30,6 +30,8 @@ Using the environment.yml file (recommended):
 
 # Pose tracking
 
+<img src="figs/tracker.gif" width="600" height="350" title="Tracker" alt="tracker" algin="middle" vspace = "10">
+
 The latest python version is integrated with Facemap network for tracking 14 distinct keypoints on mouse face and an additional point for tracking paw. The keypoints can be tracked from different camera views as shown below. 
 
 <p float="middle">

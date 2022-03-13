@@ -74,6 +74,6 @@ Facemap python relies on these awesome packages:
 - [UMAP](https://umap-learn.readthedocs.io/en/latest/)
 
 
-# Installation (MATLAB) [SVD processing only]
+# Installation (MATLAB)
 
-The matlab version needs to be downloaded/cloned from github (no install required). It works in Matlab 2014b and above - please submit issues if it's not working. The Image Processing Toolbox is necessary to use the GUI. For GPU functionality, the Parallel Processing Toolbox is required. If you don't have the Parallel Processing Toolbox, uncheck the box next to "use GPU" in the GUI before processing.
+The matlab version supports SVD processing only and does not include face tracker. The package can be downloaded/cloned from github (no install required). It works in Matlab 2014b and above - please submit issues if it's not working. The Image Processing Toolbox is necessary to use the GUI. For GPU functionality, the Parallel Processing Toolbox is required. If you don't have the Parallel Processing Toolbox, uncheck the box next to "use GPU" in the GUI before processing.
