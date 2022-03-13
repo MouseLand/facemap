@@ -3,7 +3,7 @@
 To start the GUI, run the command `MovieGUI` in this folder. The following window should appear. After you click an ROI button and draw an area, you have to **double-click** inside the drawn box to confirm it. To compute the SVD across multiple simultaneously acquired videos you need to use the "multivideo SVD" options to draw ROI's on each video one at a time.
 
 <div align="center">
-<img src="figs/GUIscreenshot.png" width="80%" alt="gui screenshot" >
+<img src="../figs/GUIscreenshot.png" width="80%" alt="gui screenshot" >
 </div>
 
 Default starting folder is set at line 59 of MovieGUI.m (h.filepath)
