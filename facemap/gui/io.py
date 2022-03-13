@@ -97,8 +97,6 @@ def open_proc(parent, file_name=None):
         print("ERROR: not a processed movie file")
     if good:
         v = []
-        nframes = 0
-        #iframes = []
         good = load_movies(parent, filelist=parent.filenames)
         if good:
             if 'fullSVD' in proc:

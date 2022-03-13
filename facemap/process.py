@@ -75,7 +75,7 @@ def subsampled_mean(containers, cumframes, Ly, Lx, sbin=3, GUIobject=None, MainW
             imbin = np.abs(np.diff(imbin, axis=0))
             avgmotion[ir[n]] += imbin.mean(axis=0)
         ns+=1
-        utils.utils.update_mainwindow_progressbar_progressbar(MainWindow, GUIobject, s, "Computing subsampled mean ")
+        utils.update_mainwindow_progressbar(MainWindow, GUIobject, s, "Computing subsampled mean ")
 
     avgframe /= float(ns)
     avgmotion /= float(ns)
@@ -197,7 +197,7 @@ def compute_SVD(containers, cumframes, Ly, Lx, avgframe, avgmotion, motSVD=True,
                             ncb = usv[0].shape[-1]
                             U_mov[wmot[i]+1][:, ni_mov[wmot[i]+1]:ni_mov[wmot[i]+1]+ncb] = usv[0] * usv[1]#U[wmot[i]+1][:, ni[wmot[i]+1]:ni[wmot[i]+1]+ncb] = usv[0]
                             ni_mov[wmot[i]+1] += ncb
-        utils.utils.update_mainwindow_progressbar_progressbar(MainWindow, GUIobject, w, "Computing SVD ")
+        utils.update_mainwindow_progressbar(MainWindow, GUIobject, w, "Computing SVD ")
         
         if fullSVD:
             if motSVD:

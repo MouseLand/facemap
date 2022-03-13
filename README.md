@@ -9,27 +9,18 @@
 
 # Facemap <img src="facemap/mouse.png" width="200" title="lilmouse" alt="lilmouse" align="right" vspace = "50">
 
-GUI for face pose tracking of rodents from different camera views (python only) and svd processing of videos (python and MATLAB).
+GUI and CLI for tracking pose of mouse face from different camera views (python only) and svd processing of videos (python and MATLAB).
 
 ## [Installation](https://github.com/MouseLand/facemap/blob/dev/docs/installation.md)
 
 ##### For latest released version (from PyPI)
 
-Run the following
-~~~
-pip install facemap
-~~~
-for headless version or the following for using GUI:
-~~~~
-pip install facemap[gui]
-~~~~
+Run `pip install facemap` for headless version or `pip install facemap[gui]` for using GUI.
 
-To upgrade Facemap (package [here](https://pypi.org/project/facemap/)), within the environment run:
-~~~~
-pip install facemap --upgrade
-~~~~
 
-##### Using the environment.yml file (recommended)
+To upgrade Facemap (package [here](https://pypi.org/project/facemap/)), within the environment run: `pip install facemap --upgrade`
+
+Using the environment.yml file (recommended):
 
 1. Download the `environment.yml` file from the repository
 2. Open an anaconda prompt / command prompt with `conda` for **python 3** in the path
@@ -42,8 +33,8 @@ pip install facemap --upgrade
 The latest python version is integrated with Facemap network for tracking 14 distinct keypoints on mouse face and an additional point for tracking paw. The keypoints can be tracked from different camera views as shown below. 
 
 <p float="middle">
-<img src="figs/mouse_face1_keypoints.png"  width="280" height="250" title="View 1" alt="view1" align="left" vspace = "10" hspace="30" style="border: 0.5px solid white"  />
-<img src="figs/mouse_face0_keypoints.png" width="280" height="250" title="View 2" alt="view2" algin="right" vspace = "10" style="border: 0.5px solid white">
+<img src="figs/mouse_face1_keypoints.png"  width="310" height="290" title="View 1" alt="view1" align="left" vspace = "10" hspace="30" style="border: 0.5px solid white"  />
+<img src="figs/mouse_face0_keypoints.png" width="310" height="290" title="View 2" alt="view2" algin="right" vspace = "10" style="border: 0.5px solid white">
 </p>
   
 ## [GUI Instructions](docs/pose_tracking_gui_tutorial.md)

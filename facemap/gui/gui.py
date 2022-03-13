@@ -15,7 +15,7 @@ from PyQt5.QtWidgets import ( QLabel, QPushButton, QLineEdit, QCheckBox,
                             QProgressBar, QSpinBox, QMessageBox, QButtonGroup, 
                             QGridLayout, QWidget, QPushButton, QWidget)
 
-istr = ['pupil', 'motSVD', 'blink', 'running']
+istr = ['pupil', 'motSVD', 'blink', 'running', 'movSVD']
 
 class MainW(QtGui.QMainWindow):
     def __init__(self, moviefile=None, savedir=None):

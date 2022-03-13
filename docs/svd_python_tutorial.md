@@ -77,7 +77,6 @@ The GUIs create one file for all videos (saved in current folder), the processed
 - **avgframe_reshape**: average frame reshaped to be y-pixels x x-pixels
 - **avgmotion**: list of average motions for each video from a subset of frames (binned by sbin)
 - **avgmotion_reshape**: average motion reshaped to be y-pixels x x-pixels
-- **iframes**: array containing number of frames in each consecutive video
 - **motion**: list of absolute motion energies across time - first is "multivideo" motion energy (empty if not computed)
 - **motSVD**: list of motion SVDs - first is "multivideo SVD" (empty if not computed) - each is nframes x components
 - **motMask**: list of motion masks for each motion SVD - each motMask is pixels x components
@@ -97,10 +96,29 @@ The GUIs create one file for all videos (saved in current folder), the processed
     - *yrange_bin*: binned indices in y (if motion SVD)
     - *xrange_bin*: binned indices in x (if motion SVD)
 
-Note this is a dict, so say *.item() after loading:
+The above variables are related to motion energy, which uses the absolute value of differences across frames over time i.e. `abs(np.diff(frame(t+1) - frame(t)))`. To perform SVD computation for each frame over time use the flag `movSVD=True` (default=False) in the `process.run()` function call. Variables pertaining to movie SVDs include:
+- movSVD: list of movie SVDs - first is \"multivideo SVD\" (empty if not computed) - each is nframes x components
+- movMask: list of movie masks for each movie SVD - each movMask is pixels x component
+- movMask_reshape: movie masks reshaped to be y-pixels x x-pixels x components
+
+New variables:
+- motSv: array containign singular values for motSVD
+- movSv: array containign singular values for movSVD"
+
+ `process.run()` function call takes the following parameters:
+ - filenames: A 2D list of names of video(s) to get
+ - motSVD: default=True
+ - movSVD: default=False
+ - GUIobject=None
+ - parent: default=None, parent is from GUI
+ - proc: default=None, proc can be a saved ROI file from GUI
+ - savepath: default=None => set to video folder, specify a folder path in which to save _proc.npy
+Note this is a dict, so use the following command for loading processed output:
 ```
 import numpy as np
-proc = np.load('cam1_proc.npy').item()
+proc = np.load('cam1_proc.npy', allow_pickle=True).item()
 ```
 
-These *_proc.npy* files can be loaded into the GUI (and will automatically be loaded after processing). The checkboxes in the lower left allow you to view different traces from the processing.
+The `_proc.npy` files can be loaded into the GUI (and will automatically be loaded after processing). The checkboxes in the lower left allow you to view different traces from the processed video(s).
+
+For example usage, see [notebook](https://github.com/MouseLand/facemap/blob/dev/notebooks/process.ipynb).
