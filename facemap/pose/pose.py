@@ -60,7 +60,7 @@ class Pose():
                 self.gui.Labels_checkBox.setChecked(True)
                 self.gui.start()
         print("~~~~~~~~~~~~~~~~~~~~~DONE~~~~~~~~~~~~~~~~~~~~~")
-        print("Time elapsed:", time.time()-t0)
+        print("Time elapsed:", time.time()-start_time)
         if plot:
             self.plot_pose_estimates()
         end_time = time.time()
@@ -104,7 +104,6 @@ class Pose():
         pred_data = torch.zeros(self.cumframes[-1], len(self.net.bodyparts), 3)
 
         # Store predictions in dataframe
-        print("Predicting pose for video:", self.filenames[0][video_id])
         self.net.eval()
         start = 0
         end = batch_size
