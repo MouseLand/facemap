@@ -44,11 +44,11 @@ After a Gaussian is fit, it zeros out pixels whose squared distance from the cen
 
 If there are reflections on the mouse's eye, then you can draw ellipses to account for this "corneal reflection" (plotted in black). You can add as many of these per pupil ROI as needed. The algorithm fills in these areas of the image with the predicted values, which allows for smooth transitions between big and small pupils.
 
-<img src="figs/out.gif" width="80%" alt="pupil gif">
+<img src="../figs/out.gif" width="80%" alt="pupil gif">
 
 This raw pupil area trace is post-processed (see [smoothPupil.m](pupil/smoothPupil.m))). The trace is median filtered with a window of 30 timeframes. At each timepoint, the difference between the raw trace and the median filtered trace is computed. If the difference at a given point exceeds half the standard deviation of the raw trace, then the raw value is replaced by the median filtered value.
 
-![pupil](/figs/pupilfilter.png?raw=true "pupil filtering")
+![pupil](../figs/pupilfilter.png?raw=true "pupil filtering")
 
 #### Blink computation
 
@@ -79,7 +79,7 @@ end
 ```
 Example motion masks *uMotMask* and traces *motSVD*:
 
-<img src="figs/exsvds.png" width="50%" alt="example SVDs">
+<img src="../figs/exsvds.png" width="50%" alt="example SVDs">
 
 We found that these extracted singular vectors explained up to half of the total explainable variance in neural activity in visual cortex and in other forebrain areas. See our [paper](https://science.sciencemag.org/content/364/6437/eaav7893) for more details.
 
@@ -93,7 +93,7 @@ The phase-correlation between consecutive frames (in running ROI) are computed i
 
 You can draw areas to be included and excluded in the multivideo SVD (or single video if you only have one view). The buttons are "area to keep" and "area to exclude" and will draw blue and red boxes respectively. The union of all pixels in "areas to include" are used, excluding any pixels that intersect this union from "areas to exclude" (you can toggle between viewing the boxes and viewing the included pixels using the "Show areas" checkbox, see example below).
 
-<img src="figs/incexcareas.png" width="60%" alt="example areas">
+<img src="../figs/incexcareas.png" width="60%" alt="example areas">
 
 The motion energy is then computed from these non-red pixels.
 
@@ -126,5 +126,5 @@ an ROI is [1x4]: [y0 x0 Ly Lx]
 
 #### Motion SVD Masks in MATLAB
 
-Use the script [plotSVDmasks.m](figs/plotSVDmasks.m) to easily view motion masks from the multivideo SVD. The motion masks from the smaller ROIs have been reshaped to be [xpixels x ypixels x components].
+Use the script [plotSVDmasks.m](../figs/plotSVDmasks.m) to easily view motion masks from the multivideo SVD. The motion masks from the smaller ROIs have been reshaped to be [xpixels x ypixels x components].
 
