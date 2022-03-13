@@ -540,7 +540,7 @@ class MainW(QtGui.QMainWindow):
             msg.exec_()
             return
 
-    def update_status_bar(self, message, update_progress=False):
+    def update_status_bar(self, message, update_progress=False, hide_progress=False):
         if update_progress:
             self.progressBar.show()
             progressBar_value = [int(s) for s in message.split("%")[0].split() if s.isdigit()]
@@ -549,8 +549,9 @@ class MainW(QtGui.QMainWindow):
             frames_processed = np.floor((progressBar_value[0]/100)*float(total_frames))
             self.setFrame.setText(str(frames_processed))
             self.statusBar.showMessage(message.split("|")[0])
-        else: 
-            self.progressBar.hide()
+        else:
+            if hide_progress:
+                self.progressBar.hide()
             self.statusBar.showMessage(message)
 
     def keyPressEvent(self, event):

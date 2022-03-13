@@ -13,7 +13,7 @@ def update_mainwindow_progressbar(MainWindow, GUIobject, s, prompt):
         MainWindow.update_status_bar(prompt+message, update_progress=True)
         GUIobject.QApplication.processEvents()
 
-def update_mainwindow_message(MainWindow, GUIobject, prompt):
+def update_mainwindow_message(MainWindow, GUIobject, prompt, hide_progress=True):
     if MainWindow is not None and GUIobject is not None:
         MainWindow.update_status_bar(prompt, update_progress=False)
         GUIobject.QApplication.processEvents()
