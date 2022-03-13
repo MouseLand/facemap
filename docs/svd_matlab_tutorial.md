@@ -87,7 +87,7 @@ In the python version, we also compute the average of *M* across all pixels in e
 
 #### Running computation
 
-The phase-correlation between consecutive frames (in running ROI) are computed in the fourier domain (see [running.py](/facemap/running.py) or [processRunning.m](/matlab/running/processRunning.m)). The XY position of maximal correlation gives the amount of shift between the two consecutive frames. Depending on how fast the movement is frame-to-frame you may want at least a 50x50 pixel ROI to compute this.
+The phase-correlation between consecutive frames (in running ROI) are computed in the fourier domain (see [running.py](../facemap/running.py) or [processRunning.m](../matlab/running/processRunning.m)). The XY position of maximal correlation gives the amount of shift between the two consecutive frames. Depending on how fast the movement is frame-to-frame you may want at least a 50x50 pixel ROI to compute this.
 
 #### Multivideo SVD ROIs
 

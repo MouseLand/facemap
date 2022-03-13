@@ -82,7 +82,7 @@ We use [ptgrey cameras](https://www.ptgrey.com/flea3-13-mp-mono-usb3-vision-vita
 For 2p imaging, you'll need a tighter filter around 850nm so you don't see the laser shining through the mouse's eye/head, for example [this](https://www.thorlabs.de/thorproduct.cfm?partnumber=FB850-40). Depending on your lenses you'll need to figure out the right adapter(s) for such a filter. For our 10x lens above, you might need all of these:  [adapter1](https://www.edmundoptics.com/optics/optical-filters/optical-filter-accessories/M52-to-M46-Filter-Thread-Adapter/), [adapter2](https://www.thorlabs.de/thorproduct.cfm?partnumber=SM2A53), [adapter3](https://www.thorlabs.de/thorproduct.cfm?partnumber=SM2A6), [adapter4](https://www.thorlabs.de/thorproduct.cfm?partnumber=SM1L03).
 
 
-## *HOW TO GUI* (Python)
+## [*HOW TO GUI* (Python)](docs/svd_python_tutorial.md)
 
 ([video](https://www.youtube.com/watch?v=Rq8fEQ-DOm4) with old install instructions)
 
@@ -95,7 +95,7 @@ python -m facemap
 Default starting folder is set to wherever you run `python -m FaceMap`
 
 
-## [*HOW TO GUI* (MATLAB)](https://github.com/MouseLand/facemap/blob/dev/docs/svd_tutorial_matlab.md)
+## [*HOW TO GUI* (MATLAB)](docs/svd_matlab_tutorial.md)
 
 To start the GUI, run the command `MovieGUI` in this folder. The following window should appear. After you click an ROI button and draw an area, you have to **double-click** inside the drawn box to confirm it. To compute the SVD across multiple simultaneously acquired videos you need to use the "multivideo SVD" options to draw ROI's on each video one at a time.
 
