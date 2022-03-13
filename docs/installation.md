@@ -39,19 +39,7 @@ Alternatively,
 4. To activate this new environment, run `conda activate facemap`
 5. You should see `(facemap)` on the left side of the terminal line. Now run `python -m facemap` and you're all set.
 
-##### Pyhton dependencies
-
-Facemap python relies on these awesome packages:
-- [pyqtgraph](http://pyqtgraph.org/)
-- [PyQt5](http://pyqt.sourceforge.net/Docs/PyQt5/)
-- [numpy](http://www.numpy.org/) (>=1.13.0)
-- [scipy](https://www.scipy.org/)
-- [opencv](https://opencv.org/)
-- [numba](http://numba.pydata.org/numba-doc/latest/user/5minguide.html)
-- [natsort](https://natsort.readthedocs.io/en/master/)
-
-
-##### Common installation issues
+### Common installation issues
 
 If you have pip issues, there might be some interaction between pre-installed dependencies and the ones FaceMap needs. First thing to try is
 ~~~~
@@ -67,6 +55,24 @@ pip install pyqt5 pyqt5-tools pyqt5.sip
 If you are on Yosemite Mac OS, PyQt doesn't work, and you won't be able to install Facemap. More recent versions of Mac OS are fine.
 
 The software has been heavily tested on Ubuntu 18.04, and less well tested on Windows 10 and Mac OS. Please post an issue if you have installation problems.
+
+### Pyhton dependencies
+
+Facemap python relies on these awesome packages:
+- [pyqtgraph](http://pyqtgraph.org/)
+- [PyQt5](http://pyqt.sourceforge.net/Docs/PyQt5/)
+- [numpy](http://www.numpy.org/) (>=1.13.0)
+- [scipy](https://www.scipy.org/)
+- [opencv](https://opencv.org/)
+- [numba](http://numba.pydata.org/numba-doc/latest/user/5minguide.html)
+- [natsort](https://natsort.readthedocs.io/en/master/)
+- [PyTorch](https://pytorch.org)
+- [Matplotlib](https://matplotlib.org)
+- [SciPy](https://scipy.org)
+- [tqdm](https://tqdm.github.io)
+- [pandas](https://pandas.pydata.org)
+- [UMAP](https://umap-learn.readthedocs.io/en/latest/)
+
 
 # Installation (MATLAB) [SVD processing only]
 
