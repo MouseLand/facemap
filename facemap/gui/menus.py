@@ -25,7 +25,7 @@ def mainmenu(parent):
     parent.addAction(loadProc)
 
     # Set output folder
-    setOutputFolder = QAction("Set &Output folder", parent)
+    setOutputFolder = QAction("Set &output folder", parent)
     setOutputFolder.setShortcut("Ctrl+O")
     setOutputFolder.triggered.connect(lambda: io.save_folder(parent))
     parent.addAction(setOutputFolder)

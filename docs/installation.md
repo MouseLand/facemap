@@ -2,9 +2,17 @@
 
 This package only supports python 3. We recommend installing python 3 with **[Anaconda](https://www.anaconda.com/download/)**.
 
-#### For latest released version (from PyPI)
 
-Run the following
+### For using pose tracker and svd processing
+Please run 
+~~~
+pip install git+https://github.com/mouseland/facemap.git
+~~~
+that will install the latest development version on github.
+
+### For latest released version (from PyPI) using svd processing only
+
+Run the following for command line interface (CLI) i.e. headless version:
 ~~~
 pip install facemap
 ~~~
@@ -18,28 +26,16 @@ To upgrade Facemap (package [here](https://pypi.org/project/facemap/)), within t
 pip install facemap --upgrade
 ~~~~
 
-#### Using the environment.yml file (recommended)
+Using the environment.yml file (recommended installation method):
 
-1. Download the `environment.yml` file from the repository
+1. Download the `environment.yml` file from the repository or clone the github repository: `git clone https://www.github.com/mouseland/facemap.git`
 2. Open an anaconda prompt / command prompt with `conda` for **python 3** in the path
-3. Run `conda env create -f environment.yml`
-4. To activate this new environment, run `conda activate facemap`
-5. You should see `(facemap)` on the left side of the terminal line. Now run `python -m facemap` and you're all set.
+3. Change directory to facemap folder `cd facemap`
+4. Run `conda env create -f environment.yml`
+5. To activate this new environment, run `conda activate facemap`
+6. You should see `(facemap)` on the left side of the terminal line. Now run `python -m facemap` and you're all set.
 
-#### For latest development version 
-
-To install updated github version using pip:
-1. Run `pip install git+https://www.github.com/mouseland/facemap.git`
-
-Alternatively,
-
-1. Clone the github repository: `git clone https://www.github.com/mouseland/facemap.git`
-2. Change directory to facemap folder `cd facemap`
-3. Run `conda env create -f environment.yml`
-4. To activate this new environment, run `conda activate facemap`
-5. You should see `(facemap)` on the left side of the terminal line. Now run `python -m facemap` and you're all set.
-
-### Common installation issues
+## Common installation issues
 
 If you have pip issues, there might be some interaction between pre-installed dependencies and the ones FaceMap needs. First thing to try is
 ~~~~
