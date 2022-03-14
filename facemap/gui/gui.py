@@ -17,7 +17,7 @@ from PyQt5.QtWidgets import ( QLabel, QPushButton, QLineEdit, QCheckBox,
 
 istr = ['pupil', 'motSVD', 'blink', 'running', 'movSVD']
 
-class MainW(QtGui.QMainWindow):
+class MainW(QtWidgets.QMainWindow):
     def __init__(self, moviefile=None, savedir=None):
         super(MainW, self).__init__()
         icon_path = os.path.join(
@@ -267,7 +267,7 @@ class MainW(QtGui.QMainWindow):
         self.batchlist=[]
         self.batchname=[]
         for k in range(5):
-            self.batchname.append(QtGui.QLabel(''))
+            self.batchname.append(QLabel(''))
             self.batchname[-1].setStyleSheet("color: white;")
             self.l0.addWidget(self.batchname[-1],9+k,0,1,4)
 
@@ -279,14 +279,14 @@ class MainW(QtGui.QMainWindow):
         # Play/pause features
         iconSize = QtCore.QSize(30, 30)
         self.playButton = QToolButton()
-        self.playButton.setIcon(self.style().standardIcon(QtGui.QStyle.SP_MediaPlay))
+        self.playButton.setIcon(self.style().standardIcon(QtWidgets.QStyle.SP_MediaPlay))
         self.playButton.setIconSize(iconSize)
         self.playButton.setToolTip("Play")
         self.playButton.setCheckable(True)
         self.playButton.clicked.connect(self.start)
         self.pauseButton = QToolButton()
         self.pauseButton.setCheckable(True)
-        self.pauseButton.setIcon(self.style().standardIcon(QtGui.QStyle.SP_MediaPause))
+        self.pauseButton.setIcon(self.style().standardIcon(QtWidgets.QStyle.SP_MediaPause))
         self.pauseButton.setIconSize(iconSize)
         self.pauseButton.setToolTip("Pause")
         self.pauseButton.clicked.connect(self.pause)
@@ -915,135 +915,137 @@ class MainW(QtGui.QMainWindow):
 
     ### ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Plot 1 and 2 functions ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ 
     def load_trace_button_clicked(self, plot_id):
-        data = io.load_trace_data(parent=self)
-        if data.ndim == 1:
-            # Open a QDialog box containing two radio buttons horizontally centered
-            # and a QLineEdit to enter the name of the trace
-            # If the user presses OK, the trace is added to the list of traces
-            # and the combo box is updated
-            # If the user presses Cancel, the trace is not added
-            dialog = QtWidgets.QDialog()
-            dialog.setWindowTitle("Set data type")
-            dialog.setFixedWidth(400)
-            dialog.verticalLayout = QtWidgets.QVBoxLayout(dialog)
-            dialog.verticalLayout.setContentsMargins(10, 10, 10, 10) 
+        try:
+            data = io.load_trace_data(parent=self)
+            if data.ndim == 1:
+                # Open a QDialog box containing two radio buttons horizontally centered
+                # and a QLineEdit to enter the name of the trace
+                # If the user presses OK, the trace is added to the list of traces
+                # and the combo box is updated
+                # If the user presses Cancel, the trace is not added
+                dialog = QtWidgets.QDialog()
+                dialog.setWindowTitle("Set data type")
+                dialog.setFixedWidth(400)
+                dialog.verticalLayout = QtWidgets.QVBoxLayout(dialog)
+                dialog.verticalLayout.setContentsMargins(10, 10, 10, 10) 
 
-            dialog.horizontalLayout = QtWidgets.QHBoxLayout()
-            dialog.verticalLayout.addLayout(dialog.horizontalLayout)
-            dialog.label = QtWidgets.QLabel("Data type:")
-            dialog.horizontalLayout.addWidget(dialog.label)
-            
-            # Create radio buttons
-            dialog.radio_button_group = QtWidgets.QButtonGroup()
-            dialog.radio_button_group.setExclusive(True)
-            dialog.radioButton1 = QtWidgets.QRadioButton("Continuous")
-            dialog.radioButton1.setChecked(True)
-            dialog.horizontalLayout.addWidget(dialog.radioButton1)
-            dialog.radioButton2 = QtWidgets.QRadioButton("Discrete")
-            dialog.radioButton2.setChecked(False)
-            dialog.horizontalLayout.addWidget(dialog.radioButton2)
-            # Add radio buttons to radio buttons group
-            dialog.radio_button_group.addButton(dialog.radioButton1)
-            dialog.radio_button_group.addButton(dialog.radioButton2)
+                dialog.horizontalLayout = QtWidgets.QHBoxLayout()
+                dialog.verticalLayout.addLayout(dialog.horizontalLayout)
+                dialog.label = QtWidgets.QLabel("Data type:")
+                dialog.horizontalLayout.addWidget(dialog.label)
+                
+                # Create radio buttons
+                dialog.radio_button_group = QtWidgets.QButtonGroup()
+                dialog.radio_button_group.setExclusive(True)
+                dialog.radioButton1 = QtWidgets.QRadioButton("Continuous")
+                dialog.radioButton1.setChecked(True)
+                dialog.horizontalLayout.addWidget(dialog.radioButton1)
+                dialog.radioButton2 = QtWidgets.QRadioButton("Discrete")
+                dialog.radioButton2.setChecked(False)
+                dialog.horizontalLayout.addWidget(dialog.radioButton2)
+                # Add radio buttons to radio buttons group
+                dialog.radio_button_group.addButton(dialog.radioButton1)
+                dialog.radio_button_group.addButton(dialog.radioButton2)
 
-            dialog.horizontalLayout2 = QtWidgets.QHBoxLayout()
-            dialog.label = QtWidgets.QLabel("Data name:")
-            dialog.horizontalLayout2.addWidget(dialog.label)
-            dialog.lineEdit = QtWidgets.QLineEdit()
-            dialog.lineEdit.setText("Trace 1")
-            # Adjust size of line edit
-            dialog.lineEdit.setFixedWidth(200)
-            dialog.horizontalLayout2.addWidget(dialog.lineEdit)
-            dialog.verticalLayout.addLayout(dialog.horizontalLayout2)
-            dialog.horizontalLayout3 = QtWidgets.QHBoxLayout()
-            dialog.buttonBox = QtWidgets.QDialogButtonBox(QtWidgets.QDialogButtonBox.Ok | QtWidgets.QDialogButtonBox.Cancel)
-            dialog.buttonBox.accepted.connect(dialog.accept)
-            dialog.buttonBox.rejected.connect(dialog.reject)
-            dialog.horizontalLayout3.addWidget(dialog.buttonBox)
-            dialog.verticalLayout.addLayout(dialog.horizontalLayout3)
-            if dialog.exec_():
-                data_name = dialog.lineEdit.text()
-                if data_name == "":
-                    data_name = "trace"
-                data_type = "continuous"
-                if dialog.radioButton2.isChecked():
-                    data_type = "discrete"
-                    # Create a color palette of len(data) using distinguishable_colors
-                    # and add it to the list of color palettes
-                    # The color palette is used to color the points in the scatter 
-                    if len(np.unique(data))<=10:
-                        color_palette = np.array(plt.get_cmap('tab10').colors)
-                    elif len(np.unique(data))<=20:
-                        color_palette = np.array(plt.get_cmap('tab20').colors)
+                dialog.horizontalLayout2 = QtWidgets.QHBoxLayout()
+                dialog.label = QtWidgets.QLabel("Data name:")
+                dialog.horizontalLayout2.addWidget(dialog.label)
+                dialog.lineEdit = QtWidgets.QLineEdit()
+                dialog.lineEdit.setText("Trace 1")
+                # Adjust size of line edit
+                dialog.lineEdit.setFixedWidth(200)
+                dialog.horizontalLayout2.addWidget(dialog.lineEdit)
+                dialog.verticalLayout.addLayout(dialog.horizontalLayout2)
+                dialog.horizontalLayout3 = QtWidgets.QHBoxLayout()
+                dialog.buttonBox = QtWidgets.QDialogButtonBox(QtWidgets.QDialogButtonBox.Ok | QtWidgets.QDialogButtonBox.Cancel)
+                dialog.buttonBox.accepted.connect(dialog.accept)
+                dialog.buttonBox.rejected.connect(dialog.reject)
+                dialog.horizontalLayout3.addWidget(dialog.buttonBox)
+                dialog.verticalLayout.addLayout(dialog.horizontalLayout3)
+                if dialog.exec_():
+                    data_name = dialog.lineEdit.text()
+                    if data_name == "":
+                        data_name = "trace"
+                    data_type = "continuous"
+                    if dialog.radioButton2.isChecked():
+                        data_type = "discrete"
+                        # Create a color palette of len(data) using distinguishable_colors
+                        # and add it to the list of color palettes
+                        # The color palette is used to color the points in the scatter 
+                        if len(np.unique(data))<=10:
+                            color_palette = np.array(plt.get_cmap('tab10').colors)
+                        elif len(np.unique(data))<=20:
+                            color_palette = np.array(plt.get_cmap('tab20').colors)
+                        else:
+                            num_classes = len(np.unique(data))
+                            color_palette = cm.get_cmap('gist_rainbow')(np.linspace(0, 1., num_classes))
+                        color_palette *= 255
+                        color_palette = color_palette.astype(int)
+                        #color_palette = color_palette[:len(np.unique(data))]
+                        # Create a list of pens for each unique value in data
+                        # The pen is used to color the points in the scatter plot     
+                        pen_list = np.empty(len(data), dtype=object)
+                        for j, value in enumerate(np.unique(data)):
+                            ind = np.where(data==value)[0]
+                            pen_list[ind] = pg.mkPen(color_palette[j])
+                        vtick = QPainterPath()
+                        vtick.moveTo(0, -1)
+                        vtick.lineTo(0, 1)
+
+                    if plot_id == 1:
+                        self.trace1_data_loaded = data
+                        self.trace1_data_type = data_type
+                        self.trace1_name = data_name   
+                        if data_type == "discrete":
+                            x = np.arange(len(data))
+                            y = np.ones((len(x)))
+                            self.trace1_plot = pg.ScatterPlotItem()
+                            self.trace1_plot.setData(x, y, pen=pen_list, brush='g',pxMode=False, 
+                                                    symbol=vtick, size=1, symbol_pen=pen_list)
+                        else:
+                            self.trace1_plot = pg.PlotDataItem()
+                            self.trace1_plot.setData(data, pen=pg.mkPen("g", width=1))
+                        self.trace1_legend.clear()
+                        self.trace1_legend.addItem(self.trace1_plot, name=data_name)
+                        self.trace1_legend.setPos(self.trace1_plot.x(), self.trace1_plot.y())
+                        self.trace1_legend.setParentItem(self.p1)
+                        self.trace1_legend.setVisible(True)
+                        self.trace1_plot.setVisible(True)
+                        self.update_status_bar("Trace 1 data updated")
+                        try:
+                            self.trace1_legend.sigClicked.connect(self.mouseClickEvent)
+                        except Exception as e:
+                            pass
+                    elif plot_id == 2:
+                        self.trace2_data_loaded = data
+                        self.trace2_data_type = data_type
+                        self.trace2_name = data_name
+                        if data_type == "discrete":
+                            x = np.arange(len(data))
+                            y = np.ones((len(x)))
+                            self.trace2_plot = pg.ScatterPlotItem()
+                            self.trace2_plot.setData(x, y, pen=pen_list, brush='g',pxMode=False, 
+                                                    symbol=vtick, size=1, symbol_pen=pen_list)
+                        else:
+                            self.trace2_plot = pg.PlotDataItem()
+                            self.trace2_plot.setData(data, pen=pg.mkPen("g", width=1))
+                        self.trace2_legend.clear()
+                        self.trace2_legend.addItem(self.trace2_plot, name=data_name)
+                        self.trace2_legend.setPos(self.trace2_plot.x(), self.trace2_plot.y())
+                        self.trace2_legend.setParentItem(self.p2)
+                        self.trace2_legend.setVisible(True)
+                        self.trace2_plot.setVisible(True)
+                        self.update_status_bar("Trace 2 data updated")
+                        try:
+                            self.trace2_legend.sigClicked.connect(self.mouseClickEvent)
+                        except Exception as e:
+                            pass
                     else:
-                        num_classes = len(np.unique(data))
-                        color_palette = cm.get_cmap('gist_rainbow')(np.linspace(0, 1., num_classes))
-                    color_palette *= 255
-                    color_palette = color_palette.astype(int)
-                    #color_palette = color_palette[:len(np.unique(data))]
-                    # Create a list of pens for each unique value in data
-                    # The pen is used to color the points in the scatter plot     
-                    pen_list = np.empty(len(data), dtype=object)
-                    for j, value in enumerate(np.unique(data)):
-                        ind = np.where(data==value)[0]
-                        pen_list[ind] = pg.mkPen(color_palette[j])
-                    vtick = QPainterPath()
-                    vtick.moveTo(0, -1)
-                    vtick.lineTo(0, 1)
-
-                if plot_id == 1:
-                    self.trace1_data_loaded = data
-                    self.trace1_data_type = data_type
-                    self.trace1_name = data_name   
-                    if data_type == "discrete":
-                        x = np.arange(len(data))
-                        y = np.ones((len(x)))
-                        self.trace1_plot = pg.ScatterPlotItem()
-                        self.trace1_plot.setData(x, y, pen=pen_list, brush='g',pxMode=False, 
-                                                symbol=vtick, size=1, symbol_pen=pen_list)
-                    else:
-                        self.trace1_plot = pg.PlotDataItem()
-                        self.trace1_plot.setData(data, pen=pg.mkPen("g", width=1))
-                    self.trace1_legend.clear()
-                    self.trace1_legend.addItem(self.trace1_plot, name=data_name)
-                    self.trace1_legend.setPos(self.trace1_plot.x(), self.trace1_plot.y())
-                    self.trace1_legend.setParentItem(self.p1)
-                    self.trace1_legend.setVisible(True)
-                    self.trace1_plot.setVisible(True)
-                    self.update_status_bar("Trace 1 data updated")
-                    try:
-                        self.trace1_legend.sigClicked.connect(self.mouseClickEvent)
-                    except Exception as e:
+                        self.update_status_bar("Error: plot ID not recognized")
                         pass
-                elif plot_id == 2:
-                    self.trace2_data_loaded = data
-                    self.trace2_data_type = data_type
-                    self.trace2_name = data_name
-                    if data_type == "discrete":
-                        x = np.arange(len(data))
-                        y = np.ones((len(x)))
-                        self.trace2_plot = pg.ScatterPlotItem()
-                        self.trace2_plot.setData(x, y, pen=pen_list, brush='g',pxMode=False, 
-                                                symbol=vtick, size=1, symbol_pen=pen_list)
-                    else:
-                        self.trace2_plot = pg.PlotDataItem()
-                        self.trace2_plot.setData(data, pen=pg.mkPen("g", width=1))
-                    self.trace2_legend.clear()
-                    self.trace2_legend.addItem(self.trace2_plot, name=data_name)
-                    self.trace2_legend.setPos(self.trace2_plot.x(), self.trace2_plot.y())
-                    self.trace2_legend.setParentItem(self.p2)
-                    self.trace2_legend.setVisible(True)
-                    self.trace2_plot.setVisible(True)
-                    self.update_status_bar("Trace 2 data updated")
-                    try:
-                        self.trace2_legend.sigClicked.connect(self.mouseClickEvent)
-                    except Exception as e:
-                        pass
-                else:
-                    self.update_status_bar("Error: plot ID not recognized")
-                    pass
-                self.plot_processed()
-        else:
+                    self.plot_processed()
+        except Exception as e:
+            print(e)
             self.update_status_bar("Error: data not recognized")
     
     # Plot trace on p1 showing cluster labels as discrete data
@@ -1250,7 +1252,7 @@ class MainW(QtGui.QMainWindow):
 
 def run(moviefile=None, savedir=None):
     # Always start by initializing Qt (only once per application)
-    app = QtGui.QApplication(sys.argv)
+    app = QtWidgets.QApplication(sys.argv)
     icon_path = os.path.join(
          os.path.dirname(os.path.realpath(__file__)), "mouse.png"
     )

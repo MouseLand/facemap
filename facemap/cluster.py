@@ -4,7 +4,7 @@ from PyQt5 import QtGui, QtCore, QtWidgets
 import pyqtgraph as pg
 #import pyqtgraph.opengl as gl
 from sklearn.cluster import MiniBatchKMeans
-import hdbscan
+#import hdbscan
 from matplotlib import cm
 from . import utils
 from .gui import io
@@ -67,9 +67,9 @@ class Cluster():
         parent.kmeans_radiobutton = QRadioButton("KMeans")
         parent.kmeans_radiobutton.setStyleSheet("color: gray;")
         parent.RadioGroup.addButton(parent.kmeans_radiobutton)
-        parent.hdbscan_radiobutton = QRadioButton("HDBSCAN")
-        parent.hdbscan_radiobutton.setStyleSheet("color: gray;")
-        parent.RadioGroup.addButton(parent.hdbscan_radiobutton)
+        #parent.hdbscan_radiobutton = QRadioButton("HDBSCAN")
+        #parent.hdbscan_radiobutton.setStyleSheet("color: gray;")
+        #parent.RadioGroup.addButton(parent.hdbscan_radiobutton)
 
         parent.min_cluster_size_label = QLabel("min_cluster_size:")
         parent.min_cluster_size_label.setStyleSheet("color: gray;")
@@ -96,7 +96,7 @@ class Cluster():
         parent.l0.addWidget(parent.loadlabels_radiobutton, istretch+6, 0, 1, 1)
         parent.l0.addWidget(parent.load_cluster_labels_button, istretch+6, 1, 1, 1)
         parent.l0.addWidget(parent.kmeans_radiobutton, istretch+7, 0, 1, 1)
-        parent.l0.addWidget(parent.hdbscan_radiobutton, istretch+7, 1, 1, 1)
+       # parent.l0.addWidget(parent.hdbscan_radiobutton, istretch+7, 1, 1, 1)
         parent.l0.addWidget(parent.min_cluster_size_label, istretch+8, 0, 1, 1)
         parent.l0.addWidget(parent.min_cluster_size, istretch+8, 1, 1, 1)
         parent.l0.addWidget(parent.num_clusters_label, istretch+8, 0, 1, 1)
@@ -106,7 +106,7 @@ class Cluster():
         parent.load_embedding_button.clicked.connect(lambda: self.load_umap(parent))
         parent.loadlabels_radiobutton.toggled.connect(lambda: self.show_cluster_method_param(parent))
         parent.kmeans_radiobutton.toggled.connect(lambda: self.show_cluster_method_param(parent))
-        parent.hdbscan_radiobutton.toggled.connect(lambda: self.show_cluster_method_param(parent))
+        #parent.hdbscan_radiobutton.toggled.connect(lambda: self.show_cluster_method_param(parent))
         parent.load_cluster_labels_button.clicked.connect(lambda: self.load_cluster_labels(parent))
 
     def load_umap(self, parent):
@@ -155,14 +155,14 @@ class Cluster():
             parent.data_clustering_combobox.setCurrentIndex(index)
         if self.cluster_labels_method == "KMeans":
             parent.kmeans_radiobutton.setChecked(True)
-        elif self.cluster_labels_method == "HDBSCAN":
-            parent.hdbscan_radiobutton.setChecked(True)
+        #elif self.cluster_labels_method == "HDBSCAN":
+        #    parent.hdbscan_radiobutton.setChecked(True)
         elif self.cluster_labels_method == "User labels":
             parent.loadlabels_radiobutton.setChecked(True)
         else:
             parent.RadioGroup.setExclusive(False)
             parent.kmeans_radiobutton.setChecked(False)
-            parent.hdbscan_radiobutton.setChecked(False)
+            #parent.hdbscan_radiobutton.setChecked(False)
             parent.loadlabels_radiobutton.setChecked(False)
             parent.RadioGroup.setExclusive(True)
         self.plot_clustering_output(parent)
@@ -187,7 +187,7 @@ class Cluster():
         parent.cluster_method_label.show()
         parent.loadlabels_radiobutton.show()
         parent.kmeans_radiobutton.show()
-        parent.hdbscan_radiobutton.show()
+        #parent.hdbscan_radiobutton.show()
         self.show_cluster_method_param(parent)
         parent.load_embedding_button.show()
         parent.zoom_in_button.show()
@@ -205,7 +205,7 @@ class Cluster():
         parent.load_cluster_labels_button.hide()
         parent.loadlabels_radiobutton.hide()
         parent.kmeans_radiobutton.hide()
-        parent.hdbscan_radiobutton.hide()
+        #parent.hdbscan_radiobutton.hide()
         parent.num_clusters_label.hide()
         parent.num_clusters.hide()
         parent.min_cluster_size_label.hide()
@@ -228,14 +228,16 @@ class Cluster():
             parent.load_cluster_labels_button.hide()
             parent.num_clusters_label.show()
             parent.num_clusters.show()
+        else:
+            return
+        """
         elif parent.hdbscan_radiobutton.isChecked():
             parent.num_clusters_label.hide()
             parent.num_clusters.hide()
             parent.load_cluster_labels_button.hide()
             parent.min_cluster_size_label.show()
             parent.min_cluster_size.show()
-        else:
-            return
+         """
 
     def get_cluster_labels(self, data, parent):
         try:
@@ -246,10 +248,6 @@ class Cluster():
                                 batch_size=100, max_iter=50)
                 kmeans.fit(data)
                 self.cluster_labels = kmeans.labels_
-            elif parent.hdbscan_radiobutton.isChecked():
-                self.cluster_labels_method = "HDBSCAN"
-                clusterer = hdbscan.HDBSCAN(min_cluster_size=int(parent.min_cluster_size.text())).fit(data)
-                self.cluster_labels = clusterer.labels_
             elif parent.loadlabels_radiobutton.isChecked():
                 if parent.is_cluster_labels_loaded:
                     self.cluster_labels = parent.loaded_cluster_labels
@@ -349,7 +347,7 @@ class Cluster():
         name = None
         
         # Get cluster labels if clustering method selected for embedded output
-        if parent.kmeans_radiobutton.isChecked() or parent.hdbscan_radiobutton.isChecked() or parent.loadlabels_radiobutton.isChecked():
+        if parent.kmeans_radiobutton.isChecked() or parent.loadlabels_radiobutton.isChecked():
             self.get_cluster_labels(self.embedded_output, parent)
             brushes, colors = self.get_colors()
             name = self.cluster_labels

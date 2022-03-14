@@ -9,18 +9,17 @@
 
 # Facemap <img src="facemap/mouse.png" width="200" title="lilmouse" alt="lilmouse" align="right" vspace = "50">
 
-GUI and CLI for tracking pose of mouse face from different camera views (python only) and svd processing of videos (python and MATLAB).
+Pose tracking of mouse face from different camera views (python only) and svd processing of videos (python and MATLAB). Includes GUI and CLI for easy use.
 
 ## [Installation](https://github.com/MouseLand/facemap/blob/dev/docs/installation.md)
 
-##### For latest released version (from PyPI)
+- For latest released version (from PyPI) including svd processing only, run `pip install facemap` for headless version or `pip install facemap[gui]` for using GUI.
 
-Run `pip install facemap` for headless version or `pip install facemap[gui]` for using GUI.
+- For using tracker and svd processing, run `pip install git+https://github.com/mouseland/facemap.git` that will install the latest development version on github.
 
+To upgrade Facemap ([PyPI package](https://pypi.org/project/facemap/)), within the environment run: `pip install facemap --upgrade`
 
-To upgrade Facemap (package [here](https://pypi.org/project/facemap/)), within the environment run: `pip install facemap --upgrade`
-
-Using the environment.yml file (recommended):
+Facemap installeding is recommended using the environment.yml:
 
 1. Download the `environment.yml` file from the repository
 2. Open an anaconda prompt / command prompt with `conda` for **python 3** in the path
@@ -30,9 +29,9 @@ Using the environment.yml file (recommended):
 
 # Pose tracking
 
-<img src="figs/tracker.gif" width="600" height="350" title="Tracker" alt="tracker" algin="middle" vspace = "10">
+<img src="figs/tracker.gif" width="100%" height="500" title="Tracker" alt="tracker" algin="middle" vspace = "10">
 
-The latest python version is integrated with Facemap network for tracking 14 distinct keypoints on mouse face and an additional point for tracking paw. The keypoints can be tracked from different camera views as shown below. 
+The latest python version is integrated with Facemap network for tracking 14 distinct keypoints on mouse face and an additional point for tracking paw. The keypoints can be tracked from different camera views (some examples shown below). 
 
 <p float="middle">
 <img src="figs/mouse_face1_keypoints.png"  width="310" height="290" title="View 1" alt="view1" align="left" vspace = "10" hspace="30" style="border: 0.5px solid white"  />
