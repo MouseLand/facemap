@@ -4,12 +4,15 @@ from PyQt5 import QtGui, QtCore, QtWidgets
 import pyqtgraph as pg
 #import pyqtgraph.opengl as gl
 from sklearn.cluster import MiniBatchKMeans
-import hdbscan
+#import hdbscan
 from matplotlib import cm
-import matplotlib.pyplot as plt
-from . import io, utils
+from . import utils
+from .gui import io
 import cv2
 import os
+from PyQt5.QtGui import QFont
+from PyQt5.QtWidgets import (QLabel, QPushButton, QRadioButton, QSpinBox, QButtonGroup,
+        QMessageBox, QLineEdit, QCheckBox)
 
 class Cluster():
     def __init__(self, parent, method=None, cluster_labels=None, cluster_labels_method=None, data_type=None):
@@ -25,62 +28,62 @@ class Cluster():
 
     def create_clustering_widgets(self, parent):
         # Add options to change params for embedding using user input
-        parent.ClusteringLabel = QtGui.QLabel("Clustering")
+        parent.ClusteringLabel = QLabel("Clustering")
         parent.ClusteringLabel.setStyleSheet("color: white;")
         parent.ClusteringLabel.setAlignment(QtCore.Qt.AlignCenter)
-        parent.ClusteringLabel.setFont(QtGui.QFont("Arial", 12, QtGui.QFont.Bold))
+        parent.ClusteringLabel.setFont(QFont("Arial", 12, QFont.Bold))
 
-        parent.min_dist_label = QtGui.QLabel("min_dist:")
+        parent.min_dist_label = QLabel("min_dist:")
         parent.min_dist_label.setStyleSheet("color: gray;")
-        parent.min_dist_value = QtGui.QLineEdit()
+        parent.min_dist_value = QLineEdit()
         parent.min_dist_value.setText(str(0.5))
         parent.min_dist_value.setFixedWidth(50)
 
-        parent.n_neighbors_label = QtGui.QLabel("n_neighbors:")
+        parent.n_neighbors_label = QLabel("n_neighbors:")
         parent.n_neighbors_label.setStyleSheet("color: gray;")
-        parent.n_neighbors_value = QtGui.QLineEdit()
+        parent.n_neighbors_value = QLineEdit()
         parent.n_neighbors_value.setText(str(30))
         parent.n_neighbors_value.setFixedWidth(50)
 
-        parent.n_components_label = QtGui.QLabel("n_components:")
+        parent.n_components_label = QLabel("n_components:")
         parent.n_components_label.setStyleSheet("color: gray;")
-        parent.n_components_value = QtGui.QSpinBox()
+        parent.n_components_value = QSpinBox()
         parent.n_components_value.setRange(2, 3)
         parent.n_components_value.setValue(2)
         parent.n_components_value.setFixedWidth(50)
         #metric
 
-        parent.cluster_method_label = QtGui.QLabel("Cluster labels")
+        parent.cluster_method_label = QLabel("Cluster labels")
         parent.cluster_method_label.setStyleSheet("color: gray;")
         parent.cluster_method_label.setAlignment(QtCore.Qt.AlignCenter)
 
-        parent.load_umap_embedding_button = QtGui.QPushButton('Load emmbedding')
+        parent.load_embedding_button = QPushButton('Load emmbedding')
 
-        parent.RadioGroup = QtGui.QButtonGroup()
-        parent.load_cluster_labels_button = QtGui.QPushButton('Load')
-        parent.loadlabels_radiobutton = QtGui.QRadioButton("Load labels")
+        parent.RadioGroup = QButtonGroup()
+        parent.load_cluster_labels_button = QPushButton('Load')
+        parent.loadlabels_radiobutton = QRadioButton("Load labels")
         parent.loadlabels_radiobutton.setStyleSheet("color: gray;")
         parent.RadioGroup.addButton(parent.loadlabels_radiobutton)
-        parent.kmeans_radiobutton = QtGui.QRadioButton("KMeans")
+        parent.kmeans_radiobutton = QRadioButton("KMeans")
         parent.kmeans_radiobutton.setStyleSheet("color: gray;")
         parent.RadioGroup.addButton(parent.kmeans_radiobutton)
-        parent.hdbscan_radiobutton = QtGui.QRadioButton("HDBSCAN")
-        parent.hdbscan_radiobutton.setStyleSheet("color: gray;")
-        parent.RadioGroup.addButton(parent.hdbscan_radiobutton)
+        #parent.hdbscan_radiobutton = QRadioButton("HDBSCAN")
+        #parent.hdbscan_radiobutton.setStyleSheet("color: gray;")
+        #parent.RadioGroup.addButton(parent.hdbscan_radiobutton)
 
-        parent.min_cluster_size_label = QtGui.QLabel("min_cluster_size:")
+        parent.min_cluster_size_label = QLabel("min_cluster_size:")
         parent.min_cluster_size_label.setStyleSheet("color: gray;")
-        parent.min_cluster_size = QtGui.QLineEdit()
+        parent.min_cluster_size = QLineEdit()
         parent.min_cluster_size.setFixedWidth(50)
         parent.min_cluster_size.setText(str(500))
 
-        parent.num_clusters_label = QtGui.QLabel("num_clusters:")
+        parent.num_clusters_label = QLabel("num_clusters:")
         parent.num_clusters_label.setStyleSheet("color: gray;")
-        parent.num_clusters = QtGui.QLineEdit()
+        parent.num_clusters = QLineEdit()
         parent.num_clusters.setFixedWidth(50)
         parent.num_clusters.setText(str(5))
 
-        istretch = 11
+        istretch = 12
         parent.l0.addWidget(parent.ClusteringLabel, istretch, 0, 1, 2)
         parent.l0.addWidget(parent.min_dist_label, istretch+1, 0, 1, 1)
         parent.l0.addWidget(parent.min_dist_value, istretch+1, 1, 1, 1)
@@ -88,22 +91,22 @@ class Cluster():
         parent.l0.addWidget(parent.n_neighbors_value, istretch+2, 1, 1, 1)
         parent.l0.addWidget(parent.n_components_label, istretch+3, 0, 1, 1)
         parent.l0.addWidget(parent.n_components_value, istretch+3, 1, 1, 1)
-        parent.l0.addWidget(parent.load_umap_embedding_button, istretch+4, 0, 1, 2)
+        parent.l0.addWidget(parent.load_embedding_button, istretch+4, 0, 1, 2)
         parent.l0.addWidget(parent.cluster_method_label, istretch+5, 0, 1, 2)
         parent.l0.addWidget(parent.loadlabels_radiobutton, istretch+6, 0, 1, 1)
         parent.l0.addWidget(parent.load_cluster_labels_button, istretch+6, 1, 1, 1)
         parent.l0.addWidget(parent.kmeans_radiobutton, istretch+7, 0, 1, 1)
-        parent.l0.addWidget(parent.hdbscan_radiobutton, istretch+7, 1, 1, 1)
+       # parent.l0.addWidget(parent.hdbscan_radiobutton, istretch+7, 1, 1, 1)
         parent.l0.addWidget(parent.min_cluster_size_label, istretch+8, 0, 1, 1)
         parent.l0.addWidget(parent.min_cluster_size, istretch+8, 1, 1, 1)
         parent.l0.addWidget(parent.num_clusters_label, istretch+8, 0, 1, 1)
         parent.l0.addWidget(parent.num_clusters, istretch+8, 1, 1, 1)
 
         self.hide_umap_param(parent)
-        parent.load_umap_embedding_button.clicked.connect(lambda: self.load_umap(parent))
+        parent.load_embedding_button.clicked.connect(lambda: self.load_umap(parent))
         parent.loadlabels_radiobutton.toggled.connect(lambda: self.show_cluster_method_param(parent))
         parent.kmeans_radiobutton.toggled.connect(lambda: self.show_cluster_method_param(parent))
-        parent.hdbscan_radiobutton.toggled.connect(lambda: self.show_cluster_method_param(parent))
+        #parent.hdbscan_radiobutton.toggled.connect(lambda: self.show_cluster_method_param(parent))
         parent.load_cluster_labels_button.clicked.connect(lambda: self.load_cluster_labels(parent))
 
     def load_umap(self, parent):
@@ -111,6 +114,10 @@ class Cluster():
         self.plot_clustering_output(parent)
 
     def load_cluster_labels(self, parent):
+        try:
+            self.ClusteringPlot_legend.clear()
+        except Exception as e:
+            pass
         io.load_cluster_labels(parent)
         self.plot_clustering_output(parent)
 
@@ -130,10 +137,12 @@ class Cluster():
  
             parent.run_clustering_button.show()
 
-        cluster_method = parent.clusteringVisComboBox.currentText() ######
-        if cluster_method == "UMAP":
-            #parent.data_clustering_combobox.show()
+        embed_method = parent.clusteringVisComboBox.currentText() ######
+        if embed_method == "UMAP":
             self.show_umap_param(parent)
+        elif embed_method == "tSNE":
+            self.hide_umap_param(parent)
+            self.show_tsne_options(parent)
         else:
             self.disable_data_clustering_features(parent)
         
@@ -146,14 +155,14 @@ class Cluster():
             parent.data_clustering_combobox.setCurrentIndex(index)
         if self.cluster_labels_method == "KMeans":
             parent.kmeans_radiobutton.setChecked(True)
-        elif self.cluster_labels_method == "HDBSCAN":
-            parent.hdbscan_radiobutton.setChecked(True)
+        #elif self.cluster_labels_method == "HDBSCAN":
+        #    parent.hdbscan_radiobutton.setChecked(True)
         elif self.cluster_labels_method == "User labels":
             parent.loadlabels_radiobutton.setChecked(True)
         else:
             parent.RadioGroup.setExclusive(False)
             parent.kmeans_radiobutton.setChecked(False)
-            parent.hdbscan_radiobutton.setChecked(False)
+            #parent.hdbscan_radiobutton.setChecked(False)
             parent.loadlabels_radiobutton.setChecked(False)
             parent.RadioGroup.setExclusive(True)
         self.plot_clustering_output(parent)
@@ -161,6 +170,8 @@ class Cluster():
     def disable_data_clustering_features(self, parent):
         parent.data_clustering_combobox.hide()
         parent.ClusteringPlot.clear()
+        parent.zoom_in_button.hide()
+        parent.zoom_out_button.hide()
         self.hide_umap_param(parent)
         parent.run_clustering_button.hide()
         parent.save_clustering_button.hide()
@@ -176,9 +187,11 @@ class Cluster():
         parent.cluster_method_label.show()
         parent.loadlabels_radiobutton.show()
         parent.kmeans_radiobutton.show()
-        parent.hdbscan_radiobutton.show()
+        #parent.hdbscan_radiobutton.show()
         self.show_cluster_method_param(parent)
-        parent.load_umap_embedding_button.show()
+        parent.load_embedding_button.show()
+        parent.zoom_in_button.show()
+        parent.zoom_out_button.show()
 
     def hide_umap_param(self, parent):
         parent.ClusteringLabel.hide()
@@ -192,12 +205,15 @@ class Cluster():
         parent.load_cluster_labels_button.hide()
         parent.loadlabels_radiobutton.hide()
         parent.kmeans_radiobutton.hide()
-        parent.hdbscan_radiobutton.hide()
+        #parent.hdbscan_radiobutton.hide()
         parent.num_clusters_label.hide()
         parent.num_clusters.hide()
         parent.min_cluster_size_label.hide()
         parent.min_cluster_size.hide()
-        parent.load_umap_embedding_button.hide()
+        parent.load_embedding_button.hide()
+
+    def show_tsne_options(self, parent):
+        parent.load_embedding_button.show()
 
     def show_cluster_method_param(self, parent):
         if parent.loadlabels_radiobutton.isChecked():
@@ -212,14 +228,16 @@ class Cluster():
             parent.load_cluster_labels_button.hide()
             parent.num_clusters_label.show()
             parent.num_clusters.show()
+        else:
+            return
+        """
         elif parent.hdbscan_radiobutton.isChecked():
             parent.num_clusters_label.hide()
             parent.num_clusters.hide()
             parent.load_cluster_labels_button.hide()
             parent.min_cluster_size_label.show()
             parent.min_cluster_size.show()
-        else:
-            return
+         """
 
     def get_cluster_labels(self, data, parent):
         try:
@@ -230,21 +248,17 @@ class Cluster():
                                 batch_size=100, max_iter=50)
                 kmeans.fit(data)
                 self.cluster_labels = kmeans.labels_
-            elif parent.hdbscan_radiobutton.isChecked():
-                self.cluster_labels_method = "HDBSCAN"
-                clusterer = hdbscan.HDBSCAN(min_cluster_size=int(parent.min_cluster_size.text())).fit(data)
-                self.cluster_labels = clusterer.labels_
             elif parent.loadlabels_radiobutton.isChecked():
                 if parent.is_cluster_labels_loaded:
                     self.cluster_labels = parent.loaded_cluster_labels
                     self.cluster_labels_method = "User labels"
                 else:
-                    QtGui.QMessageBox.about(parent, 'Error','Please load cluster labels file')
+                    QMessageBox.about(parent, 'Error','Please load cluster labels file')
                     pass
             else:
                 return
         except Exception as e:
-            QtGui.QMessageBox.about(parent, 'Error','Invalid input entered')
+            QMessageBox.about(parent, 'Error','Invalid input entered')
             print(e)
             pass
 
@@ -253,11 +267,15 @@ class Cluster():
         colors = cm.get_cmap('gist_rainbow')(np.linspace(0, 1., num_classes))
         colors *= 255
         colors = colors.astype(int)
-        colors[:,-1] = 127
+        colors[:,-1] = 200#127
         brushes = [pg.mkBrush(color=c) for c in colors]
+        """
+        num_classes = len(np.unique(self.cluster_labels))
+        brushes = [pg.mkBrush(color=c) for c in colors_list[:num_classes]]
+        colors = colors_list[:num_classes]"""
         #if -1 in np.unique(self.cluster_labels):
         #    brushes[0] = pg.mkBrush(color=(220,220,220))
-        return brushes
+        return brushes, colors
 
     def reset(self, parent):
         self.cluster_labels = None
@@ -278,7 +296,7 @@ class Cluster():
             self.data_type = parent.data_clustering_combobox.currentText()
             self.cluster_method = parent.clusteringVisComboBox.currentText()
         except Exception as e:
-            QtGui.QMessageBox.about(parent, 'Error','Parameter input can only be a number')
+            QMessageBox.about(parent, 'Error','Parameter input can only be a number')
             print(e)
             pass
 
@@ -297,10 +315,10 @@ class Cluster():
             """
         else:
             self.data_type = None
-            msg = QtGui.QMessageBox(parent)
-            msg.setIcon(QtGui.QMessageBox.Warning)
+            msg = QMessageBox(parent)
+            msg.setIcon(QMessageBox.Warning)
             msg.setText("Please select data for clustering")
-            msg.setStandardButtons(QtGui.QMessageBox.Ok)
+            msg.setStandardButtons(QMessageBox.Ok)
             msg.exec_()
             return
         if self.cluster_method == "UMAP":
@@ -329,48 +347,66 @@ class Cluster():
         name = None
         
         # Get cluster labels if clustering method selected for embedded output
-        if parent.kmeans_radiobutton.isChecked() or parent.hdbscan_radiobutton.isChecked() or parent.loadlabels_radiobutton.isChecked():
+        if parent.kmeans_radiobutton.isChecked() or parent.loadlabels_radiobutton.isChecked():
             self.get_cluster_labels(self.embedded_output, parent)
-            brushes = self.get_colors()
+            brushes, colors = self.get_colors()
             name = self.cluster_labels
             if len(brushes) > 1:
                 is_cluster_colored = True
 
         # Plot output (i) w/ cluster labels (ii) w/o  cluster labels and (iii) 3D output
         if num_comps == 2:
+            # Set pixel size of embedded points on plot
+            if self.embedded_output.shape[0]<500:
+                point_size=6 
+            elif self.embedded_output.shape[0]<2000:
+                point_size=4 
+            else:
+                point_size=2
             if is_cluster_colored:
                 scatter_plots = []
-                if max(self.cluster_labels) > 4: #Adjust legend
-                    legend_num_row = 4
-                    legend_num_col = int(np.ceil(max(self.cluster_labels)/legend_num_row))+1
+                if len(np.unique(self.cluster_labels)) > 9: #Adjust legend
+                    legend_num_col = 9
+                    legend_num_row = int(len(np.unique(self.cluster_labels))/legend_num_col)+1
                 else:
-                    legend_num_col, legend_num_row = [1, 1]
-                parent.ClusteringPlot_legend = pg.LegendItem(labelTextSize='12pt', horSpacing=12,
+                    legend_num_col, legend_num_row = [len(np.unique(self.cluster_labels)), 1]
+                parent.ClusteringPlot_legend = pg.LegendItem(labelTextSize='11pt', horSpacing=10, 
                                                             colCount=legend_num_col, rowCount=legend_num_row)
+                parent.ClusteringPlot_legend.setPos(0,20)
                 for i, cluster in enumerate(np.unique(self.cluster_labels)):#range(max(self.cluster_labels)+1):
+                    print("cluster", cluster)
                     ind = np.where(self.cluster_labels==cluster)[0]
                     data = self.embedded_output[ind,:]
                     if cluster == -1:
                         scatter_plots.append(pg.ScatterPlotItem(data[:,0], data[:,1], symbol='o', brush=pg.mkBrush(color=(0,1,1,1)),
-                                            hoverable=True, hoverSize=15, pen=(0,.0001,0,0), data=ind, name=str(i))) #pg.mkPen(pg.hsvColor(hue=.01,sat=.01,alpha=0.01))
+                                            hoverable=True, hoverSize=15, hoverSymbol="x", hoverBrush='r',
+                                            pen=(0,.0001,0,0), data=ind, name=str(cluster)),size=point_size) #pg.mkPen(pg.hsvColor(hue=.01,sat=.01,alpha=0.01))
                     else:
                         scatter_plots.append(pg.ScatterPlotItem(data[:,0], data[:,1], symbol='o', brush=brushes[i],
-                                            hoverable=True, hoverSize=15, data=ind, name=str(i)))
+                                            hoverable=True, hoverSize=15, hoverSymbol="x", hoverBrush='r',
+                                            data=ind, name=str(cluster), size=point_size))
                     parent.ClusteringPlot.addItem(scatter_plots[i])
-                    parent.ClusteringPlot_legend.addItem(scatter_plots[i], name=str(i))
+                    parent.ClusteringPlot_legend.addItem(scatter_plots[i], name=str(cluster))
                 # Add all points (transparent) to connect them to hovered function
-                parent.clustering_scatterplot.setData(self.embedded_output[:,0], self.embedded_output[:,1], symbol='o', brush=(0,0,0,0),
-                                                hoverable=True, hoverSize=15, pen=(0,0,0,0), data=np.arange(num_feat),name=name)
+                parent.clustering_scatterplot.setData(self.embedded_output[:,0], self.embedded_output[:,1], symbol='o',
+                                                 brush=(0,0,0,0),pxMode=True, hoverable=True, hoverSize=15,
+                                                  hoverSymbol="x", hoverBrush='r',pen=(0,0,0,0),
+                                                   data=np.arange(num_feat), name=name,size=point_size)
                 parent.ClusteringPlot.addItem(parent.clustering_scatterplot)
+                parent.ClusteringPlot.addItem(parent.clustering_highlight_scatterplot)
                 parent.ClusteringPlot_legend.setPos(parent.clustering_scatterplot.x()+5,parent.clustering_scatterplot.y())
                 parent.ClusteringPlot_legend.setParentItem(parent.ClusteringPlot)
+                parent.plot_cluster_labels_p1(self.cluster_labels, colors)
             else:
-                parent.clustering_scatterplot.setData(self.embedded_output[:,0], self.embedded_output[:,1], symbol='o', brush=all_spots_colors,
-                                                hoverable=True, hoverSize=15, data=np.arange(num_feat),name=name)
+                parent.clustering_scatterplot.setData(self.embedded_output[:,0], self.embedded_output[:,1], symbol='o',
+                                                     brush=all_spots_colors,pxMode=True,hoverable=True, 
+                                                     hoverSize=15, hoverSymbol="x",hoverBrush='r',
+                                                     data=np.arange(num_feat),name=name, size=point_size)
                 parent.ClusteringPlot.addItem(parent.clustering_scatterplot)
+                parent.ClusteringPlot.addItem(parent.clustering_highlight_scatterplot)
             parent.ClusteringPlot.showAxis('left')
             parent.ClusteringPlot.showAxis('bottom')
-            parent.ClusteringPlot.setLabels(bottom='UMAP coordinate 1',left='UMAP coordinate 2') 
+            parent.ClusteringPlot.setLabels(bottom='Dimension 1',left='Dimension 2') 
         else: # 3D embedded visualization
             view = gl.GLViewWidget()
             view.setWindowTitle("3D plot of embedded points")
@@ -385,7 +421,6 @@ class Cluster():
         parent.save_clustering_button.show()
 
     def embedded_points_hovered(self, obj, ev, parent):
-        
         """
         point_hovered = np.where(parent.clustering_scatterplot.data['hovered'])[0]
         if point_hovered.shape[0] >= 1:         # Show tooltip only when hovering over a point i.e. no empty array
@@ -440,24 +475,24 @@ class Cluster():
         dialog.label.setText("Save files:")
         dialog.verticalLayout.addWidget(dialog.label)
 
-        dialog.data_checkbox = QtGui.QCheckBox("Cluster data (*.npy)")
+        dialog.data_checkbox = QCheckBox("Cluster data (*.npy)")
         dialog.data_checkbox.setChecked(True)
-        dialog.videos_checkbox = QtGui.QCheckBox("Cluster videos (*.avi)")
+        dialog.videos_checkbox = QCheckBox("Cluster videos (*.avi)")
         dialog.videos_checkbox.stateChanged.connect(lambda: self.enable_video_options(dialog))
 
-        dialog.num_frames_label = QtGui.QLabel("#Frames/cluster:")
-        dialog.num_frames = QtGui.QLineEdit()
+        dialog.num_frames_label = QLabel("#Frames/cluster:")
+        dialog.num_frames = QLineEdit()
         dialog.num_frames.setText(str(30))
         dialog.num_frames.setEnabled(False)
-        dialog.fps_label = QtGui.QLabel("FPS:")
-        dialog.fps = QtGui.QLineEdit()
+        dialog.fps_label = QLabel("FPS:")
+        dialog.fps = QLineEdit()
         dialog.fps.setText(str(10.0))
         dialog.fps.setEnabled(False)
 
-        dialog.ok_button = QtGui.QPushButton('Ok')
+        dialog.ok_button = QPushButton('Ok')
         dialog.ok_button.setDefault(True)
         dialog.ok_button.clicked.connect(lambda: self.ok_save(dialog, parent))
-        dialog.cancel_button = QtGui.QPushButton('Cancel')
+        dialog.cancel_button = QPushButton('Cancel')
         dialog.cancel_button.clicked.connect(dialog.close)
 
         # Add options to dialog box
@@ -495,14 +530,14 @@ class Cluster():
                 try:
                     self.save_cluster_video(parent, float(dialogBox.fps.text()), int(dialogBox.num_frames.text()))
                 except Exception as e:
-                    QtGui.QMessageBox.about(parent, 'Error','Invalid input entered')
+                    QMessageBox.about(parent, 'Error','Invalid input entered')
                     print(e)
                     pass
             else:
-                msg = QtGui.QMessageBox(parent)
-                msg.setIcon(QtGui.QMessageBox.Warning)
+                msg = QMessageBox(parent)
+                msg.setIcon(QMessageBox.Warning)
                 msg.setText("Please generate cluster labels for saving cluster videos")
-                msg.setStandardButtons(QtGui.QMessageBox.Ok)
+                msg.setStandardButtons(QMessageBox.Ok)
                 msg.exec_()
         if dialogBox.data_checkbox.isChecked():
             self.save_cluster_output(parent)

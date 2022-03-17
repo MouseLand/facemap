@@ -1,4 +1,5 @@
 "Test facemap pipeline by comparing outputs"
+from numpy.lib.npyio import save
 from facemap import process
 import numpy as np
 from pathlib import Path
@@ -6,47 +7,59 @@ import os
 
 r_tol, a_tol = 1e-2, 1e-2
 
-def test_output_single_video(data_dir, video_names):
+def test_output_single_video(data_dir, video_names, expected_output_dir):
     clear_output(data_dir, video_names)
     v1, _ = video_names
-    test_filenames = [[str(data_dir.joinpath('data').joinpath('cam1').joinpath(v1))]] # [[data_dir+video for video in v1]]
-    save_path = str(data_dir.joinpath('data').joinpath('cam1'))
-    process.run(test_filenames, movSVD=True, savepath=save_path)    
+    test_filenames = [[str(data_dir.joinpath('cam1').joinpath(v1))]] # [[data_dir+video for video in v1]]
+    save_path = str(data_dir.joinpath('cam1'))
+    output_filename, _ = v1.split(".")
+    test_proc_filename = os.path.join(save_path,output_filename+"_proc.npy")
+    # Process video
+    process.run(test_filenames, sbin=7, motSVD=True, movSVD=True, savepath=save_path)    
 
-    output_filename, _ = os.path.splitext(v1[0])
-    test_proc_filename = save_path.joinpath(output_filename+"_proc.npy")
+    # Compare output
     output = np.load(test_proc_filename,allow_pickle=True).item()
-    expected_proc_filename = os.getcwd()+"/tests/expected_output/singlevideo_proc.npy"
+    expected_proc_filename = expected_output_dir.joinpath("singlevideo_proc.npy")
     expected_output = np.load(expected_proc_filename,allow_pickle=True).item()
     clear_output(data_dir, video_names)
 
     assert is_output_correct(output, expected_output)
 
-def test_output_multivideo(data_dir, video_names):
+def test_output_multivideo(data_dir, video_names, expected_output_dir): 
     clear_output(data_dir, video_names)
     v1, v2 = video_names
-    test1 = str(data_dir.joinpath('data').joinpath('cam1').joinpath(v1))#os.path.join(data_dir,v1[0])
-    test2 = str(data_dir.joinpath('data').joinpath('cam2').joinpath(v2))#os.path.join(data_dir,v2[0])
+    test1 = str(data_dir.joinpath('cam1').joinpath(v1))
+    test2 = str(data_dir.joinpath('cam2').joinpath(v2))
+    
     # For videos recorded simultaneously from multiple cams
     test_filenames = [[test1, test2]]
-    save_path = str(data_dir.joinpath('data').joinpath('cam2'))
-    process.run(test_filenames, movSVD=True, savepath=save_path)    
+    save_path = str(data_dir.joinpath('cam2'))
+    output_filename, _ = v1.split(".")
+    test_proc_filename = os.path.join(save_path, output_filename+"_proc.npy")
+    print(test_proc_filename)
+    # Process videos
+    process.run(test_filenames, sbin=12, motSVD=True, movSVD=True, savepath=save_path)    
 
-    output_filename, _ = os.path.splitext(v2[0])
-    test_proc_filename = save_path.joinpath(output_filename+"_proc.npy")
+    # Compare output
     output = np.load(test_proc_filename,allow_pickle=True).item()
-    expected_proc_filename = os.getcwd()+"/tests/expected_output/multivideo_proc.npy"
+    expected_proc_filename = expected_output_dir.joinpath("multivideo_proc.npy")
     expected_output = np.load(expected_proc_filename,allow_pickle=True).item()
     clear_output(data_dir, video_names)
-
+    
     assert is_output_correct(output, expected_output)
+    clear_expected_output(expected_output_dir)
 
 def is_output_correct(test_output, expected_output):
     params_match = check_params(test_output, expected_output)
+    print("params match", params_match)
     frames_match = check_frames(test_output, expected_output)
+    print("frames_match", frames_match)
     motion_match = check_motion(test_output, expected_output)
+    print("motion_match", motion_match)
     U_match = check_U(test_output, expected_output)
+    print("U_match", U_match)
     V_match = check_V(test_output, expected_output)
+    print("V_match", V_match)
     return params_match and frames_match and motion_match and U_match and V_match
 
 def check_params(test_output, expected_output):
@@ -62,7 +75,6 @@ def check_params(test_output, expected_output):
     return all_outputs_match
 
 def check_frames(test_output, expected_output):
-    print(test_output['avgframe'][0].shape, expected_output['avgframe'][0].shape)
     avgframes_match = np.allclose(test_output['avgframe'][0], expected_output['avgframe'][0], 
                         rtol=r_tol, atol=a_tol) 
     avgmotion_match = np.allclose(test_output['avgmotion'][0], expected_output['avgmotion'][0], 
@@ -102,3 +114,9 @@ def clear_output(data_dir, video_names):
             output = name + '_proc.npy'
         if os.path.exists(output):
             os.remove(output)
+
+def clear_expected_output(expected_output_dir):
+    files = ['singlevideo_proc.npy', 'multivideo_proc.npy']
+    for f in files:
+        if os.path.exists(expected_output_dir.joinpath(f)):
+            os.remove(expected_output_dir.joinpath(f))

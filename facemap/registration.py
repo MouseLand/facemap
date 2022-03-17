@@ -1,23 +1,20 @@
-import numpy as np
-import matplotlib.pyplot as plt
-import matplotlib.cm
-import scipy.stats
-from scipy.ndimage import filters
-from math import pi
-import skimage.transform 
-import skimage.registration
-import sklearn.cluster
 import time
-import skimage.transform 
+from math import pi
+
+import matplotlib.cm
+import matplotlib.pyplot as plt
+import numpy as np
+import scipy.stats
 import skimage.registration
-from . import utils, process
+import skimage.transform
+import sklearn.cluster
+from scipy.ndimage import filters
 
-
+from . import process, utils
 
 '''
 MOTION TRACES
 '''
-
 
 def imall_init(nfr, Ly, Lx):
     imall = []

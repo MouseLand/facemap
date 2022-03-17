@@ -1,11 +1,22 @@
-import numpy as np
-from scipy.sparse.linalg import eigsh
 import cv2
-from scipy.ndimage import gaussian_filter1d
+import numpy as np
 from scipy.interpolate import interp1d
 from scipy.linalg import eigh
+from scipy.ndimage import gaussian_filter1d
+from scipy.sparse.linalg import eigsh
 from sklearn.decomposition import PCA
 from tqdm import tqdm
+
+def update_mainwindow_progressbar(MainWindow, GUIobject, s, prompt):
+    if MainWindow is not None and GUIobject is not None:
+        message = s.getvalue().split('\x1b[A\n\r')[0].split('\r')[-1]
+        MainWindow.update_status_bar(prompt+message, update_progress=True, hide_progress=False)
+        GUIobject.QApplication.processEvents()
+
+def update_mainwindow_message(MainWindow, GUIobject, prompt, hide_progress=True):
+    if MainWindow is not None and GUIobject is not None:
+        MainWindow.update_status_bar(prompt, update_progress=False, hide_progress=hide_progress)
+        GUIobject.QApplication.processEvents()
 
 def bin1d(X, tbin):
     """ bin over first axis of data with bin tbin """
@@ -22,18 +33,37 @@ def split_testtrain(n_t, frac=0.25):
     itest = (ninds[:,np.newaxis] + np.arange(0,n_len * frac,1,int)).flatten()
     itrain = np.ones(n_t,np.bool)
     itrain[itest] = 0
-    
     return itest, itrain
 
+def get_frame(cframe, nframes, cumframes, containers):
+    cframe = np.maximum(0, np.minimum(nframes-1, cframe))
+    cframe = int(cframe)
+    try:
+        ivid = (cumframes < cframe).nonzero()[0][-1]
+    except:
+        ivid = 0
+    img = []
+    for vs in containers[ivid]:
+        frame_ind = cframe - cumframes[ivid]
+        capture = vs
+        if int(capture.get(cv2.CAP_PROP_POS_FRAMES)) != frame_ind:
+            capture.set(cv2.CAP_PROP_POS_FRAMES, frame_ind)
+        ret, frame = capture.read()
+        if ret:
+            img.append(frame)
+        else:
+            print("Error reading frame")    
+    return img
 
-def rrr_prediction(X, Y, rank=None, lam=0):
+def rrr_prediction(X, Y, rank=None, lam=0, itrain=None, itest=None):
     """ predict Y from X using regularized reduced rank regression 
     
     returns prediction accuracy on test data + model params
     
     """
     n_t, n_feats = Y.shape
-    itest, itrain =  split_testtrain(n_t)
+    if itrain is None and itest is None:
+        itest, itrain =  split_testtrain(n_t)
     A,B = reduced_rank_regression(X[itrain], Y[itrain], rank=rank, lam=lam)
     rank = A.shape[1]
     corrf = np.zeros((rank, n_feats))
@@ -195,7 +225,6 @@ def get_frames(imall, containers, cframes, cumframes):
     if nk < imall[0].shape[0]:
         for ii,im in enumerate(imall):
             imall[ii] = im[:nk].copy()
-
 
 def close_videos(containers):
     ''' Method is called to close all videos/containers open for reading 
@@ -361,6 +390,7 @@ def video_placement(Ly, Lx):
 
 def svdecon(X, k=100):
     np.random.seed(0)   # Fix seed to get same output for eigsh
+    """
     v0 = np.random.uniform(-1,1,size=min(X.shape)) 
     NN, NT = X.shape
     if NN>NT:
@@ -379,4 +409,6 @@ def svdecon(X, k=100):
     else:
         V = (U.T @ X).T
         V = V/(V**2).sum(axis=0)**.5
+    """
+    U, Sv, V = PCA(n_components=k, svd_solver='randomized', random_state=np.random.RandomState(0))._fit(X)
     return U, Sv, V

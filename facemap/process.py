@@ -1,14 +1,17 @@
-import numpy as np
-from facemap import pupil, running, utils
-from numba import vectorize,uint8,float32
-import time
-import os, sys, subprocess
+import os
 import pdb
+import subprocess
+import sys
+import time
 from io import StringIO
+
+import numpy as np
+from numba import float32, uint8, vectorize
 from scipy import io
 from scipy.ndimage import gaussian_filter
-import cv2
 from tqdm import tqdm
+
+from facemap import pupil, running, utils
 
 def binned_inds(Ly, Lx, sbin):
     Lyb = np.zeros((len(Ly),), np.int32)
@@ -72,8 +75,7 @@ def subsampled_mean(containers, cumframes, Ly, Lx, sbin=3, GUIobject=None, MainW
             imbin = np.abs(np.diff(imbin, axis=0))
             avgmotion[ir[n]] += imbin.mean(axis=0)
         ns+=1
-        update_mainwindow(MainWindow, GUIobject, s, "Computing subsampled mean ")
-
+        utils.update_mainwindow_progressbar(MainWindow, GUIobject, s, "Computing subsampled mean ")
 
     avgframe /= float(ns)
     avgmotion /= float(ns)
@@ -195,7 +197,7 @@ def compute_SVD(containers, cumframes, Ly, Lx, avgframe, avgmotion, motSVD=True,
                             ncb = usv[0].shape[-1]
                             U_mov[wmot[i]+1][:, ni_mov[wmot[i]+1]:ni_mov[wmot[i]+1]+ncb] = usv[0] * usv[1]#U[wmot[i]+1][:, ni[wmot[i]+1]:ni[wmot[i]+1]+ncb] = usv[0]
                             ni_mov[wmot[i]+1] += ncb
-        update_mainwindow(MainWindow, GUIobject, w, "Computing SVD ")
+        utils.update_mainwindow_progressbar(MainWindow, GUIobject, w, "Computing SVD ")
         
         if fullSVD:
             if motSVD:
@@ -400,15 +402,9 @@ def process_ROIs(containers, cumframes, Ly, Lx, avgframe, avgmotion, U_mot, U_mo
                     if n==0:
                         vproj = np.concatenate((vproj[0,:][np.newaxis, :], vproj), axis=0)
                     V_mov[0][t:t+vproj.shape[0], :] = vproj
-            update_mainwindow(MainWindow, GUIobject, s, "Computing projection ")
+            utils.update_mainwindow_progressbar(MainWindow, GUIobject, s, "Computing projection ")
     
     return V_mot, V_mov, M, pups, blinks, runs
-
-def update_mainwindow(MainWindow, GUIobject, s, prompt):
-    if MainWindow is not None and GUIobject is not None:
-        message = s.getvalue().split('\x1b[A\n\r')[0].split('\r')[-1]
-        MainWindow.update_status_bar(prompt+message, update_progress=True)
-        GUIobject.QApplication.processEvents()
         
 def process_pupil_ROIs(self, t, nt, img, ivid, rois, pupind, pups):
     """
@@ -486,7 +482,7 @@ def save(proc, savepath=None):
         del d2
     return savename
 
-def run(filenames, motSVD=True, movSVD=False, GUIobject=None, parent=None, proc=None, savepath=None):
+def run(filenames, sbin=1, motSVD=True, movSVD=False, GUIobject=None, parent=None, proc=None, savepath=None):
     '''
     Parameters
     ----------
@@ -512,11 +508,11 @@ def run(filenames, motSVD=True, movSVD=False, GUIobject=None, parent=None, proc=
         save_mat = parent.save_mat.isChecked()
         sy = parent.sy
         sx = parent.sx
-        motSVD, movSVD = parent.motSVD_checkbox.isChecked(), parent.movSVD_checkbox.isChecked(),
+        motSVD, movSVD = parent.motSVD_checkbox.isChecked(), parent.movSVD_checkbox.isChecked()
     else:
         cumframes, Ly, Lx, containers = utils.get_frame_details(filenames)
         if proc is None:
-            sbin = 1
+            sbin = sbin
             fullSVD = True
             save_mat = False
             rois=None

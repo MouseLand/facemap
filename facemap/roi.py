@@ -1,17 +1,25 @@
-import sys
 import os
 import shutil
+import sys
 import time
-import numpy as np
-from PyQt5 import QtGui, QtCore
-import pyqtgraph as pg
-from pyqtgraph import GraphicsScene
-from facemap import utils, pupil
-from scipy.stats import zscore, skew
-from scipy.ndimage import gaussian_filter
-from matplotlib import cm
 
-colors = np.array([[0,200,50],[180,0,50],[40,100,250],[150,50,150]])
+import numpy as np
+import pyqtgraph as pg
+from matplotlib import cm
+from PyQt5 import QtCore
+from pyqtgraph import GraphicsScene
+from scipy.ndimage import gaussian_filter
+from scipy.stats import skew, zscore
+
+from facemap import pupil, utils
+
+# Types of ROI and their ID:
+# 0: Pupil 
+# 1: motion SVD
+# 2: Blink
+# 3: Running
+# 4: Pose bbox
+colors = np.array([[0,200,50],[180,0,50],[40,100,250],[150,50,150],[0, 255, 255]])
 
 class reflectROI():
     def __init__(self, iROI, wROI, moveable=True,
@@ -105,7 +113,7 @@ class reflectROI():
         parent.ROIs[self.iROI].plot(parent)
 
 class sROI():
-    def __init__(self, rind, rtype, iROI, moveable=True,
+    def __init__(self, rind, rtype, iROI, moveable=True, resizable=True,
                  parent=None, saturation=None, color=None, pos=None,
                  yrange=None, xrange=None,
                  ivid=None, pupil_sigma=None):
@@ -113,6 +121,7 @@ class sROI():
         self.iROI = iROI
         self.rind = rind
         self.rtype = rtype
+        self.pos = pos
         if saturation is None:
             self.saturation = 0
         else:
@@ -127,7 +136,8 @@ class sROI():
         else:
             self.pupil_sigma = 0
         self.moveable = moveable
-        if pos is None:
+        self.resizable = resizable
+        if self.pos is None:
             view = parent.p0.viewRange()
             imx = (view[0][1] + view[0][0]) / 2
             imy = (view[1][1] + view[1][0]) / 2
@@ -138,10 +148,10 @@ class sROI():
             imx = imx - dx / 2
             imy = imy - dy / 2
         else:
-            imy = pos[0]
-            imx = pos[1]
-            dy = pos[2]
-            dx = pos[3]
+            imy = self.pos[0]
+            imx = self.pos[1]
+            dy = self.pos[2]
+            dx = self.pos[3]
         if ivid is None:
             self.ivid=0
         else:
@@ -157,14 +167,14 @@ class sROI():
     def draw(self, parent, imy, imx, dy, dx):
         roipen = pg.mkPen(self.color, width=3,
                           style=QtCore.Qt.SolidLine)
-        if self.rind==1 or self.rind==3:
+        if self.rind==1 or self.rind==3 or self.rind==4:
             self.ROI = pg.RectROI(
-                [imx, imy], [dx, dy], movable = self.moveable,
+                [imx, imy], [dx, dy], movable = self.moveable, resizable=self.resizable,
                 pen=roipen, sideScalers=True, removable=self.moveable
             )
         else:
             self.ROI = pg.EllipseROI(
-                [imx, imy], [dx, dy], movable = self.moveable,
+                [imx, imy], [dx, dy], movable = self.moveable, resizable=self.resizable,
                 pen=roipen, removable=self.moveable
             )
         self.ROI.handleSize = 8
@@ -191,6 +201,8 @@ class sROI():
         sizex, sizey = self.ROI.size()
         xrange = (np.arange(-1 * int(sizex), 1) + int(posx)).astype(np.int32)
         yrange = (np.arange(-1 * int(sizey), 1) + int(posy)).astype(np.int32)
+        self.pos = posy, posx, posy+sizey, posx+sizex
+        #self.pos = (posy, posx, posy+sizey, posx+sizex) # get ROI position
         if self.rind==0 or self.rind==2:
             yrange += int(sizey/2)
         # what is ellipse circling?
@@ -225,14 +237,14 @@ class sROI():
         yrange -= parent.sy[ivid]
         self.xrange = xrange
         self.yrange = yrange
-        self.ivid   = ivid
+        self.ivid = ivid
 
         if self.rind==0:
             self.rmin = 0
             parent.reflectors[self.iROI] = utils.get_reflector(parent.ROIs[self.iROI].yrange,
                                                          parent.ROIs[self.iROI].xrange,
                                                          rROI=parent.rROI[self.iROI])
-        parent.sl[1].setValue(parent.saturation[self.iROI] * 100 / 255)
+        parent.sl[1].setValue(int(parent.saturation[self.iROI] * 100 / 255))
         
         index = parent.clusteringVisComboBox.findText("ROI", QtCore.Qt.MatchFixedString)
         if index >= 0:
@@ -339,7 +351,7 @@ class sROI():
                         parent.show()
                         parent.online_plotted = True
                 #self.p2.setLimits(xMin=0,xMax=self.nframes)
-        elif self.rind==1 or self.rind==3:
+        elif self.rind==1 or self.rind==3 or self.rind==4:
             parent.pROI.removeItem(parent.scatter)
             parent.scatter = pg.ScatterPlotItem([0], [0], pen='k', symbol='+')
             parent.pROI.addItem(parent.scatter)
@@ -363,3 +375,4 @@ class sROI():
                           padding=0.0)
         parent.win.show()
         parent.show()
+

@@ -1,3 +1,4 @@
+from genericpath import exists
 import pytest
 import os, sys, tempfile, shutil
 from tqdm import tqdm
@@ -6,13 +7,12 @@ from urllib.request import urlopen
 
 @pytest.fixture()
 def video_names():
-    video1_names = ['cam1_test.avi']
-    video2_names = ['cam2_test.avi']
-    return video1_names, video2_names
+    video1_name = 'cam1_test.avi'
+    video2_name = 'cam2_test.avi'
+    return video1_name, video2_name
 
 @pytest.fixture()
 def data_dir(video_names):
-    #data_dir = os.path.join(os.getcwd(),'Video_samples/sample_movies/')
     fm_dir = Path.home().joinpath('.facemap')
     fm_dir.mkdir(exist_ok=True)
     data_dir = fm_dir.joinpath('data')
@@ -30,8 +30,22 @@ def data_dir(video_names):
             cached_file = str(data_dir_cam2.joinpath(video_name))
         if not os.path.exists(cached_file):
             download_url_to_file(url, cached_file)
+
     return data_dir
 
+@pytest.fixture()
+def expected_output_dir(data_dir):
+    expected_output_dir = data_dir.joinpath('expected_output')
+    expected_output_dir.mkdir(exist_ok=True)
+    # Download expected output files
+    """
+    download_url_to_file('https://www.facemappy.org/test_data/singlevideo_proc.npy', 
+                        expected_output_dir.joinpath('singlevideo_proc.npy'))
+    download_url_to_file('https://www.facemappy.org/test_data/multivideo_proc.npy', 
+                        expected_output_dir.joinpath('multivideo_proc.npy'))
+    """
+    return expected_output_dir
+    
 def download_url_to_file(url, dst, progress=True):
     # Following adapted from https://github.com/MouseLand/cellpose/blob/35c16c94e285a4ec2fa17f148f06bbd414deb5b8/cellpose/utils.py#L45
     """Download object at the given URL to a local path.
