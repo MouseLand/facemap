@@ -1,5 +1,6 @@
 import os
 import time
+from click import prompt
 from sklearn.covariance import log_likelihood
 
 from tqdm import tqdm
@@ -203,6 +204,8 @@ class Pose():
         else:
             print("Using cpu as device")
         print("LOADING MODEL....", model_params_file)
+        utils.update_mainwindow_message(MainWindow=self.gui, GUIobject=self.GUIobject,
+                                        prompt="Loading model... {}".format(model_params_file))
         model_params = torch.load(model_params_file, map_location=self.device)
         self.bodyparts = model_params['params']['bodyparts'] 
         channels = model_params['params']['channels']

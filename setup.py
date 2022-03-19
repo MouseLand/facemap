@@ -7,8 +7,8 @@ install_deps = ['numpy>=1.16',
                 'tqdm', 
                 'numba>=0.43.1',
                 'opencv-python-headless', 
-                'hdbscan',
                 'torch>=1.9',
+                "torchvision==0.12.0",
                 'umap-learn', 
                 'pandas', 
                 'scikit-image']
@@ -35,7 +35,7 @@ setuptools.setup(
             'pyqt5', 
             'pyqt5.sip',
         ]
-    }
+    },
     include_package_data=True,
     classifiers=(
         "Programming Language :: Python :: 3",
