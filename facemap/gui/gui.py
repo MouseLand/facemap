@@ -701,7 +701,7 @@ class MainW(QtWidgets.QMainWindow):
             proc = np.load(f, allow_pickle=True).item()
             if proc['motSVD'] or proc['movSVD']:
                 savename = process.run(proc['filenames'], motSVD=proc['motSVD'], movSVD=proc['movSVD'],
-                                        GUIobject=QtGui, proc=proc, savepath=proc['save_path'])
+                                        GUIobject=QtWidgets, proc=proc, savepath=proc['save_path'])
                 self.update_status_bar("Processed "+savename)
 
             pose.Pose(gui=None, filenames=proc['filenames'], 
@@ -718,7 +718,7 @@ class MainW(QtWidgets.QMainWindow):
         else:
             savepath = None
         if self.motSVD_checkbox.isChecked() or self.movSVD_checkbox.isChecked():
-            savename = process.run(self.filenames, GUIobject=QtGui, parent=self, savepath=savepath)
+            savename = process.run(self.filenames, GUIobject=QtWidgets, parent=self, savepath=savepath)
             io.open_proc(self, file_name=savename)
             print("Output saved in",savepath)
             self.update_status_bar("Output saved in "+savepath)
