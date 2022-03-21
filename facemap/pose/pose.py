@@ -1,8 +1,5 @@
 import os
 import time
-from click import prompt
-from sklearn.covariance import log_likelihood
-
 from tqdm import tqdm
 
 import numpy as np
@@ -11,7 +8,7 @@ import torch
 import pickle
 from io import StringIO
 
-from .. import utils
+from facemap import utils
 from . import FMnet_torch, pose_helper_functions as pose_utils
 from . import transforms, models
 

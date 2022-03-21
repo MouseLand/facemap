@@ -1,8 +1,9 @@
 import numpy as np
-import time, os
-from .gui import gui
-from . import process
-from scipy import stats
+import time
+import sys
+from os import path
+from facemap.gui import gui
+from facemap import process
 import argparse
 
 def tic():

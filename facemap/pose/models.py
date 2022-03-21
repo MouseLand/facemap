@@ -5,7 +5,6 @@ Facemap model trained for generating pose estimates. Contains functions for:
 """
 import os
 from pathlib import Path
-from urllib.parse import urlparse
 from urllib.request import urlretrieve
 
 MODEL_PARAMS_URL = "https://www.facemappy.org/models/facemap_model_params.pth"

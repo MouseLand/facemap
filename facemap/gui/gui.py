@@ -6,9 +6,9 @@ from scipy.stats import zscore, skew
 from matplotlib import cm
 import matplotlib.pyplot as plt
 import pandas as pd
-from .. import process, roi, utils, cluster
-from ..pose import pose_gui, pose
 from . import io, menus, guiparts
+from facemap import process, roi, utils, cluster
+from facemap.pose import pose_gui, pose
 from PyQt5.QtGui import QPixmap, QFont, QPainterPath, QIcon, QColor
 from PyQt5.QtWidgets import ( QLabel, QPushButton, QLineEdit, QCheckBox, 
                             QComboBox, QToolButton, QStatusBar, QSlider,

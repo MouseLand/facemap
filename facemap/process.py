@@ -1,14 +1,10 @@
 import os
-import pdb
-import subprocess
-import sys
 import time
 from io import StringIO
 
 import numpy as np
-from numba import float32, uint8, vectorize
+from numba import vectorize
 from scipy import io
-from scipy.ndimage import gaussian_filter
 from tqdm import tqdm
 
 from facemap import pupil, running, utils
