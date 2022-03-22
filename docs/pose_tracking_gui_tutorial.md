@@ -29,6 +29,17 @@ For pose tracking using GUI after following the [installation instructions](inst
     - Alternatively, if you wish to use the entire frame for the mouse then click 'Skip' to continue.
     - If a 'Face (pose)' ROI has already been selected using the dropdown menu for ROIs the bounding box will be automatically selected and the keypoints will be tracked in the selected ROI.
 
-The videos will be processed in the order they are listed in the file list and output will be saved in the output folder. Following is an example gif demonstrating the above mentioned steps for tracking keypoints in a video.
+The videos will be processed in the order they are listed in the file list and output will be saved in the output folder. 
+
+## Visualize pose estimates 
+
+For plotting pose estimates, generated using Facemap or other software that save output (*.h5) in the same format as DeepLabCut, follow the following steps:
+
+1. Load video: Select `File` from the menu bar and select `Load single movie file`
+2. Load data: From the file menu options, select `Load pose data`
+3. Select the `Keypoints` checkbox on GUI to plot the keypoints on the loaded video. Toggle the checkbox to change visibility of the points.
+
+Note: this feature currently only supports single video.
+
 
 

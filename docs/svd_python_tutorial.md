@@ -10,7 +10,7 @@ Run the following command in a terminal
 ```
 python -m facemap
 ```
-Default starting folder is set to wherever you run `python -m FaceMap`
+Default starting folder is set to wherever you run `python -m facemap`
 
 The following window should appear. The upper left "file" button loads single files, the upper middle "folder" button loads whole folders (from which you can select movies), and the upper right "folder" button loads processed files ("_proc.npy" files). Load a video or a group of videos (see below for file formats for simultaneous videos). The video(s) will pop up in the left side of the GUI. You can zoom in and out with the mouse wheel, and you can drag by holding down the mouse. Double-click to return to the original, full view.
 

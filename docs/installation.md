@@ -4,13 +4,17 @@ This package only supports python 3. We recommend installing python 3 with **[An
 
 
 ### For using pose tracker and svd processing
-Please run 
-~~~
-pip install git+https://github.com/mouseland/facemap.git
-~~~
-that will install the latest development version on github.
+For using tracker and svd processing, follow the instructions below:
 
-### For latest released version (from PyPI) using svd processing only
+1. `git clone https://github.com/MouseLand/facemap.git`
+2. Change directory to facemap folder containing` environment.yml` file
+3. `conda env create -f environment.yml`
+4. `conda activate facemap`
+5. `python -m facemap`
+
+This will install and run the latest development version on github.
+
+### For latest released version (from PyPI) - svd processing only
 
 Run the following for command line interface (CLI) i.e. headless version:
 ~~~
