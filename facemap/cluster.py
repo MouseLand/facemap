@@ -6,8 +6,8 @@ import pyqtgraph as pg
 from sklearn.cluster import MiniBatchKMeans
 #import hdbscan
 from matplotlib import cm
-from . import utils
-from .gui import io
+from facemap import utils
+from facemap.gui import io
 import cv2
 import os
 from PyQt5.QtGui import QFont

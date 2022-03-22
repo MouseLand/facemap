@@ -1,7 +1,5 @@
 import os
 import time
-from sklearn.covariance import log_likelihood
-
 from tqdm import tqdm
 
 import numpy as np
@@ -10,7 +8,7 @@ import torch
 import pickle
 from io import StringIO
 
-from .. import utils
+from facemap import utils
 from . import FMnet_torch, pose_helper_functions as pose_utils
 from . import transforms, models
 
@@ -203,6 +201,8 @@ class Pose():
         else:
             print("Using cpu as device")
         print("LOADING MODEL....", model_params_file)
+        utils.update_mainwindow_message(MainWindow=self.gui, GUIobject=self.GUIobject,
+                                        prompt="Loading model... {}".format(model_params_file))
         model_params = torch.load(model_params_file, map_location=self.device)
         self.bodyparts = model_params['params']['bodyparts'] 
         channels = model_params['params']['channels']

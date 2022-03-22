@@ -5,17 +5,15 @@ from PyQt5.QtWidgets import (
     QDialog,
     QPushButton)
 
-from .. import roi
-from .pose import Pose
+from facemap import roi, utils
+from facemap.pose import pose
 from . import transforms
-
-from .. import utils
 
 """
 Pose subclass for generating obtaining bounding box from user input.
 Currently supports single video processing only.
 """
-class PoseGUI(Pose):
+class PoseGUI(pose.Pose):
     def __init__(self, gui=None):
         self.gui = gui
         super(PoseGUI, self).__init__(gui=self.gui)

@@ -1,14 +1,10 @@
 import os
-import pdb
-import subprocess
-import sys
 import time
 from io import StringIO
 
 import numpy as np
-from numba import float32, uint8, vectorize
+from numba import vectorize
 from scipy import io
-from scipy.ndimage import gaussian_filter
 from tqdm import tqdm
 
 from facemap import pupil, running, utils
@@ -76,6 +72,7 @@ def subsampled_mean(containers, cumframes, Ly, Lx, sbin=3, GUIobject=None, MainW
             avgmotion[ir[n]] += imbin.mean(axis=0)
         ns+=1
         utils.update_mainwindow_progressbar(MainWindow, GUIobject, s, "Computing subsampled mean ")
+    utils.update_mainwindow_message(MainWindow, GUIobject, "Finished computing subsampled mean")
 
     avgframe /= float(ns)
     avgmotion /= float(ns)
@@ -213,6 +210,7 @@ def compute_SVD(containers, cumframes, Ly, Lx, avgframe, avgmotion, motSVD=True,
                 U_mov[0][:, ni_mov[0]:ni_mov[0]+ncb] = usv[0] * usv[1]
                 ni_mov[0] += ncb
         ns+=1
+    utils.update_mainwindow_message(MainWindow, GUIobject, "Finished computing svd")
 
     S_mot = np.zeros(500)
     S_mov = np.zeros(500)
@@ -403,6 +401,7 @@ def process_ROIs(containers, cumframes, Ly, Lx, avgframe, avgmotion, U_mot, U_mo
                         vproj = np.concatenate((vproj[0,:][np.newaxis, :], vproj), axis=0)
                     V_mov[0][t:t+vproj.shape[0], :] = vproj
             utils.update_mainwindow_progressbar(MainWindow, GUIobject, s, "Computing projection ")
+    utils.update_mainwindow_message(MainWindow, GUIobject, "Finished computing projection ")
     
     return V_mot, V_mov, M, pups, blinks, runs
         

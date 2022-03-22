@@ -8,7 +8,7 @@ install_deps = ['numpy>=1.16',
                 'numba>=0.43.1',
                 'opencv-python-headless', 
                 'torch>=1.9',
-                'torchvision',
+                "torchvision==0.12.0",
                 'umap-learn', 
                 'pandas', 
                 'scikit-image']

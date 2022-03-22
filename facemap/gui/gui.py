@@ -6,9 +6,9 @@ from scipy.stats import zscore, skew
 from matplotlib import cm
 import matplotlib.pyplot as plt
 import pandas as pd
-from .. import process, roi, utils, cluster
-from ..pose import pose_gui, pose
 from . import io, menus, guiparts
+from facemap import process, roi, utils, cluster
+from facemap.pose import pose_gui, pose
 from PyQt5.QtGui import QPixmap, QFont, QPainterPath, QIcon, QColor
 from PyQt5.QtWidgets import ( QLabel, QPushButton, QLineEdit, QCheckBox, 
                             QComboBox, QToolButton, QStatusBar, QSlider,
@@ -855,7 +855,7 @@ class MainW(QtWidgets.QMainWindow):
         if not self.bbox_set:
             self.bbox, self.bbox_set, _ = self.set_pose_bbox()
         if self.pose_model is None:
-            self.pose_model = pose.Pose(gui=self, GUIobject=QtGui, filenames=self.filenames, 
+            self.pose_model = pose.Pose(gui=self, GUIobject=QtWidgets, filenames=self.filenames, 
                                         bbox=self.bbox, bbox_set=self.bbox_set)
 
     def load_labels(self):
