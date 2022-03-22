@@ -161,7 +161,7 @@ def open_proc(parent, file_name=None):
                     else:
                         parent.iROI = k
                     parent.ROIs[-1].ellipse = r['ellipse']
-                    parent.sl[1].setValue(parent.saturation[parent.iROI] * 100 / 255)
+                    parent.sl[1].setValue(int(parent.saturation[parent.iROI] * 100 / 255))
                     parent.ROIs[parent.iROI].plot(parent)
                     if parent.processed:
                         if k < 5:
