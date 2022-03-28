@@ -8,7 +8,7 @@ import matplotlib.pyplot as plt
 import pandas as pd
 from . import io, menus, guiparts
 from facemap import process, roi, utils, cluster
-from facemap.pose import pose_gui, pose
+from facemap.pose import pose_gui, pose, refine_pose 
 from PyQt5.QtGui import QPixmap, QFont, QPainterPath, QIcon, QColor
 from PyQt5.QtWidgets import ( QLabel, QPushButton, QLineEdit, QCheckBox, 
                             QComboBox, QToolButton, QStatusBar, QSlider,
@@ -297,7 +297,7 @@ class MainW(QtWidgets.QMainWindow):
 
         # Create ROI features
         self.comboBox = QComboBox(self)
-        self.comboBox.setFixedWidth(110)
+        self.comboBox.setFixedWidth(200)
         self.comboBox.addItem("Select ROI")
         self.comboBox.addItem("Pupil")
         self.comboBox.addItem("motion SVD")
@@ -310,7 +310,7 @@ class MainW(QtWidgets.QMainWindow):
         self.addROI = QPushButton("Add ROI")
         self.addROI.setFont(QFont("Arial", 10, QFont.Bold))
         self.addROI.clicked.connect(lambda clicked: self.add_ROI())
-        self.addROI.setFixedWidth(70)
+        self.addROI.setFixedWidth(150)
         self.addROI.setEnabled(False)
 
         # Add clustering analysis/visualization features
@@ -857,6 +857,18 @@ class MainW(QtWidgets.QMainWindow):
         if self.pose_model is None:
             self.pose_model = pose.Pose(gui=self, GUIobject=QtWidgets, filenames=self.filenames, 
                                         bbox=self.bbox, bbox_set=self.bbox_set)
+
+    def keypoints_correction(self):
+        if self.poseFileLoaded:
+            refine_pose.apply_keypoints_correction(self)
+        else:
+            # Create a message box to ask user to process the keypoints or load a pose file
+            msg = QMessageBox()
+            msg.setIcon(QMessageBox.Information)
+            msg.setText("Please load a pose file first or process the keypoints")
+            msg.setWindowTitle("No pose file loaded")
+            msg.setStandardButtons(QMessageBox.Ok)
+            msg.exec_()
 
     def load_labels(self):
         # Read Pose file

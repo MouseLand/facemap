@@ -44,6 +44,12 @@ class PoseGUI(pose.Pose):
                                                                     x_dims=(bbox[0], bbox[1]), 
                                                                     y_dims=(bbox[2], bbox[3]))
             self.bbox[i] = [x1, x2, y1, y2, resize]
+            # If bbox_region is not square, then adjust the bbox_region to be square
+            if self.bbox[i][2] - self.bbox[i][0] != self.bbox[i][3] - self.bbox[i][1]:
+                if self.bbox[i][2] - self.bbox[i][0] > self.bbox[i][3] - self.bbox[i][1]:
+                    self.bbox[i][2] = self.bbox[i][0] + self.bbox[i][3] - self.bbox[i][1]
+                else:
+                    self.bbox[i][3] = self.bbox[i][1] + self.bbox[i][2] - self.bbox[i][0]
         print("user selected bbox after adjustment:", self.bbox)
 
     def plot_bbox_roi(self):

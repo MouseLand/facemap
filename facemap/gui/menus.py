@@ -30,6 +30,12 @@ def mainmenu(parent):
     setOutputFolder.triggered.connect(lambda: io.save_folder(parent))
     parent.addAction(setOutputFolder)
 
+    # Keypoints correction 
+    keypointsCorrection = QAction("&Keypoints correction", parent)
+    keypointsCorrection.setShortcut("Ctrl+K")
+    keypointsCorrection.triggered.connect(lambda: parent.keypoints_correction())
+    parent.addAction(keypointsCorrection)
+
     loadPose = QAction("Load &pose data", parent)
     loadPose.triggered.connect(lambda: io.get_pose_file(parent))
     parent.addAction(loadPose)
@@ -48,6 +54,7 @@ def mainmenu(parent):
     file_menu.addAction(loadProc)
     file_menu.addAction(loadPose)
     file_menu.addAction(setOutputFolder)
+    file_menu.addAction(keypointsCorrection)
     help_menu = main_menu.addMenu("&Help")
     help_menu.addAction(helpContent)
 

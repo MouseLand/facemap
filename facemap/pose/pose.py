@@ -9,6 +9,7 @@ import pickle
 from io import StringIO
 
 from facemap import utils
+
 from . import FMnet_torch, pose_helper_functions as pose_utils
 from . import transforms, models
 
@@ -19,7 +20,7 @@ Currently supports single video processing and multi-videos as processed sequent
 """
 
 class Pose():
-    def __init__(self, filenames=None, bbox=[], bbox_set=False, gui=None, GUIobject=None):
+    def __init__(self, filenames=None, bodyparts=None, bbox=[], bbox_set=False, gui=None, GUIobject=None):
         self.gui = gui
         self.GUIobject = GUIobject
         if self.gui is not None:
@@ -29,7 +30,7 @@ class Pose():
         self.cumframes, self.Ly, self.Lx, self.containers = utils.get_frame_details(self.filenames)
         self.nframes = self.cumframes[-1]
         self.pose_labels = None
-        self.bodyparts = None
+        self.bodyparts = bodyparts
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         self.bbox = bbox
         self.bbox_set = bbox_set
@@ -73,7 +74,7 @@ class Pose():
 
     def write_dataframe(self, data):
         scorer = "Facemap" 
-        bodyparts = self.net.bodyparts 
+        bodyparts = self.bodyparts 
         # Create an empty dataframe
         for index, bodypart in enumerate(bodyparts):
             columnindex = pd.MultiIndex.from_product(
@@ -183,7 +184,7 @@ class Pose():
         poseFilepath = os.path.join(basename, videoname+"_FacemapPose.h5")
         dataFrame.to_hdf(poseFilepath, "df_with_missing", mode="w")
         return poseFilepath  
-    
+
     def plot_pose_estimates(self):
         # Plot labels
         self.gui.poseFileLoaded = True
