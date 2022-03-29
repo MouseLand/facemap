@@ -10,8 +10,8 @@ from PyQt5 import QtCore
 import pandas as pd
 from matplotlib import cm
 from PyQt5.QtWidgets import (QDialog, QWidget, QGridLayout, QLabel,
-                            QSpinBox, QPushButton, QVBoxLayout,
-                            QHBoxLayout, QVBoxLayout, QCheckBox, 
+                            QSpinBox, QPushButton, QVBoxLayout, QRadioButton,
+                            QHBoxLayout, QVBoxLayout, QButtonGroup, 
                             QListWidget, QAbstractItemView)
 
 def apply_keypoints_correction(guiObject):
@@ -32,6 +32,8 @@ class KeypointsRefinementPopup(QDialog):
         self.bodyparts = np.array(pd.unique(self.pose_data.columns.get_level_values("bodyparts")))
 
         self.setWindowTitle('Keypoints refinement')
+
+        self.overall_horizontalLayout = QHBoxLayout(self)
         self.verticalLayout = QVBoxLayout(self)
         
         self.frame_horizontalLayout = QHBoxLayout()
@@ -108,6 +110,26 @@ class KeypointsRefinementPopup(QDialog):
         self.finish_horozontalLayout.addWidget(self.finish_button)
         self.verticalLayout.addLayout(self.finish_horozontalLayout)
 
+        # Radio buttons group for selecting the bodyparts to be corrected
+        self.radio_verticalLayout = QVBoxLayout()
+        # Add a label for the radio buttons
+        self.radio_label = QLabel('Bodyparts')
+        self.radio_verticalLayout.addWidget(self.radio_label)
+        self.radio_buttons_group = QButtonGroup()
+        self.radio_buttons_group.setExclusive(True)
+        #self.radio_buttons_group.buttonClicked.connect(self.update_keypoints)
+        self.radio_buttons_group.setObjectName("radio_buttons_group")
+        self.radio_buttons = []
+        for i, bodypart in enumerate(self.bodyparts):
+            self.radio_buttons.append(QRadioButton(bodypart))
+            self.radio_buttons[i].hide()
+            self.radio_buttons[i].setObjectName(bodypart)
+            self.radio_buttons_group.addButton(self.radio_buttons[i])
+            self.radio_verticalLayout.addWidget(self.radio_buttons[i])
+
+        self.overall_horizontalLayout.addLayout(self.verticalLayout)
+        self.overall_horizontalLayout.addLayout(self.radio_verticalLayout)
+
         self.show()
 
     # Add a keyPressEvent for deleting the selected keypoint using the delete key and set the value to NaN in the dataframe
@@ -146,6 +168,9 @@ class KeypointsRefinementPopup(QDialog):
         self.previous_button.hide()
         self.next_button.hide()
         self.finish_button.hide()
+        for i, bodypart in enumerate(self.bodyparts):
+            self.radio_buttons[i].hide()
+            self.radio_label.hide()
 
     def show_main_features(self):
         self.clear_window()
@@ -168,6 +193,10 @@ class KeypointsRefinementPopup(QDialog):
         self.ok_button.setParent(self)
         self.verticalLayout.addLayout(self.horizontalLayout_2)
 
+        for i, bodypart in enumerate(self.bodyparts):
+            self.radio_buttons[i].hide()
+            self.radio_label.hide()
+
         # Reset frame counter
         self.current_frame = 0
 
@@ -179,6 +208,9 @@ class KeypointsRefinementPopup(QDialog):
 
         # Select frames for keypoints correction
         self.random_frames_ind = np.random.choice(self.gui.nframes, self.spinBox_nframes.value(), replace=False)   
+        for i, bodypart in enumerate(self.bodyparts):
+            self.radio_buttons[i].show()
+            self.radio_label.show()
         self.previous_button.show()
         self.next_button.show()
         self.finish_button.show()
@@ -258,7 +290,7 @@ class KeypointsGraph(pg.GraphItem):
         self.textItems = []
         self.parent = parent
         pg.GraphItem.__init__(self)
-        self.scatter.sigClicked.connect(self.clicked)
+        self.scatter.sigClicked.connect(self.keypoint_clicked)
         
     def setData(self, **kwds):
         self.text = kwds.pop('text', [])
@@ -321,8 +353,13 @@ class KeypointsGraph(pg.GraphItem):
                 ev.ignore()
                 return
             self.dragPoint = pts[0]
-            ind = pts[0].data()[0]
-            self.dragOffset = self.data['pos'][ind] - pos
+            ind = pts[0].index() #pts[0].data()[0]
+            # Create a bool array of length equal to the number of points in the scatter plot
+            # and set it to False
+            bool_arr = np.zeros(len(self.data['pos']), dtype=bool)
+            # Set the value of the bool array to True for the point that was clicked
+            bool_arr[ind] = True
+            self.dragOffset = self.data['pos'][bool_arr] - pos
         elif ev.isFinish():
             self.dragPoint = None
             return
@@ -331,19 +368,18 @@ class KeypointsGraph(pg.GraphItem):
                 ev.ignore()
                 return
         
-        ind = self.dragPoint.data()[0]
-        self.data['pos'][ind] = ev.pos() + self.dragOffset
+        ind = self.dragPoint.index() #self.dragPoint.data()[0]
+        # Create a bool array of length equal to the number of points in the scatter plot
+        bool_arr = np.zeros(len(self.data['pos']), dtype=bool)
+        bool_arr[ind] = True
+        self.data['pos'][bool_arr] = ev.pos() + self.dragOffset[0]
         self.updateGraph(dragged=True)
         ev.accept()
         
-    def clicked(self, pts):
+    def keypoint_clicked(self, pts):
         return None
-
-def save_pose_data(gui, pose_data, frame_ind):
-    # Save the refined keypoints data to a file
-    filepath = gui.poseFilepath[0].split("_FacemapPose.h5")[0]
-    pose_data = pose_data.loc[frame_ind]
-    pose_data.to_hdf(filepath+'_FacemapPoseRefined.h5', "df_with_missing", mode="w")
+    
+    # Add feature for adding a keypoint to the scatterplot
 
 # TO-DO:
 # Write a function that loads the keypoints from a file and uses them to re-train the model
@@ -373,4 +409,10 @@ class PoseFileListChooser(QDialog):
         for i in range(len(items)):
             parent.keypoint_correction_file.append(str(self.list.selectedItems()[i].text()))
         self.accept()
+
+def save_pose_data(gui, pose_data, frame_ind):
+    # Save the refined keypoints data to a file
+    filepath = gui.poseFilepath[0].split("_FacemapPose.h5")[0]
+    pose_data = pose_data.loc[frame_ind]
+    pose_data.to_hdf(filepath+'_FacemapPoseRefined.h5', "df_with_missing", mode="w")
 
