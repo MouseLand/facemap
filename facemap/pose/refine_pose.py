@@ -1,6 +1,7 @@
 """
 Keypoints correction feature for new mouse videos
 """
+import os
 from natsort import natsorted
 import pyqtgraph as pg
 import numpy as np
@@ -20,7 +21,6 @@ def apply_keypoints_correction(guiObject):
     # Select poseFilepath for keypoints correction
     LC = PoseFileListChooser('Choose files', guiObject)
     result = LC.exec_()
-    print(LC, result,guiObject.keypoint_correction_file)
     KeypointsRefinementPopup(guiObject)
 
 # Following used to check cropped sections of frames
@@ -28,6 +28,8 @@ class KeypointsRefinementPopup(QDialog):
     def __init__(self, gui):
         super().__init__(gui)
         self.gui = gui
+        self.pose_data = pd.read_hdf(self.gui.poseFilepath[0], 'df_with_missing')
+        self.bodyparts = np.array(pd.unique(self.pose_data.columns.get_level_values("bodyparts")))
 
         self.setWindowTitle('Keypoints refinement')
         self.verticalLayout = QVBoxLayout(self)
@@ -36,9 +38,7 @@ class KeypointsRefinementPopup(QDialog):
         self.win = pg.GraphicsLayoutWidget()
         self.win.setObjectName("Keypoints refinement")
         self.frame_win = self.win.addViewBox(invertY=True)
-        self.keypoints_scatterplot = KeypointsGraph() #pg.ScatterPlotItem(hover=True)
-        #self.frame_win.scene().sigMouseClicked.connect(self.mouseDragEvent)
-        #self.keypoints_scatterplot.sigClicked.connect(self.mouseDragEvent)#lambda points, ev: self.mouseDragEvent(points, ev))
+        self.keypoints_scatterplot = KeypointsGraph(parent=self) 
         self.frame_win.setAspectLocked(True, QtCore.Qt.IgnoreAspectRatio)
         self.frame_win.setMouseEnabled(False, False)
         self.frame_win.setMenuEnabled(False)
@@ -48,7 +48,7 @@ class KeypointsRefinementPopup(QDialog):
         # Add a qlabel describing the purpose of the keypoints correction
         self.label_horizontalLayout = QHBoxLayout()
         self.label = QLabel(self)
-        self.label.setText("Please set following options for keypoints correction. \n Random frames from the video will be selected for retraining the model on the corrected frames. \n Recommended #frames to use for retraining the model are 20-25.")
+        self.label.setText("Please set following options for keypoints correction. \n Random frames from the video will be selected for retraining the model on the corrected frames. \n Recommended #frames to use for retraining the model are 20-25. Please note that clicking OK will reset any refined labels and select a new set of random frames.")
         self.label_horizontalLayout.addWidget(self.label)
         self.verticalLayout.addLayout(self.label_horizontalLayout)
 
@@ -97,8 +97,15 @@ class KeypointsRefinementPopup(QDialog):
         self.next_button.setDefault(True)
         self.next_button.clicked.connect(self.next_frame)
         self.next_button.hide()
+        self.finish_button = QPushButton('Finish')
+        self.finish_button.clicked.connect(self.retrain_model)
+        self.finish_button.hide()
         self.horizontalLayout_2.addWidget(self.previous_button)
         self.horizontalLayout_2.addWidget(self.next_button)
+
+        self.finish_horozontalLayout = QHBoxLayout()
+        self.finish_horozontalLayout.addWidget(self.finish_button)
+        self.verticalLayout.addLayout(self.finish_horozontalLayout)
 
         self.show()
 
@@ -120,6 +127,7 @@ class KeypointsRefinementPopup(QDialog):
         self.ok_button.setParent(None)
         self.previous_button.hide()
         self.next_button.hide()
+        self.finish_button.hide()
 
     def show_main_features(self):
         self.clear_window()
@@ -142,6 +150,9 @@ class KeypointsRefinementPopup(QDialog):
         self.ok_button.setParent(self)
         self.verticalLayout.addLayout(self.horizontalLayout_2)
 
+        # Reset frame counter
+        self.current_frame = 0
+
     def display_frames_w_keypoints(self):
         self.clear_window()
         self.frame_horizontalLayout.addWidget(self.win)
@@ -152,18 +163,21 @@ class KeypointsRefinementPopup(QDialog):
         self.random_frames_ind = np.random.choice(self.gui.nframes, self.spinBox_nframes.value(), replace=False)   
         self.previous_button.show()
         self.next_button.show()
+        self.finish_button.show()
         self.next_button.setDefault(True)
         self.next_frame()
         
     def previous_frame(self):
         # Go to previous frame
-        self.win.setObjectName("Frame " + str(self.current_frame-1))
+        self.current_frame -= 1
+        print("current frame: ", self.current_frame)
         # Update the current frame
-        if self.current_frame < self.spinBox_nframes.value() and self.current_frame > 0:
+        if self.current_frame <= self.spinBox_nframes.value() and self.current_frame > 0:
             self.frame_win.clear()
-            self.current_frame -= 1
-            print(self.current_frame)
-            selected_frame = utils.get_frame(self.random_frames_ind[self.current_frame], self.gui.nframes, self.gui.cumframes, self.gui.video)[0] 
+            self.next_button.show()
+            self.next_button.setEnabled(True)
+            selected_frame = utils.get_frame(self.random_frames_ind[self.current_frame], self.gui.nframes, 
+                                            self.gui.cumframes, self.gui.video)[0] 
             self.img = pg.ImageItem(selected_frame)
             self.frame_win.addItem(self.img)
             self.plot_keypoints(self.random_frames_ind[self.current_frame])
@@ -173,18 +187,18 @@ class KeypointsRefinementPopup(QDialog):
     def next_frame(self):
         # Display the next frame in list of random frames with keypoints
         self.previous_button.show()
+        self.current_frame += 1
+        print("current frame: ", self.current_frame)
         if self.current_frame < self.spinBox_nframes.value():
             self.frame_win.clear()
-            print(self.current_frame)
-            selected_frame = utils.get_frame(self.random_frames_ind[self.current_frame], self.gui.nframes, self.gui.cumframes, self.gui.video)[0] 
+            selected_frame = utils.get_frame(self.random_frames_ind[self.current_frame], self.gui.nframes, 
+                                            self.gui.cumframes, self.gui.video)[0] 
             self.img = pg.ImageItem(selected_frame)
             self.frame_win.addItem(self.img)
             self.plot_keypoints(self.random_frames_ind[self.current_frame])
             self.next_button.setText('Next')
         else:
-            self.next_button.setText('Finish')
-            self.next_button.clicked.connect(self.retrain_model)
-        self.current_frame += 1
+            self.next_button.setEnabled(False)
         self.frame_win.setAspectLocked(True, QtCore.Qt.IgnoreAspectRatio)
         self.frame_win.setMouseEnabled(False, False)
         self.frame_win.setMenuEnabled(False)
@@ -197,17 +211,16 @@ class KeypointsRefinementPopup(QDialog):
 
     def plot_keypoints(self, frame_ind):
         # Plot the keypoints of the selected frames
-        pose_data = pd.read_hdf(self.gui.poseFilepath[0], 'df_with_missing')
-        bodyparts = pd.unique(pose_data.columns.get_level_values("bodyparts"))
-        pose_data = pose_data.iloc[frame_ind]
+        plot_pose_data = self.pose_data.iloc[frame_ind]
         # Append pose data to list for each video_id
-        x = pose_data[::3].values
-        y = pose_data[1::3].values
-        brushes, colors = self.get_brushes(bodyparts)
+        x = plot_pose_data[::3].values
+        y = plot_pose_data[1::3].values
+        brushes, colors = self.get_brushes(self.bodyparts)
         # Add a scatter plot item to the window for each bodypart
         self.keypoints_scatterplot.setData(pos=np.array([x, y]).T, symbolBrush=brushes, symbolPen=colors,
                                                 symbol='o',  brush=brushes, hoverable=True, hoverSize=25, 
-                                                hoverSymbol="x", pxMode=True, hoverBrush='r', data=bodyparts, size=20) 
+                                                hoverSymbol="x", pxMode=True, hoverBrush='r', name=self.bodyparts, 
+                                                data=self.bodyparts, size=20) 
         self.frame_win.addItem(self.keypoints_scatterplot)                                
 
     def get_brushes(self, bodyparts):
@@ -218,12 +231,14 @@ class KeypointsRefinementPopup(QDialog):
         colors[:,-1] = 200
         brushes = [pg.mkBrush(color=c) for c in colors]
         return brushes, colors
-        
+
+# Following adatped from https://github.com/pyqtgraph/pyqtgraph/blob/develop/examples/CustomGraphItem.py       
 class KeypointsGraph(pg.GraphItem):
-    def __init__(self):
+    def __init__(self, parent=None, **kwargs):
         self.dragPoint = None
         self.dragOffset = None
         self.textItems = []
+        self.parent = parent
         pg.GraphItem.__init__(self)
         self.scatter.sigClicked.connect(self.clicked)
         
@@ -246,11 +261,27 @@ class KeypointsGraph(pg.GraphItem):
             self.textItems.append(item)
             item.setParentItem(self)
         
-    def updateGraph(self):
+    def updateGraph(self, dragged=False):
         pg.GraphItem.setData(self, **self.data)
         for i,item in enumerate(self.textItems):
             item.setPos(*self.data['pos'][i])
+        if dragged:
+            keypoints_refined = self.getData()
+            self.update_pose_file(keypoints_refined)
         
+    # Write a function that tracks all the keypoints positions for all frames and save them in a file (for later use)
+    def update_pose_file(self, keypoints_refined):
+        # Get values for the keypoints from the GUI and save them in a file
+        x_coord = keypoints_refined[:,0]
+        y_coord = keypoints_refined[:,1]
+        frame_ind = self.parent.random_frames_ind[self.parent.current_frame]
+        for i, bp in enumerate(self.parent.bodyparts):
+            self.parent.pose_data.loc[frame_ind]['Facemap'][bp]['x'] = x_coord[i]
+            self.parent.pose_data.loc[frame_ind]['Facemap'][bp]['y'] = y_coord[i]
+        save_pose_data(self.parent.gui, self.parent.pose_data, self.parent.random_frames_ind)
+
+    def getData(self):
+        return self.data['pos']
         
     def mouseDragEvent(self, ev):
         if ev.button() != QtCore.Qt.LeftButton:
@@ -279,19 +310,22 @@ class KeypointsGraph(pg.GraphItem):
         
         ind = self.dragPoint.data()[0]
         self.data['pos'][ind] = ev.pos() + self.dragOffset
-        self.updateGraph()
+        self.updateGraph(dragged=True)
         ev.accept()
         
     def clicked(self, pts):
-        print("clicked: %s" % pts)
+        return None
+
+def save_pose_data(gui, pose_data, frame_ind):
+    # Save the refined keypoints data to a file
+    filepath = gui.poseFilepath[0].split("_FacemapPose.h5")[0]
+    pose_data = pose_data.loc[frame_ind]
+    pose_data.to_hdf(filepath+'_FacemapPoseRefined.h5', "df_with_missing", mode="w")
 
 # TO-DO:
-# Add a mouse click and drag event for the keypoints
 # Add a button and key event to delete keypoints
-# Write a function that tracks all the keypoints positions for all frames and save them in a file (for later use)
 # Write a function that loads the keypoints from a file and uses them to re-train the model
 # Add a feature for using the retrained model for the next pose prediction
-
 
 class PoseFileListChooser(QDialog):
     def __init__(self, title, parent):
