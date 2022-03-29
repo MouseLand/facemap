@@ -43,6 +43,7 @@ class KeypointsRefinementPopup(QDialog):
         self.frame_win.setMouseEnabled(False, False)
         self.frame_win.setMenuEnabled(False)
         self.frame_horizontalLayout.addWidget(self.win)
+        
         self.current_frame = 0
 
         # Add a qlabel describing the purpose of the keypoints correction
@@ -108,6 +109,23 @@ class KeypointsRefinementPopup(QDialog):
         self.verticalLayout.addLayout(self.finish_horozontalLayout)
 
         self.show()
+
+    # Add a keyPressEvent for deleting the selected keypoint using the delete key and set the value to NaN in the dataframe
+    def keyPressEvent(self, ev):
+        if ev.key() in (QtCore.Qt.Key_Backspace, QtCore.Qt.Key_Delete):
+            self.delete_keypoint()
+        else:
+            return
+
+    def delete_keypoint(self):
+        # Delete the selected keypoint
+        selected_items = self.keypoints_scatterplot.hover()
+        if selected_items is not None:
+            for i in selected_items:
+                self.keypoints_scatterplot.data['pos'][i] = np.nan
+            self.keypoints_scatterplot.updateGraph(dragged=True)
+        else:
+            print("Please hover over a keypoint to delete it")
 
     def clear_window(self):
         # Hide frame_win
@@ -245,9 +263,10 @@ class KeypointsGraph(pg.GraphItem):
     def setData(self, **kwds):
         self.text = kwds.pop('text', [])
         self.data = kwds
-        if 'pos' in self.data:
+        if 'pos' in self.data and len(kwds)==0:
             npts = self.data['pos'].shape[0]
-            self.data['data'] = np.empty(npts, dtype=[('index', int)])
+            self.data['data'] = np.empty(npts, dtype=[('index', str)])
+            self.data['data'] = kwds['name']
             self.data['data']['index'] = np.arange(npts)
         self.setTexts(self.text)
         self.updateGraph()
@@ -261,6 +280,10 @@ class KeypointsGraph(pg.GraphItem):
             self.textItems.append(item)
             item.setParentItem(self)
         
+    def hover(self):
+        point_hovered = np.where(self.scatter.data['hovered'])[0]
+        return point_hovered
+
     def updateGraph(self, dragged=False):
         pg.GraphItem.setData(self, **self.data)
         for i,item in enumerate(self.textItems):
@@ -282,7 +305,7 @@ class KeypointsGraph(pg.GraphItem):
 
     def getData(self):
         return self.data['pos']
-        
+
     def mouseDragEvent(self, ev):
         if ev.button() != QtCore.Qt.LeftButton:
             ev.ignore()
@@ -323,7 +346,6 @@ def save_pose_data(gui, pose_data, frame_ind):
     pose_data.to_hdf(filepath+'_FacemapPoseRefined.h5', "df_with_missing", mode="w")
 
 # TO-DO:
-# Add a button and key event to delete keypoints
 # Write a function that loads the keypoints from a file and uses them to re-train the model
 # Add a feature for using the retrained model for the next pose prediction
 
