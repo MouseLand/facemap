@@ -486,7 +486,6 @@ class MainW(QtWidgets.QMainWindow):
         # Clear pose variables
         self.pose_model = None
         self.poseFilepath = []
-        self.poseFilepath = []
         self.keypoints_labels = []
         self.pose_x_coord = []
         self.pose_y_coord = []

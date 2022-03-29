@@ -389,9 +389,9 @@ class Cluster():
                     parent.ClusteringPlot_legend.addItem(scatter_plots[i], name=str(cluster))
                 # Add all points (transparent) to connect them to hovered function
                 parent.clustering_scatterplot.setData(self.embedded_output[:,0], self.embedded_output[:,1], symbol='o',
-                                                 brush=(0,0,0,0),pxMode=True, hoverable=True, hoverSize=15,
-                                                  hoverSymbol="x", hoverBrush='r',pen=(0,0,0,0),
-                                                   data=np.arange(num_feat), name=name,size=point_size)
+                                                brush=(0,0,0,0),pxMode=True, hoverable=True, hoverSize=15,
+                                                hoverSymbol="x", hoverBrush='r',pen=(0,0,0,0),
+                                                data=np.arange(num_feat), name=name, size=point_size)
                 parent.ClusteringPlot.addItem(parent.clustering_scatterplot)
                 parent.ClusteringPlot.addItem(parent.clustering_highlight_scatterplot)
                 parent.ClusteringPlot_legend.setPos(parent.clustering_scatterplot.x()+5,parent.clustering_scatterplot.y())
