@@ -66,8 +66,6 @@ class KeypointsRefinementPopup(QDialog):
         self.spinBox_nframes.setValue(25)
         # Set width of spinbox
         self.spinBox_nframes.setFixedWidth(100)
-        self.verticalLayout.addWidget(self.label_nframes)
-        self.verticalLayout.addWidget(self.spinBox_nframes)
         # Add a QLabel and QSpinBox to the horizontal layout
         self.horizontalLayout.addWidget(self.label_nframes)
         self.horizontalLayout.addWidget(self.spinBox_nframes)
@@ -114,6 +112,7 @@ class KeypointsRefinementPopup(QDialog):
         self.radio_verticalLayout = QVBoxLayout()
         # Add a label for the radio buttons
         self.radio_label = QLabel('Bodyparts')
+        self.radio_label.hide()
         self.radio_verticalLayout.addWidget(self.radio_label)
         self.radio_buttons_group = QButtonGroup()
         self.radio_buttons_group.setExclusive(True)
@@ -140,14 +139,19 @@ class KeypointsRefinementPopup(QDialog):
             return
 
     def delete_keypoint(self):
+        # Get index of radio button that is selected
+        index = self.radio_buttons_group.checkedId()
+        # Get the bodypart that is selected
+        bodypart = self.radio_buttons_group.button(index).text()
+        selected_items = np.where(self.bodyparts == bodypart)[0]        
         # Delete the selected keypoint
-        selected_items = self.keypoints_scatterplot.hover()
-        if selected_items is not None:
+        #selected_items = self.keypoints_scatterplot.hover()
+        if len(selected_items) > 0:
             for i in selected_items:
                 self.keypoints_scatterplot.data['pos'][i] = np.nan
             self.keypoints_scatterplot.updateGraph(dragged=True)
         else:
-            print("Please hover over a keypoint to delete it")
+            print("Please select a keypoint to delete")
 
     def clear_window(self):
         # Hide frame_win
@@ -311,7 +315,7 @@ class KeypointsGraph(pg.GraphItem):
             item = pg.TextItem(t)
             self.textItems.append(item)
             item.setParentItem(self)
-        
+
     def hover(self):
         point_hovered = np.where(self.scatter.data['hovered'])[0]
         return point_hovered
@@ -375,11 +379,18 @@ class KeypointsGraph(pg.GraphItem):
         self.data['pos'][bool_arr] = ev.pos() + self.dragOffset[0]
         self.updateGraph(dragged=True)
         ev.accept()
+        bp_selected_ind = np.where(bool_arr)[0][0]
+        self.keypoint_clicked(None, None, bp_selected_ind)
         
-    def keypoint_clicked(self, pts):
-        return None
-    
+    def keypoint_clicked(self, obj=None, points=None, ind=None):
+        if points is not None:
+            # Get the index of the clicked bodypart
+            ind = points[0].index()
+        # Update radio button for bodypart
+        self.parent.radio_buttons[ind].setChecked(True)
+
     # Add feature for adding a keypoint to the scatterplot
+
 
 # TO-DO:
 # Write a function that loads the keypoints from a file and uses them to re-train the model
