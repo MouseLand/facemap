@@ -81,13 +81,12 @@ class Pose():
     def retrain_model(self, pose_data, selected_frame_ind):
         video_path = self.filenames[0][0]
         imgs = model_training.load_images_from_video(video_path, selected_frame_ind)
-        print("Loaded images from video:", video_path)
-        print("raw images:", imgs.shape)
-        imgs, keypoints = model_training.preprocess_images_landmarks(imgs, pose_data)
-        print("Preprocessed images:", imgs.shape)
-        print("Preprocessed keypoints:", keypoints.shape)
+        imgs, keypoints = model_training.preprocess_images_landmarks(imgs, pose_data, self.bbox[0])
+        print("Preprocessed images and landmarks:", imgs.shape, keypoints.shape)
+        self.net = model_training.finetune_model(imgs, keypoints, self.net, batch_size=1)
+        print("Model retraining complete")
         return
-
+    
     def write_dataframe(self, data):
         scorer = "Facemap" 
         bodyparts = self.bodyparts 

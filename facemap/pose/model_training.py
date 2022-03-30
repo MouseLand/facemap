@@ -17,6 +17,9 @@ Fine-tuning the model using the pre-trained weights and refined training data
 provided by the user.
 """
 
+# TO-DO 
+#    Use the user selected bounding box settings to crop the images and landmarks before training
+
 def load_images_from_video(video_path, selected_frame_ind):
     """
     Load images from a video file.
@@ -34,35 +37,35 @@ def load_images_from_video(video_path, selected_frame_ind):
     frames = np.array(frames)
     return frames
 
-def preprocess_images_landmarks(imgs, landmarks):
+def preprocess_images_landmarks(imgs, landmarks, bbox_region):
+    # If bbox_region is not square, then adjust the bbox_region to be square
+    if bbox_region[2] - bbox_region[0] != bbox_region[3] - bbox_region[1]:
+        if bbox_region[2] - bbox_region[0] > bbox_region[3] - bbox_region[1]:
+            bbox_region[2] = bbox_region[0] + bbox_region[3] - bbox_region[1]
+        else:
+            bbox_region[3] = bbox_region[1] + bbox_region[2] - bbox_region[0]
+
+    # Adjust corrected annotations to the cropped region
+    landmarks.T[::3] = (landmarks.T[::3]- bbox_region[0])/ ((bbox_region[1]-bbox_region[0])/256)
+    landmarks.T[1::3] = (landmarks.T[1::3]- bbox_region[2])/ ((bbox_region[3]-bbox_region[2])/256)
     landmarks = landmarks.T[landmarks.columns.get_level_values("coords")!='likelihood'].T.to_numpy().reshape(-1,15,2)
     # Pre-processing using grayscale imagenet stats
     imgs_preprocessed = []
     for im in imgs:
+        im = cv2.cvtColor(im, cv2.COLOR_BGR2GRAY)
         im = np.multiply(im, 1 / 255.0).astype(np.float32) # np.ndarray float type with values normalized to [0, 1]
         im = transforms.normalize99(im)
+        im = im[bbox_region[2]:bbox_region[3], bbox_region[0]:bbox_region[1]]
+        im = cv2.resize(im, (256,256))
         imgs_preprocessed.append(im)
     imgs_preprocessed = np.array(imgs_preprocessed)
                     
     return imgs_preprocessed, landmarks  
 
-def finetune_model(image_subset_ind, batch_size, imgs, landmarks, model_params_file, model_state_file, n_epochs=36):
-    # Initalize the model (pretrained on our dataset)
-    model_params = torch.load(model_params_file, map_location=device)
-    bodyparts = model_params['params']['bodyparts'] 
-    channels = model_params['params']['channels']
-    kernel_size = 3
-    nout = len(bodyparts)  # number of outputs from the model
-    net = model.FMnet(img_ch=1, output_ch=nout, labels_id=bodyparts, 
-                            channels=channels, kernel=kernel_size, device=device)
-    net.load_state_dict(torch.load(model_state_file, map_location=device))
-    net.to(device);
-
-    if len(image_subset_ind) == 0:
-        return net
+def finetune_model(imgs, landmarks, net, batch_size, n_epochs=36):
 
     # Train the model on a subset of the corrected annotations
-    nimg = len(image_subset_ind)
+    nimg = len(imgs)
     n_factor =  2**4 // (2 ** net.n_upsample)
     xmesh, ymesh = np.meshgrid(np.arange(256/n_factor), np.arange(256/n_factor))
     ymesh = torch.from_numpy(ymesh).to(device)
@@ -84,7 +87,7 @@ def finetune_model(image_subset_ind, batch_size, imgs, landmarks, model_params_f
             
         pose_utils.set_seed(epoch)
         net.train()
-        inds = np.random.permutation(image_subset_ind) # shuffle the indices for the first 10 images
+        inds = np.random.permutation(nimg)
         train_loss = 0
         train_mean = 0
         n_batches = 0
@@ -92,7 +95,7 @@ def finetune_model(image_subset_ind, batch_size, imgs, landmarks, model_params_f
         gnorm_max = 0
         for k in np.arange(0, nimg, batch_size):
             kend = min(nimg, k+batch_size)
-            imgi, lbl, scale = transforms.random_rotate_and_resize(imgs[inds[k:kend]], 
+            imgi, lbl, _ = transforms.random_rotate_and_resize(imgs[inds[k:kend]], 
                                                         landmarks[inds[k:kend]], 
                                                         contrast_adjustment=False, do_flip=True,
                                                         scale_range=0.2, rotation=0, gamma_aug=False)

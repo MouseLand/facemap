@@ -929,8 +929,16 @@ class MainW(QtWidgets.QMainWindow):
             # Retrain the model using the refined keypoints
             refined_pose_filepath = self.poseFilepath[0].split("_FacemapPose.h5")[0]+'_FacemapPoseRefined.h5'
             refined_pose_data = pd.read_hdf(refined_pose_filepath, 'df_with_missing')
-            refined_pose_data = refined_pose_data.loc[selected_frame_ind]
             self.pose_model.retrain_model(refined_pose_data, selected_frame_ind)
+            self.update_status_bar("Model retrained")
+            # Open a message box to notify user and ask if they want to reprocess the video
+            msg = "Model retraining complete. Would you like to reprocess the video?"
+            reply = QMessageBox.question(self, 'Message', msg, QMessageBox.Yes, QMessageBox.No)
+            if reply == QMessageBox.Yes:
+                print("reprocessing video using fintuned model") #self.run(plot=False)
+            else:
+                print("Video reprocessing cancelled")
+                return
         else:
             # Create a message box to ask user to process the keypoints or load a pose file
             msg = QMessageBox()
