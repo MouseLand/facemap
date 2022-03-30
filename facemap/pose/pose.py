@@ -11,7 +11,7 @@ from io import StringIO
 from facemap import utils
 
 from . import FMnet_torch, pose_helper_functions as pose_utils
-from . import transforms, models
+from . import transforms, models, model_training
 
 """
 Base class for generating pose estimates.
@@ -78,10 +78,15 @@ class Pose():
                     prompt="Time elapsed: {} seconds".format(end_time-start_time),  hide_progress=True)
 
     # Retrain model using refined pose data
-    def retrain_model(self, pose_data):
-        print("Retraining model... using refined pose data", pose_data)
+    def retrain_model(self, pose_data, selected_frame_ind):
+        video_path = self.filenames[0][0]
+        imgs = model_training.load_images_from_video(video_path, selected_frame_ind)
+        print("Loaded images from video:", video_path)
+        print("raw images:", imgs.shape)
+        imgs, keypoints = model_training.preprocess_images_landmarks(imgs, pose_data)
+        print("Preprocessed images:", imgs.shape)
+        print("Preprocessed keypoints:", keypoints.shape)
         return
-
 
     def write_dataframe(self, data):
         scorer = "Facemap" 

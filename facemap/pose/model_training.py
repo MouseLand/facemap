@@ -1,21 +1,38 @@
 
 ## Import packages
 import numpy as np
-import FMnet_torch as model
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torch import optim
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-from glob import glob
-from scipy import stats
-import pose_helper_functions as pose_utils
-import pose
-import transforms
+from . import FMnet_torch as model
+from . import pose_helper_functions as pose_utils
+from . import pose
+from . import transforms
+import cv2
 
-# TO-DO
-#   Add a load frames function
+"""
+Fine-tuning the model using the pre-trained weights and refined training data
+provided by the user.
+"""
 
+def load_images_from_video(video_path, selected_frame_ind):
+    """
+    Load images from a video file.
+    """
+    cap = cv2.VideoCapture(video_path)
+    frames = []
+    for frame_ind in selected_frame_ind:
+        if int(cap.get(cv2.CAP_PROP_POS_FRAMES)) != frame_ind:
+            cap.set(cv2.CAP_PROP_POS_FRAMES, frame_ind)
+        ret, frame = cap.read()
+        if ret:
+            frames.append(frame)
+        else:
+            print("Error reading frame")    
+    frames = np.array(frames)
+    return frames
 
 def preprocess_images_landmarks(imgs, landmarks):
     landmarks = landmarks.T[landmarks.columns.get_level_values("coords")!='likelihood'].T.to_numpy().reshape(-1,15,2)

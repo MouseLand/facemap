@@ -930,7 +930,7 @@ class MainW(QtWidgets.QMainWindow):
             refined_pose_filepath = self.poseFilepath[0].split("_FacemapPose.h5")[0]+'_FacemapPoseRefined.h5'
             refined_pose_data = pd.read_hdf(refined_pose_filepath, 'df_with_missing')
             refined_pose_data = refined_pose_data.loc[selected_frame_ind]
-            self.pose_model.retrain_model(refined_pose_data)
+            self.pose_model.retrain_model(refined_pose_data, selected_frame_ind)
         else:
             # Create a message box to ask user to process the keypoints or load a pose file
             msg = QMessageBox()
