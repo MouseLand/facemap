@@ -30,6 +30,7 @@ class KeypointsRefinementPopup(QDialog):
         self.gui = gui
         self.pose_data = pd.read_hdf(self.gui.poseFilepath[0], 'df_with_missing')
         self.bodyparts = np.array(pd.unique(self.pose_data.columns.get_level_values("bodyparts")))
+        self.brushes, self.colors = self.get_brushes(self.bodyparts)
 
         self.setWindowTitle('Keypoints refinement')
 
@@ -269,10 +270,9 @@ class KeypointsRefinementPopup(QDialog):
         # Append pose data to list for each video_id
         x = plot_pose_data[::3].values
         y = plot_pose_data[1::3].values
-        brushes, colors = self.get_brushes(self.bodyparts)
         # Add a scatter plot item to the window for each bodypart
-        self.keypoints_scatterplot.setData(pos=np.array([x, y]).T, symbolBrush=brushes, symbolPen=colors,
-                                                symbol='o',  brush=brushes, hoverable=True, hoverSize=25, 
+        self.keypoints_scatterplot.setData(pos=np.array([x, y]).T, symbolBrush=self.brushes, symbolPen=self.colors,
+                                                symbol='o',  brush=self.brushes, hoverable=True, hoverSize=25, 
                                                 hoverSymbol="x", pxMode=True, hoverBrush='r', name=self.bodyparts, 
                                                 data=self.bodyparts, size=20) 
         self.frame_win.addItem(self.keypoints_scatterplot)                                
@@ -342,47 +342,59 @@ class KeypointsGraph(pg.GraphItem):
     def getData(self):
         return self.data['pos']
 
+    def mousePressEvent(self, QMouseEvent):
+        if QMouseEvent.button() == QtCore.Qt.RightButton:
+            #do what you want here
+            self.right_click_keypoint(QMouseEvent)
+        elif QMouseEvent.button() == QtCore.Qt.LeftButton:
+            super().mousePressEvent(QMouseEvent)
+
     def mouseDragEvent(self, ev):
-        if ev.button() != QtCore.Qt.LeftButton:
+        if ev.button() == QtCore.Qt.LeftButton:
+            if ev.isStart():
+                # We are already one step into the drag.
+                # Find the point(s) at the mouse cursor when the button was first 
+                # pressed:
+                pos = ev.buttonDownPos()
+                pts = self.scatter.pointsAt(pos)
+                if len(pts) == 0:
+                    ev.ignore()
+                    return
+                self.dragPoint = pts[0]
+                ind = pts[0].index() #pts[0].data()[0]
+                # Create a bool array of length equal to the number of points in the scatter plot
+                # and set it to False
+                bool_arr = np.zeros(len(self.data['pos']), dtype=bool)
+                # Set the value of the bool array to True for the point that was clicked
+                bool_arr[ind] = True
+                self.dragOffset = self.data['pos'][bool_arr] - pos
+            elif ev.isFinish():
+                self.dragPoint = None
+                return
+            else:
+                if self.dragPoint is None:
+                    ev.ignore()
+                    return
+            
+            ind = self.dragPoint.index() #self.dragPoint.data()[0]
+            # Create a bool array of length equal to the number of points in the scatter plot
+            bool_arr = np.zeros(len(self.data['pos']), dtype=bool)
+            bool_arr[ind] = True
+            self.data['pos'][bool_arr] = ev.pos() + self.dragOffset[0]
+            self.updateGraph(dragged=True)
+            ev.accept()
+            bp_selected_ind = np.where(bool_arr)[0][0]
+            self.keypoint_clicked(None, None, bp_selected_ind)
+
+        elif ev.button() == QtCore.Qt.RightButton:
+            print("do something here")
+        
+        else:
             ev.ignore()
             return
-        
-        if ev.isStart():
-            # We are already one step into the drag.
-            # Find the point(s) at the mouse cursor when the button was first 
-            # pressed:
-            pos = ev.buttonDownPos()
-            pts = self.scatter.pointsAt(pos)
-            if len(pts) == 0:
-                ev.ignore()
-                return
-            self.dragPoint = pts[0]
-            ind = pts[0].index() #pts[0].data()[0]
-            # Create a bool array of length equal to the number of points in the scatter plot
-            # and set it to False
-            bool_arr = np.zeros(len(self.data['pos']), dtype=bool)
-            # Set the value of the bool array to True for the point that was clicked
-            bool_arr[ind] = True
-            self.dragOffset = self.data['pos'][bool_arr] - pos
-        elif ev.isFinish():
-            self.dragPoint = None
-            return
-        else:
-            if self.dragPoint is None:
-                ev.ignore()
-                return
-        
-        ind = self.dragPoint.index() #self.dragPoint.data()[0]
-        # Create a bool array of length equal to the number of points in the scatter plot
-        bool_arr = np.zeros(len(self.data['pos']), dtype=bool)
-        bool_arr[ind] = True
-        self.data['pos'][bool_arr] = ev.pos() + self.dragOffset[0]
-        self.updateGraph(dragged=True)
-        ev.accept()
-        bp_selected_ind = np.where(bool_arr)[0][0]
-        self.keypoint_clicked(None, None, bp_selected_ind)
-        
+            
     def keypoint_clicked(self, obj=None, points=None, ind=None):
+        # Check if right or left click was performed
         if points is not None:
             # Get the index of the clicked bodypart
             ind = points[0].index()
@@ -390,7 +402,35 @@ class KeypointsGraph(pg.GraphItem):
         self.parent.radio_buttons[ind].setChecked(True)
 
     # Add feature for adding a keypoint to the scatterplot
-
+    def right_click_keypoint(self, mouseEvent=None):
+        # Get position of mouse from the mouse event
+        add_point_pos = mouseEvent.pos()
+        add_x, add_y = add_point_pos.x(), add_point_pos.y()
+        # Get the name of the bodypart selected in the radio buttons
+        for i, bp in enumerate(self.parent.bodyparts):
+            if self.parent.radio_buttons[i].isChecked():
+                bp_selected = bp
+                break
+        # Get position of the selected bodypart
+        selected_bp_ind = np.where(self.data['data'] == bp_selected)[0]
+        # Check if position of bodypart is nan
+        selected_bp_pos = self.data['pos'][selected_bp_ind][0]
+        x, y = selected_bp_pos[0], selected_bp_pos[1]
+        # If keypoint is deleted, then add it back using the user selected position
+        if np.isnan(x) and np.isnan(y):
+            keypoints_refined = self.getData()
+            keypoints_refined[selected_bp_ind] = [add_x, add_y]
+            # Add a keypoint to the scatter plot at the clicked position to add the bodypart
+            self.scatter.setData(pos=np.array(keypoints_refined), symbolBrush=self.parent.brushes, 
+                                                    symbolPen=self.parent.colors, symbol='o', brush=self.parent.brushes,
+                                                    hoverable=True, hoverSize=25, hoverSymbol="x", pxMode=True, hoverBrush='r',
+                                                    name=self.parent.bodyparts, data=self.parent.bodyparts, size=20) 
+            # Update the data
+            self.updateGraph()
+            # Update the pose file   
+            keypoints_refined = self.getData()
+            self.update_pose_file(keypoints_refined)         
+            return
 
 # TO-DO:
 # Write a function that loads the keypoints from a file and uses them to re-train the model
