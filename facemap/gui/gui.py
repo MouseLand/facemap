@@ -924,6 +924,22 @@ class MainW(QtWidgets.QMainWindow):
                     tip.append('({} other...)'.format(len(point_hovered) - cutoff))
                 vb.setToolTip('\n\n'.join(tip))
 
+    def retrain_model(self, selected_frame_ind):
+        if self.pose_model is not None:
+            # Retrain the model using the refined keypoints
+            refined_pose_filepath = self.poseFilepath[0].split("_FacemapPose.h5")[0]+'_FacemapPoseRefined.h5'
+            refined_pose_data = pd.read_hdf(refined_pose_filepath, 'df_with_missing')
+            refined_pose_data = refined_pose_data.loc[selected_frame_ind]
+            self.pose_model.retrain_model(refined_pose_data)
+        else:
+            # Create a message box to ask user to process the keypoints or load a pose file
+            msg = QMessageBox()
+            msg.setIcon(QMessageBox.Information)
+            msg.setText("Please process keypoints for the video first")
+            msg.setWindowTitle("Pose model not found")
+            msg.setStandardButtons(QMessageBox.Ok)
+            msg.exec_()
+
     ### ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Plot 1 and 2 functions ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ 
     def load_trace_button_clicked(self, plot_id):
         try:

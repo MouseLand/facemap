@@ -34,6 +34,7 @@ class Pose():
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         self.bbox = bbox
         self.bbox_set = bbox_set
+        self.net =  None
 
     def run(self, plot=True):
         start_time = time.time()
@@ -71,6 +72,12 @@ class Pose():
         print("Time elapsed:", end_time-start_time, "seconds")
         utils.update_mainwindow_message(MainWindow=self.gui, GUIobject=self.GUIobject, 
                     prompt="Time elapsed: {} seconds".format(end_time-start_time),  hide_progress=True)
+
+    # Retrain model using refined pose data
+    def retrain_model(self, pose_data):
+        print("Retraining model... using refined pose data", pose_data)
+        return
+
 
     def write_dataframe(self, data):
         scorer = "Facemap" 
@@ -214,3 +221,4 @@ class Pose():
         net.load_state_dict(torch.load(model_state_file, map_location=self.device))
         net.to(self.device);
         return net
+

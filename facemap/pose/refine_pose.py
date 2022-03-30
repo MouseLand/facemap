@@ -198,7 +198,7 @@ class KeypointsRefinementPopup(QDialog):
         self.ok_button.setParent(self)
         self.verticalLayout.addLayout(self.horizontalLayout_2)
 
-        for i, bodypart in enumerate(self.bodyparts):
+        for i, _ in enumerate(self.bodyparts):
             self.radio_buttons[i].hide()
             self.radio_label.hide()
 
@@ -225,7 +225,6 @@ class KeypointsRefinementPopup(QDialog):
     def previous_frame(self):
         # Go to previous frame
         self.current_frame -= 1
-        print("current frame: ", self.current_frame)
         # Update the current frame
         if self.current_frame <= self.spinBox_nframes.value() and self.current_frame > 0:
             self.frame_win.clear()
@@ -243,7 +242,6 @@ class KeypointsRefinementPopup(QDialog):
         # Display the next frame in list of random frames with keypoints
         self.previous_button.show()
         self.current_frame += 1
-        print("current frame: ", self.current_frame)
         if self.current_frame < self.spinBox_nframes.value():
             self.frame_win.clear()
             selected_frame = utils.get_frame(self.random_frames_ind[self.current_frame], self.gui.nframes, 
@@ -261,7 +259,7 @@ class KeypointsRefinementPopup(QDialog):
 
     def retrain_model(self):
         # Retrain the model on the selected frames
-        #self.gui.retrain_model(self.random_frames_ind)
+        self.gui.retrain_model(self.random_frames_ind)
         self.close()
 
     def plot_keypoints(self, frame_ind):
@@ -385,9 +383,6 @@ class KeypointsGraph(pg.GraphItem):
             ev.accept()
             bp_selected_ind = np.where(bool_arr)[0][0]
             self.keypoint_clicked(None, None, bp_selected_ind)
-
-        elif ev.button() == QtCore.Qt.RightButton:
-            print("do something here")
         
         else:
             ev.ignore()
