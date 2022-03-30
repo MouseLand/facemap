@@ -224,3 +224,64 @@ def normalize99(img):
     x99 = np.percentile(X, 99)
     X = (X - x01) / (x99 - x01)
     return X
+
+def random_rotate_and_resize(X, landmarks, scale_range=0.5, xy=(256,256),do_flip=True, rotation=30,
+                            contrast_adjustment=True, gamma_aug=False, gamma_range=0.5,
+                            motion_blur=False, gaussian_blur=False):
+
+    scale_range = max(0, min(2, float(scale_range)))
+    nimg = len(X)
+    if X[0].ndim>2:
+        nchan = X[0].shape[0]
+    else:
+        nchan = 1
+    imgi  = np.zeros((nimg, nchan, xy[0], xy[1]), np.float32)
+
+    lbl = np.zeros((nimg, landmarks[0].shape[0], 2), np.float32)
+    scale = np.zeros(nimg, np.float32)
+    dg = gamma_range/2
+
+    for n in range(nimg):
+        Ly, Lx = X[n].shape[-2:]
+        imgi[n], lbl[n] = X[n].copy(), landmarks[n].copy()
+
+        if contrast_adjustment:
+            imgi[n] = pose_helper_functions.randomly_adjust_contrast(imgi[n])
+
+        # generate random augmentation parameters
+        theta = np.pi * (2*np.random.rand()-1) * rotation/180
+        scale[n] = (np.random.rand()-.5) * scale_range + 1
+        flip = np.random.rand()>.5
+
+        dxy = 32 * np.ones(2,)
+        dxy = (np.random.rand(2,) - .5) * dxy
+
+        # create affine transform
+        cc = np.array([Lx/2, Ly/2])
+        cc1 = cc - np.array([Lx-xy[1], Ly-xy[0]])/2 + dxy
+        pts1 = np.float32([cc,cc + np.array([1,0]), cc + np.array([0,1])])
+        pts2 = np.float32([cc1,
+                cc1 + scale[n]*np.array([np.cos(theta), np.sin(theta)]),
+                cc1 + scale[n]*np.array([np.cos(np.pi/2+theta), np.sin(np.pi/2+theta)])])
+        M = cv2.getAffineTransform(pts1,pts2)
+
+        if flip and do_flip:
+            imgi[n] = np.flip(imgi[n], axis=-1)
+            lbl[n,:,0] = Lx - lbl[n,:,0]
+
+        # affine transform on labels
+        lbl[n] = lbl[n] @ M[:,:2].T + M[:,2]
+        lbl[n,lbl[n,:,0]>xy[0]-1,0] = np.nan
+        lbl[n,lbl[n,:,1]>xy[1]-1,1] = np.nan
+        lbl[n,lbl[n]<0] = np.nan
+
+        # affine transform on image
+        for k in range(nchan):
+            I = cv2.warpAffine(imgi[n][k], M, (xy[1],xy[0]), flags=cv2.INTER_LINEAR)
+            if gamma_aug:
+                gamma = np.random.uniform(low=1-dg,high=1+dg)
+                imgi[n] = np.sign(I) * (np.abs(I)) ** gamma
+            else:
+                imgi[n] = I
+
+    return imgi, lbl, scale

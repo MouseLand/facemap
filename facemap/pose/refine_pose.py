@@ -427,10 +427,6 @@ class KeypointsGraph(pg.GraphItem):
             self.update_pose_file(keypoints_refined)         
             return
 
-# TO-DO:
-# Write a function that loads the keypoints from a file and uses them to re-train the model
-# Add a feature for using the retrained model for the next pose prediction
-
 class PoseFileListChooser(QDialog):
     def __init__(self, title, parent):
         super().__init__(parent)

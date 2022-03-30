@@ -19,6 +19,10 @@ Contains functions that can be used through CLI or GUI
 Currently supports single video processing and multi-videos as processed sequentially.
 """
 
+# TO-DO:
+# Write a function to re-train the model
+# Add a feature for using the retrained model for the next pose prediction
+
 class Pose():
     def __init__(self, filenames=None, bodyparts=None, bbox=[], bbox_set=False, gui=None, GUIobject=None):
         self.gui = gui

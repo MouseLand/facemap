@@ -86,6 +86,28 @@ def get_predicted_landmarks(net, im_input, batchsize=1, smooth=True):
 
     return y_pred*N_FACTOR, x_pred*N_FACTOR, likelihood
 
+
+def randomly_adjust_contrast(img):
+    """
+    Randomly adjusts contrast of image
+    img: ND-array of size nchan x Ly x Lx
+    Assumes image values in range 0 to 1
+    """
+    brange = [-0.2,0.2]
+    bdiff = brange[1] - brange[0]
+    crange = [0.7,1.3]
+    cdiff = crange[1] - crange[0]
+    imax = img.max()
+    if (bdiff<0.01) and (cdiff<0.01):
+        return img
+    bfactor = np.random.rand() * bdiff + brange[0]
+    cfactor = np.random.rand() * cdiff + crange[0]
+    mm = img.mean()
+    jj = img + bfactor * imax
+    jj = np.minimum(imax, (jj - mm) * cfactor + mm)
+    jj = jj.clip(0, imax)
+    return jj
+
 def add_motion_blur(img, kernel_size=None, vertical=True, horizontal=True):
     # Create the vertical kernel.
     kernel_v = np.zeros((kernel_size, kernel_size))
