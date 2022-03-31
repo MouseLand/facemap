@@ -34,7 +34,7 @@ class MainW(QtWidgets.QMainWindow):
 
         pg.setConfigOptions(imageAxisOrder='row-major')
         self.setGeometry(15,15,1470,1000)
-        self.setWindowTitle('FaceMap')
+        self.setWindowTitle('Facemap')
         self.setStyleSheet("QMainWindow {background: 'black';}")
         self.styleUnpressed = ("QPushButton {Text-align: left; "
                                "background-color: rgb(50,50,50); "
@@ -723,9 +723,24 @@ class MainW(QtWidgets.QMainWindow):
             self.update_status_bar("Output saved in "+savepath)
         if self.Labels_checkBox.isChecked():
             self.get_pose_labels()
-            if self.pose_model is not None:
-                self.pose_model.run()
+            self.pose_model.run_all()
             self.update_status_bar("Pose labels saved in "+savepath)
+        
+    def process_subset_keypoints(self):
+        # Check if video is loaded
+        if self.process.isEnabled():
+            if self.pose_model is None:
+                self.get_pose_labels()
+            self.pose_model.run_subset()
+        else:
+            # Open a qmessage box to notify the user that the video is not loaded
+            msg = QtWidgets.QMessageBox()
+            # Error icon in the top left corner
+            msg.setIcon(QtWidgets.QMessageBox.Critical)
+            msg.setText("Please load a video first.")
+            msg.setWindowTitle("No video loaded")
+            msg.exec_()
+
         
     def update_buttons(self):
         self.playButton.setEnabled(True)

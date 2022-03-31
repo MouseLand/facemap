@@ -9,36 +9,42 @@ def mainmenu(parent):
     # --------------- MENU BAR --------------------------
     # run suite2p from scratch
     openFile = QAction("&Load single movie file", parent)
-    openFile.setShortcut("Ctrl+L")
+    openFile.setShortcut("Ctrl+O")
     openFile.triggered.connect(lambda: io.open_file(parent))
     parent.addAction(openFile)
 
     openFolder = QAction("Open &Folder of movies", parent)
-    openFolder.setShortcut("Ctrl+F")
+    #openFolder.setShortcut("Ctrl+I")
     openFolder.triggered.connect(lambda: io.open_folder(parent))
     parent.addAction(openFolder)
 
     # load processed data
     loadProc = QAction("Load &Processed data", parent)
-    loadProc.setShortcut("Ctrl+P")
+    #loadProc.setShortcut("Ctrl+L")
     loadProc.triggered.connect(lambda: io.open_proc(parent))
     parent.addAction(loadProc)
 
     # Set output folder
     setOutputFolder = QAction("Set &output folder", parent)
-    setOutputFolder.setShortcut("Ctrl+O")
+    setOutputFolder.setShortcut("Ctrl+S")
     setOutputFolder.triggered.connect(lambda: io.save_folder(parent))
     parent.addAction(setOutputFolder)
 
-    # Keypoints correction 
+    # Keypoints actions
     keypointsCorrection = QAction("&Keypoints correction", parent)
-    keypointsCorrection.setShortcut("Ctrl+K")
+    #keypointsCorrection.setShortcut("Ctrl+K")
     keypointsCorrection.triggered.connect(lambda: parent.keypoints_correction())
     parent.addAction(keypointsCorrection)
 
     loadPose = QAction("Load &pose data", parent)
+    #loadPose.setShortcut("Ctrl+P")
     loadPose.triggered.connect(lambda: io.get_pose_file(parent))
     parent.addAction(loadPose)
+
+    process_subset_keypoints = QAction("&Process subset of video", parent)
+    #process_subset_keypoints.setShortcut("Ctrl+X")
+    process_subset_keypoints.triggered.connect(lambda: parent.process_subset_keypoints())
+    parent.addAction(process_subset_keypoints)
 
     # Help menu actions
     helpContent = QAction("Help Content", parent)
@@ -52,9 +58,11 @@ def mainmenu(parent):
     file_menu.addAction(openFile)
     file_menu.addAction(openFolder)
     file_menu.addAction(loadProc)
-    file_menu.addAction(loadPose)
     file_menu.addAction(setOutputFolder)
-    file_menu.addAction(keypointsCorrection)
+    pose_menu = main_menu.addMenu("&Pose")
+    pose_menu.addAction(loadPose)
+    pose_menu.addAction(process_subset_keypoints)
+    pose_menu.addAction(keypointsCorrection)
     help_menu = main_menu.addMenu("&Help")
     help_menu.addAction(helpContent)
 

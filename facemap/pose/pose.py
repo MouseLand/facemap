@@ -40,7 +40,7 @@ class Pose():
         self.bbox_set = bbox_set
         self.net =  None
 
-    def run(self, plot=True):
+    def run_all(self, plot=True):
         start_time = time.time()
         self.net = self.load_model()
         # Predict and save pose
@@ -77,12 +77,17 @@ class Pose():
         utils.update_mainwindow_message(MainWindow=self.gui, GUIobject=self.GUIobject, 
                     prompt="Time elapsed: {} seconds".format(end_time-start_time),  hide_progress=True)
 
+    def run_subset(self):
+        # TO-DO:
+        # Add a function to run a subset of frames
+        print("process_subset")
+        pass
+
     # Retrain model using refined pose data
     def retrain_model(self, pose_data, selected_frame_ind):
         video_path = self.filenames[0][0]
         imgs = model_training.load_images_from_video(video_path, selected_frame_ind)
         imgs, keypoints = model_training.preprocess_images_landmarks(imgs, pose_data, self.bbox[0])
-        print("Preprocessed images and landmarks:", imgs.shape, keypoints.shape)
         # Save images and landmarks to a numpy file
         savepath = os.path.splitext(video_path)[0]+"_Facemap_refined_images_landmarks.npy"
         np.save(savepath, {"imgs": imgs,
@@ -90,8 +95,8 @@ class Pose():
                             "bbox": self.bbox[0],
                             "bodyparts": self.bodyparts,
                             "frame_ind": selected_frame_ind})
+        print("Preprocessed images and landmarks saved to:", savepath)
         #self.net = model_training.finetune_model(imgs, keypoints, self.net, batch_size=1)
-        print("Model retraining complete")
         return
     
     def write_dataframe(self, data):
