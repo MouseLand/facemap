@@ -83,7 +83,14 @@ class Pose():
         imgs = model_training.load_images_from_video(video_path, selected_frame_ind)
         imgs, keypoints = model_training.preprocess_images_landmarks(imgs, pose_data, self.bbox[0])
         print("Preprocessed images and landmarks:", imgs.shape, keypoints.shape)
-        self.net = model_training.finetune_model(imgs, keypoints, self.net, batch_size=1)
+        # Save images and landmarks to a numpy file
+        savepath = os.path.splitext(video_path)[0]+"_Facemap_refined_images_landmarks.npy"
+        np.save(savepath, {"imgs": imgs,
+                            "keypoints": keypoints,
+                            "bbox": self.bbox[0],
+                            "bodyparts": self.bodyparts,
+                            "frame_ind": selected_frame_ind})
+        #self.net = model_training.finetune_model(imgs, keypoints, self.net, batch_size=1)
         print("Model retraining complete")
         return
     

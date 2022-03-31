@@ -9,6 +9,7 @@ from .. import utils
 from PyQt5 import QtCore
 import pandas as pd
 from matplotlib import cm
+from PyQt5.QtGui import QColor
 from PyQt5.QtWidgets import (QDialog, QWidget, QGridLayout, QLabel,
                             QSpinBox, QPushButton, QVBoxLayout, QRadioButton,
                             QHBoxLayout, QVBoxLayout, QButtonGroup, 
@@ -117,13 +118,22 @@ class KeypointsRefinementPopup(QDialog):
         self.radio_verticalLayout.addWidget(self.radio_label)
         self.radio_buttons_group = QButtonGroup()
         self.radio_buttons_group.setExclusive(True)
-        #self.radio_buttons_group.buttonClicked.connect(self.update_keypoints)
         self.radio_buttons_group.setObjectName("radio_buttons_group")
         self.radio_buttons = []
         for i, bodypart in enumerate(self.bodyparts):
             self.radio_buttons.append(QRadioButton(bodypart))
             self.radio_buttons[i].hide()
+            # Change color of radio button
+            color  = QColor(self.colors[i][0], self.colors[i][1], self.colors[i][2])
+            alpha  = 150
+            values = "{r}, {g}, {b}, {a}".format(r = color.red(),
+                                                g = color.green(),
+                                                b = color.blue(),
+                                                a = alpha
+                                                )
+            self.radio_buttons[i].setStyleSheet("QRadioButton { background-color: rgba("+values+"); border: 1px solid black; }")
             self.radio_buttons[i].setObjectName(bodypart)
+            self.radio_buttons[i].clicked.connect(self.radio_button_clicked)
             self.radio_buttons_group.addButton(self.radio_buttons[i])
             self.radio_verticalLayout.addWidget(self.radio_buttons[i])
 
@@ -138,6 +148,29 @@ class KeypointsRefinementPopup(QDialog):
             self.delete_keypoint()
         else:
             return
+
+    def radio_button_clicked(self):
+        # Change background color of the selected radio button to None
+        for i, button in enumerate(self.radio_buttons):
+            if button.isChecked():
+                color  = QColor(self.colors[i][0], self.colors[i][1], self.colors[i][2])
+                alpha  = 0
+                values = "{r}, {g}, {b}, {a}".format(r = color.red(),
+                                                    g = color.green(),
+                                                    b = color.blue(),
+                                                    a = alpha
+                                                    )
+                button.setStyleSheet("QRadioButton { background-color: rgba("+values+"); border: 1px solid black; }")
+            else:
+                color  = QColor(self.colors[i][0], self.colors[i][1], self.colors[i][2])
+                alpha  = 150
+                values = "{r}, {g}, {b}, {a}".format(r = color.red(),
+                                                    g = color.green(),
+                                                    b = color.blue(),
+                                                    a = alpha
+                                                    )
+                button.setStyleSheet("QRadioButton { background-color: rgba("+values+"); border: 0px solid black; }")
+
 
     def delete_keypoint(self):
         # Get index of radio button that is selected
@@ -212,7 +245,7 @@ class KeypointsRefinementPopup(QDialog):
         self.verticalLayout.addLayout(self.frame_horizontalLayout)
 
         # Select frames for keypoints correction
-        self.random_frames_ind = np.random.choice(self.gui.nframes, self.spinBox_nframes.value(), replace=False)   
+        self.random_frames_ind = sorted(np.random.choice(self.gui.nframes, self.spinBox_nframes.value(), replace=False)) 
         for i, bodypart in enumerate(self.bodyparts):
             self.radio_buttons[i].show()
             self.radio_label.show()
