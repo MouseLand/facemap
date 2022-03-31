@@ -428,6 +428,7 @@ class KeypointsGraph(pg.GraphItem):
             ind = points[0].index()
         # Update radio button for bodypart
         self.parent.radio_buttons[ind].setChecked(True)
+        self.parent.radio_buttons[ind].clicked.emit(True)
 
     # Add feature for adding a keypoint to the scatterplot
     def right_click_keypoint(self, mouseEvent=None):
