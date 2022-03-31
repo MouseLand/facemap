@@ -71,7 +71,7 @@ class ROI_popup(QDialog):
         self.frame = frame
         self.pose = pose
         self.last_video = last_video
-        self.setWindowTitle('Select ROI for video: '+str(video_id))
+        self.setWindowTitle('Select face ROI for video: '+str(video_id))
 
         # Add image and ROI bbox
         self.verticalLayout = QtWidgets.QVBoxLayout(self)
@@ -140,6 +140,80 @@ class ROI_popup(QDialog):
         self.pose.bbox.append([x1, x2, y1, y2, False])
         self.pose.plot_bbox_roi()
         self.close()
+
+class VisualizeVideoSubset(QDialog):
+    def __init__(self, gui, video_id, pose, frame_idx):
+        super().__init__()
+        print("Visualizing video subset")
+        self.gui = gui
+        self.video_id = video_id
+        self.pose = pose
+        self.frame_idx = frame_idx
+
+        # Add image and pose prediction
+        self.verticalLayout = QtWidgets.QVBoxLayout(self)
+        self.win = pg.GraphicsLayoutWidget()
+        self.win.setObjectName("Dialog "+str(video_id+1))
+        frame_win = self.win.addViewBox(invertY=True)
+        self.current_frame_idx = 0
+        frame0 = self.get_frame(self.frame_idx[self.current_frame_idx])
+        self.img = pg.ImageItem(frame0)
+        frame_win.addItem(self.img)
+        self.win.show()
+        self.verticalLayout.addWidget(self.win)
+        self.update_window_title()
+
+        self.button_horizontalLayout = QtWidgets.QHBoxLayout()
+        # Add a next button to the dialog box horizontally centered with other buttons
+        self.next_button = QPushButton('Next')
+        self.next_button.setDefault(True)
+        self.next_button.clicked.connect(self.next_exec)
+        # Add a previous button to the dialog box horizontally centered with next button and done button
+        self.previous_button = QPushButton('Previous')
+        self.previous_button.setDefault(False)
+        self.previous_button.clicked.connect(self.previous_exec)
+        self.previous_button.setEnabled(False)
+        # Add buttons to dialog box
+        self.done_button = QPushButton('Done')
+        self.done_button.setDefault(False)
+        self.done_button.clicked.connect(self.done_exec)
+        self.button_horizontalLayout.addWidget(self.previous_button)
+        self.button_horizontalLayout.addWidget(self.next_button)
+        self.button_horizontalLayout.addWidget(self.done_button)
+        self.verticalLayout.addLayout(self.button_horizontalLayout)
+
+        self.exec_()
+
+    def get_frame(self, frame_idx):
+        return utils.get_frame(frame_idx, self.gui.nframes, self.gui.cumframes, self.gui.video)[0]
+
+    def next_exec(self):
+        if self.current_frame_idx < len(self.frame_idx)-1:
+            self.current_frame_idx += 1
+            self.update_window_title()
+            self.img.setImage(self.get_frame(self.frame_idx[self.current_frame_idx]))
+            self.previous_button.setEnabled(True)
+            if self.current_frame_idx == len(self.frame_idx)-1:
+                self.next_button.setEnabled(False)
+        else:
+            self.next_button.setEnabled(False)
+
+    def previous_exec(self):
+        if self.current_frame_idx > 0:
+            self.current_frame_idx -= 1
+            self.update_window_title()
+            self.img.setImage(self.get_frame(self.frame_idx[self.current_frame_idx]))
+            self.next_button.setEnabled(True)
+            if self.current_frame_idx == 0:
+                self.previous_button.setEnabled(False)
+        else:
+            self.previous_button.setEnabled(False)
+
+    def done_exec(self):
+        self.close()
+
+    def update_window_title(self):
+        self.setWindowTitle("Frame: "+str(self.frame_idx[self.current_frame_idx])+" ({}/{})".format(self.current_frame_idx, len(self.frame_idx)-1))
 
 # Following used to check cropped sections of frames
 class test_popup(QDialog):

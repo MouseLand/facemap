@@ -15,6 +15,10 @@ from PyQt5.QtWidgets import (QDialog, QWidget, QGridLayout, QLabel,
                             QHBoxLayout, QVBoxLayout, QButtonGroup, 
                             QListWidget, QAbstractItemView)
 
+# TO-DO:
+# Fix add keypoint feature using right click -> doesn't always work
+# Add frame number in popup window
+
 def apply_keypoints_correction(guiObject):
     """
     Apply keypoints correction to the predicted pose data for re-training the model
@@ -171,7 +175,6 @@ class KeypointsRefinementPopup(QDialog):
                                                     )
                 button.setStyleSheet("QRadioButton { background-color: rgba("+values+"); border: 0px solid black; }")
 
-
     def delete_keypoint(self):
         # Get index of radio button that is selected
         index = self.radio_buttons_group.checkedId()
@@ -180,12 +183,16 @@ class KeypointsRefinementPopup(QDialog):
         selected_items = np.where(self.bodyparts == bodypart)[0]        
         # Delete the selected keypoint
         #selected_items = self.keypoints_scatterplot.hover()
-        if len(selected_items) > 0:
-            for i in selected_items:
+        for i in selected_items:
+            if not np.isnan(self.keypoints_scatterplot.data['pos'][i]).any():
                 self.keypoints_scatterplot.data['pos'][i] = np.nan
-            self.keypoints_scatterplot.updateGraph(dragged=True)
-        else:
-            print("Please select a keypoint to delete")
+                # Update radio buttons
+                if i < len(self.radio_buttons)-1:
+                    self.radio_buttons[i+1].setChecked(True)
+                    self.radio_buttons[i+1].clicked.emit(True)
+                self.keypoints_scatterplot.updateGraph(dragged=True)
+            else:
+                return
 
     def clear_window(self):
         # Hide frame_win
@@ -313,7 +320,7 @@ class KeypointsRefinementPopup(QDialog):
         colors = cm.get_cmap('jet')(np.linspace(0, 1., num_classes))
         colors *= 255
         colors = colors.astype(int)
-        colors[:,-1] = 200
+        colors[:,-1] = 230
         brushes = [pg.mkBrush(color=c) for c in colors]
         return brushes, colors
 
@@ -375,7 +382,6 @@ class KeypointsGraph(pg.GraphItem):
 
     def mousePressEvent(self, QMouseEvent):
         if QMouseEvent.button() == QtCore.Qt.RightButton:
-            #do what you want here
             self.right_click_keypoint(QMouseEvent)
         elif QMouseEvent.button() == QtCore.Qt.LeftButton:
             super().mousePressEvent(QMouseEvent)
@@ -432,9 +438,6 @@ class KeypointsGraph(pg.GraphItem):
 
     # Add feature for adding a keypoint to the scatterplot
     def right_click_keypoint(self, mouseEvent=None):
-        # Get position of mouse from the mouse event
-        add_point_pos = mouseEvent.pos()
-        add_x, add_y = add_point_pos.x(), add_point_pos.y()
         # Get the name of the bodypart selected in the radio buttons
         for i, bp in enumerate(self.parent.bodyparts):
             if self.parent.radio_buttons[i].isChecked():
@@ -447,6 +450,9 @@ class KeypointsGraph(pg.GraphItem):
         x, y = selected_bp_pos[0], selected_bp_pos[1]
         # If keypoint is deleted, then add it back using the user selected position
         if np.isnan(x) and np.isnan(y):
+            # Get position of mouse from the mouse event
+            add_point_pos = mouseEvent.pos()
+            add_x, add_y = add_point_pos.x(), add_point_pos.y()
             keypoints_refined = self.getData()
             keypoints_refined[selected_bp_ind] = [add_x, add_y]
             # Add a keypoint to the scatter plot at the clicked position to add the bodypart
@@ -459,6 +465,14 @@ class KeypointsGraph(pg.GraphItem):
             # Update the pose file   
             keypoints_refined = self.getData()
             self.update_pose_file(keypoints_refined)         
+            # Check the next bodypart in the list of radio buttons
+            if selected_bp_ind[0] < len(self.parent.bodyparts) - 1:
+                self.parent.radio_buttons[selected_bp_ind[0]+1].setChecked(True)
+                self.parent.radio_buttons[selected_bp_ind[0]+1].clicked.emit(True)
+            else:
+                self.parent.radio_buttons[0].setChecked(True)
+                self.parent.radio_buttons[0].clicked.emit(True)
+        else:
             return
 
 class PoseFileListChooser(QDialog):

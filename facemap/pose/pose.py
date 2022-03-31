@@ -1,5 +1,6 @@
 import os
 import time
+from tkinter import N
 from tqdm import tqdm
 
 import numpy as np
@@ -40,10 +41,11 @@ class Pose():
         self.bbox_set = bbox_set
         self.net =  None
 
-    def run_all(self, plot=True):
-        start_time = time.time()
-        self.net = self.load_model()
-        # Predict and save pose
+    def pose_prediction_setup(self):
+        # Setup the model
+        if self.net is None:
+            self.net = self.load_model()
+        # Setup the bounding box
         if not self.bbox_set:
             resize = True 
             for i in range(len(self.Ly)):
@@ -52,7 +54,11 @@ class Pose():
                 prompt = "No bbox set. Using entire frame view: {} and resize={}".format(self.gui.bbox, resize)
                 utils.update_mainwindow_message(MainWindow=self.gui, GUIobject=self.GUIobject, 
                                                 prompt=prompt, hide_progress=True)
-            self.bbox_set = True    
+            self.bbox_set = True   
+
+    def run_all(self, plot=True):
+        start_time = time.time()
+        self.pose_prediction_setup()
         for video_id in range(len(self.bbox)):
             utils.update_mainwindow_message(MainWindow=self.gui, GUIobject=self.GUIobject, 
                                     prompt="Processing video: {}".format(self.filenames[0][video_id]), hide_progress=True)
@@ -73,15 +79,27 @@ class Pose():
         if plot and self.gui is not None:
             self.plot_pose_estimates()
         end_time = time.time()
-        print("Time elapsed:", end_time-start_time, "seconds")
+        print("Pose estimation time elapsed:", end_time-start_time, "seconds")
         utils.update_mainwindow_message(MainWindow=self.gui, GUIobject=self.GUIobject, 
-                    prompt="Time elapsed: {} seconds".format(end_time-start_time),  hide_progress=True)
+                    prompt="Pose estimation time elapsed: {} seconds".format(end_time-start_time),  hide_progress=True)
 
     def run_subset(self):
-        # TO-DO:
-        # Add a function to run a subset of frames
-        print("process_subset")
-        pass
+        """
+        Run pose estimation on a random subset of frames
+        """
+        self.pose_prediction_setup()
+        # Select a random subset of frames
+        subset_size = int(self.nframes/10)
+        subset_ind = np.random.choice(self.nframes, subset_size, replace=False)
+        subset_ind = np.sort(subset_ind)
+
+        for video_id in range(len(self.bbox)):
+            utils.update_mainwindow_message(MainWindow=self.gui, GUIobject=self.GUIobject, 
+                                    prompt="Processing video: {}".format(self.filenames[0][video_id]), hide_progress=True)
+            pred_data, _ = self.predict_landmarks(video_id, frame_ind=subset_ind)
+            utils.update_mainwindow_message(MainWindow=self.gui, GUIobject=self.GUIobject, 
+                        prompt="Finished processing subset of video",  hide_progress=True)
+            return pred_data, subset_ind, video_id
 
     # Retrain model using refined pose data
     def retrain_model(self, pose_data, selected_frame_ind):
@@ -123,18 +141,26 @@ class Pose():
 
         return dataFrame
 
-    def predict_landmarks(self, video_id):
+    def predict_landmarks(self, video_id, frame_ind=None):
         """
         Predict labels for all frames in video and save output as .h5 file
         """
         nchannels = 1
+        # TO-DO:
+            # Support other batch sizes depending on GPU memory and CPU
         if torch.cuda.is_available():
             batch_size = 1
         else:
             batch_size = 1
 
+        if frame_ind is None:
+            total_frames = self.cumframes[-1]
+            frame_ind = np.arange(total_frames)
+        else:
+            total_frames = len(frame_ind)
+
         # Create array for storing predictions
-        pred_data = torch.zeros(self.cumframes[-1], len(self.net.bodyparts), 3)
+        pred_data = torch.zeros(total_frames, len(self.net.bodyparts), 3)
 
         # Store predictions in dataframe
         self.net.eval()
@@ -144,12 +170,15 @@ class Pose():
         inference_time = 0
 
         progress_output = StringIO()
-        with tqdm(total=self.cumframes[-1], unit='frame', unit_scale=True, file=progress_output) as pbar:
-            while start != self.cumframes[-1]: #  for analyzing entire video
+        with tqdm(total=total_frames, unit='frame', unit_scale=True, file=progress_output) as pbar:
+            while start != total_frames: #  for analyzing entire video
                 
                 # Pre-pocess images
-                imall = np.zeros((end-start, nchannels, self.Ly[video_id], self.Lx[video_id]))
-                cframes = np.arange(start, end)
+                imall = np.zeros((batch_size, nchannels, self.Ly[video_id], self.Lx[video_id]))
+                if frame_ind is None:
+                    cframes = np.arange(start, end)
+                else:
+                    cframes = np.array(frame_ind[start:end])
                 utils.get_frames(imall, self.containers, cframes, self.cumframes)
 
                 # Inference time includes: pre-processing, inference, post-processing
@@ -160,8 +189,8 @@ class Pose():
                 imall = transforms.preprocess_img(frame_grayscale)
 
                 # Network prediction 
-                Xlabel, Ylabel, likelihood = pose_utils.get_predicted_landmarks(self.net, imall, 
-                                                                        batchsize=batch_size, smooth=False)
+                Xlabel, Ylabel, likelihood = pose_utils.get_predicted_landmarks(self.net, imall, batchsize=batch_size,
+                                                                                smooth=False)
 
                 # Get adjusted landmarks that fit to original image size
                 Xlabel, Ylabel = transforms.labels_crop_resize(Xlabel, Ylabel, 
@@ -179,21 +208,21 @@ class Pose():
                 pbar.update(batch_size)
                 start = end 
                 end += batch_size
-                end = min(end, self.cumframes[-1])
+                end = min(end, total_frames)
                 # Update progress bar for every 5% of the total frames
-                if (end) % np.floor(self.cumframes[-1]*.05) == 0:
+                if (end) % np.floor(total_frames*.05) == 0:
                     utils.update_mainwindow_progressbar(MainWindow=self.gui,
                                                         GUIobject=self.GUIobject, s=progress_output, 
                                                         prompt="Pose prediction progress:")
 
         if batch_size == 1:
-            inference_speed = self.cumframes[-1] / inference_time
+            inference_speed = total_frames / inference_time
             print("Inference speed:", inference_speed, "fps")
 
         metadata = {"batch_size": batch_size,
                     "image_size": (self.Ly, self.Lx),
                     "bbox": self.bbox[video_id],
-                    "total_frames": self.cumframes[-1],
+                    "total_frames": total_frames,
                     "bodyparts": self.net.bodyparts,
                     "inference_speed": inference_speed,
                     }

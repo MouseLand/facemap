@@ -731,7 +731,9 @@ class MainW(QtWidgets.QMainWindow):
         if self.process.isEnabled():
             if self.pose_model is None:
                 self.get_pose_labels()
-            self.pose_model.run_subset()
+            pred_data, subset_ind, video_id = self.pose_model.run_subset()
+            self.update_status_bar("Subset keypoints processed")
+            pose_gui.VisualizeVideoSubset(self, video_id, pred_data, subset_ind)
         else:
             # Open a qmessage box to notify the user that the video is not loaded
             msg = QtWidgets.QMessageBox()
