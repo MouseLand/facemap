@@ -10,38 +10,100 @@ from PyQt5 import QtCore
 import pandas as pd
 from matplotlib import cm
 from PyQt5.QtGui import QColor
-from PyQt5.QtWidgets import (QDialog, QWidget, QGridLayout, QLabel,
+from PyQt5.QtWidgets import (QDialog, QWidget, QGridLayout, QLabel, QDialogButtonBox,
                             QSpinBox, QPushButton, QVBoxLayout, QRadioButton,
-                            QHBoxLayout, QVBoxLayout, QButtonGroup, 
-                            QListWidget, QAbstractItemView)
+                            QHBoxLayout, QVBoxLayout, QButtonGroup, QGroupBox,
+                            QListWidget, QAbstractItemView, QDesktopWidget)
 
 # TO-DO:
 # Fix add keypoint feature using right click -> doesn't always work
 # Add frame number in popup window
-
-def apply_keypoints_correction(guiObject):
-    """
-    Apply keypoints correction to the predicted pose data for re-training the model
-    """
-    # Select poseFilepath for keypoints correction
-    LC = PoseFileListChooser('Choose files', guiObject)
-    result = LC.exec_()
-    KeypointsRefinementPopup(guiObject)
 
 # Following used to check cropped sections of frames
 class KeypointsRefinementPopup(QDialog):
     def __init__(self, gui):
         super().__init__(gui)
         self.gui = gui
+        
+        self.setWindowTitle('Keypoints refinement')
+        self.setStyleSheet("QDialog {background: 'black';}")
+
+        self.verticalLayout = QVBoxLayout(self)
+        self.verticalLayout.setContentsMargins(-1, -1, -1, 0)
+        # Set window size that is adjusted to the size of the window
+        self.window_max_size = QDesktopWidget().screenGeometry(-1)
+
+        self.show_step1_window()
+        self.setLayout(self.verticalLayout)
+
+        self.show()
+
+    def update_window_size(self, frac=0.5):
+        # Set the size of the window to be a fraction of the screen size
+        self.resize(int(np.floor(self.window_max_size.width()*frac)), int(np.floor(self.window_max_size.height()*frac)))
+
+    def show_step1_window(self):
+        # Open a dialog box to ask user if they want to refine keypoints from the current video or load previously refined keypoints
+        # Use radio buttons to select between the two options
+        self.update_window_title("Step 1: Select refinement option")
+        self.update_window_size(0.3)
+
+        # Create a group box to hold the radio buttons
+        self.refine_keypoints_groupbox = QGroupBox()
+        self.refine_keypoints_groupbox.setLayout(QHBoxLayout())
+
+        # Create radio buttons
+        self.refine_keypoints_radio_button_1 = QRadioButton("Refine keypoints for current video")
+        self.refine_keypoints_radio_button_1.setChecked(True)
+        self.refine_keypoints_radio_button_2 = QRadioButton("Load refined keypoints")
+        self.refine_keypoints_radio_button_1.setStyleSheet("QRadioButton { font-size: 12pt; color: white; }")
+        self.refine_keypoints_radio_button_2.setStyleSheet("QRadioButton { font-size: 12pt; color: white; }")
+
+        # Add radio buttons to the group box
+        self.refine_keypoints_groupbox.layout().addWidget(self.refine_keypoints_radio_button_1)
+        self.refine_keypoints_groupbox.layout().addWidget(self.refine_keypoints_radio_button_2)
+
+        # Add group box to the dialog box
+        self.verticalLayout.addWidget(self.refine_keypoints_groupbox)
+
+        # Create a button box to hold the buttons
+        self.refine_keypoints_button_box = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
+        self.refine_keypoints_button_box.accepted.connect(self.accept)
+        self.refine_keypoints_button_box.rejected.connect(self.reject)
+        # Add spacing between the buttons and padding around the buttons
+        self.refine_keypoints_button_box.layout().setSpacing(10)
+        self.refine_keypoints_button_box.layout().setContentsMargins(10, 10, 10, 10)
+        
+        self.verticalLayout.addWidget(self.refine_keypoints_button_box)
+
+    def setup_pose_data(self):
         self.pose_data = pd.read_hdf(self.gui.poseFilepath[0], 'df_with_missing')
         self.bodyparts = np.array(pd.unique(self.pose_data.columns.get_level_values("bodyparts")))
         self.brushes, self.colors = self.get_brushes(self.bodyparts)
 
-        self.setWindowTitle('Keypoints refinement')
+    def tbd(self):
+        # TO-DO:
+        # Add functionality to delete keypoints
+        pass
+    """
+        if self.poseFileLoaded and self.pose_model is not None:
+            apply_keypoints_correction(self)
+        elif self.poseFileLoaded:
+            self.setup_pose_model()
+            apply_keypoints_correction(self)
+        else:
+            # Create a message box to ask user to process the keypoints or load a pose file
+            msg = QMessageBox()
+            msg.setIcon(QMessageBox.Information)
+            msg.setText("Please load a pose file first or process the keypoints")
+            msg.setWindowTitle("No pose file loaded")
+            msg.setStandardButtons(QMessageBox.Ok)
+            msg.exec_()
+    """
 
+    def show_step3_window(self):
         self.overall_horizontalLayout = QHBoxLayout(self)
-        self.verticalLayout = QVBoxLayout(self)
-        
+
         self.frame_horizontalLayout = QHBoxLayout()
         self.win = pg.GraphicsLayoutWidget()
         self.win.setObjectName("Keypoints refinement")
@@ -143,8 +205,6 @@ class KeypointsRefinementPopup(QDialog):
 
         self.overall_horizontalLayout.addLayout(self.verticalLayout)
         self.overall_horizontalLayout.addLayout(self.radio_verticalLayout)
-
-        self.show()
 
     def update_window_title(self, title=None):
         if title is None:
@@ -333,6 +393,22 @@ class KeypointsRefinementPopup(QDialog):
         brushes = [pg.mkBrush(color=c) for c in colors]
         return brushes, colors
 
+def apply_keypoints_correction(guiObject):
+    """
+    Apply keypoints correction to the predicted pose data for re-training the model
+    """
+    # Select poseFilepath for keypoints correction
+    LC = PoseFileListChooser('Choose files', guiObject)
+    result = LC.exec_()
+    KeypointsRefinementPopup(guiObject)
+
+def save_pose_data(gui, pose_data, frame_ind):
+    # Save the refined keypoints data to a file
+    filepath = gui.poseFilepath[0].split("_FacemapPose.h5")[0]
+    pose_data = pose_data.loc[frame_ind]
+    pose_data.to_hdf(filepath+'_FacemapPoseRefined.h5', "df_with_missing", mode="w")
+
+
 # Following adatped from https://github.com/pyqtgraph/pyqtgraph/blob/develop/examples/CustomGraphItem.py       
 class KeypointsGraph(pg.GraphItem):
     def __init__(self, parent=None, **kwargs):
@@ -508,10 +584,4 @@ class PoseFileListChooser(QDialog):
         for i in range(len(items)):
             parent.keypoint_correction_file.append(str(self.list.selectedItems()[i].text()))
         self.accept()
-
-def save_pose_data(gui, pose_data, frame_ind):
-    # Save the refined keypoints data to a file
-    filepath = gui.poseFilepath[0].split("_FacemapPose.h5")[0]
-    pose_data = pose_data.loc[frame_ind]
-    pose_data.to_hdf(filepath+'_FacemapPoseRefined.h5', "df_with_missing", mode="w")
 

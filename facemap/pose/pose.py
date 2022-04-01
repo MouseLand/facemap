@@ -101,19 +101,26 @@ class Pose():
                         prompt="Finished processing subset of video",  hide_progress=True)
             return pred_data.cpu().numpy(), subset_ind, video_id, self.net.bodyparts
 
-    # Retrain model using refined pose data
-    def retrain_model(self, pose_data, selected_frame_ind):
+    # Preprocess refined keypoints to be used for pose estimation
+    def preprocess_refined_keypoints(self, pose_data, selected_frame_ind, video_id):
         video_path = self.filenames[0][0]
         imgs = model_training.load_images_from_video(video_path, selected_frame_ind)
-        imgs, keypoints = model_training.preprocess_images_landmarks(imgs, pose_data, self.bbox[0])
-        # Save images and landmarks to a numpy file
+        imgs, keypoints = model_training.preprocess_images_landmarks(imgs, pose_data, self.bbox[video_id])
+        return imgs, keypoints, selected_frame_ind
+
+    # Save refined keypoints and images to a numpy file
+    def save_refined_data(self, imgs, keypoints, selected_frame_ind, video_id):
+        video_path = self.filenames[0][0]
         savepath = os.path.splitext(video_path)[0]+"_Facemap_refined_images_landmarks.npy"
         np.save(savepath, {"imgs": imgs,
                             "keypoints": keypoints,
-                            "bbox": self.bbox[0],
+                            "bbox": self.bbox[video_id],
                             "bodyparts": self.bodyparts,
                             "frame_ind": selected_frame_ind})
         print("Preprocessed images and landmarks saved to:", savepath)
+
+    # Retrain model using refined pose data
+    def retrain_model(self):
         #self.net = model_training.finetune_model(imgs, keypoints, self.net, batch_size=1)
         return
     

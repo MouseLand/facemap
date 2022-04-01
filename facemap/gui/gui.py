@@ -10,8 +10,8 @@ from . import io, menus, guiparts
 from facemap import process, roi, utils, cluster
 from facemap.pose import pose_gui, pose, refine_pose 
 from PyQt5.QtGui import QPixmap, QFont, QPainterPath, QIcon, QColor
-from PyQt5.QtWidgets import ( QLabel, QPushButton, QLineEdit, QCheckBox, 
-                            QComboBox, QToolButton, QStatusBar, QSlider,
+from PyQt5.QtWidgets import ( QLabel, QPushButton, QLineEdit, QCheckBox, QDesktopWidget,
+                            QComboBox, QToolButton, QStatusBar, QSlider, 
                             QProgressBar, QSpinBox, QMessageBox, QButtonGroup, 
                             QGridLayout, QWidget, QPushButton, QWidget)
 
@@ -66,8 +66,10 @@ class MainW(QtWidgets.QMainWindow):
         self.cwidget.setLayout(self.l0)
         # --- cells image
         self.win = pg.GraphicsLayoutWidget()
-        self.win.move(600,0)
-        self.win.resize(1000,500)
+        sizeObject = QDesktopWidget().screenGeometry(-1)
+        self.resize(sizeObject.width(), sizeObject.height())
+        self.win.move(sizeObject.height(), sizeObject.width())
+        self.win.resize(sizeObject.height(), sizeObject.width())
         self.l0.addWidget(self.win,1,2,25,15)
         layout = self.win.ci.layout
 
@@ -877,19 +879,7 @@ class MainW(QtWidgets.QMainWindow):
 
     def keypoints_refinement(self):
         if self.process.isEnabled():
-            if self.poseFileLoaded and self.pose_model is not None:
-                refine_pose.apply_keypoints_correction(self)
-            elif self.poseFileLoaded:
-                self.setup_pose_model()
-                refine_pose.apply_keypoints_correction(self)
-            else:
-                # Create a message box to ask user to process the keypoints or load a pose file
-                msg = QMessageBox()
-                msg.setIcon(QMessageBox.Information)
-                msg.setText("Please load a pose file first or process the keypoints")
-                msg.setWindowTitle("No pose file loaded")
-                msg.setStandardButtons(QMessageBox.Ok)
-                msg.exec_()
+           refine_pose.KeypointsRefinementPopup(self)
         else:
             # Open a qmessage box to notify the user that the video is not loaded
             msg = QtWidgets.QMessageBox()
@@ -954,12 +944,31 @@ class MainW(QtWidgets.QMainWindow):
                     tip.append('({} other...)'.format(len(point_hovered) - cutoff))
                 vb.setToolTip('\n\n'.join(tip))
 
+    # Retrain the model using the refined keypoints
     def retrain_model(self, selected_frame_ind):
+        # Steps for retraining the model
+        # 1. Load video 
+        if not self.process.isEnabled():
+            # Open a qmessage box to notify the user that the video is not loaded
+            msg = QtWidgets.QMessageBox()
+            # Error icon in the top left corner
+            msg.setIcon(QtWidgets.QMessageBox.Critical)
+            msg.setText("Please load a video first.")
+            msg.setWindowTitle("No video loaded")
+            msg.exec_()
+            return
+        # 2. Load previosuly refined keypoints and images
+        # OR
+        # 2. Refine keypoints from the current video loaded
+        """
+        # 3. Use the refined keypoints to retrain the model then process the video
         if self.pose_model is not None:
-            # Retrain the model using the refined keypoints
             refined_pose_filepath = self.poseFilepath[0].split("_FacemapPose.h5")[0]+'_FacemapPoseRefined.h5'
             refined_pose_data = pd.read_hdf(refined_pose_filepath, 'df_with_missing')
-            self.pose_model.retrain_model(refined_pose_data, selected_frame_ind)
+            imgs, keypoints, selected_frame_ind = self.pose_model.preprocess_refined_keypoints(refined_pose_data, 
+                                                                                            selected_frame_ind,
+                                                                                            video_id=0)
+            self.pose_model.save_refined_data(self, imgs, keypoints, selected_frame_ind, video_id=0)                                                                                    
             self.update_status_bar("Model retrained")
             # Open a message box to notify user and ask if they want to reprocess the video
             msg = "Model retraining complete. Would you like to reprocess the video?"
@@ -977,6 +986,8 @@ class MainW(QtWidgets.QMainWindow):
             msg.setWindowTitle("Pose model not found")
             msg.setStandardButtons(QMessageBox.Ok)
             msg.exec_()
+        """
+
 
     ### ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Plot 1 and 2 functions ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ 
     def load_trace_button_clicked(self, plot_id):
