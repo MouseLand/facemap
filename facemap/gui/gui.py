@@ -667,6 +667,30 @@ class MainW(QtWidgets.QMainWindow):
         opsfile = os.path.join(os.path.abspath(os.path.dirname(__file__)), 'ops_user.npy')
         np.save(opsfile, ops)
         return ops
+        
+    def update_buttons(self):
+        self.playButton.setEnabled(True)
+        self.pauseButton.setEnabled(False)
+        self.addROI.setEnabled(True)
+        self.pauseButton.setChecked(True)
+        self.process.setEnabled(True)
+        self.saverois.setEnabled(True)
+        self.checkBox.setChecked(True)
+        self.save_mat.setChecked(True)
+        self.load_trace1_button.setEnabled(True)
+        self.load_trace2_button.setEnabled(True)
+
+        # Enable pose features for single video only
+        self.Labels_checkBox.setEnabled(True)
+    
+    def button_status(self, status):
+        self.playButton.setEnabled(status)
+        self.pauseButton.setEnabled(status)
+        self.frameSlider.setEnabled(status)
+        self.process.setEnabled(status)
+        self.saverois.setEnabled(status)
+
+    ### ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~  Process options ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
     def save_ROIs(self):
         self.sbin = int(self.binSpinBox.value())
@@ -722,7 +746,7 @@ class MainW(QtWidgets.QMainWindow):
             print("Output saved in",savepath)
             self.update_status_bar("Output saved in "+savepath)
         if self.Labels_checkBox.isChecked():
-            self.get_pose_labels()
+            self.setup_pose_model()
             self.pose_model.run_all()
             self.update_status_bar("Pose labels saved in "+savepath)
         
@@ -730,7 +754,7 @@ class MainW(QtWidgets.QMainWindow):
         # Check if video is loaded
         if self.process.isEnabled():
             if self.pose_model is None:
-                self.get_pose_labels()
+                self.setup_pose_model()
             pred_data, subset_ind, video_id, bodyparts = self.pose_model.run_subset()
             self.update_status_bar("Subset keypoints processed")
             pose_gui.VisualizeVideoSubset(self, video_id, pred_data, subset_ind, bodyparts)
@@ -742,29 +766,6 @@ class MainW(QtWidgets.QMainWindow):
             msg.setText("Please load a video first.")
             msg.setWindowTitle("No video loaded")
             msg.exec_()
-
-        
-    def update_buttons(self):
-        self.playButton.setEnabled(True)
-        self.pauseButton.setEnabled(False)
-        self.addROI.setEnabled(True)
-        self.pauseButton.setChecked(True)
-        self.process.setEnabled(True)
-        self.saverois.setEnabled(True)
-        self.checkBox.setChecked(True)
-        self.save_mat.setChecked(True)
-        self.load_trace1_button.setEnabled(True)
-        self.load_trace2_button.setEnabled(True)
-
-        # Enable pose features for single video only
-        self.Labels_checkBox.setEnabled(True)
-    
-    def button_status(self, status):
-        self.playButton.setEnabled(status)
-        self.pauseButton.setEnabled(status)
-        self.frameSlider.setEnabled(status)
-        self.process.setEnabled(status)
-        self.saverois.setEnabled(status)
 
     ### ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Clustering and ROI ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ 
     def vis_combobox_selection_changed(self):
@@ -867,25 +868,37 @@ class MainW(QtWidgets.QMainWindow):
         self.bbox, self.bbox_set, cancel = self.pose_gui.draw_user_bbox()
         return self.bbox, self.bbox_set, cancel
 
-    def get_pose_labels(self):
+    def setup_pose_model(self):
         if not self.bbox_set:
             self.bbox, self.bbox_set, _ = self.set_pose_bbox()
         if self.pose_model is None:
             self.pose_model = pose.Pose(gui=self, GUIobject=QtWidgets, filenames=self.filenames, 
                                         bbox=self.bbox, bbox_set=self.bbox_set)
 
-    def keypoints_correction(self):
-        if self.poseFileLoaded:
-            refine_pose.apply_keypoints_correction(self)
+    def keypoints_refinement(self):
+        if self.process.isEnabled():
+            if self.poseFileLoaded and self.pose_model is not None:
+                refine_pose.apply_keypoints_correction(self)
+            elif self.poseFileLoaded:
+                self.setup_pose_model()
+                refine_pose.apply_keypoints_correction(self)
+            else:
+                # Create a message box to ask user to process the keypoints or load a pose file
+                msg = QMessageBox()
+                msg.setIcon(QMessageBox.Information)
+                msg.setText("Please load a pose file first or process the keypoints")
+                msg.setWindowTitle("No pose file loaded")
+                msg.setStandardButtons(QMessageBox.Ok)
+                msg.exec_()
         else:
-            # Create a message box to ask user to process the keypoints or load a pose file
-            msg = QMessageBox()
-            msg.setIcon(QMessageBox.Information)
-            msg.setText("Please load a pose file first or process the keypoints")
-            msg.setWindowTitle("No pose file loaded")
-            msg.setStandardButtons(QMessageBox.Ok)
+            # Open a qmessage box to notify the user that the video is not loaded
+            msg = QtWidgets.QMessageBox()
+            # Error icon in the top left corner
+            msg.setIcon(QtWidgets.QMessageBox.Critical)
+            msg.setText("Please load a video first.")
+            msg.setWindowTitle("No video loaded")
             msg.exec_()
-
+            
     def load_labels(self):
         # Read Pose file
         for video_id in range(len(self.poseFilepath)):

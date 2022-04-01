@@ -13,35 +13,37 @@ def mainmenu(parent):
     openFile.triggered.connect(lambda: io.open_file(parent))
     parent.addAction(openFile)
 
-    openFolder = QAction("Open &Folder of movies", parent)
+    openFolder = QAction("Open folder of movies", parent)
     #openFolder.setShortcut("Ctrl+I")
     openFolder.triggered.connect(lambda: io.open_folder(parent))
     parent.addAction(openFolder)
 
     # load processed data
-    loadProc = QAction("Load &Processed data", parent)
-    #loadProc.setShortcut("Ctrl+L")
+    loadProc = QAction("Load processed data", parent)
     loadProc.triggered.connect(lambda: io.open_proc(parent))
     parent.addAction(loadProc)
 
     # Set output folder
-    setOutputFolder = QAction("Set &output folder", parent)
+    setOutputFolder = QAction("&Set output folder", parent)
     setOutputFolder.setShortcut("Ctrl+S")
     setOutputFolder.triggered.connect(lambda: io.save_folder(parent))
     parent.addAction(setOutputFolder)
 
     # Keypoints actions
-    keypointsCorrection = QAction("&Keypoints correction", parent)
-    #keypointsCorrection.setShortcut("Ctrl+K")
-    keypointsCorrection.triggered.connect(lambda: parent.keypoints_correction())
-    parent.addAction(keypointsCorrection)
+    keypointsRefinement = QAction("Keypoints refinement", parent)
+    keypointsRefinement.triggered.connect(lambda: parent.keypoints_refinement())
+    parent.addAction(keypointsRefinement)
 
-    loadPose = QAction("Load &pose data", parent)
+    # Add an option to load finetuned model
+    loadModel = QAction("Load finetuned model", parent)
+    parent.addAction(loadModel)
+
+    loadPose = QAction("Load keypoints", parent)
     #loadPose.setShortcut("Ctrl+P")
     loadPose.triggered.connect(lambda: io.get_pose_file(parent))
     parent.addAction(loadPose)
 
-    process_subset_keypoints = QAction("&Process subset of video", parent)
+    process_subset_keypoints = QAction("Process subset of video", parent)
     #process_subset_keypoints.setShortcut("Ctrl+X")
     process_subset_keypoints.triggered.connect(lambda: parent.process_subset_keypoints())
     parent.addAction(process_subset_keypoints)
@@ -54,16 +56,17 @@ def mainmenu(parent):
 
     # make mainmenu!
     main_menu = parent.menuBar()
-    file_menu = main_menu.addMenu("&File")
+    file_menu = main_menu.addMenu("File")
     file_menu.addAction(openFile)
     file_menu.addAction(openFolder)
     file_menu.addAction(loadProc)
     file_menu.addAction(setOutputFolder)
-    pose_menu = main_menu.addMenu("&Pose")
+    pose_menu = main_menu.addMenu("Pose")
+    pose_menu.addAction(loadPose)
     pose_menu.addAction(loadPose)
     pose_menu.addAction(process_subset_keypoints)
-    pose_menu.addAction(keypointsCorrection)
-    help_menu = main_menu.addMenu("&Help")
+    pose_menu.addAction(keypointsRefinement)
+    help_menu = main_menu.addMenu("Help")
     help_menu.addAction(helpContent)
 
 def launch_user_manual(parent):

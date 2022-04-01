@@ -146,6 +146,12 @@ class KeypointsRefinementPopup(QDialog):
 
         self.show()
 
+    def update_window_title(self, title=None):
+        if title is None:
+            self.setWindowTitle('Keypoints refinement: frame {}/{}'.format(self.current_frame, self.spinBox_nframes.value()))
+        else:
+            self.setWindowTitle(title)
+
     # Add a keyPressEvent for deleting the selected keypoint using the delete key and set the value to NaN in the dataframe
     def keyPressEvent(self, ev):
         if ev.key() in (QtCore.Qt.Key_Backspace, QtCore.Qt.Key_Delete):
@@ -244,6 +250,7 @@ class KeypointsRefinementPopup(QDialog):
 
         # Reset frame counter
         self.current_frame = 0
+        self.update_window_title("Keypoints refinement")
 
     def display_frames_w_keypoints(self):
         self.clear_window()
@@ -275,6 +282,7 @@ class KeypointsRefinementPopup(QDialog):
             self.img = pg.ImageItem(selected_frame)
             self.frame_win.addItem(self.img)
             self.plot_keypoints(self.random_frames_ind[self.current_frame])
+            self.update_window_title()
         else:
             self.show_main_features()
             
@@ -288,6 +296,7 @@ class KeypointsRefinementPopup(QDialog):
                                             self.gui.cumframes, self.gui.video)[0] 
             self.img = pg.ImageItem(selected_frame)
             self.frame_win.addItem(self.img)
+            self.update_window_title()
             self.plot_keypoints(self.random_frames_ind[self.current_frame])
             self.next_button.setText('Next')
         else:

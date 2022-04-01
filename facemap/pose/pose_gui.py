@@ -191,6 +191,7 @@ class VisualizeVideoSubset(QDialog):
         self.button_horizontalLayout.addWidget(self.done_button)
         self.verticalLayout.addLayout(self.button_horizontalLayout)
 
+        # Scatter plot for pose prediction
         self.pose_scatter = pg.ScatterPlotItem(size=10, pen=pg.mkPen('r',width=2))
         x, y = self.pose[self.current_frame_idx][:,0], self.pose[self.current_frame_idx][:,1]
         self.pose_scatter.setData(x=x, y=y, size=12, symbol='o', brush=self.brushes, hoverable=True,
