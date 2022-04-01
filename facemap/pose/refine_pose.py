@@ -42,6 +42,18 @@ class KeypointsRefinementPopup(QDialog):
         # Set the size of the window to be a fraction of the screen size
         self.resize(int(np.floor(self.window_max_size.width()*frac)), int(np.floor(self.window_max_size.height()*frac)))
 
+    def clear_window(self):
+        # Clear the window
+        for i in reversed(range(self.verticalLayout.count())): 
+            print(i, self.verticalLayout.itemAt(i).widget().objectName())
+            self.verticalLayout.itemAt(i).widget().setParent(None)
+
+    def update_window_title(self, title=None):
+        if title is None:
+            self.setWindowTitle('Keypoints refinement: frame {}/{}'.format(self.current_frame, self.spinBox_nframes.value()))
+        else:
+            self.setWindowTitle(title)
+
     def show_step1_window(self):
         # Open a dialog box to ask user if they want to refine keypoints from the current video or load previously refined keypoints
         # Use radio buttons to select between the two options
@@ -76,11 +88,6 @@ class KeypointsRefinementPopup(QDialog):
         
         self.verticalLayout.addWidget(self.refine_keypoints_button_box)
 
-    def clear_window(self):
-        # Clear the window
-        for i in reversed(range(self.verticalLayout.count())): 
-            self.verticalLayout.itemAt(i).widget().setParent(None)
-
     def step1_done(self):
         self.clear_window()
         self.show_step2_window()
@@ -101,13 +108,14 @@ class KeypointsRefinementPopup(QDialog):
             self.update_window_size(0.15)
 
             # Add a qlabel describing the purpose of the keypoints correction
-            label_horizontalLayout = QHBoxLayout()
-            label = QLabel(self)
-            label.setText("Please select a method for extracting frames and the number of frames for refinement.\nExtracted frames from the video will be used for retraining the model on the refined keypoints. Recommended #frames for refinement are 20-25.")
-            label.setStyleSheet("QLabel { font-size: 12pt; color: grey; }")
-            label.setWordWrap(True)
-            label_horizontalLayout.addWidget(label)
-            self.verticalLayout.addLayout(label_horizontalLayout)
+            #self.label_horizontalLayout = QHBoxLayout()
+            self.label = QLabel(self)
+            self.label.setLayout(QHBoxLayout())
+            self.label.setText("Please select a method for extracting frames and the number of frames for refinement.\nExtracted frames from the video will be used for retraining the model on the refined keypoints. Recommended #frames for refinement are 20-25.")
+            self.label.setStyleSheet("QLabel { font-size: 12pt; color: grey; }")
+            self.label.setWordWrap(True)
+            #self.label_horizontalLayout.addWidget(self.label)
+            self.verticalLayout.addWidget(self.label) #addLayout(self.label_horizontalLayout)
 
             # Add a group box to hold the radio buttons
             self.frames_selection_mode_group = QGroupBox()
@@ -126,7 +134,8 @@ class KeypointsRefinementPopup(QDialog):
             self.verticalLayout.addWidget(self.frames_selection_mode_group)
 
             # Create a horizontal layout for the spinboxes
-            horizontalLayout = QHBoxLayout()
+            self.frame_number_selection_box =  QGroupBox()
+            self.frame_number_selection_box.setLayout(QHBoxLayout())
             # Add a QLabel and QSpinBox to the layout for the number of frames to be processed
             self.label_nframes = QLabel('# Frames for refinement:')
             self.label_nframes.setStyleSheet("QLabel { font-size: 12pt; color: white; }")
@@ -135,9 +144,9 @@ class KeypointsRefinementPopup(QDialog):
             self.spinBox_nframes.setValue(25)
             self.spinBox_nframes.setFixedWidth(100)
             # Add a QLabel and QSpinBox to the horizontal layout
-            horizontalLayout.addWidget(self.label_nframes)
-            horizontalLayout.addWidget(self.spinBox_nframes)
-            self.verticalLayout.addLayout(horizontalLayout)
+            self.frame_number_selection_box.layout().addWidget(self.label_nframes)
+            self.frame_number_selection_box.layout().addWidget(self.spinBox_nframes)
+            self.verticalLayout.addWidget(self.frame_number_selection_box) #addLayout(self.horizontalLayout)
 
             # Create a button box to hold the buttons
             self.frames_selection_mode_button_box = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
@@ -281,12 +290,6 @@ class KeypointsRefinementPopup(QDialog):
 
         self.overall_horizontalLayout.addLayout(self.verticalLayout)
         self.overall_horizontalLayout.addLayout(self.radio_verticalLayout)
-
-    def update_window_title(self, title=None):
-        if title is None:
-            self.setWindowTitle('Keypoints refinement: frame {}/{}'.format(self.current_frame, self.spinBox_nframes.value()))
-        else:
-            self.setWindowTitle(title)
 
     # Add a keyPressEvent for deleting the selected keypoint using the delete key and set the value to NaN in the dataframe
     def keyPressEvent(self, ev):
