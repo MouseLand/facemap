@@ -99,7 +99,7 @@ class Pose():
             pred_data, _ = self.predict_landmarks(video_id, frame_ind=subset_ind)
             utils.update_mainwindow_message(MainWindow=self.gui, GUIobject=self.GUIobject, 
                         prompt="Finished processing subset of video",  hide_progress=True)
-            return pred_data, subset_ind, video_id
+            return pred_data.cpu().numpy(), subset_ind, video_id, self.net.bodyparts
 
     # Retrain model using refined pose data
     def retrain_model(self, pose_data, selected_frame_ind):

@@ -9,6 +9,8 @@ from facemap import roi, utils
 from facemap.pose import pose
 from . import transforms
 
+from matplotlib import cm
+
 """
 Pose subclass for generating obtaining bounding box from user input.
 Currently supports single video processing only.
@@ -142,13 +144,20 @@ class ROI_popup(QDialog):
         self.close()
 
 class VisualizeVideoSubset(QDialog):
-    def __init__(self, gui, video_id, pose, frame_idx):
+    def __init__(self, gui, video_id, pose, frame_idx, bodyparts):
         super().__init__()
         print("Visualizing video subset")
         self.gui = gui
         self.video_id = video_id
         self.pose = pose
         self.frame_idx = frame_idx
+        self.bodyparts = bodyparts
+
+        print("pose shape:", self.pose.shape)
+        colors = cm.get_cmap('jet')(np.linspace(0, 1., self.pose.shape[-2]))
+        colors *= 255
+        colors = colors.astype(int)
+        self.brushes = np.array([pg.mkBrush(color=c) for c in colors])
 
         # Add image and pose prediction
         self.verticalLayout = QtWidgets.QVBoxLayout(self)
@@ -182,6 +191,12 @@ class VisualizeVideoSubset(QDialog):
         self.button_horizontalLayout.addWidget(self.done_button)
         self.verticalLayout.addLayout(self.button_horizontalLayout)
 
+        self.pose_scatter = pg.ScatterPlotItem(size=10, pen=pg.mkPen('r',width=2))
+        x, y = self.pose[self.current_frame_idx][:,0], self.pose[self.current_frame_idx][:,1]
+        self.pose_scatter.setData(x=x, y=y, size=12, symbol='o', brush=self.brushes, hoverable=True,
+                                 hoverSize=15, hoverSymbol="x", pen=(0,0,0,0), data=self.bodyparts)
+        frame_win.addItem(self.pose_scatter)
+
         self.exec_()
 
     def get_frame(self, frame_idx):
@@ -192,6 +207,7 @@ class VisualizeVideoSubset(QDialog):
             self.current_frame_idx += 1
             self.update_window_title()
             self.img.setImage(self.get_frame(self.frame_idx[self.current_frame_idx]))
+            self.update_pose_scatter()
             self.previous_button.setEnabled(True)
             if self.current_frame_idx == len(self.frame_idx)-1:
                 self.next_button.setEnabled(False)
@@ -203,6 +219,7 @@ class VisualizeVideoSubset(QDialog):
             self.current_frame_idx -= 1
             self.update_window_title()
             self.img.setImage(self.get_frame(self.frame_idx[self.current_frame_idx]))
+            self.update_pose_scatter()
             self.next_button.setEnabled(True)
             if self.current_frame_idx == 0:
                 self.previous_button.setEnabled(False)
@@ -211,6 +228,11 @@ class VisualizeVideoSubset(QDialog):
 
     def done_exec(self):
         self.close()
+
+    def update_pose_scatter(self):
+        x, y = self.pose[self.current_frame_idx][:,0], self.pose[self.current_frame_idx][:,1]
+        self.pose_scatter.setData(x=x, y=y, size=12, symbol='o', brush=self.brushes, hoverable=True,
+                                 hoverSize=10, hoverSymbol="x", pen=(0,0,0,0), data=self.bodyparts)
 
     def update_window_title(self):
         self.setWindowTitle("Frame: "+str(self.frame_idx[self.current_frame_idx])+" ({}/{})".format(self.current_frame_idx, len(self.frame_idx)-1))
