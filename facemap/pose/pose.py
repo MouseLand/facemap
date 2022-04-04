@@ -82,6 +82,8 @@ class Pose():
                     self.gui.poseFilepath.append(savepath)
                 else:
                     self.gui.poseFilepath[video_id]= savepath
+                self.gui.load_labels()
+                self.gui.Labels_checkBox.setChecked(False)
                 self.gui.Labels_checkBox.setChecked(True)
                 self.gui.start()                
         if plot and self.gui is not None:

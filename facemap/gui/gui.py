@@ -153,10 +153,6 @@ class MainW(QtWidgets.QMainWindow):
         self.Pose_scatterplot.sigHovered.connect(self.keypoints_hovered)
         self.pose_model = None
         self.poseFilepath = []
-        self.keypoints_labels = []
-        self.pose_x_coord = []
-        self.pose_y_coord = []
-        self.pose_likelihood = []
         self.keypoints_brushes = []
         self.bbox = []
         self.bbox_set = False
@@ -891,7 +887,12 @@ class MainW(QtWidgets.QMainWindow):
             
     def load_labels(self):
         # Read Pose file
+        self.keypoints_labels = []
+        self.pose_x_coord = []
+        self.pose_y_coord = []
+        self.pose_likelihood = []
         for video_id in range(len(self.poseFilepath)):
+            print("Loading new labels:", self.poseFilepath[video_id])
             pose_data = pd.read_hdf(self.poseFilepath[video_id], 'df_with_missing')
             # Append pose data to list for each video_id
             self.keypoints_labels.append(pd.unique(pose_data.columns.get_level_values("bodyparts")))
@@ -962,7 +963,7 @@ class MainW(QtWidgets.QMainWindow):
         savepath = self.pose_model.save_refined_data(imgs, keypoints, selected_frame_ind, video_id=0)                                                                                    
         self.update_status_bar("Model retrained")
         # Open a message box to notify user and ask if they want to reprocess the video
-        msg = "Model retraining complete. Would you like to reprocess the video?"
+        msg = "Would you like to reprocess the video using refined keypoints?"
         reply = QMessageBox.question(self, 'Message', msg, QMessageBox.Yes, QMessageBox.No)
         if reply == QMessageBox.Yes:
             self.pose_model.retrain_model(savepath)
