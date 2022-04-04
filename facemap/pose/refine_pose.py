@@ -103,15 +103,15 @@ class KeypointsRefinementPopup(QDialog):
         """
         self.get_step1_selection()
         if self.step1_selection == "refine":
-            if not self.gui.poseFileLoaded:
+            if self.gui.pose_model is None:
                 self.close()
-                # Open a QMessage box to ask the user to load a pose file or process the current video to generate a pose file
-                qmessagebox = QMessageBox()
-                qmessagebox.setWindowTitle("No pose file loaded")
-                qmessagebox.setText("No pose file loaded. Please load a pose file or process the current video to generate a pose file before refinement.")
-                qmessagebox.setIcon(QMessageBox.Information)
-                qmessagebox.setStandardButtons(QMessageBox.Ok)
-                qmessagebox.exec_()
+                # Create a message box to ask user to process the keypoints or load a pose file
+                msg = QMessageBox()
+                msg.setIcon(QMessageBox.Information)
+                msg.setText("Please process keypoints for the video first")
+                msg.setWindowTitle("Pose model not found")
+                msg.setStandardButtons(QMessageBox.Ok)
+                msg.exec_()
                 return
             self.update_window_title("Step 2: Select frame extraction method")
             self.update_window_size(0.25)
@@ -226,7 +226,6 @@ class KeypointsRefinementPopup(QDialog):
         self.left_vertical_group = QGroupBox()
         self.left_vertical_group.setLayout(QVBoxLayout())
 
-        print("frame indices: ", frame_indices)
         self.bodyparts = BODYPARTS
         self.brushes, self.colors = self.get_brushes(self.bodyparts)
 
@@ -354,7 +353,6 @@ class KeypointsRefinementPopup(QDialog):
         # Go to previous frame
         self.update_frame_counter("prev")
         if self.current_frame >= 0:
-            #self.current_frame -= 1
             self.frame_win.clear()
             self.next_button.setEnabled(True)
             selected_frame = utils.get_frame(self.random_frames_ind[self.current_frame], self.gui.nframes, 

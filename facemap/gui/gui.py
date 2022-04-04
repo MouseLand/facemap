@@ -946,8 +946,6 @@ class MainW(QtWidgets.QMainWindow):
 
     # Retrain the model using the refined keypoints
     def retrain_model(self, selected_frame_ind):
-        # Steps for retraining the model
-        # 1. Load video 
         if not self.process.isEnabled():
             # Open a qmessage box to notify the user that the video is not loaded
             msg = QtWidgets.QMessageBox()
@@ -957,37 +955,21 @@ class MainW(QtWidgets.QMainWindow):
             msg.setWindowTitle("No video loaded")
             msg.exec_()
             return
-        # 2. Load previosuly refined keypoints and images
-        # OR
-        # 2. Refine keypoints from the current video loaded
-        """
-        # 3. Use the refined keypoints to retrain the model then process the video
-        if self.pose_model is not None:
-            refined_pose_filepath = self.poseFilepath[0].split("_FacemapPose.h5")[0]+'_FacemapPoseRefined.h5'
-            refined_pose_data = pd.read_hdf(refined_pose_filepath, 'df_with_missing')
-            imgs, keypoints, selected_frame_ind = self.pose_model.preprocess_refined_keypoints(refined_pose_data, 
-                                                                                            selected_frame_ind,
-                                                                                            video_id=0)
-            self.pose_model.save_refined_data(self, imgs, keypoints, selected_frame_ind, video_id=0)                                                                                    
-            self.update_status_bar("Model retrained")
-            # Open a message box to notify user and ask if they want to reprocess the video
-            msg = "Model retraining complete. Would you like to reprocess the video?"
-            reply = QMessageBox.question(self, 'Message', msg, QMessageBox.Yes, QMessageBox.No)
-            if reply == QMessageBox.Yes:
-                print("reprocessing video using fintuned model") #self.run(plot=False)
-            else:
-                print("Video reprocessing cancelled")
-                return
+        pose_data = pd.read_hdf(self.poseFilepath[0], 'df_with_missing')
+        imgs, keypoints, selected_frame_ind = self.pose_model.preprocess_refined_keypoints(pose_data, 
+                                                                                        selected_frame_ind,
+                                                                                        video_id=0)
+        savepath = self.pose_model.save_refined_data(imgs, keypoints, selected_frame_ind, video_id=0)                                                                                    
+        self.update_status_bar("Model retrained")
+        # Open a message box to notify user and ask if they want to reprocess the video
+        msg = "Model retraining complete. Would you like to reprocess the video?"
+        reply = QMessageBox.question(self, 'Message', msg, QMessageBox.Yes, QMessageBox.No)
+        if reply == QMessageBox.Yes:
+            self.pose_model.retrain_model(savepath)
+            self.update_status_bar("Reprocessing video using fintuned model")
         else:
-            # Create a message box to ask user to process the keypoints or load a pose file
-            msg = QMessageBox()
-            msg.setIcon(QMessageBox.Information)
-            msg.setText("Please process keypoints for the video first")
-            msg.setWindowTitle("Pose model not found")
-            msg.setStandardButtons(QMessageBox.Ok)
-            msg.exec_()
-        """
-
+            self.update_status_bar("Video reprocessing cancelled")
+            return
 
     ### ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Plot 1 and 2 functions ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ 
     def load_trace_button_clicked(self, plot_id):

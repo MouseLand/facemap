@@ -1,6 +1,7 @@
 import os
 import time
 from tkinter import N
+from tkinter.messagebox import NO
 from tqdm import tqdm
 
 import numpy as np
@@ -56,26 +57,33 @@ class Pose():
                                                 prompt=prompt, hide_progress=True)
             self.bbox_set = True   
 
-    def run_all(self, plot=True):
+    def run_all(self, plot=True, refined=False):
         start_time = time.time()
-        self.pose_prediction_setup()
+        if not refined:
+            self.pose_prediction_setup()
         for video_id in range(len(self.bbox)):
             utils.update_mainwindow_message(MainWindow=self.gui, GUIobject=self.GUIobject, 
                                     prompt="Processing video: {}".format(self.filenames[0][video_id]), hide_progress=True)
             pred_data, metadata = self.predict_landmarks(video_id)
-            dataFrame = self.write_dataframe(pred_data)
-            savepath = self.save_pose_prediction(dataFrame, video_id)
+            dataFrame = self.write_dataframe(pred_data.cpu().numpy())
+            savepath = self.save_pose_prediction(dataFrame, video_id, refined)
             utils.update_mainwindow_message(MainWindow=self.gui, GUIobject=self.GUIobject, 
                         prompt="Saved pose prediction outputs to: {}".format(savepath),  hide_progress=True)
             print("Saved pose prediction outputs to:", savepath)
             # Save metadata to a pickle file
-            metadata_file = os.path.splitext(savepath)[0]+"_Facemap_metadata.pkl"
+            if refined:
+                metadata_file = os.path.splitext(savepath)[0]+"_FacemapRefined_metadata.pkl"
+            else:
+                metadata_file = os.path.splitext(savepath)[0]+"_Facemap_metadata.pkl"
             with open(metadata_file, 'wb') as f:
                 pickle.dump(metadata, f, pickle.HIGHEST_PROTOCOL)
             if self.gui is not None:
-                self.gui.poseFilepath.append(savepath)
+                if len(self.gui.poseFilepath) == 0:
+                    self.gui.poseFilepath.append(savepath)
+                else:
+                    self.gui.poseFilepath[video_id]= savepath
                 self.gui.Labels_checkBox.setChecked(True)
-                self.gui.start()
+                self.gui.start()                
         if plot and self.gui is not None:
             self.plot_pose_estimates()
         end_time = time.time()
@@ -83,22 +91,23 @@ class Pose():
         utils.update_mainwindow_message(MainWindow=self.gui, GUIobject=self.GUIobject, 
                     prompt="Pose estimation time elapsed: {} seconds".format(end_time-start_time),  hide_progress=True)
 
-    def run_subset(self):
+    def run_subset(self, subset_ind=None):
         """
         Run pose estimation on a random subset of frames
         """
         self.pose_prediction_setup()
-        # Select a random subset of frames
-        subset_size = int(self.nframes/10)
-        subset_ind = np.random.choice(self.nframes, subset_size, replace=False)
-        subset_ind = np.sort(subset_ind)
+        if subset_ind is None:
+            # Select a random subset of frames
+            subset_size = int(self.nframes/10)
+            subset_ind = np.random.choice(self.nframes, subset_size, replace=False)
+            subset_ind = np.sort(subset_ind)
 
         for video_id in range(len(self.bbox)):
             utils.update_mainwindow_message(MainWindow=self.gui, GUIobject=self.GUIobject, 
                                     prompt="Processing video: {}".format(self.filenames[0][video_id]), hide_progress=True)
             pred_data, _ = self.predict_landmarks(video_id, frame_ind=subset_ind)
             utils.update_mainwindow_message(MainWindow=self.gui, GUIobject=self.GUIobject, 
-                        prompt="Finished processing subset of video",  hide_progress=True)
+                                    prompt="Finished processing subset of video",  hide_progress=True)
             return pred_data.cpu().numpy(), subset_ind, video_id, self.net.bodyparts
 
     # Preprocess refined keypoints to be used for pose estimation
@@ -117,14 +126,16 @@ class Pose():
                             "bbox": self.bbox[video_id],
                             "bodyparts": self.bodyparts,
                             "frame_ind": selected_frame_ind})
-        print("Preprocessed images and landmarks saved to:", savepath)
+        return savepath
 
     # Retrain model using refined pose data
-    def retrain_model(self):
-        #self.net = model_training.finetune_model(imgs, keypoints, self.net, batch_size=1)
-        return
-    
-    def write_dataframe(self, data):
+    def retrain_model(self, refined_pose_filepath):
+        dat = np.load(refined_pose_filepath, allow_pickle=True).item()
+        self.net = model_training.finetune_model(dat['imgs'], dat['keypoints'], self.net, batch_size=1)
+        self.run_all(plot=True, refined=True)
+        print(self.gui.poseFilepath)
+
+    def write_dataframe(self, data, selected_frame_ind=None):
         scorer = "Facemap" 
         bodyparts = self.bodyparts 
         # Create an empty dataframe
@@ -132,19 +143,25 @@ class Pose():
             columnindex = pd.MultiIndex.from_product(
                 [[scorer], [bodypart], ["x", "y", "likelihood"]],
                 names=["scorer", "bodyparts", "coords"])
-            frame = pd.DataFrame(
+            if selected_frame_ind is None:
+                frame = pd.DataFrame(
                                 np.nan,
                                 columns=columnindex,
                                 index=np.arange(self.cumframes[-1]))
+            else:
+                frame = pd.DataFrame(
+                                np.nan,
+                                columns=columnindex,
+                                index=selected_frame_ind)
             if index == 0:
                 dataFrame = frame
             else:
                 dataFrame = pd.concat([dataFrame, frame], axis=1)
 
         # Fill dataframe with data
-        dataFrame.iloc[:,::3] = data[:,:,0].cpu().numpy()
-        dataFrame.iloc[:,1::3] = data[:,:,1].cpu().numpy()
-        dataFrame.iloc[:,2::3] = data[:,:,2].cpu().numpy()
+        dataFrame.iloc[:,::3] = data[:,:,0]
+        dataFrame.iloc[:,1::3] = data[:,:,1]
+        dataFrame.iloc[:,2::3] = data[:,:,2]
 
         return dataFrame
 
@@ -235,7 +252,7 @@ class Pose():
                     }
         return pred_data, metadata
 
-    def save_pose_prediction(self, dataFrame, video_id):
+    def save_pose_prediction(self, dataFrame, video_id, refined=False):
         # Save prediction to .h5 file
         if self.gui is not None:
             basename = self.gui.save_path
@@ -244,7 +261,10 @@ class Pose():
         else:
             basename, filename = os.path.split(self.filenames[0][video_id])
             videoname, _ = os.path.splitext(filename)
-        poseFilepath = os.path.join(basename, videoname+"_FacemapPose.h5")
+        if refined:
+            poseFilepath = os.path.join(basename, videoname+"_FacemapPoseRefined.h5")
+        else:
+            poseFilepath = os.path.join(basename, videoname+"_FacemapPose.h5")
         dataFrame.to_hdf(poseFilepath, "df_with_missing", mode="w")
         return poseFilepath  
 
