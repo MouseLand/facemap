@@ -11,7 +11,7 @@ import pandas as pd
 from matplotlib import cm
 from PyQt5.QtGui import QColor
 from PyQt5.QtWidgets import (QDialog, QWidget, QGridLayout, QLabel, QDialogButtonBox,
-                            QSpinBox, QPushButton, QVBoxLayout, QRadioButton,
+                            QSpinBox, QPushButton, QVBoxLayout, QRadioButton, QMessageBox,
                             QHBoxLayout, QVBoxLayout, QButtonGroup, QGroupBox,
                             QListWidget, QAbstractItemView, QDesktopWidget)
 
@@ -19,6 +19,12 @@ from PyQt5.QtWidgets import (QDialog, QWidget, QGridLayout, QLabel, QDialogButto
 # Fix add keypoint feature using right click -> doesn't always work
 # Add frame number in popup window
 # Edit functionality to delete keypoints using modifiers (ctrl, shift)
+
+BODYPARTS = ['eye(back)', 'eye(bottom)', 'eye(front)',
+             'eye(top)', 'lowerlip', 'mouth',
+            'nose(bottom)', 'nose(r)', 'nose(tip)', 
+            'nose(top)', 'nosebridge', 'paw',
+            'whisker(c1)', 'whisker(c2)', 'whisker(d1)']
 
 class KeypointsRefinementPopup(QDialog):
     def __init__(self, gui):
@@ -45,7 +51,6 @@ class KeypointsRefinementPopup(QDialog):
     def clear_window(self):
         # Clear the window
         for i in reversed(range(self.verticalLayout.count())): 
-            print(i, self.verticalLayout.itemAt(i).widget().objectName())
             self.verticalLayout.itemAt(i).widget().setParent(None)
 
     def update_window_title(self, title=None):
@@ -92,30 +97,34 @@ class KeypointsRefinementPopup(QDialog):
         self.clear_window()
         self.show_step2_window()
 
-    def setup_pose_data(self):
-        self.pose_data = pd.read_hdf(self.gui.poseFilepath[0], 'df_with_missing')
-        self.bodyparts = np.array(pd.unique(self.pose_data.columns.get_level_values("bodyparts")))
-        self.brushes, self.colors = self.get_brushes(self.bodyparts)
-
     def show_step2_window(self):
         """
         Add options for user to select from random frames drawn randomly from video or use KMeans to extract frames
         """
         self.get_step1_selection()
         if self.step1_selection == "refine":
-            print("Refining keypoints")
+            if not self.gui.poseFileLoaded:
+                self.close()
+                # Open a QMessage box to ask the user to load a pose file or process the current video to generate a pose file
+                qmessagebox = QMessageBox()
+                qmessagebox.setWindowTitle("No pose file loaded")
+                qmessagebox.setText("No pose file loaded. Please load a pose file or process the current video to generate a pose file before refinement.")
+                qmessagebox.setIcon(QMessageBox.Information)
+                qmessagebox.setStandardButtons(QMessageBox.Ok)
+                qmessagebox.exec_()
+                return
             self.update_window_title("Step 2: Select frame extraction method")
-            self.update_window_size(0.15)
+            self.update_window_size(0.25)
+
+            self.pose_data = pd.read_hdf(self.gui.poseFilepath[0], "df_with_missing")
 
             # Add a qlabel describing the purpose of the keypoints correction
-            #self.label_horizontalLayout = QHBoxLayout()
             self.label = QLabel(self)
             self.label.setLayout(QHBoxLayout())
             self.label.setText("Please select a method for extracting frames and the number of frames for refinement.\nExtracted frames from the video will be used for retraining the model on the refined keypoints. Recommended #frames for refinement are 20-25.")
             self.label.setStyleSheet("QLabel { font-size: 12pt; color: grey; }")
             self.label.setWordWrap(True)
-            #self.label_horizontalLayout.addWidget(self.label)
-            self.verticalLayout.addWidget(self.label) #addLayout(self.label_horizontalLayout)
+            self.verticalLayout.addWidget(self.label)
 
             # Add a group box to hold the radio buttons
             self.frames_selection_mode_group = QGroupBox()
@@ -146,7 +155,7 @@ class KeypointsRefinementPopup(QDialog):
             # Add a QLabel and QSpinBox to the horizontal layout
             self.frame_number_selection_box.layout().addWidget(self.label_nframes)
             self.frame_number_selection_box.layout().addWidget(self.spinBox_nframes)
-            self.verticalLayout.addWidget(self.frame_number_selection_box) #addLayout(self.horizontalLayout)
+            self.verticalLayout.addWidget(self.frame_number_selection_box) 
 
             # Create a button box to hold the buttons
             self.frames_selection_mode_button_box = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
@@ -169,10 +178,24 @@ class KeypointsRefinementPopup(QDialog):
 
     def step2_done(self):
         self.clear_window()
-        print("Step 2 done")
         mode = self.get_step2_frame_selection_mode()
-        print(mode)
-        #self.show_step3_window()
+        frame_indices = self.get_frame_indices(mode)
+        num_frames = self.get_num_frames()
+        self.show_step3_window(frame_indices, num_frames)
+
+    def get_num_frames(self):
+        return self.spinBox_nframes.value()
+
+    def get_frame_indices(self, mode):
+        if mode == "random":
+            # Get random frame indices
+            nframes = self.spinBox_nframes.value()
+            frame_indices = sorted(np.random.choice(self.gui.nframes, self.spinBox_nframes.value(), replace=False)) 
+            return frame_indices
+        else:
+            # Get frame indices using K-means clustering
+            print("K-means")
+            pass
 
     def get_step1_selection(self):
         # Get the selected option from the radio buttons
@@ -191,28 +214,25 @@ class KeypointsRefinementPopup(QDialog):
         else:
             return None
 
-    def tbd(self):
-        pass
-    """
-        if self.poseFileLoaded and self.pose_model is not None:
-            apply_keypoints_correction(self)
-        elif self.poseFileLoaded:
-            self.setup_pose_model()
-            apply_keypoints_correction(self)
-        else:
-            # Create a message box to ask user to process the keypoints or load a pose file
-            msg = QMessageBox()
-            msg.setIcon(QMessageBox.Information)
-            msg.setText("Please load a pose file first or process the keypoints")
-            msg.setWindowTitle("No pose file loaded")
-            msg.setStandardButtons(QMessageBox.Ok)
-            msg.exec_()
-    """
+    def show_step3_window(self, frame_indices, num_frames):
 
-    def show_step3_window(self):
-        self.overall_horizontalLayout = QHBoxLayout(self)
+        self.update_window_title("Step 3: Refine keypoints")
+        self.update_window_size(0.5)
+        self.random_frames_ind = frame_indices
+        self.num_frames = num_frames
 
-        self.frame_horizontalLayout = QHBoxLayout()
+        self.overall_horizontal_group = QGroupBox()
+        self.overall_horizontal_group.setLayout(QHBoxLayout())
+
+        self.left_vertical_group = QGroupBox()
+        self.left_vertical_group.setLayout(QVBoxLayout())
+
+        print("frame indices: ", frame_indices)
+        self.bodyparts = BODYPARTS
+        self.brushes, self.colors = self.get_brushes(self.bodyparts)
+
+        self.frame_group = QGroupBox()
+        self.frame_group.setLayout(QHBoxLayout())
         self.win = pg.GraphicsLayoutWidget()
         self.win.setObjectName("Keypoints refinement")
         self.frame_win = self.win.addViewBox(invertY=True)
@@ -220,60 +240,47 @@ class KeypointsRefinementPopup(QDialog):
         self.frame_win.setAspectLocked(True, QtCore.Qt.IgnoreAspectRatio)
         self.frame_win.setMouseEnabled(False, False)
         self.frame_win.setMenuEnabled(False)
-        self.frame_horizontalLayout.addWidget(self.win)
+        self.frame_group.layout().addWidget(self.win)
         
-        self.current_frame = 0
-
-        # Create a horizontal layout for the buttons
-        self.horizontalLayout_2 = QHBoxLayout()
-        self.horizontalLayout_2.setContentsMargins(-1, -1, -1, 0)
-        self.horizontalLayout_2.setObjectName("horizontalLayout")
-        self.cancel_button = QPushButton('Cancel')
-        self.cancel_button.clicked.connect(self.close)
-        self.horizontalLayout_2.addWidget(self.cancel_button)
-        # Add a button for next step
-        self.ok_button = QPushButton('Ok')
-        self.ok_button.setDefault(True)
-        self.ok_button.clicked.connect(self.display_frames_w_keypoints)
-        self.horizontalLayout_2.addWidget(self.ok_button)
+        self.current_frame = -1
         
-        # Position buttons
-        self.widget = QWidget(self)
-        self.verticalLayout.addLayout(self.horizontalLayout_2)
-        self.verticalLayout.addWidget(self.widget)
-
         # Define buttons for main window
+        self.toggle_button_group = QGroupBox()
+        self.toggle_button_group.setLayout(QHBoxLayout())
         self.previous_button = QPushButton('Previous')
         self.previous_button.clicked.connect(self.previous_frame)
-        self.previous_button.hide()
         # Add a button for next step
         self.next_button = QPushButton('Next')
         self.next_button.setDefault(True)
         self.next_button.clicked.connect(self.next_frame)
-        self.next_button.hide()
         self.finish_button = QPushButton('Finish')
         self.finish_button.clicked.connect(self.retrain_model)
-        self.finish_button.hide()
-        self.horizontalLayout_2.addWidget(self.previous_button)
-        self.horizontalLayout_2.addWidget(self.next_button)
+        self.toggle_button_group.layout().addWidget(self.previous_button)
+        self.toggle_button_group.layout().addWidget(self.next_button)
 
-        self.finish_horozontalLayout = QHBoxLayout()
-        self.finish_horozontalLayout.addWidget(self.finish_button)
-        self.verticalLayout.addLayout(self.finish_horozontalLayout)
+        self.finish_group = QGroupBox()
+        self.finish_group.setLayout(QHBoxLayout())
+        self.finish_group.layout().addWidget(self.finish_button)
+
+        # Position buttons
+        self.left_vertical_group.layout().addWidget(self.frame_group)
+        self.left_vertical_group.layout().addWidget(self.toggle_button_group)
+        self.left_vertical_group.layout().addWidget(self.finish_group)
 
         # Radio buttons group for selecting the bodyparts to be corrected
-        self.radio_verticalLayout = QVBoxLayout()
+        self.radio_group = QGroupBox()
+        self.radio_group.setLayout(QVBoxLayout())
         # Add a label for the radio buttons
         self.radio_label = QLabel('Bodyparts')
         self.radio_label.hide()
-        self.radio_verticalLayout.addWidget(self.radio_label)
+        self.radio_group.layout().addWidget(self.radio_label)
         self.radio_buttons_group = QButtonGroup()
         self.radio_buttons_group.setExclusive(True)
         self.radio_buttons_group.setObjectName("radio_buttons_group")
         self.radio_buttons = []
         for i, bodypart in enumerate(self.bodyparts):
             self.radio_buttons.append(QRadioButton(bodypart))
-            self.radio_buttons[i].hide()
+            #self.radio_buttons[i].hide()
             # Change color of radio button
             color  = QColor(self.colors[i][0], self.colors[i][1], self.colors[i][2])
             alpha  = 150
@@ -282,14 +289,18 @@ class KeypointsRefinementPopup(QDialog):
                                                 b = color.blue(),
                                                 a = alpha
                                                 )
-            self.radio_buttons[i].setStyleSheet("QRadioButton { background-color: rgba("+values+"); border: 1px solid black; }")
+            self.radio_buttons[i].setStyleSheet("QRadioButton { background-color: rgba("+values+"); color: 'white'; border: 1px solid black; }")
             self.radio_buttons[i].setObjectName(bodypart)
             self.radio_buttons[i].clicked.connect(self.radio_button_clicked)
             self.radio_buttons_group.addButton(self.radio_buttons[i])
-            self.radio_verticalLayout.addWidget(self.radio_buttons[i])
+            self.radio_group.layout().addWidget(self.radio_buttons[i])
 
-        self.overall_horizontalLayout.addLayout(self.verticalLayout)
-        self.overall_horizontalLayout.addLayout(self.radio_verticalLayout)
+        self.overall_horizontal_group.layout().addWidget(self.left_vertical_group)
+        self.overall_horizontal_group.layout().addWidget(self.radio_group)
+
+        self.verticalLayout.addWidget(self.overall_horizontal_group)
+
+        self.next_frame()
 
     # Add a keyPressEvent for deleting the selected keypoint using the delete key and set the value to NaN in the dataframe
     def keyPressEvent(self, ev):
@@ -309,7 +320,7 @@ class KeypointsRefinementPopup(QDialog):
                                                     b = color.blue(),
                                                     a = alpha
                                                     )
-                button.setStyleSheet("QRadioButton { background-color: rgba("+values+"); border: 1px solid black; }")
+                button.setStyleSheet("QRadioButton { background-color: rgba("+values+"); color: 'white'; border: 1px solid black; }")
             else:
                 color  = QColor(self.colors[i][0], self.colors[i][1], self.colors[i][2])
                 alpha  = 150
@@ -318,7 +329,7 @@ class KeypointsRefinementPopup(QDialog):
                                                     b = color.blue(),
                                                     a = alpha
                                                     )
-                button.setStyleSheet("QRadioButton { background-color: rgba("+values+"); border: 0px solid black; }")
+                button.setStyleSheet("QRadioButton { background-color: rgba("+values+"); color: 'white'; border: 0px solid black; }")
 
     def delete_keypoint(self):
         # Get index of radio button that is selected
@@ -390,29 +401,12 @@ class KeypointsRefinementPopup(QDialog):
         # Reset frame counter
         self.current_frame = 0
         self.update_window_title("Keypoints refinement")
-
-    def display_frames_w_keypoints(self):
-        self.clear_window()
-        self.frame_horizontalLayout.addWidget(self.win)
-        self.win.setParent(self)
-        self.verticalLayout.addLayout(self.frame_horizontalLayout)
-
-        # Select frames for keypoints correction
-        self.random_frames_ind = sorted(np.random.choice(self.gui.nframes, self.spinBox_nframes.value(), replace=False)) 
-        for i, bodypart in enumerate(self.bodyparts):
-            self.radio_buttons[i].show()
-            self.radio_label.show()
-        self.previous_button.show()
-        self.next_button.show()
-        self.finish_button.show()
-        self.next_button.setDefault(True)
-        self.next_frame()
         
     def previous_frame(self):
         # Go to previous frame
         self.current_frame -= 1
         # Update the current frame
-        if self.current_frame <= self.spinBox_nframes.value() and self.current_frame > 0:
+        if self.current_frame <= self.num_frames and self.current_frame > 0:
             self.frame_win.clear()
             self.next_button.show()
             self.next_button.setEnabled(True)
@@ -429,7 +423,7 @@ class KeypointsRefinementPopup(QDialog):
         # Display the next frame in list of random frames with keypoints
         self.previous_button.show()
         self.current_frame += 1
-        if self.current_frame < self.spinBox_nframes.value():
+        if self.current_frame < self.num_frames:
             self.frame_win.clear()
             selected_frame = utils.get_frame(self.random_frames_ind[self.current_frame], self.gui.nframes, 
                                             self.gui.cumframes, self.gui.video)[0] 

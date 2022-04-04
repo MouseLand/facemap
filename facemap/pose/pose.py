@@ -268,7 +268,7 @@ class Pose():
         utils.update_mainwindow_message(MainWindow=self.gui, GUIobject=self.GUIobject,
                                         prompt="Loading model... {}".format(model_params_file))
         model_params = torch.load(model_params_file, map_location=self.device)
-        self.bodyparts = model_params['params']['bodyparts'] 
+        self.bodyparts = model_params['params']['bodyparts']
         channels = model_params['params']['channels']
         kernel_size = 3
         nout = len(self.bodyparts)  # number of outputs from the model
