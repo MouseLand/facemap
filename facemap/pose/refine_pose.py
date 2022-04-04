@@ -55,7 +55,7 @@ class KeypointsRefinementPopup(QDialog):
 
     def update_window_title(self, title=None):
         if title is None:
-            self.setWindowTitle('Keypoints refinement: frame {}/{}'.format(self.current_frame, self.spinBox_nframes.value()))
+            self.setWindowTitle('Keypoints refinement: frame {}/{}'.format(self.current_frame+1, self.spinBox_nframes.value()))
         else:
             self.setWindowTitle(title)
 
@@ -189,7 +189,6 @@ class KeypointsRefinementPopup(QDialog):
     def get_frame_indices(self, mode):
         if mode == "random":
             # Get random frame indices
-            nframes = self.spinBox_nframes.value()
             frame_indices = sorted(np.random.choice(self.gui.nframes, self.spinBox_nframes.value(), replace=False)) 
             return frame_indices
         else:
@@ -248,6 +247,7 @@ class KeypointsRefinementPopup(QDialog):
         self.toggle_button_group = QGroupBox()
         self.toggle_button_group.setLayout(QHBoxLayout())
         self.previous_button = QPushButton('Previous')
+        self.previous_button.setEnabled(False)
         self.previous_button.clicked.connect(self.previous_frame)
         # Add a button for next step
         self.next_button = QPushButton('Next')
@@ -349,66 +349,13 @@ class KeypointsRefinementPopup(QDialog):
                 self.keypoints_scatterplot.updateGraph(dragged=True)
             else:
                 return
-
-    def clear_window_old(self):
-        # Hide frame_win
-        self.frame_horizontalLayout.removeWidget(self.win)
-        self.win.setParent(None)
-
-        # Clear the popup and display the frames with keypoints
-        self.verticalLayout.removeWidget(self.label)
-        self.label.setParent(None)
-        self.verticalLayout.removeWidget(self.label_nframes)
-        self.label_nframes.setParent(None)
-        self.verticalLayout.removeWidget(self.spinBox_nframes)
-        self.spinBox_nframes.setParent(None)
-        self.horizontalLayout_2.removeWidget(self.cancel_button)
-        self.cancel_button.setParent(None)
-        self.horizontalLayout_2.removeWidget(self.ok_button)
-        self.ok_button.setParent(None)
-        self.previous_button.hide()
-        self.next_button.hide()
-        self.finish_button.hide()
-        for i, bodypart in enumerate(self.bodyparts):
-            self.radio_buttons[i].hide()
-            self.radio_label.hide()
-
-    def show_main_features(self):
-        self.clear_window()
-        # Show main page features
-        self.label_horizontalLayout.addWidget(self.label)
-        self.label.setParent(self)
-        self.verticalLayout.addLayout(self.label_horizontalLayout)
-
-        # Add a QLabel and QSpinBox to the horizontal layout
-        self.horizontalLayout.addWidget(self.label_nframes)
-        self.label_nframes.setParent(self)
-        self.horizontalLayout.addWidget(self.spinBox_nframes)
-        self.spinBox_nframes.setParent(self)
-        self.verticalLayout.addLayout(self.horizontalLayout)
-
-        # Add buttons to the horizontal layout
-        self.horizontalLayout_2.addWidget(self.cancel_button)
-        self.cancel_button.setParent(self)
-        self.horizontalLayout_2.addWidget(self.ok_button)
-        self.ok_button.setParent(self)
-        self.verticalLayout.addLayout(self.horizontalLayout_2)
-
-        for i, _ in enumerate(self.bodyparts):
-            self.radio_buttons[i].hide()
-            self.radio_label.hide()
-
-        # Reset frame counter
-        self.current_frame = 0
-        self.update_window_title("Keypoints refinement")
         
     def previous_frame(self):
         # Go to previous frame
-        self.current_frame -= 1
-        # Update the current frame
-        if self.current_frame <= self.num_frames and self.current_frame > 0:
+        self.update_frame_counter("prev")
+        if self.current_frame >= 0:
+            #self.current_frame -= 1
             self.frame_win.clear()
-            self.next_button.show()
             self.next_button.setEnabled(True)
             selected_frame = utils.get_frame(self.random_frames_ind[self.current_frame], self.gui.nframes, 
                                             self.gui.cumframes, self.gui.video)[0] 
@@ -417,12 +364,25 @@ class KeypointsRefinementPopup(QDialog):
             self.plot_keypoints(self.random_frames_ind[self.current_frame])
             self.update_window_title()
         else:
-            self.show_main_features()
-            
+            self.previous_button.setEnabled(False)
+
+    def update_frame_counter(self, button):
+        if button == 'prev':
+            self.current_frame -= 1
+        elif button == 'next':
+            self.current_frame += 1
+        if self.current_frame == 0:
+            self.previous_button.setEnabled(False)
+        else:
+            self.previous_button.setEnabled(True)
+        if self.current_frame == self.num_frames-1:
+            self.next_button.setEnabled(False)
+        else:
+            self.next_button.setEnabled(True)
+        
     def next_frame(self):
+        self.update_frame_counter("next")
         # Display the next frame in list of random frames with keypoints
-        self.previous_button.show()
-        self.current_frame += 1
         if self.current_frame < self.num_frames:
             self.frame_win.clear()
             selected_frame = utils.get_frame(self.random_frames_ind[self.current_frame], self.gui.nframes, 
