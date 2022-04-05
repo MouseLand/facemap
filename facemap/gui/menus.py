@@ -29,24 +29,26 @@ def mainmenu(parent):
     setOutputFolder.triggered.connect(lambda: io.save_folder(parent))
     parent.addAction(setOutputFolder)
 
-    # Keypoints actions
-    keypointsRefinement = QAction("Keypoints refinement", parent)
-    keypointsRefinement.triggered.connect(lambda: parent.keypoints_refinement())
-    parent.addAction(keypointsRefinement)
-
     loadPose = QAction("Load keypoints", parent)
     #loadPose.setShortcut("Ctrl+P")
     loadPose.triggered.connect(lambda: io.get_pose_file(parent))
     parent.addAction(loadPose)
 
+    retrain_model = QAction("Retrain model", parent)
+    retrain_model.triggered.connect(lambda: parent.retrain_model())
+    parent.addAction(retrain_model)
+
+    """
     process_subset_keypoints = QAction("Process subset of video", parent)
     #process_subset_keypoints.setShortcut("Ctrl+X")
     process_subset_keypoints.triggered.connect(lambda: parent.process_subset_keypoints())
     parent.addAction(process_subset_keypoints)
 
-    retrain_model = QAction("Retrain model", parent)
-    retrain_model.triggered.connect(lambda: parent.retrain_model())
-    parent.addAction(retrain_model)
+    # Keypoints actions
+    keypointsRefinement = QAction("Keypoints refinement", parent)
+    keypointsRefinement.triggered.connect(lambda: parent.keypoints_refinement())
+    parent.addAction(keypointsRefinement)
+    """
 
     # Help menu actions
     helpContent = QAction("Help Content", parent)
@@ -63,8 +65,8 @@ def mainmenu(parent):
     file_menu.addAction(setOutputFolder)
     pose_menu = main_menu.addMenu("Pose")
     pose_menu.addAction(loadPose)
-    pose_menu.addAction(process_subset_keypoints)
-    pose_menu.addAction(keypointsRefinement)
+    #pose_menu.addAction(process_subset_keypoints)
+    #pose_menu.addAction(keypointsRefinement)
     pose_menu.addAction(retrain_model)
     help_menu = main_menu.addMenu("Help")
     help_menu.addAction(helpContent)
@@ -87,9 +89,6 @@ class DrawWidget(QtWidgets.QWidget):
         self.logoLabel.setAlignment(QtCore.Qt.AlignCenter)
         self.helpText = QtWidgets.QPlainTextEdit(self)
         self.helpText.move(10,160)
-        self.helpText.insertPlainText("The motion SVDs (small ROIs / multivideo) are computed on the movie downsampled in space by the spatial downsampling input box in the GUI (default 4 pixels). Note the saturation set in this window is NOT used for any processing.")
-        self.helpText.appendPlainText("\nThe motion M is defined as the abs(current_frame - previous_frame), and the average motion energy across frames is computed using a subset of frames (avgmot) (at least 1000 frames - set at line 45 in subsampledMean.m or line 183 in process.py). Then the singular vectors of the motion energy are computed on chunks of data, also from a subset of frames (15 chunks of 1000 frames each). Let F be the chunk of frames [pixels x time]. Then")
-        self.helpText.appendPlainText("\nuMot = []; \nfor j = 1:nchunks \n  M = abs(diff(F,1,2)); \n   [u,~,~] = svd(M - avgmot);\n  uMot = cat(2, uMot, u);\nend\nuMot,~,~] = svd(uMot);\nuMotMask = normc(uMot(:, 1:500)); % keep 500 components")
         self.helpText.resize(580,400)
         self.helpText.setReadOnly(True)
 

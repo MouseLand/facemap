@@ -342,8 +342,7 @@ class ModelTrainingPopup(QDialog):
         self.next_frame()
 
     def generate_predictions(self, frame_indices):
-        print("Generating predictions")
-        pred_data, subset_ind, video_id, bodyparts = self.gui.process_subset_keypoints(frame_indices)
+        pred_data, _, _, _ = self.gui.process_subset_keypoints(frame_indices)
         return pred_data
 
     def radio_button_clicked(self):
@@ -443,7 +442,9 @@ class ModelTrainingPopup(QDialog):
 
     def train_model(self):
         # Get the selected videos
-        print("Training using the following videos: {} ".format(self.selected_videos))
+        print("Training using the following selected videos: {}".format(self.selected_videos))
+        if self.use_current_video_checkbox.isChecked():
+            print("Training set also includes the refined keypoints from the current video")
         self.close()
 
         """
@@ -452,6 +453,32 @@ class ModelTrainingPopup(QDialog):
         self.train_thread.start()
         self.train_thread.finished.connect(self.show_refinement_options)
         """
+
+    # Add a keyPressEvent for deleting the selected keypoint using the delete key and set the value to NaN 
+    def keyPressEvent(self, ev):
+        print("Key pressed")
+        if ev.key() in (QtCore.Qt.Key_Backspace, QtCore.Qt.Key_Delete):
+            self.delete_keypoint()
+        else:
+            return
+
+    def delete_keypoint(self):
+        # Get index of radio button that is selected
+        index = self.radio_buttons_group.checkedId()
+        # Get the bodypart that is selected
+        bodypart = self.radio_buttons_group.button(index).text()
+        # Get index of item in an array
+        selected_items = np.where(np.array(self.bodyparts) == bodypart)[0]      
+        for i in selected_items:
+            if not np.isnan(self.keypoints_scatterplot.data['pos'][i]).any():
+                self.keypoints_scatterplot.data['pos'][i] = np.nan
+                # Update radio buttons
+                if i < len(self.radio_buttons)-1:
+                    self.radio_buttons[i+1].setChecked(True)
+                    self.radio_buttons[i+1].clicked.emit(True)
+                self.keypoints_scatterplot.updateGraph(dragged=True)
+            else:
+                return  
 
 # Following adatped from https://github.com/pyqtgraph/pyqtgraph/blob/develop/examples/CustomGraphItem.py       
 class KeypointsGraph(pg.GraphItem):
