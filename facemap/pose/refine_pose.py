@@ -478,7 +478,7 @@ class ModelTrainingPopup(QDialog):
                     self.radio_buttons[i+1].clicked.emit(True)
                 self.keypoints_scatterplot.updateGraph(dragged=True)
             else:
-                return  
+                return
 
 # Following adatped from https://github.com/pyqtgraph/pyqtgraph/blob/develop/examples/CustomGraphItem.py       
 class KeypointsGraph(pg.GraphItem):
@@ -604,11 +604,17 @@ class KeypointsGraph(pg.GraphItem):
         for i, bp in enumerate(self.parent.bodyparts):
             if self.parent.radio_buttons[i].isChecked():
                 bp_selected = bp
+                selected_bp_ind = i
                 break
+        """
         # Get position of the selected bodypart
         selected_bp_ind = np.where(self.data['data'] == bp_selected)[0]
+        """
+        print("bp_selected", bp_selected)
+        print("selected_bp_ind", selected_bp_ind)
         # Check if position of bodypart is nan
-        selected_bp_pos = self.data['pos'][selected_bp_ind][0]
+        print("position", self.data['pos'][selected_bp_ind])
+        selected_bp_pos = self.data['pos'][selected_bp_ind]
         x, y = selected_bp_pos[0], selected_bp_pos[1]
         # If keypoint is deleted, then add it back using the user selected position
         if np.isnan(x) and np.isnan(y):
@@ -628,9 +634,9 @@ class KeypointsGraph(pg.GraphItem):
             keypoints_refined = self.getData()
             self.update_pose_data(keypoints_refined)         
             # Check the next bodypart in the list of radio buttons
-            if selected_bp_ind[0] < len(self.parent.bodyparts) - 1:
-                self.parent.radio_buttons[selected_bp_ind[0]+1].setChecked(True)
-                self.parent.radio_buttons[selected_bp_ind[0]+1].clicked.emit(True)
+            if selected_bp_ind < len(self.parent.bodyparts) - 1:
+                self.parent.radio_buttons[selected_bp_ind+1].setChecked(True)
+                self.parent.radio_buttons[selected_bp_ind+1].clicked.emit(True)
             else:
                 self.parent.radio_buttons[0].setChecked(True)
                 self.parent.radio_buttons[0].clicked.emit(True)
