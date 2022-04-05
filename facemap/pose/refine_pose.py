@@ -8,7 +8,8 @@ import numpy as np
 from .. import utils
 from ..gui import io
 from PyQt5 import QtCore
-import pandas as pd
+import shutil
+from . import models
 from matplotlib import cm
 from glob import glob
 from PyQt5.QtGui import QColor
@@ -119,12 +120,16 @@ class ModelTrainingPopup(QDialog):
         # Check if the selected output folder path contains a model file (*.pt) and data files (*.npy)
         self.model_files = glob(os.path.join(self.output_folder_path, '*.pt'))
         self.data_files = glob(os.path.join(self.output_folder_path, '*Facemap_refined_images_landmarks.npy'))
-        if len(self.model_files) == 0 and len(self.data_files) == 0:
-            print("No model or data files found in the selected output folder")
-            return
-        else:
-            print("Model files found: {}".format(self.model_files))
-            print("Data files found: {}".format(self.data_files))
+        if len(self.model_files) == 0:
+            # If no model file exists then copy the default model file from the package to the output folder
+            print("No model file found in the selected output folder")
+            print("Copying default model file to the selected output folder")
+            model_state_path = models.get_model_state_path()
+            shutil.copy(model_state_path, self.output_folder_path)
+            self.model_files = glob(os.path.join(self.output_folder_path, '*.pt'))
+        
+        print("Model files found: {}".format(self.model_files))
+        print("Data files found: {}".format(self.data_files))
 
         # Add a QGroupbox widget to hold a qlabel and dropdown menu
         self.model_groupbox = QGroupBox(self)
@@ -547,8 +552,9 @@ class KeypointsGraph(pg.GraphItem):
     # Save refined keypoints and images to a numpy file
     def save_refined_data(self):
         keypoints = self.parent.pose_data
-        video_path = self.parent.gui.filenames[0][0]
-        savepath = os.path.splitext(video_path)[0]+"_Facemap_refined_images_landmarks.npy"
+        video_path = self.parent.gui.filenames[0][0] 
+        video_name = os.path.basename(video_path).split('.')[0]
+        savepath = os.path.join(self.parent.output_folder_path, video_name+"_Facemap_refined_images_landmarks.npy")
         np.save(savepath, {"imgs": self.parent.all_frames,
                             "keypoints": keypoints,
                             "frame_ind": self.parent.random_frames_ind})
