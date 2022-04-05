@@ -12,10 +12,16 @@ import pandas as pd
 from matplotlib import cm
 from glob import glob
 from PyQt5.QtGui import QColor
-from PyQt5.QtWidgets import (QDialog, QWidget, QLineEdit, QLabel, QDialogButtonBox,
+from PyQt5.QtWidgets import (QDialog, QWidget, QLineEdit, QLabel, QRadioButton,
                             QSpinBox, QPushButton, QVBoxLayout, QComboBox, QMessageBox,
                             QHBoxLayout, QVBoxLayout, QButtonGroup, QGroupBox,
                             QListWidget, QCheckBox, QDesktopWidget)
+
+BODYPARTS = ['eye(back)', 'eye(bottom)', 'eye(front)',
+             'eye(top)', 'lowerlip', 'mouth',
+            'nose(bottom)', 'nose(r)', 'nose(tip)', 
+            'nose(top)', 'nosebridge', 'paw',
+            'whisker(c1)', 'whisker(c2)', 'whisker(d1)']
 
 """
 Single workflow for re-training the model or fine-tuning the model with new data.
@@ -30,6 +36,8 @@ class ModelTrainingPopup(QDialog):
         self.data_files = None
         self.selected_videos = None
         self.use_current_video = False
+        self.num_random_frames = None
+        self.random_frames_ind = None
 
         self.setWindowTitle('Model training')
         self.setStyleSheet("QDialog {background: 'black';}")
@@ -159,7 +167,27 @@ class ModelTrainingPopup(QDialog):
         self.use_current_video_checkbox = QCheckBox(self)
         self.use_current_video_checkbox.setText("Use current video")
         self.use_current_video_checkbox.setStyleSheet("QCheckBox {color: 'white'; }")
+        self.use_current_video_checkbox.stateChanged.connect(lambda state: self.toggle_num_frames(state))
         self.verticalLayout.addWidget(self.use_current_video_checkbox)
+
+        # Add a QLabel and QSpinBox widget for user to select the number of frames to use in the current video group
+        self.current_video_groupbox = QGroupBox(self)
+        self.current_video_groupbox.setLayout(QHBoxLayout())
+        self.current_video_groupbox.setStyleSheet("QGroupBox {color: 'white'; border: 0px}")
+
+        self.current_video_label = QLabel(self)
+        self.current_video_label.setText("# Frames to refine:")
+        self.current_video_label.setStyleSheet("QLabel {color: 'white';}")
+        self.current_video_groupbox.layout().addWidget(self.current_video_label)
+
+        self.current_video_spinbox = QSpinBox(self)
+        self.current_video_spinbox.setRange(1, self.gui.cumframes[-1])
+        self.current_video_spinbox.setValue(25)
+        self.current_video_spinbox.setStyleSheet("QSpinBox {color: 'black';}")
+        self.current_video_groupbox.layout().addWidget(self.current_video_spinbox)
+
+        self.verticalLayout.addWidget(self.current_video_groupbox)
+        self.current_video_groupbox.hide()
 
         # Add a QGroupbox widget to hold two buttons for cancel and next step with a horizontal layout aligned to the right
         self.buttons_groupbox = QGroupBox(self)
@@ -176,6 +204,12 @@ class ModelTrainingPopup(QDialog):
 
         self.verticalLayout.addWidget(self.buttons_groupbox)
 
+    def toggle_num_frames(self, state):
+        if state == QtCore.Qt.Checked:
+            self.current_video_groupbox.show()
+        else:
+            self.current_video_groupbox.hide()
+
     def update_user_training_options(self):
         # Get the selected model
         self.model_files = self.model_files[self.model_dropdown.currentIndex()]
@@ -187,6 +221,10 @@ class ModelTrainingPopup(QDialog):
         # Get list of all files 
         if self.use_current_video_checkbox.isChecked():
             self.use_current_video = True
+            self.num_random_frames = self.current_video_spinbox.value()
+        else:
+            self.use_current_video = False
+            self.num_random_frames = None
 
         self.show_step_3()
 
@@ -203,13 +241,203 @@ class ModelTrainingPopup(QDialog):
     def show_refinement_options(self):
 
         self.clear_window()
-        self.update_window_title("Step 3: Keypoints refinement")
+        self.update_window_title("Step 3: Refine keypoints")
+        self.update_window_size(0.5)
 
+        self.random_frames_ind = np.random.choice(self.gui.cumframes[-1], self.num_random_frames, replace=False)
+        self.pose_data = self.generate_predictions(self.random_frames_ind)
+
+        self.overall_horizontal_group = QGroupBox()
+        self.overall_horizontal_group.setLayout(QHBoxLayout())
+
+        self.left_vertical_group = QGroupBox()
+        self.left_vertical_group.setLayout(QVBoxLayout())
+
+        self.bodyparts = BODYPARTS
+        self.brushes, self.colors = self.get_brushes(self.bodyparts)
+
+        self.frame_group = QGroupBox()
+        self.frame_group.setLayout(QHBoxLayout())
+        self.win = pg.GraphicsLayoutWidget()
+        self.win.setObjectName("Keypoints refinement")
+        self.frame_win = self.win.addViewBox(invertY=True)
+        self.keypoints_scatterplot = KeypointsGraph(parent=self) 
+        self.frame_win.setAspectLocked(True, QtCore.Qt.IgnoreAspectRatio)
+        self.frame_win.setMouseEnabled(False, False)
+        self.frame_win.setMenuEnabled(False)
+        self.frame_group.layout().addWidget(self.win)
         
+        self.current_frame = -1
+        
+        # Add a Frame number label and slider
+        self.frame_number_label = QLabel(self)
+        self.frame_number_label.setText("Frame: {}/{}".format(self.current_frame+1, self.num_random_frames))
+        self.frame_number_label.setStyleSheet("QLabel {color: 'white'; font-size: 16}")
+        self.frame_number_label.setAlignment(QtCore.Qt.AlignCenter)
+        self.left_vertical_group.layout().addWidget(self.frame_number_label)
+
+        # Define buttons for main window
+        self.toggle_button_group = QGroupBox()
+        self.toggle_button_group.setLayout(QHBoxLayout())
+        self.previous_button = QPushButton('Previous')
+        self.previous_button.setEnabled(False)
+        self.previous_button.clicked.connect(self.previous_frame)
+        # Add a button for next step
+        self.next_button = QPushButton('Next')
+        self.next_button.setDefault(True)
+        self.next_button.clicked.connect(self.next_frame)
+        self.toggle_button_group.layout().addWidget(self.previous_button)
+        self.toggle_button_group.layout().addWidget(self.next_button)
+
+        # Add a train model button and set alignment to the center
+        self.train_button_group = QGroupBox()
+        self.train_button_group.setLayout(QHBoxLayout())
+        self.train_button = QPushButton('Train model')
+        self.train_button.clicked.connect(self.train_model)
+        self.train_button_group.layout().addWidget(self.train_button, alignment=QtCore.Qt.AlignCenter)
+
+        # Position buttons
+        self.left_vertical_group.layout().addWidget(self.frame_group)
+        self.left_vertical_group.layout().addWidget(self.toggle_button_group)
+        self.left_vertical_group.layout().addWidget(self.train_button_group)
+
+        # Radio buttons group for selecting the bodyparts to be corrected
+        self.radio_group = QGroupBox()
+        self.radio_group.setLayout(QVBoxLayout())
+        # Add a label for the radio buttons
+        self.radio_label = QLabel('Bodyparts')
+        self.radio_label.hide()
+        self.radio_group.layout().addWidget(self.radio_label)
+        self.radio_buttons_group = QButtonGroup()
+        self.radio_buttons_group.setExclusive(True)
+        self.radio_buttons_group.setObjectName("radio_buttons_group")
+        self.radio_buttons = []
+        for i, bodypart in enumerate(self.bodyparts):
+            self.radio_buttons.append(QRadioButton(bodypart))
+            #self.radio_buttons[i].hide()
+            # Change color of radio button
+            color  = QColor(self.colors[i][0], self.colors[i][1], self.colors[i][2])
+            alpha  = 150
+            values = "{r}, {g}, {b}, {a}".format(r = color.red(),
+                                                g = color.green(),
+                                                b = color.blue(),
+                                                a = alpha
+                                                )
+            self.radio_buttons[i].setStyleSheet("QRadioButton { background-color: rgba("+values+"); color: 'white'; border: 1px solid black; }")
+            self.radio_buttons[i].setObjectName(bodypart)
+            self.radio_buttons[i].clicked.connect(self.radio_button_clicked)
+            self.radio_buttons_group.addButton(self.radio_buttons[i])
+            self.radio_group.layout().addWidget(self.radio_buttons[i])
+
+        self.overall_horizontal_group.layout().addWidget(self.left_vertical_group)
+        self.overall_horizontal_group.layout().addWidget(self.radio_group)
+
+        self.verticalLayout.addWidget(self.overall_horizontal_group)
+
+        self.next_frame()
+
+    def generate_predictions(self, frame_indices):
+        print("Generating predictions")
+        return
+
+    def radio_button_clicked(self):
+        # Change background color of the selected radio button to None
+        for i, button in enumerate(self.radio_buttons):
+            if button.isChecked():
+                color  = QColor(self.colors[i][0], self.colors[i][1], self.colors[i][2])
+                alpha  = 0
+                values = "{r}, {g}, {b}, {a}".format(r = color.red(),
+                                                    g = color.green(),
+                                                    b = color.blue(),
+                                                    a = alpha
+                                                    )
+                button.setStyleSheet("QRadioButton { background-color: rgba("+values+"); color: 'white'; border: 1px solid black; }")
+            else:
+                color  = QColor(self.colors[i][0], self.colors[i][1], self.colors[i][2])
+                alpha  = 150
+                values = "{r}, {g}, {b}, {a}".format(r = color.red(),
+                                                    g = color.green(),
+                                                    b = color.blue(),
+                                                    a = alpha
+                                                    )
+                button.setStyleSheet("QRadioButton { background-color: rgba("+values+"); color: 'white'; border: 0px solid black; }")
+    
+    def plot_keypoints(self, frame_ind):
+        # Plot the keypoints of the selected frames
+        plot_pose_data = self.pose_data.iloc[frame_ind]
+        # Append pose data to list for each video_id
+        x = plot_pose_data[::3].values
+        y = plot_pose_data[1::3].values
+        # Add a scatter plot item to the window for each bodypart
+        self.keypoints_scatterplot.setData(pos=np.array([x, y]).T, symbolBrush=self.brushes, symbolPen=self.colors,
+                                                symbol='o',  brush=self.brushes, hoverable=True, hoverSize=25, 
+                                                hoverSymbol="x", pxMode=True, hoverBrush='r', name=self.bodyparts, 
+                                                data=self.bodyparts, size=20) 
+        self.frame_win.addItem(self.keypoints_scatterplot)   
+
+    def get_brushes(self, bodyparts):
+        num_classes = len(bodyparts)
+        colors = cm.get_cmap('jet')(np.linspace(0, 1., num_classes))
+        colors *= 255
+        colors = colors.astype(int)
+        colors[:,-1] = 230
+        brushes = [pg.mkBrush(color=c) for c in colors]
+        return brushes, colors
+
+    def previous_frame(self):
+        # Go to previous frame
+        self.update_frame_counter("prev")
+        if self.current_frame >= 0:
+            self.frame_win.clear()
+            self.next_button.setEnabled(True)
+            selected_frame = utils.get_frame(self.random_frames_ind[self.current_frame], self.gui.nframes, 
+                                            self.gui.cumframes, self.gui.video)[0] 
+            self.img = pg.ImageItem(selected_frame)
+            self.frame_win.addItem(self.img)
+            self.plot_keypoints(self.random_frames_ind[self.current_frame])
+            self.update_window_title()
+        else:
+            self.previous_button.setEnabled(False)
+
+    def update_frame_counter(self, button):
+        if button == 'prev':
+            self.current_frame -= 1
+        elif button == 'next':
+            self.current_frame += 1
+        if self.current_frame == 0:
+            self.previous_button.setEnabled(False)
+        else:
+            self.previous_button.setEnabled(True)
+        if self.current_frame == self.num_random_frames-1:
+            self.next_button.setEnabled(False)
+        else:
+            self.next_button.setEnabled(True)
+        # Update the frame number label
+        self.frame_number_label.setText("Frame: " + str(self.current_frame+1) + "/" + str(self.num_random_frames))
+        
+    def next_frame(self):
+        self.update_frame_counter("next")
+        # Display the next frame in list of random frames with keypoints
+        if self.current_frame < self.num_random_frames:
+            self.frame_win.clear()
+            selected_frame = utils.get_frame(self.random_frames_ind[self.current_frame], self.gui.nframes, 
+                                            self.gui.cumframes, self.gui.video)[0] 
+            self.img = pg.ImageItem(selected_frame)
+            self.frame_win.addItem(self.img)
+            self.update_window_title()
+            self.plot_keypoints(self.random_frames_ind[self.current_frame])
+            self.next_button.setText('Next')
+        else:
+            self.next_button.setEnabled(False)
+        self.frame_win.setAspectLocked(True, QtCore.Qt.IgnoreAspectRatio)
+        self.frame_win.setMouseEnabled(False, False)
+        self.frame_win.setMenuEnabled(False)
+        self.win.show()
 
     def train_model(self):
         # Get the selected videos
         print("Training using the following videos: {} ".format(self.selected_videos))
+        self.close()
 
         """
         # Create a new thread to train the model
@@ -217,4 +445,162 @@ class ModelTrainingPopup(QDialog):
         self.train_thread.start()
         self.train_thread.finished.connect(self.show_refinement_options)
         """
+
+# Following adatped from https://github.com/pyqtgraph/pyqtgraph/blob/develop/examples/CustomGraphItem.py       
+class KeypointsGraph(pg.GraphItem):
+    def __init__(self, parent=None, **kwargs):
+        self.dragPoint = None
+        self.dragOffset = None
+        self.textItems = []
+        self.parent = parent
+        pg.GraphItem.__init__(self)
+        self.scatter.sigClicked.connect(self.keypoint_clicked)
+        
+    def setData(self, **kwds):
+        self.text = kwds.pop('text', [])
+        self.data = kwds
+        if 'pos' in self.data and len(kwds)==0:
+            npts = self.data['pos'].shape[0]
+            self.data['data'] = np.empty(npts, dtype=[('index', str)])
+            self.data['data'] = kwds['name']
+            self.data['data']['index'] = np.arange(npts)
+        self.setTexts(self.text)
+        self.updateGraph()
+        
+    def setTexts(self, text):
+        for i in self.textItems:
+            i.scene().removeItem(i)
+        self.textItems = []
+        for t in text:
+            item = pg.TextItem(t)
+            self.textItems.append(item)
+            item.setParentItem(self)
+
+    def hover(self):
+        point_hovered = np.where(self.scatter.data['hovered'])[0]
+        return point_hovered
+
+    def updateGraph(self, dragged=False):
+        pg.GraphItem.setData(self, **self.data)
+        for i,item in enumerate(self.textItems):
+            item.setPos(*self.data['pos'][i])
+        if dragged:
+            keypoints_refined = self.getData()
+            self.update_pose_file(keypoints_refined)
+        
+    # Write a function that tracks all the keypoints positions for all frames and save them in a file (for later use)
+    def update_pose_file(self, keypoints_refined):
+        # Get values for the keypoints from the GUI and save them in a file
+        x_coord = keypoints_refined[:,0]
+        y_coord = keypoints_refined[:,1]
+        frame_ind = self.parent.random_frames_ind[self.parent.current_frame]
+        for i, bp in enumerate(self.parent.bodyparts):
+            self.parent.pose_data.loc[frame_ind]['Facemap'][bp]['x'] = x_coord[i]
+            self.parent.pose_data.loc[frame_ind]['Facemap'][bp]['y'] = y_coord[i]
+        save_pose_data(self.parent.gui, self.parent.pose_data, self.parent.random_frames_ind)
+
+    def getData(self):
+        return self.data['pos']
+
+    def mousePressEvent(self, QMouseEvent):
+        if QMouseEvent.button() == QtCore.Qt.RightButton:
+            self.right_click_keypoint(QMouseEvent)
+        elif QMouseEvent.button() == QtCore.Qt.LeftButton:
+            super().mousePressEvent(QMouseEvent)
+
+    def mouseDragEvent(self, ev):
+        if ev.button() == QtCore.Qt.LeftButton:
+            if ev.isStart():
+                # We are already one step into the drag.
+                # Find the point(s) at the mouse cursor when the button was first 
+                # pressed:
+                pos = ev.buttonDownPos()
+                pts = self.scatter.pointsAt(pos)
+                if len(pts) == 0:
+                    ev.ignore()
+                    return
+                self.dragPoint = pts[0]
+                ind = pts[0].index() #pts[0].data()[0]
+                # Create a bool array of length equal to the number of points in the scatter plot
+                # and set it to False
+                bool_arr = np.zeros(len(self.data['pos']), dtype=bool)
+                # Set the value of the bool array to True for the point that was clicked
+                bool_arr[ind] = True
+                self.dragOffset = self.data['pos'][bool_arr] - pos
+            elif ev.isFinish():
+                self.dragPoint = None
+                return
+            else:
+                if self.dragPoint is None:
+                    ev.ignore()
+                    return
+            
+            ind = self.dragPoint.index() #self.dragPoint.data()[0]
+            # Create a bool array of length equal to the number of points in the scatter plot
+            bool_arr = np.zeros(len(self.data['pos']), dtype=bool)
+            bool_arr[ind] = True
+            self.data['pos'][bool_arr] = ev.pos() + self.dragOffset[0]
+            self.updateGraph(dragged=True)
+            ev.accept()
+            bp_selected_ind = np.where(bool_arr)[0][0]
+            self.keypoint_clicked(None, None, bp_selected_ind)
+        
+        else:
+            ev.ignore()
+            return
+            
+    def keypoint_clicked(self, obj=None, points=None, ind=None):
+        # Check if right or left click was performed
+        if points is not None:
+            # Get the index of the clicked bodypart
+            ind = points[0].index()
+        # Update radio button for bodypart
+        self.parent.radio_buttons[ind].setChecked(True)
+        self.parent.radio_buttons[ind].clicked.emit(True)
+
+    # Add feature for adding a keypoint to the scatterplot
+    def right_click_keypoint(self, mouseEvent=None):
+        # Get the name of the bodypart selected in the radio buttons
+        for i, bp in enumerate(self.parent.bodyparts):
+            if self.parent.radio_buttons[i].isChecked():
+                bp_selected = bp
+                break
+        # Get position of the selected bodypart
+        selected_bp_ind = np.where(self.data['data'] == bp_selected)[0]
+        # Check if position of bodypart is nan
+        selected_bp_pos = self.data['pos'][selected_bp_ind][0]
+        x, y = selected_bp_pos[0], selected_bp_pos[1]
+        # If keypoint is deleted, then add it back using the user selected position
+        if np.isnan(x) and np.isnan(y):
+            # Get position of mouse from the mouse event
+            add_point_pos = mouseEvent.pos()
+            add_x, add_y = add_point_pos.x(), add_point_pos.y()
+            keypoints_refined = self.getData()
+            keypoints_refined[selected_bp_ind] = [add_x, add_y]
+            # Add a keypoint to the scatter plot at the clicked position to add the bodypart
+            self.scatter.setData(pos=np.array(keypoints_refined), symbolBrush=self.parent.brushes, 
+                                                    symbolPen=self.parent.colors, symbol='o', brush=self.parent.brushes,
+                                                    hoverable=True, hoverSize=25, hoverSymbol="x", pxMode=True, hoverBrush='r',
+                                                    name=self.parent.bodyparts, data=self.parent.bodyparts, size=20) 
+            # Update the data
+            self.updateGraph()
+            # Update the pose file   
+            keypoints_refined = self.getData()
+            self.update_pose_file(keypoints_refined)         
+            # Check the next bodypart in the list of radio buttons
+            if selected_bp_ind[0] < len(self.parent.bodyparts) - 1:
+                self.parent.radio_buttons[selected_bp_ind[0]+1].setChecked(True)
+                self.parent.radio_buttons[selected_bp_ind[0]+1].clicked.emit(True)
+            else:
+                self.parent.radio_buttons[0].setChecked(True)
+                self.parent.radio_buttons[0].clicked.emit(True)
+        else:
+            return
+
+
+def save_pose_data(gui, pose_data, frame_ind):
+    # Save the refined keypoints data to a file
+    filepath = gui.poseFilepath[0].split("_FacemapPose.h5")[0]
+    pose_data = pose_data.loc[frame_ind]
+    pose_data.to_hdf(filepath+'_FacemapPoseRefined.h5', "df_with_missing", mode="w")
 
