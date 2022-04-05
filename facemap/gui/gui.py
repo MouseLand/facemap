@@ -1,3 +1,4 @@
+from re import sub
 import sys, os
 import numpy as np
 from PyQt5 import QtGui, QtCore, QtWidgets
@@ -748,22 +749,18 @@ class MainW(QtWidgets.QMainWindow):
             self.pose_model.run_all()
             self.update_status_bar("Pose labels saved in "+savepath)
         
-    def process_subset_keypoints(self):
-        # Check if video is loaded
-        if self.process.isEnabled():
-            if self.pose_model is None:
-                self.setup_pose_model()
-            pred_data, subset_ind, video_id, bodyparts = self.pose_model.run_subset()
-            self.update_status_bar("Subset keypoints processed")
-            pose_gui.VisualizeVideoSubset(self, video_id, pred_data, subset_ind, bodyparts)
+    def process_subset_keypoints(self, subset_frame_indices):
+        if self.pose_model is None:
+            self.setup_pose_model()
+        if subset_frame_indices is not None:
+            pred_data, subset_ind, video_id, bodyparts = self.pose_model.run_subset(subset_frame_indices)
         else:
-            # Open a qmessage box to notify the user that the video is not loaded
-            msg = QtWidgets.QMessageBox()
-            # Error icon in the top left corner
-            msg.setIcon(QtWidgets.QMessageBox.Critical)
-            msg.setText("Please load a video first.")
-            msg.setWindowTitle("No video loaded")
-            msg.exec_()
+            pred_data, subset_ind, video_id, bodyparts = self.pose_model.run_subset()
+        self.update_status_bar("Subset keypoints processed")
+        return pred_data, subset_ind, video_id, bodyparts
+
+    def visualize_subset_keypoints(self, video_id, pred_data, subset_ind, bodyparts):
+        pose_gui.VisualizeVideoSubset(self, video_id, pred_data, subset_ind, bodyparts)
 
     ### ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Clustering and ROI ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ 
     def vis_combobox_selection_changed(self):

@@ -62,7 +62,7 @@ class ModelTrainingPopup(QDialog):
 
     def update_window_title(self, title=None):
         if title is None:
-            self.setWindowTitle('Keypoints refinement: frame {}/{}'.format(self.current_frame+1, self.spinBox_nframes.value()))
+            self.setWindowTitle('Keypoints refinement: frame {}/{}'.format(self.current_frame+1, self.spinbox_nframes.value()))
         else:
             self.setWindowTitle(title)
 
@@ -180,11 +180,11 @@ class ModelTrainingPopup(QDialog):
         self.current_video_label.setStyleSheet("QLabel {color: 'white';}")
         self.current_video_groupbox.layout().addWidget(self.current_video_label)
 
-        self.current_video_spinbox = QSpinBox(self)
-        self.current_video_spinbox.setRange(1, self.gui.cumframes[-1])
-        self.current_video_spinbox.setValue(25)
-        self.current_video_spinbox.setStyleSheet("QSpinBox {color: 'black';}")
-        self.current_video_groupbox.layout().addWidget(self.current_video_spinbox)
+        self.spinbox_nframes = QSpinBox(self)
+        self.spinbox_nframes.setRange(1, self.gui.cumframes[-1])
+        self.spinbox_nframes.setValue(25)
+        self.spinbox_nframes.setStyleSheet("QSpinBox {color: 'black';}")
+        self.current_video_groupbox.layout().addWidget(self.spinbox_nframes)
 
         self.verticalLayout.addWidget(self.current_video_groupbox)
         self.current_video_groupbox.hide()
@@ -221,7 +221,7 @@ class ModelTrainingPopup(QDialog):
         # Get list of all files 
         if self.use_current_video_checkbox.isChecked():
             self.use_current_video = True
-            self.num_random_frames = self.current_video_spinbox.value()
+            self.num_random_frames = self.spinbox_nframes.value()
         else:
             self.use_current_video = False
             self.num_random_frames = None
@@ -268,6 +268,11 @@ class ModelTrainingPopup(QDialog):
         self.frame_group.layout().addWidget(self.win)
         
         self.current_frame = -1
+        self.all_frames = []
+        for i in range(self.num_random_frames):
+            self.all_frames.append(utils.get_frame(self.random_frames_ind[i], self.gui.nframes, 
+                                            self.gui.cumframes, self.gui.video)[0])
+        self.all_frames = np.array(self.all_frames)
         
         # Add a Frame number label and slider
         self.frame_number_label = QLabel(self)
@@ -338,7 +343,8 @@ class ModelTrainingPopup(QDialog):
 
     def generate_predictions(self, frame_indices):
         print("Generating predictions")
-        return
+        pred_data, subset_ind, video_id, bodyparts = self.gui.process_subset_keypoints(frame_indices)
+        return pred_data
 
     def radio_button_clicked(self):
         # Change background color of the selected radio button to None
@@ -349,7 +355,8 @@ class ModelTrainingPopup(QDialog):
                 values = "{r}, {g}, {b}, {a}".format(r = color.red(),
                                                     g = color.green(),
                                                     b = color.blue(),
-                                                    a = alpha
+                                                    a
+                                                     = alpha
                                                     )
                 button.setStyleSheet("QRadioButton { background-color: rgba("+values+"); color: 'white'; border: 1px solid black; }")
             else:
@@ -364,10 +371,10 @@ class ModelTrainingPopup(QDialog):
     
     def plot_keypoints(self, frame_ind):
         # Plot the keypoints of the selected frames
-        plot_pose_data = self.pose_data.iloc[frame_ind]
+        plot_pose_data = self.pose_data[frame_ind]
         # Append pose data to list for each video_id
-        x = plot_pose_data[::3].values
-        y = plot_pose_data[1::3].values
+        x = plot_pose_data[:,0]
+        y = plot_pose_data[:,1]
         # Add a scatter plot item to the window for each bodypart
         self.keypoints_scatterplot.setData(pos=np.array([x, y]).T, symbolBrush=self.brushes, symbolPen=self.colors,
                                                 symbol='o',  brush=self.brushes, hoverable=True, hoverSize=25, 
@@ -394,7 +401,7 @@ class ModelTrainingPopup(QDialog):
                                             self.gui.cumframes, self.gui.video)[0] 
             self.img = pg.ImageItem(selected_frame)
             self.frame_win.addItem(self.img)
-            self.plot_keypoints(self.random_frames_ind[self.current_frame])
+            self.plot_keypoints(self.current_frame)
             self.update_window_title()
         else:
             self.previous_button.setEnabled(False)
@@ -425,7 +432,7 @@ class ModelTrainingPopup(QDialog):
             self.img = pg.ImageItem(selected_frame)
             self.frame_win.addItem(self.img)
             self.update_window_title()
-            self.plot_keypoints(self.random_frames_ind[self.current_frame])
+            self.plot_keypoints(self.current_frame)
             self.next_button.setText('Next')
         else:
             self.next_button.setEnabled(False)
@@ -486,18 +493,24 @@ class KeypointsGraph(pg.GraphItem):
             item.setPos(*self.data['pos'][i])
         if dragged:
             keypoints_refined = self.getData()
-            self.update_pose_file(keypoints_refined)
-        
+            self.update_pose_data(keypoints_refined)
+
     # Write a function that tracks all the keypoints positions for all frames and save them in a file (for later use)
-    def update_pose_file(self, keypoints_refined):
+    def update_pose_data(self, keypoints_refined):
         # Get values for the keypoints from the GUI and save them in a file
         x_coord = keypoints_refined[:,0]
         y_coord = keypoints_refined[:,1]
-        frame_ind = self.parent.random_frames_ind[self.parent.current_frame]
-        for i, bp in enumerate(self.parent.bodyparts):
-            self.parent.pose_data.loc[frame_ind]['Facemap'][bp]['x'] = x_coord[i]
-            self.parent.pose_data.loc[frame_ind]['Facemap'][bp]['y'] = y_coord[i]
-        save_pose_data(self.parent.gui, self.parent.pose_data, self.parent.random_frames_ind)
+        likelihood = self.parent.pose_data[self.parent.current_frame][:,2]
+        self.parent.pose_data[self.parent.current_frame] = np.column_stack((x_coord, y_coord, likelihood))
+        self.save_refined_data(self.parent.pose_data)
+
+    # Save refined keypoints and images to a numpy file
+    def save_refined_data(self, keypoints):
+        video_path = self.parent.gui.filenames[0][0]
+        savepath = os.path.splitext(video_path)[0]+"_Facemap_refined_images_landmarks.npy"
+        np.save(savepath, {"imgs": self.parent.all_frames,
+                            "keypoints": keypoints,
+                            "frame_ind": self.parent.random_frames_ind})
 
     def getData(self):
         return self.data['pos']
@@ -586,7 +599,7 @@ class KeypointsGraph(pg.GraphItem):
             self.updateGraph()
             # Update the pose file   
             keypoints_refined = self.getData()
-            self.update_pose_file(keypoints_refined)         
+            self.update_pose_data(keypoints_refined)         
             # Check the next bodypart in the list of radio buttons
             if selected_bp_ind[0] < len(self.parent.bodyparts) - 1:
                 self.parent.radio_buttons[selected_bp_ind[0]+1].setChecked(True)
@@ -596,11 +609,4 @@ class KeypointsGraph(pg.GraphItem):
                 self.parent.radio_buttons[0].clicked.emit(True)
         else:
             return
-
-
-def save_pose_data(gui, pose_data, frame_ind):
-    # Save the refined keypoints data to a file
-    filepath = gui.poseFilepath[0].split("_FacemapPose.h5")[0]
-    pose_data = pose_data.loc[frame_ind]
-    pose_data.to_hdf(filepath+'_FacemapPoseRefined.h5', "df_with_missing", mode="w")
 
