@@ -10,6 +10,7 @@ from ..gui import io
 from PyQt5 import QtCore
 import pandas as pd
 from matplotlib import cm
+from glob import glob
 from PyQt5.QtGui import QColor
 from PyQt5.QtWidgets import (QDialog, QWidget, QLineEdit, QLabel, QDialogButtonBox,
                             QSpinBox, QPushButton, QVBoxLayout, QComboBox, QMessageBox,
@@ -25,7 +26,8 @@ class ModelTrainingPopup(QDialog):
         super().__init__(gui)
         self.gui = gui
         self.output_folder_path = None
-        self.model_dropdown_selection = None
+        self.model_files = None
+        self.data_files = None
         self.selected_videos = None
         self.use_current_video = False
 
@@ -106,6 +108,16 @@ class ModelTrainingPopup(QDialog):
         self.update_window_title("Step 2: Choose training files")
         print("Path set to {}".format(self.output_folder_path))
 
+        # Check if the selected output folder path contains a model file (*.pt) and data files (*.npy)
+        self.model_files = glob(os.path.join(self.output_folder_path, '*.pt'))
+        self.data_files = glob(os.path.join(self.output_folder_path, '*Facemap_refined_images_landmarks.npy'))
+        if len(self.model_files) == 0 and len(self.data_files) == 0:
+            print("No model or data files found in the selected output folder")
+            return
+        else:
+            print("Model files found: {}".format(self.model_files))
+            print("Data files found: {}".format(self.data_files))
+
         # Add a QGroupbox widget to hold a qlabel and dropdown menu
         self.model_groupbox = QGroupBox(self)
         self.model_groupbox.setLayout(QHBoxLayout())
@@ -117,12 +129,31 @@ class ModelTrainingPopup(QDialog):
         self.model_groupbox.layout().addWidget(self.model_label)
 
         self.model_dropdown = QComboBox(self)
-        self.model_dropdown.addItems(['ResNet50', 'ResNet101', 'ResNet152'])
-
+        # Add the model files to the dropdown menu
+        for model_file in self.model_files:
+            self.model_dropdown.addItem(os.path.basename(model_file))
         self.model_dropdown.setStyleSheet("QComboBox {color: 'black';}")
         self.model_groupbox.layout().addWidget(self.model_dropdown)
 
         self.verticalLayout.addWidget(self.model_groupbox)
+
+        # Add a QGroupbox widget to hold checkboxes for selecting videos using the list of data files
+        self.npy_files_groupbox = QGroupBox(self)
+        self.npy_files_groupbox.setLayout(QVBoxLayout())
+        
+        self.npy_files_label = QLabel(self)
+        self.npy_files_label.setText("Data files:")
+        self.npy_files_label.setStyleSheet("QLabel {color: 'white';}")
+        self.npy_files_groupbox.layout().addWidget(self.npy_files_label)
+
+        self.npy_files_checkboxes = []
+        for i, file in enumerate(self.data_files):
+            checkbox = QCheckBox(file, self)
+            checkbox.setStyleSheet("QCheckBox {color: 'white';}")
+            self.npy_files_groupbox.layout().addWidget(checkbox)
+            self.npy_files_checkboxes.append(checkbox)
+        
+        self.verticalLayout.addWidget(self.npy_files_groupbox)
 
         # Add a QCheckBox widget for user to select whether to use the current video
         self.use_current_video_checkbox = QCheckBox(self)
@@ -145,12 +176,14 @@ class ModelTrainingPopup(QDialog):
 
         self.verticalLayout.addWidget(self.buttons_groupbox)
 
-
     def update_user_training_options(self):
         # Get the selected model
-        self.model_dropdown_selection = self.model_dropdown.currentText()
+        self.model_files = self.model_files[self.model_dropdown.currentIndex()]
         # Get the selected videos
-        self.selected_videos = [] # This has to be a list of paths to (.npy) files
+        self.selected_videos = []
+        for i, checkbox in enumerate(self.npy_files_checkboxes):
+            if checkbox.isChecked():
+                self.selected_videos.append(self.data_files[i])      
         # Get list of all files 
         if self.use_current_video_checkbox.isChecked():
             self.use_current_video = True
@@ -158,13 +191,30 @@ class ModelTrainingPopup(QDialog):
         self.show_step_3()
 
     def show_step_3(self):
+        print("Path set to {}".format(self.output_folder_path))
+        print("Model set to {}".format(self.model_files))
+        print("Use current video: {}".format(self.use_current_video))
+        print("Selected videos: {}".format(self.selected_videos))
+        if self.use_current_video:
+            self.show_refinement_options()
+        else:
+            self.train_model()
+
+    def show_refinement_options(self):
 
         self.clear_window()
         self.update_window_title("Step 3: Keypoints refinement")
 
-        print("Path set to {}".format(self.output_folder_path))
-        print("Model set to {}".format(self.model_dropdown_selection))
-        print("Use current video: {}".format(self.use_current_video))
-        print("Selected videos: {}".format(self.selected_videos))
         
+
+    def train_model(self):
+        # Get the selected videos
+        print("Training using the following videos: {} ".format(self.selected_videos))
+
+        """
+        # Create a new thread to train the model
+        self.train_thread = TrainThread(self.model_files, self.selected_videos, self.output_folder_path, self.gui)
+        self.train_thread.start()
+        self.train_thread.finished.connect(self.show_refinement_options)
+        """
 
