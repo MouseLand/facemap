@@ -38,6 +38,44 @@ def load_images_from_video(video_path, selected_frame_ind):
     return frames
 
 def preprocess_images_landmarks(imgs, landmarks, bbox_region):
+    """
+    The function preprocesses the images and landmarks by cropping the images and
+    landmarks to the bounding box region and resizing the images to 256x256.
+    Parameters:
+        imgs: ND-array of images of size (num_frames, height, width)
+        landmarks: ND-array of landmarks of size (num_frames, num_landmarks, 2)
+        bbox_region: list of bounding box regions for each frame of size (num_frames, Xstart, Xstop, Ystart, Ystop, resize)
+    Returns:
+        imgs_preprocessed: ND-array of images of size (num_frames, 1, 256, 256)
+        landmarks_preprocessed: ND-array of landmarks of size (num_frames, num_landmarks, 2)
+    """
+
+    # Write a fo loop that iterates over the frames and preprocesses them one by one
+    imgs_preprocessed = []
+    landmarks_preprocessed = []
+    for i in range(len(imgs)):
+        img = imgs[i]
+        landmark = landmarks[i]
+        bbox_region_i = bbox_region[i]
+        img_preprocessed, landmark_preprocessed = preprocess_image_landmark(img, landmark, bbox_region_i)
+        imgs_preprocessed.append(img_preprocessed)
+        landmarks_preprocessed.append(landmark_preprocessed)
+    imgs_preprocessed = np.array(imgs_preprocessed)
+    landmarks_preprocessed = np.array(landmarks_preprocessed)
+    return imgs_preprocessed, landmarks_preprocessed
+
+def preprocess_image_landmark(img, landmark, bbox_region):
+    """
+    The function takes one image and the respective keypoints for the image and adjusts both of them using the 
+    bounding box region supplied.
+    Parameters:
+        img: ND-array of images of size (height, width)
+        landmark: ND-array of landmarks of size (num_landmarks, 2)
+        bbox_region: list of bounding box regions for each frame of size (Xstart, Xstop, Ystart, Ystop, resize)
+    Returns:
+        img_preprocessed: ND-array of images of size (1, 256, 256)
+        landmark_preprocessed: ND-array of landmarks of size (num_landmarks, 2)
+    """
     # If bbox_region is not square, then adjust the bbox_region to be square
     if bbox_region[2] - bbox_region[0] != bbox_region[3] - bbox_region[1]:
         if bbox_region[2] - bbox_region[0] > bbox_region[3] - bbox_region[1]:
@@ -46,21 +84,16 @@ def preprocess_images_landmarks(imgs, landmarks, bbox_region):
             bbox_region[3] = bbox_region[1] + bbox_region[2] - bbox_region[0]
 
     # Adjust corrected annotations to the cropped region
-    landmarks.T[::3] = (landmarks.T[::3]- bbox_region[0])/ ((bbox_region[1]-bbox_region[0])/256)
-    landmarks.T[1::3] = (landmarks.T[1::3]- bbox_region[2])/ ((bbox_region[3]-bbox_region[2])/256)
-    landmarks = landmarks.T[landmarks.columns.get_level_values("coords")!='likelihood'].T.to_numpy().reshape(-1,15,2)
+    landmark.T[::3] = (landmark.T[::3]- bbox_region[0])/ ((bbox_region[1]-bbox_region[0])/256)
+    landmark.T[1::3] = (landmark.T[1::3]- bbox_region[2])/ ((bbox_region[3]-bbox_region[2])/256)
+    landmark = landmark.T[landmark.columns.get_level_values("coords")!='likelihood'].T.to_numpy().reshape(-1,15,2)
     # Pre-processing using grayscale imagenet stats
-    imgs_preprocessed = []
-    for im in imgs:
-        im = cv2.cvtColor(im, cv2.COLOR_BGR2GRAY)
-        im = np.multiply(im, 1 / 255.0).astype(np.float32) # np.ndarray float type with values normalized to [0, 1]
-        im = transforms.normalize99(im)
-        im = im[bbox_region[2]:bbox_region[3], bbox_region[0]:bbox_region[1]]
-        im = cv2.resize(im, (256,256))
-        imgs_preprocessed.append(im)
-    imgs_preprocessed = np.array(imgs_preprocessed)
-                    
-    return imgs_preprocessed, landmarks  
+    img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+    img = np.multiply(img, 1 / 255.0).astype(np.float32) # np.ndarray float type with values normalized to [0, 1]
+    img = transforms.normalize99(img)
+    img = img[bbox_region[2]:bbox_region[3], bbox_region[0]:bbox_region[1]]
+    img = cv2.resize(img, (256,256))
+    return img, landmark
 
 def finetune_model(imgs, landmarks, net, batch_size, n_epochs=36):
 
