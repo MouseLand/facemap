@@ -762,6 +762,12 @@ class MainW(QtWidgets.QMainWindow):
     def visualize_subset_keypoints(self, video_id, pred_data, subset_ind, bodyparts):
         pose_gui.VisualizeVideoSubset(self, video_id, pred_data, subset_ind, bodyparts)
 
+    def train_model(self, image_data, keypoints_data, bbox_data):
+        if self.pose_model is None:
+            self.setup_pose_model()
+        self.pose_model.train(image_data, keypoints_data, bbox_data)
+        self.update_status_bar("Model training completed!")
+
     ### ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Clustering and ROI ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ 
     def vis_combobox_selection_changed(self):
         """

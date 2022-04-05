@@ -112,19 +112,16 @@ class Pose():
                                     prompt="Finished processing subset of video",  hide_progress=True)
             return pred_data.cpu().numpy(), subset_ind, video_id, self.net.bodyparts, self.bbox[video_id]
 
-    # Preprocess refined keypoints to be used for pose estimation
-    def preprocess_refined_keypoints(self, pose_data, selected_frame_ind, video_id):
-        video_path = self.filenames[0][0]
-        imgs = model_training.load_images_from_video(video_path, selected_frame_ind)
-        imgs, keypoints = model_training.preprocess_images_landmarks(imgs, pose_data, self.bbox[video_id])
-        return imgs, keypoints, selected_frame_ind
 
     # Retrain model using refined pose data
-    def retrain_model(self, refined_pose_filepath):
-        dat = np.load(refined_pose_filepath, allow_pickle=True).item()
-        self.net = model_training.finetune_model(dat['imgs'], dat['keypoints'], self.net, batch_size=1)
-        self.run_all(plot=True, refined=True)
-        print(self.gui.poseFilepath)
+    def train(self, image_data, keypoints_data, bbox_data):
+        imgs, keypoints = self.preprocess_training_data(image_data, keypoints_data, bbox_data)
+        # Preprocess refined keypoints to be used for pose estimation
+        imgs, keypoints = model_training.preprocess_images_landmarks(imgs, keypoints_data, bbox_data)
+        # Use preprocessed data to train the model
+        self.net = model_training.finetune_model(imgs, keypoints, self.net, batch_size=1)
+        #self.run_all(plot=True, refined=True)
+        #print(self.gui.poseFilepath)
 
     def write_dataframe(self, data, selected_frame_ind=None):
         scorer = "Facemap" 

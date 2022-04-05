@@ -250,7 +250,9 @@ class ModelTrainingPopup(QDialog):
         self.update_window_size(0.5)
 
         self.random_frames_ind = np.random.choice(self.gui.cumframes[-1], self.num_random_frames, replace=False)
+        self.hide()
         self.pose_data, self.bbox = self.generate_predictions(self.random_frames_ind)
+        self.show()
         
         self.overall_horizontal_group = QGroupBox()
         self.overall_horizontal_group.setLayout(QHBoxLayout())
@@ -449,33 +451,32 @@ class ModelTrainingPopup(QDialog):
     def train_model(self):
         self.keypoints_scatterplot.save_refined_data()
         # Get the selected videos
-        print("Training using the following selected videos: {}".format(self.selected_videos))
-        # Combine all keypoints  and image data from selected videos into one list
+        # Combine all keypoints and image data from selected videos into one list
         keypoints_data = []
         image_data = []
+        bbox_data = []
         for video in self.selected_videos:
             keypoints_data.append(np.load(video, allow_pickle=True).item()['keypoints'])            
             image_data.append(np.load(video, allow_pickle=True).item()['imgs'])
+            bbox_data.append(np.load(video, allow_pickle=True).item()['bbox'])
         if self.use_current_video_checkbox.isChecked():
-            print("Training set also includes the current video")
             image_data.append(self.all_frames)
             keypoints_data.append(self.pose_data)
+            bbox_data.append(self.bbox)
         # Combine all keypoints data into one array
         image_data = np.concatenate(image_data)
         image_data = np.array(image_data).squeeze()
         keypoints_data = np.concatenate(keypoints_data)
         keypoints_data = np.array(keypoints_data)
+        bbox_data = np.concatenate(bbox_data)
+        bbox_data = np.array(bbox_data)
         print("Training set contains {} images".format(image_data.shape))
         print("Training set contains {} keypoints".format(keypoints_data.shape))
+        print("Training set contains bbox data: {}".format(bbox_data))
+
+        self.gui.train_model(image_data, keypoints_data, bbox_data)
 
         self.close()
-
-        """
-        # Create a new thread to train the model
-        self.train_thread = TrainThread(self.model_files, self.selected_videos, self.output_folder_path, self.gui)
-        self.train_thread.start()
-        self.train_thread.finished.connect(self.show_refinement_options)
-        """
 
     # Add a keyPressEvent for deleting the selected keypoint using the delete key and set the value to NaN 
     def keyPressEvent(self, ev):
@@ -560,9 +561,14 @@ class KeypointsGraph(pg.GraphItem):
         video_path = self.parent.gui.filenames[0][0] 
         video_name = os.path.basename(video_path).split('.')[0]
         savepath = os.path.join(self.parent.output_folder_path, video_name+"_Facemap_refined_images_landmarks.npy")
+        # Create a list of bbox for each frame
+        bbox = []
+        for i in range(keypoints.shape[0]):
+            bbox.append(self.parent.bbox[i])
+        # Save the data
         np.save(savepath, {"imgs": self.parent.all_frames,
                             "keypoints": keypoints,
-                            "bbox": self.parent.bbox,
+                            "bbox": bbox,
                             "bodyparts": self.parent.bodyparts,
                             "frame_ind": self.parent.random_frames_ind})
 
