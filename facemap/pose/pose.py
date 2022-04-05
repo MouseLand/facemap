@@ -64,7 +64,7 @@ class Pose():
         for video_id in range(len(self.bbox)):
             utils.update_mainwindow_message(MainWindow=self.gui, GUIobject=self.GUIobject, 
                                     prompt="Processing video: {}".format(self.filenames[0][video_id]), hide_progress=True)
-            pred_data, metadata, _ = self.predict_landmarks(video_id)
+            pred_data, metadata = self.predict_landmarks(video_id)
             dataFrame = self.write_dataframe(pred_data.cpu().numpy())
             savepath = self.save_pose_prediction(dataFrame, video_id, refined)
             utils.update_mainwindow_message(MainWindow=self.gui, GUIobject=self.GUIobject, 
@@ -107,10 +107,10 @@ class Pose():
         for video_id in range(len(self.bbox)):
             utils.update_mainwindow_message(MainWindow=self.gui, GUIobject=self.GUIobject, 
                                     prompt="Processing video: {}".format(self.filenames[0][video_id]), hide_progress=True)
-            pred_data, _, input_imgs = self.predict_landmarks(video_id, frame_ind=subset_ind)
+            pred_data, _ = self.predict_landmarks(video_id, frame_ind=subset_ind)
             utils.update_mainwindow_message(MainWindow=self.gui, GUIobject=self.GUIobject, 
                                     prompt="Finished processing subset of video",  hide_progress=True)
-            return pred_data.cpu().numpy(), subset_ind, video_id, self.net.bodyparts, input_imgs
+            return pred_data.cpu().numpy(), subset_ind, video_id, self.net.bodyparts, self.bbox[video_id]
 
     # Preprocess refined keypoints to be used for pose estimation
     def preprocess_refined_keypoints(self, pose_data, selected_frame_ind, video_id):
@@ -118,17 +118,6 @@ class Pose():
         imgs = model_training.load_images_from_video(video_path, selected_frame_ind)
         imgs, keypoints = model_training.preprocess_images_landmarks(imgs, pose_data, self.bbox[video_id])
         return imgs, keypoints, selected_frame_ind
-
-    # Save refined keypoints and images to a numpy file
-    def save_refined_data(self, imgs, keypoints, selected_frame_ind, video_id):
-        video_path = self.filenames[0][0]
-        savepath = os.path.splitext(video_path)[0]+"_Facemap_refined_images_landmarks.npy"
-        np.save(savepath, {"imgs": imgs,
-                            "keypoints": keypoints,
-                            "bbox": self.bbox[video_id],
-                            "bodyparts": self.bodyparts,
-                            "frame_ind": selected_frame_ind})
-        return savepath
 
     # Retrain model using refined pose data
     def retrain_model(self, refined_pose_filepath):
@@ -196,7 +185,6 @@ class Pose():
         inference_time = 0
 
         progress_output = StringIO()
-        input_imgs = []
         with tqdm(total=total_frames, unit='frame', unit_scale=True, file=progress_output) as pbar:
             while start != total_frames: #  for analyzing entire video
                 
@@ -214,7 +202,6 @@ class Pose():
                 frame_grayscale = transforms.crop_resize(imall, Ystart, Ystop,
                                                         Xstart, Xstop, resize).clone().detach()
                 imall = transforms.preprocess_img(frame_grayscale)
-                input_imgs.append(imall.cpu().numpy())
                 # Network prediction 
                 Xlabel, Ylabel, likelihood = pose_utils.get_predicted_landmarks(self.net, imall, batchsize=batch_size,
                                                                                 smooth=False)
@@ -253,7 +240,7 @@ class Pose():
                     "bodyparts": self.net.bodyparts,
                     "inference_speed": inference_speed,
                     }
-        return pred_data, metadata, input_imgs
+        return pred_data, metadata
 
     def save_pose_prediction(self, dataFrame, video_id, refined=False):
         # Save prediction to .h5 file

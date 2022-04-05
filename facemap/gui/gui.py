@@ -753,11 +753,11 @@ class MainW(QtWidgets.QMainWindow):
         if self.pose_model is None:
             self.setup_pose_model()
         if subset_frame_indices is not None:
-            pred_data, subset_ind, video_id, bodyparts, input_imgs = self.pose_model.run_subset(subset_frame_indices)
+            pred_data, subset_ind, video_id, bodyparts, bbox = self.pose_model.run_subset(subset_frame_indices)
         else:
-            pred_data, subset_ind, video_id, bodyparts, input_imgs = self.pose_model.run_subset()
+            pred_data, subset_ind, video_id, bodyparts, bbox = self.pose_model.run_subset()
         self.update_status_bar("Subset keypoints processed")
-        return pred_data, subset_ind, video_id, bodyparts, input_imgs
+        return pred_data, subset_ind, video_id, bodyparts, bbox
 
     def visualize_subset_keypoints(self, video_id, pred_data, subset_ind, bodyparts):
         pose_gui.VisualizeVideoSubset(self, video_id, pred_data, subset_ind, bodyparts)

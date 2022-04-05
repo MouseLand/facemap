@@ -250,8 +250,8 @@ class ModelTrainingPopup(QDialog):
         self.update_window_size(0.5)
 
         self.random_frames_ind = np.random.choice(self.gui.cumframes[-1], self.num_random_frames, replace=False)
-        self.pose_data, self.all_frames = self.generate_predictions(self.random_frames_ind)
-
+        self.pose_data, self.bbox = self.generate_predictions(self.random_frames_ind)
+        
         self.overall_horizontal_group = QGroupBox()
         self.overall_horizontal_group.setLayout(QHBoxLayout())
 
@@ -273,7 +273,12 @@ class ModelTrainingPopup(QDialog):
         self.frame_group.layout().addWidget(self.win)
         
         self.current_frame = -1
-        
+        self.all_frames = []
+        for i in range(self.num_random_frames):
+            self.all_frames.append(utils.get_frame(self.random_frames_ind[i], self.gui.nframes, 
+                                            self.gui.cumframes, self.gui.video)[0])
+        self.all_frames = np.array(self.all_frames)
+
         # Add a Frame number label and slider
         self.frame_number_label = QLabel(self)
         self.frame_number_label.setText("Frame: {}/{}".format(self.current_frame+1, self.num_random_frames))
@@ -342,8 +347,8 @@ class ModelTrainingPopup(QDialog):
         self.next_frame()
 
     def generate_predictions(self, frame_indices):
-        pred_data, _, _, _, input_imgs = self.gui.process_subset_keypoints(frame_indices)
-        return pred_data, input_imgs
+        pred_data, _, _, _, bbox = self.gui.process_subset_keypoints(frame_indices)
+        return pred_data, bbox
 
     def radio_button_clicked(self):
         # Change background color of the selected radio button to None
@@ -442,6 +447,7 @@ class ModelTrainingPopup(QDialog):
         self.win.show()
 
     def train_model(self):
+        self.keypoints_scatterplot.save_refined_data()
         # Get the selected videos
         print("Training using the following selected videos: {}".format(self.selected_videos))
         # Combine all keypoints  and image data from selected videos into one list
@@ -506,7 +512,6 @@ class KeypointsGraph(pg.GraphItem):
         self.parent = parent
         pg.GraphItem.__init__(self)
         self.scatter.sigClicked.connect(self.keypoint_clicked)
-        self.save_refined_data()
         
     def setData(self, **kwds):
         self.text = kwds.pop('text', [])
@@ -557,6 +562,8 @@ class KeypointsGraph(pg.GraphItem):
         savepath = os.path.join(self.parent.output_folder_path, video_name+"_Facemap_refined_images_landmarks.npy")
         np.save(savepath, {"imgs": self.parent.all_frames,
                             "keypoints": keypoints,
+                            "bbox": self.parent.bbox,
+                            "bodyparts": self.parent.bodyparts,
                             "frame_ind": self.parent.random_frames_ind})
 
     def getData(self):
