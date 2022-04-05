@@ -12,9 +12,9 @@ import pandas as pd
 from matplotlib import cm
 from PyQt5.QtGui import QColor
 from PyQt5.QtWidgets import (QDialog, QWidget, QLineEdit, QLabel, QDialogButtonBox,
-                            QSpinBox, QPushButton, QVBoxLayout, QRadioButton, QMessageBox,
+                            QSpinBox, QPushButton, QVBoxLayout, QComboBox, QMessageBox,
                             QHBoxLayout, QVBoxLayout, QButtonGroup, QGroupBox,
-                            QListWidget, QAbstractItemView, QDesktopWidget)
+                            QListWidget, QCheckBox, QDesktopWidget)
 
 """
 Single workflow for re-training the model or fine-tuning the model with new data.
@@ -25,6 +25,9 @@ class ModelTrainingPopup(QDialog):
         super().__init__(gui)
         self.gui = gui
         self.output_folder_path = None
+        self.model_dropdown_selection = None
+        self.selected_videos = None
+        self.use_current_video = False
 
         self.setWindowTitle('Model training')
         self.setStyleSheet("QDialog {background: 'black';}")
@@ -68,6 +71,7 @@ class ModelTrainingPopup(QDialog):
         # Create a QGroupbox widget to hold the browse button and the QLineEdit widget with a horizontal layout
         self.output_folder_groupbox = QGroupBox(self)
         self.output_folder_groupbox.setLayout(QHBoxLayout())
+        self.output_folder_groupbox.setStyleSheet("QGroupBox {color: 'white'; border: 0px}")
 
         self.output_folder_path_box = QLineEdit(self)
         self.output_folder_path_box.setStyleSheet("QLineEdit {color: 'black';}")
@@ -84,6 +88,7 @@ class ModelTrainingPopup(QDialog):
         # Create a QGroupbox widget to hold the next button
         self.next_button_groupbox = QGroupBox(self)
         self.next_button_groupbox.setLayout(QHBoxLayout())
+        self.next_button_groupbox.setStyleSheet("QGroupBox {color: 'white'; border: 0px;}")
         self.next_button = QPushButton('Next', self)
         self.next_button.clicked.connect(lambda clicked: self.show_choose_training_files())
         # Align the button to the right of the layout
@@ -101,4 +106,65 @@ class ModelTrainingPopup(QDialog):
         self.update_window_title("Step 2: Choose training files")
         print("Path set to {}".format(self.output_folder_path))
 
+        # Add a QGroupbox widget to hold a qlabel and dropdown menu
+        self.model_groupbox = QGroupBox(self)
+        self.model_groupbox.setLayout(QHBoxLayout())
+        self.model_groupbox.setStyleSheet("QGroupBox {color: 'white'; border: 0px")
+
+        self.model_label = QLabel(self)
+        self.model_label.setText("Model:")
+        self.model_label.setStyleSheet("QLabel {color: 'white';}")
+        self.model_groupbox.layout().addWidget(self.model_label)
+
+        self.model_dropdown = QComboBox(self)
+        self.model_dropdown.addItems(['ResNet50', 'ResNet101', 'ResNet152'])
+
+        self.model_dropdown.setStyleSheet("QComboBox {color: 'black';}")
+        self.model_groupbox.layout().addWidget(self.model_dropdown)
+
+        self.verticalLayout.addWidget(self.model_groupbox)
+
+        # Add a QCheckBox widget for user to select whether to use the current video
+        self.use_current_video_checkbox = QCheckBox(self)
+        self.use_current_video_checkbox.setText("Use current video")
+        self.use_current_video_checkbox.setStyleSheet("QCheckBox {color: 'white'; }")
+        self.verticalLayout.addWidget(self.use_current_video_checkbox)
+
+        # Add a QGroupbox widget to hold two buttons for cancel and next step with a horizontal layout aligned to the right
+        self.buttons_groupbox = QGroupBox(self)
+        self.buttons_groupbox.setLayout(QHBoxLayout())
+        self.buttons_groupbox.setStyleSheet("QGroupBox {color: 'white'; border: 0px}")
+
+        self.cancel_button = QPushButton('Cancel', self)
+        self.cancel_button.clicked.connect(lambda clicked: self.close())
+        self.buttons_groupbox.layout().addWidget(self.cancel_button, alignment=QtCore.Qt.AlignRight)
+
+        self.next_button = QPushButton('Next', self)
+        self.next_button.clicked.connect(lambda clicked: self.update_user_training_options())
+        self.buttons_groupbox.layout().addWidget(self.next_button, alignment=QtCore.Qt.AlignRight)
+
+        self.verticalLayout.addWidget(self.buttons_groupbox)
+
+
+    def update_user_training_options(self):
+        # Get the selected model
+        self.model_dropdown_selection = self.model_dropdown.currentText()
+        # Get the selected videos
+        self.selected_videos = [] # This has to be a list of paths to (.npy) files
+        # Get list of all files 
+        if self.use_current_video_checkbox.isChecked():
+            self.use_current_video = True
+
+        self.show_step_3()
+
+    def show_step_3(self):
+
+        self.clear_window()
+        self.update_window_title("Step 3: Keypoints refinement")
+
+        print("Path set to {}".format(self.output_folder_path))
+        print("Model set to {}".format(self.model_dropdown_selection))
+        print("Use current video: {}".format(self.use_current_video))
+        print("Selected videos: {}".format(self.selected_videos))
+        
 
