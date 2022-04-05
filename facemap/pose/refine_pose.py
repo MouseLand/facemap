@@ -245,7 +245,7 @@ class ModelTrainingPopup(QDialog):
         self.update_window_size(0.5)
 
         self.random_frames_ind = np.random.choice(self.gui.cumframes[-1], self.num_random_frames, replace=False)
-        self.pose_data = self.generate_predictions(self.random_frames_ind)
+        self.pose_data, self.all_frames = self.generate_predictions(self.random_frames_ind)
 
         self.overall_horizontal_group = QGroupBox()
         self.overall_horizontal_group.setLayout(QHBoxLayout())
@@ -268,11 +268,6 @@ class ModelTrainingPopup(QDialog):
         self.frame_group.layout().addWidget(self.win)
         
         self.current_frame = -1
-        self.all_frames = []
-        for i in range(self.num_random_frames):
-            self.all_frames.append(utils.get_frame(self.random_frames_ind[i], self.gui.nframes, 
-                                            self.gui.cumframes, self.gui.video)[0])
-        self.all_frames = np.array(self.all_frames)
         
         # Add a Frame number label and slider
         self.frame_number_label = QLabel(self)
@@ -342,8 +337,8 @@ class ModelTrainingPopup(QDialog):
         self.next_frame()
 
     def generate_predictions(self, frame_indices):
-        pred_data, _, _, _ = self.gui.process_subset_keypoints(frame_indices)
-        return pred_data
+        pred_data, _, _, _, input_imgs = self.gui.process_subset_keypoints(frame_indices)
+        return pred_data, input_imgs
 
     def radio_button_clicked(self):
         # Change background color of the selected radio button to None
@@ -420,7 +415,8 @@ class ModelTrainingPopup(QDialog):
             self.next_button.setEnabled(True)
         # Update the frame number label
         self.frame_number_label.setText("Frame: " + str(self.current_frame+1) + "/" + str(self.num_random_frames))
-        
+        self.keypoints_scatterplot.save_refined_data()
+
     def next_frame(self):
         self.update_frame_counter("next")
         # Display the next frame in list of random frames with keypoints
@@ -443,8 +439,24 @@ class ModelTrainingPopup(QDialog):
     def train_model(self):
         # Get the selected videos
         print("Training using the following selected videos: {}".format(self.selected_videos))
+        # Combine all keypoints  and image data from selected videos into one list
+        keypoints_data = []
+        image_data = []
+        for video in self.selected_videos:
+            keypoints_data.append(np.load(video, allow_pickle=True).item()['keypoints'])            
+            image_data.append(np.load(video, allow_pickle=True).item()['imgs'])
         if self.use_current_video_checkbox.isChecked():
-            print("Training set also includes the refined keypoints from the current video")
+            print("Training set also includes the current video")
+            image_data.append(self.all_frames)
+            keypoints_data.append(self.pose_data)
+        # Combine all keypoints data into one array
+        image_data = np.concatenate(image_data)
+        image_data = np.array(image_data).squeeze()
+        keypoints_data = np.concatenate(keypoints_data)
+        keypoints_data = np.array(keypoints_data)
+        print("Training set contains {} images".format(image_data.shape))
+        print("Training set contains {} keypoints".format(keypoints_data.shape))
+
         self.close()
 
         """
@@ -489,6 +501,7 @@ class KeypointsGraph(pg.GraphItem):
         self.parent = parent
         pg.GraphItem.__init__(self)
         self.scatter.sigClicked.connect(self.keypoint_clicked)
+        self.save_refined_data()
         
     def setData(self, **kwds):
         self.text = kwds.pop('text', [])
@@ -529,10 +542,11 @@ class KeypointsGraph(pg.GraphItem):
         y_coord = keypoints_refined[:,1]
         likelihood = self.parent.pose_data[self.parent.current_frame][:,2]
         self.parent.pose_data[self.parent.current_frame] = np.column_stack((x_coord, y_coord, likelihood))
-        self.save_refined_data(self.parent.pose_data)
+        self.save_refined_data()
 
     # Save refined keypoints and images to a numpy file
-    def save_refined_data(self, keypoints):
+    def save_refined_data(self):
+        keypoints = self.parent.pose_data
         video_path = self.parent.gui.filenames[0][0]
         savepath = os.path.splitext(video_path)[0]+"_Facemap_refined_images_landmarks.npy"
         np.save(savepath, {"imgs": self.parent.all_frames,
