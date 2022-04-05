@@ -34,10 +34,6 @@ def mainmenu(parent):
     keypointsRefinement.triggered.connect(lambda: parent.keypoints_refinement())
     parent.addAction(keypointsRefinement)
 
-    # Add an option to load finetuned model
-    loadModel = QAction("Load finetuned model", parent)
-    parent.addAction(loadModel)
-
     loadPose = QAction("Load keypoints", parent)
     #loadPose.setShortcut("Ctrl+P")
     loadPose.triggered.connect(lambda: io.get_pose_file(parent))
@@ -47,6 +43,10 @@ def mainmenu(parent):
     #process_subset_keypoints.setShortcut("Ctrl+X")
     process_subset_keypoints.triggered.connect(lambda: parent.process_subset_keypoints())
     parent.addAction(process_subset_keypoints)
+
+    retrain_model = QAction("Retrain model", parent)
+    retrain_model.triggered.connect(lambda: parent.retrain_model())
+    parent.addAction(retrain_model)
 
     # Help menu actions
     helpContent = QAction("Help Content", parent)
@@ -63,9 +63,9 @@ def mainmenu(parent):
     file_menu.addAction(setOutputFolder)
     pose_menu = main_menu.addMenu("Pose")
     pose_menu.addAction(loadPose)
-    pose_menu.addAction(loadPose)
     pose_menu.addAction(process_subset_keypoints)
     pose_menu.addAction(keypointsRefinement)
+    pose_menu.addAction(retrain_model)
     help_menu = main_menu.addMenu("Help")
     help_menu.addAction(helpContent)
 

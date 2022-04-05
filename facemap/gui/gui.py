@@ -946,7 +946,7 @@ class MainW(QtWidgets.QMainWindow):
                 vb.setToolTip('\n\n'.join(tip))
 
     # Retrain the model using the refined keypoints
-    def retrain_model(self, selected_frame_ind):
+    def retrain_model(self):
         if not self.process.isEnabled():
             # Open a qmessage box to notify the user that the video is not loaded
             msg = QtWidgets.QMessageBox()
@@ -956,6 +956,10 @@ class MainW(QtWidgets.QMainWindow):
             msg.setWindowTitle("No video loaded")
             msg.exec_()
             return
+        
+        refine_pose.ModelTrainingPopup(gui=self)
+
+        """
         pose_data = pd.read_hdf(self.poseFilepath[0], 'df_with_missing')
         imgs, keypoints, selected_frame_ind = self.pose_model.preprocess_refined_keypoints(pose_data, 
                                                                                         selected_frame_ind,
@@ -971,6 +975,7 @@ class MainW(QtWidgets.QMainWindow):
         else:
             self.update_status_bar("Video reprocessing cancelled")
             return
+        """
 
     ### ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Plot 1 and 2 functions ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ 
     def load_trace_button_clicked(self, plot_id):

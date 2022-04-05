@@ -190,6 +190,21 @@ def open_proc(parent, file_name=None):
                 parent.plot_processed()
             parent.next_frame()
 
+def get_folder_path(parent):
+    # Open a file dialog to select a folder
+    path = QFileDialog.getExistingDirectory(parent, 'Select a folder')
+    # Check if path exists
+    if path:
+        return path
+    else:
+        # Open a qmessagebox to inform the user that the path does not exist
+        msg = QMessageBox()
+        msg.setIcon(QMessageBox.Warning)
+        msg.setText("The path does not exist")
+        msg.setWindowTitle("Warning")
+        msg.exec_()
+        return None
+
 def load_movies(parent, filelist=None):
     if filelist is not None:
         parent.filelist = filelist
