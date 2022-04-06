@@ -6,14 +6,10 @@ Facemap functions for:
 """
 import cv2
 import numpy as np
-import torch
-import torchvision
 import torchvision.transforms as transforms
 from torch.nn import functional as F
 
 from . import pose_helper_functions
-
-normalize = transforms.Normalize(mean=[0.445], std=[0.269])
 
 def preprocess_img(im):
     """ 

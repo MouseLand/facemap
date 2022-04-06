@@ -55,6 +55,23 @@ def get_frame(cframe, nframes, cumframes, containers):
             print("Error reading frame")    
     return img
 
+def load_images_from_video(video_path, selected_frame_ind):
+    """
+    Load images from a video file.
+    """
+    cap = cv2.VideoCapture(video_path)
+    frames = []
+    for frame_ind in selected_frame_ind:
+        if int(cap.get(cv2.CAP_PROP_POS_FRAMES)) != frame_ind:
+            cap.set(cv2.CAP_PROP_POS_FRAMES, frame_ind)
+        ret, frame = cap.read()
+        if ret:
+            frames.append(frame)
+        else:
+            print("Error reading frame")    
+    frames = np.array(frames)
+    return frames
+    
 def rrr_prediction(X, Y, rank=None, lam=0, itrain=None, itest=None):
     """ predict Y from X using regularized reduced rank regression 
     

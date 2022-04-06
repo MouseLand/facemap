@@ -19,12 +19,8 @@ from . import transforms, models, model_training
 """
 Base class for generating pose estimates.
 Contains functions that can be used through CLI or GUI
-Currently supports single video processing and multi-videos as processed sequentially.
+Currently supports single video processing, whereas multi-view videos recorded simultaneously are processed sequentially.
 """
-
-# TO-DO:
-# Write a function to re-train the model
-# Add a feature for using the retrained model for the next pose prediction
 
 class Pose():
     def __init__(self, filenames=None, bodyparts=None, bbox=[], bbox_set=False, gui=None, GUIobject=None):
@@ -113,22 +109,19 @@ class Pose():
             subset_ind = np.random.choice(self.nframes, subset_size, replace=False)
             subset_ind = np.sort(subset_ind)
 
-        for video_id in range(len(self.bbox)):
-            utils.update_mainwindow_message(MainWindow=self.gui, GUIobject=self.GUIobject, 
-                                    prompt="Processing video: {}".format(self.filenames[0][video_id]), hide_progress=True)
-            pred_data, _ = self.predict_landmarks(video_id, frame_ind=subset_ind)
-            utils.update_mainwindow_message(MainWindow=self.gui, GUIobject=self.GUIobject, 
-                                    prompt="Finished processing subset of video",  hide_progress=True)
-            return pred_data.cpu().numpy(), subset_ind, video_id, self.net.bodyparts, self.bbox[video_id]
-
+        utils.update_mainwindow_message(MainWindow=self.gui, GUIobject=self.GUIobject, 
+                                prompt="Processing video: {}".format(self.filenames[0][0]), hide_progress=True)
+        pred_data, im_input = self.get_refinement_data(0, frame_ind=subset_ind)
+        utils.update_mainwindow_message(MainWindow=self.gui, GUIobject=self.GUIobject, 
+                                prompt="Finished processing subset of video",  hide_progress=True)
+        return pred_data, im_input, subset_ind, self.bbox
 
     # Retrain model using refined pose data
-    def train(self, image_data, keypoints_data, bbox_data):
-        # Preprocess refined keypoints to be used for pose estimation
-        imgs, keypoints = model_training.preprocess_images_landmarks(image_data, keypoints_data, bbox_data)
+    def train(self, image_data, keypoints_data):
         # Use preprocessed data to train the model
-        self.net = model_training.finetune_model(imgs, keypoints[:,:,:-1], self.net, batch_size=1)
+        self.net = model_training.finetune_model(image_data, keypoints_data[:,:,:-1], self.net, batch_size=1)
         self.finetuned_model = True
+        print("Model training complete!")
         return
         #self.run_all(plot=True, refined=True)
         #print(self.gui.poseFilepath)
@@ -169,7 +162,7 @@ class Pose():
 
         return dataFrame
 
-    def predict_landmarks(self, video_id, frame_ind=None):
+    def predict_landmarks(self, video_id):
         """
         Predict labels for all frames in video and save output as .h5 file
         """
@@ -181,11 +174,8 @@ class Pose():
         else:
             batch_size = 1
 
-        if frame_ind is None:
-            total_frames = self.cumframes[-1]
-            frame_ind = np.arange(total_frames)
-        else:
-            total_frames = len(frame_ind)
+        total_frames = self.cumframes[-1]
+        frame_ind = np.arange(total_frames)
 
         # Create array for storing predictions
         pred_data = torch.zeros(total_frames, len(self.net.bodyparts), 3)
@@ -203,10 +193,7 @@ class Pose():
                 
                 # Pre-pocess images
                 imall = np.zeros((batch_size, nchannels, self.Ly[video_id], self.Lx[video_id]))
-                if frame_ind is None:
-                    cframes = np.arange(start, end)
-                else:
-                    cframes = np.array(frame_ind[start:end])
+                cframes = np.array(frame_ind[start:end])
                 utils.get_frames(imall, self.containers, cframes, self.cumframes)
 
                 # Inference time includes: pre-processing, inference, post-processing
@@ -254,6 +241,67 @@ class Pose():
                     "inference_speed": inference_speed,
                     }
         return pred_data, metadata
+
+    def get_refinement_data(self, video_id, frame_ind=None):
+        """
+        The function predicts keypoints for resized images selected for refinement.
+        Returns:
+            pred_data: Predicted keypoints for selected frames in the video in 256x256 resolution
+            im_input: Input images used for model prediction
+        """
+        nchannels = 1
+        if torch.cuda.is_available():
+            batch_size = 1
+        else:
+            batch_size = 1
+
+        total_frames = len(frame_ind)
+
+        self.net.eval()
+        start = 0
+        end = batch_size
+        Xstart, Xstop, Ystart, Ystop, resize = self.bbox[0]
+
+        im_input = []           # list of images used as input for the network
+        pred_data = torch.zeros(total_frames, len(self.net.bodyparts), 3) # landmarks (raw output) from model
+        progress_output = StringIO()
+
+        with tqdm(total=total_frames, unit='frame', unit_scale=True, file=progress_output) as pbar:
+            while start != total_frames: #  for analyzing entire video
+                
+                # Pre-pocess images
+                imall = np.zeros((batch_size, nchannels, self.Ly[video_id], self.Lx[video_id]))
+                cframes = np.array(frame_ind[start:end])
+                utils.get_frames(imall, self.containers, cframes, self.cumframes)
+
+                # Inference time includes: pre-processing, inference, post-processing
+                t0 = time.time()
+                imall = torch.from_numpy(imall).to(self.net.device, dtype=torch.float32)
+                frame_grayscale = transforms.crop_resize(imall, Ystart, Ystop,
+                                                        Xstart, Xstop, resize).clone().detach()
+                imall = transforms.preprocess_img(frame_grayscale)
+
+                im_input.append(imall.detach().cpu().numpy())
+                # Network prediction 
+                Xlabel, Ylabel, likelihood = pose_utils.get_predicted_landmarks(self.net, imall, batchsize=batch_size,
+                                                                                smooth=False)
+
+                # Assign predictions to dataframe
+                pred_data[start:end, :, 0] = Xlabel
+                pred_data[start:end, :, 1] = Ylabel
+                pred_data[start:end, :, 2] = likelihood
+
+                pbar.update(batch_size)
+                start = end 
+                end += batch_size
+                end = min(end, total_frames)
+                # Update progress bar for every 5% of the total frames
+                if (end) % np.floor(total_frames*.05) == 0:
+                    utils.update_mainwindow_progressbar(MainWindow=self.gui,
+                                                        GUIobject=self.GUIobject, s=progress_output, 
+                                                        prompt="Pose prediction progress:")
+
+        return pred_data.cpu().numpy(), np.array(im_input).squeeze()
 
     def save_pose_prediction(self, dataFrame, video_id):
         # Save prediction to .h5 file

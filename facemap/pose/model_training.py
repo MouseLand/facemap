@@ -17,26 +17,6 @@ Fine-tuning the model using the pre-trained weights and refined training data
 provided by the user.
 """
 
-# TO-DO 
-#    Use the user selected bounding box settings to crop the images and landmarks before training
-
-def load_images_from_video(video_path, selected_frame_ind):
-    """
-    Load images from a video file.
-    """
-    cap = cv2.VideoCapture(video_path)
-    frames = []
-    for frame_ind in selected_frame_ind:
-        if int(cap.get(cv2.CAP_PROP_POS_FRAMES)) != frame_ind:
-            cap.set(cv2.CAP_PROP_POS_FRAMES, frame_ind)
-        ret, frame = cap.read()
-        if ret:
-            frames.append(frame)
-        else:
-            print("Error reading frame")    
-    frames = np.array(frames)
-    return frames
-
 def preprocess_images_landmarks(imgs, landmarks, bbox_region):
     """
     The function preprocesses the images and landmarks by cropping the images and
@@ -53,18 +33,32 @@ def preprocess_images_landmarks(imgs, landmarks, bbox_region):
     landmarks_preprocessed = []
     # Loop through each list of frames and landmarks
     for set in range(len(imgs)):
+        Xstart, Xstop, Ystart, Ystop, resize = bbox_region[set]
         # Loop through each frame
         for frame in range(len(imgs[set])):
+            Xlabel, Ylabel = landmarks[set][frame].T[::3], landmarks[set][frame].T[1::3]
+            Xlabel, Ylabel = transforms.labels_crop_resize(Xlabel, Ylabel, Ystart, Xstart, current_size=imgs[set][frame].shape, 
+                                                            desired_size=(256, 256))
             # Adjust corrected annotations to the cropped region
-            landmarks[set][frame].T[::3] = (landmarks[set][frame].T[::3]- bbox_region[set][0])/ ((bbox_region[set][1]-bbox_region[set][0])/256)
-            landmarks[set][frame].T[1::3] = (landmarks[set][frame].T[1::3]- bbox_region[set][2])/ ((bbox_region[set][3]-bbox_region[set][2])/256)
-            landmarks_preprocessed.append(landmarks[set][frame])
+            #landmarks[set][frame].T[::3] = (landmarks[set][frame].T[::3]- bbox_region[set][0])/ ((bbox_region[set][1]-bbox_region[set][0])/256)
+            #landmarks[set][frame].T[1::3] = (landmarks[set][frame].T[1::3]- bbox_region[set][2])/ ((bbox_region[set][3]-bbox_region[set][2])/256)
+            landmarks = np.hstack((Xlabel, Ylabel))
+            landmarks = landmarks.reshape((-1, 2))
+            landmarks_preprocessed.append(landmarks) #landmarks[set][frame])
             # Pre-processing using grayscale imagenet stats
+            im = imgs[set][frame]
+            if im.ndim==2:
+                im = im[np.newaxis, np.newaxis, :, :]
+            im = torch.from_numpy(im).to(dtype=torch.float32)
+            im = transforms.crop_resize(im, Ystart, Ystop, Xstart, Xstop, resize).clone().detach()
+            im = transforms.preprocess_img(im).numpy()
+            """
             im = np.multiply(imgs[set][frame], 1 / 255.0).astype(np.float32)
             im = transforms.normalize99(im)
             im = im[bbox_region[set][2]:bbox_region[set][3], bbox_region[set][0]:bbox_region[set][1]]
             im = cv2.resize(im, (256,256))
-            imgs_preprocessed.append(im)
+            """
+            imgs_preprocessed.append(im.squeeze())
     imgs_preprocessed = np.array(imgs_preprocessed)
     landmarks_preprocessed = np.array(landmarks_preprocessed)
     return imgs_preprocessed, landmarks_preprocessed
@@ -72,7 +66,9 @@ def preprocess_images_landmarks(imgs, landmarks, bbox_region):
 def finetune_model(imgs, landmarks, net, batch_size, n_epochs=36):
 
     # Train the model on a subset of the corrected annotations
-    nimg = len(imgs)
+    nimg = imgs.shape[0]
+    if imgs.ndim==3:
+        imgs = imgs[:, np.newaxis, :, :]
     n_factor =  2**4 // (2 ** net.n_upsample)
     xmesh, ymesh = np.meshgrid(np.arange(256/n_factor), np.arange(256/n_factor))
     ymesh = torch.from_numpy(ymesh).to(device)

@@ -128,9 +128,6 @@ class ModelTrainingPopup(QDialog):
             model_state_path = models.get_model_state_path()
             shutil.copy(model_state_path, self.output_folder_path)
             self.model_files = glob(os.path.join(self.output_folder_path, '*.pt'))
-        
-        print("Model files found: {}".format(self.model_files))
-        print("Data files found: {}".format(self.data_files))
 
         # Add a QGroupbox widget to hold a qlabel and dropdown menu
         self.model_groupbox = QGroupBox(self)
@@ -252,7 +249,7 @@ class ModelTrainingPopup(QDialog):
 
         self.random_frames_ind = np.random.choice(self.gui.cumframes[-1], self.num_random_frames, replace=False)
         self.hide()
-        self.pose_data, self.bbox = self.generate_predictions(self.random_frames_ind)
+        self.pose_data, self.all_frames = self.generate_predictions(self.random_frames_ind)
         self.show()
         
         self.overall_horizontal_group = QGroupBox()
@@ -276,13 +273,6 @@ class ModelTrainingPopup(QDialog):
         self.frame_group.layout().addWidget(self.win)
         
         self.current_frame = -1
-        self.all_frames = []
-        for i in range(self.num_random_frames):
-            img = utils.get_frame(self.random_frames_ind[i], self.gui.nframes, 
-                                            self.gui.cumframes, self.gui.video)[0]
-            img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-            self.all_frames.append(img)
-        self.all_frames = np.array(self.all_frames)
 
         # Add a Frame number label and slider
         self.frame_number_label = QLabel(self)
@@ -352,8 +342,8 @@ class ModelTrainingPopup(QDialog):
         self.next_frame()
 
     def generate_predictions(self, frame_indices):
-        pred_data, _, _, _, bbox = self.gui.process_subset_keypoints(frame_indices)
-        return pred_data, bbox
+        pred_data, im_input, _, self.bbox = self.gui.process_subset_keypoints(frame_indices)
+        return pred_data, im_input
 
     def radio_button_clicked(self):
         # Change background color of the selected radio button to None
@@ -406,8 +396,7 @@ class ModelTrainingPopup(QDialog):
         if self.current_frame >= 0:
             self.frame_win.clear()
             self.next_button.setEnabled(True)
-            selected_frame = utils.get_frame(self.random_frames_ind[self.current_frame], self.gui.nframes, 
-                                            self.gui.cumframes, self.gui.video)[0] 
+            selected_frame = self.all_frames[self.current_frame]
             self.img = pg.ImageItem(selected_frame)
             self.frame_win.addItem(self.img)
             self.plot_keypoints(self.current_frame)
@@ -437,8 +426,7 @@ class ModelTrainingPopup(QDialog):
         # Display the next frame in list of random frames with keypoints
         if self.current_frame < self.num_random_frames:
             self.frame_win.clear()
-            selected_frame = utils.get_frame(self.random_frames_ind[self.current_frame], self.gui.nframes, 
-                                            self.gui.cumframes, self.gui.video)[0] 
+            selected_frame = self.all_frames[self.current_frame]
             self.img = pg.ImageItem(selected_frame)
             self.frame_win.addItem(self.img)
             self.update_window_title()
@@ -467,11 +455,14 @@ class ModelTrainingPopup(QDialog):
             keypoints_data.append(self.pose_data)
             bbox_data.append(self.bbox)
         # Convert lists to numpy arrays
+        keypoints_data = np.concatenate(keypoints_data, axis=0)
+        image_data = np.concatenate(image_data, axis=0)
+        bbox_data = np.concatenate(bbox_data, axis=0)
         keypoints_data = np.array(keypoints_data)
         image_data = np.array(image_data)
         bbox_data = np.array(bbox_data)
 
-        self.gui.train_model(image_data, keypoints_data, bbox_data, self.output_folder_path)
+        self.gui.train_model(image_data, keypoints_data, self.output_folder_path)
 
         self.close()
 
@@ -562,7 +553,8 @@ class KeypointsGraph(pg.GraphItem):
                             "keypoints": keypoints,
                             "bbox": self.parent.bbox,
                             "bodyparts": self.parent.bodyparts,
-                            "frame_ind": self.parent.random_frames_ind})
+                            "frame_ind": self.parent.random_frames_ind,
+                            "video_path": video_path})
 
     def getData(self):
         return self.data['pos']

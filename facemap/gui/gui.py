@@ -753,19 +753,19 @@ class MainW(QtWidgets.QMainWindow):
         if self.pose_model is None:
             self.setup_pose_model()
         if subset_frame_indices is not None:
-            pred_data, subset_ind, video_id, bodyparts, bbox = self.pose_model.run_subset(subset_frame_indices)
+            pred_data, im_input, subset_ind, bbox = self.pose_model.run_subset(subset_frame_indices)
         else:
-            pred_data, subset_ind, video_id, bodyparts, bbox = self.pose_model.run_subset()
+            pred_data, im_input, subset_ind, bbox = self.pose_model.run_subset()
         self.update_status_bar("Subset keypoints processed")
-        return pred_data, subset_ind, video_id, bodyparts, bbox
+        return pred_data, im_input, subset_ind, bbox
 
     def visualize_subset_keypoints(self, video_id, pred_data, subset_ind, bodyparts):
         pose_gui.VisualizeVideoSubset(self, video_id, pred_data, subset_ind, bodyparts)
 
-    def train_model(self, image_data, keypoints_data, bbox_data, output_folder_path):
+    def train_model(self, image_data, keypoints_data, output_folder_path):
         if self.pose_model is None:
             self.setup_pose_model()
-        self.pose_model.train(image_data, keypoints_data, bbox_data)
+        self.pose_model.train(image_data, keypoints_data)
         self.update_status_bar("Model training completed!")
         savepath = self.pose_model.save_model(output_folder_path)
         self.update_status_bar("Model saved to:", savepath)
