@@ -9,6 +9,7 @@ from .. import utils
 from ..gui import io
 from PyQt5 import QtCore
 import shutil
+import cv2
 from . import models
 from matplotlib import cm
 from glob import glob
@@ -277,8 +278,10 @@ class ModelTrainingPopup(QDialog):
         self.current_frame = -1
         self.all_frames = []
         for i in range(self.num_random_frames):
-            self.all_frames.append(utils.get_frame(self.random_frames_ind[i], self.gui.nframes, 
-                                            self.gui.cumframes, self.gui.video)[0])
+            img = utils.get_frame(self.random_frames_ind[i], self.gui.nframes, 
+                                            self.gui.cumframes, self.gui.video)[0]
+            img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+            self.all_frames.append(img)
         self.all_frames = np.array(self.all_frames)
 
         # Add a Frame number label and slider
@@ -463,24 +466,17 @@ class ModelTrainingPopup(QDialog):
             image_data.append(self.all_frames)
             keypoints_data.append(self.pose_data)
             bbox_data.append(self.bbox)
-        # Combine all keypoints data into one array
-        image_data = np.concatenate(image_data)
-        image_data = np.array(image_data).squeeze()
-        keypoints_data = np.concatenate(keypoints_data)
+        # Convert lists to numpy arrays
         keypoints_data = np.array(keypoints_data)
-        bbox_data = np.concatenate(bbox_data)
+        image_data = np.array(image_data)
         bbox_data = np.array(bbox_data)
-        print("Training set contains {} images".format(image_data.shape))
-        print("Training set contains {} keypoints".format(keypoints_data.shape))
-        print("Training set contains bbox data: {}".format(bbox_data))
 
-        self.gui.train_model(image_data, keypoints_data, bbox_data)
+        self.gui.train_model(image_data, keypoints_data, bbox_data, self.output_folder_path)
 
         self.close()
 
     # Add a keyPressEvent for deleting the selected keypoint using the delete key and set the value to NaN 
     def keyPressEvent(self, ev):
-        print("Key pressed")
         if ev.key() in (QtCore.Qt.Key_Backspace, QtCore.Qt.Key_Delete):
             self.delete_keypoint()
         else:
@@ -561,14 +557,10 @@ class KeypointsGraph(pg.GraphItem):
         video_path = self.parent.gui.filenames[0][0] 
         video_name = os.path.basename(video_path).split('.')[0]
         savepath = os.path.join(self.parent.output_folder_path, video_name+"_Facemap_refined_images_landmarks.npy")
-        # Create a list of bbox for each frame
-        bbox = []
-        for i in range(keypoints.shape[0]):
-            bbox.append(self.parent.bbox[i])
         # Save the data
         np.save(savepath, {"imgs": self.parent.all_frames,
                             "keypoints": keypoints,
-                            "bbox": bbox,
+                            "bbox": self.parent.bbox,
                             "bodyparts": self.parent.bodyparts,
                             "frame_ind": self.parent.random_frames_ind})
 

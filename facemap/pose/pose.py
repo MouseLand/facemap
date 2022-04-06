@@ -9,6 +9,7 @@ import pandas as pd
 import torch
 import pickle
 from io import StringIO
+from glob import glob
 
 from facemap import utils
 
@@ -115,13 +116,19 @@ class Pose():
 
     # Retrain model using refined pose data
     def train(self, image_data, keypoints_data, bbox_data):
-        imgs, keypoints = self.preprocess_training_data(image_data, keypoints_data, bbox_data)
         # Preprocess refined keypoints to be used for pose estimation
-        imgs, keypoints = model_training.preprocess_images_landmarks(imgs, keypoints_data, bbox_data)
+        imgs, keypoints = model_training.preprocess_images_landmarks(image_data, keypoints_data, bbox_data)
         # Use preprocessed data to train the model
-        self.net = model_training.finetune_model(imgs, keypoints, self.net, batch_size=1)
+        self.net = model_training.finetune_model(imgs, keypoints[:,:,:-1], self.net, batch_size=1)
+        return
         #self.run_all(plot=True, refined=True)
         #print(self.gui.poseFilepath)
+
+    def save_model(self, save_folder):
+        # Get existing model file
+        model_filepath = glob(os.path.join(save_folder, "*.pt"))[0]
+        torch.save(self.net.state_dict(), model_filepath)
+        return model_filepath
 
     def write_dataframe(self, data, selected_frame_ind=None):
         scorer = "Facemap" 
