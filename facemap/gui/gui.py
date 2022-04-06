@@ -768,7 +768,7 @@ class MainW(QtWidgets.QMainWindow):
         self.pose_model.train(image_data, keypoints_data, bbox_data)
         self.update_status_bar("Model training completed!")
         savepath = self.pose_model.save_model(output_folder_path)
-        self.update_status_bar(("Model saved to:", savepath)
+        self.update_status_bar("Model saved to:", savepath)
 
     ### ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Clustering and ROI ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ 
     def vis_combobox_selection_changed(self):

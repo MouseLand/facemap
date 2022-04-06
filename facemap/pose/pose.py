@@ -42,6 +42,7 @@ class Pose():
         self.bbox = bbox
         self.bbox_set = bbox_set
         self.net =  None
+        self.finetuned_model = False
 
     def pose_prediction_setup(self):
         # Setup the model
@@ -58,35 +59,30 @@ class Pose():
                                                 prompt=prompt, hide_progress=True)
             self.bbox_set = True   
 
-    def run_all(self, plot=True, refined=False):
+    def run_all(self, plot=True):
+        if self.finetuned_model:
+            print("Using finetuned model for pose estimation")
         start_time = time.time()
-        if not refined:
+        if not self.finetuned_model:
             self.pose_prediction_setup()
         for video_id in range(len(self.bbox)):
             utils.update_mainwindow_message(MainWindow=self.gui, GUIobject=self.GUIobject, 
                                     prompt="Processing video: {}".format(self.filenames[0][video_id]), hide_progress=True)
             pred_data, metadata = self.predict_landmarks(video_id)
             dataFrame = self.write_dataframe(pred_data.cpu().numpy())
-            savepath = self.save_pose_prediction(dataFrame, video_id, refined)
+            savepath = self.save_pose_prediction(dataFrame, video_id)
             utils.update_mainwindow_message(MainWindow=self.gui, GUIobject=self.GUIobject, 
                         prompt="Saved pose prediction outputs to: {}".format(savepath),  hide_progress=True)
             print("Saved pose prediction outputs to:", savepath)
             # Save metadata to a pickle file
-            if refined:
-                metadata_file = os.path.splitext(savepath)[0]+"_FacemapRefined_metadata.pkl"
+            if self.finetuned_model:
+                metadata_file = os.path.splitext(savepath)[0]+"_FacemapFinetuned_metadata.pkl"
             else:
                 metadata_file = os.path.splitext(savepath)[0]+"_Facemap_metadata.pkl"
             with open(metadata_file, 'wb') as f:
                 pickle.dump(metadata, f, pickle.HIGHEST_PROTOCOL)
             if self.gui is not None:
-                if len(self.gui.poseFilepath) == 0:
-                    self.gui.poseFilepath.append(savepath)
-                else:
-                    self.gui.poseFilepath[video_id]= savepath
-                self.gui.load_labels()
-                self.gui.Labels_checkBox.setChecked(False)
-                self.gui.Labels_checkBox.setChecked(True)
-                self.gui.start()                
+                self.update_gui_pose(savepath, video_id)
         if plot and self.gui is not None:
             self.plot_pose_estimates()
         end_time = time.time()
@@ -94,10 +90,22 @@ class Pose():
         utils.update_mainwindow_message(MainWindow=self.gui, GUIobject=self.GUIobject, 
                     prompt="Pose estimation time elapsed: {} seconds".format(end_time-start_time),  hide_progress=True)
 
+    def update_gui_pose(self, savepath, video_id):
+        if len(self.gui.poseFilepath) == 0:
+            self.gui.poseFilepath.append(savepath)
+        else:
+            self.gui.poseFilepath[video_id]= savepath
+        self.gui.load_labels()
+        self.gui.Labels_checkBox.setChecked(False)
+        self.gui.Labels_checkBox.setChecked(True)
+        self.gui.start()      
+
     def run_subset(self, subset_ind=None):
         """
         Run pose estimation on a random subset of frames
         """
+        if self.finetuned_model:
+            print("Using finetuned model for pose estimation")
         self.pose_prediction_setup()
         if subset_ind is None:
             # Select a random subset of frames
@@ -120,6 +128,7 @@ class Pose():
         imgs, keypoints = model_training.preprocess_images_landmarks(image_data, keypoints_data, bbox_data)
         # Use preprocessed data to train the model
         self.net = model_training.finetune_model(imgs, keypoints[:,:,:-1], self.net, batch_size=1)
+        self.finetuned_model = True
         return
         #self.run_all(plot=True, refined=True)
         #print(self.gui.poseFilepath)
@@ -246,7 +255,7 @@ class Pose():
                     }
         return pred_data, metadata
 
-    def save_pose_prediction(self, dataFrame, video_id, refined=False):
+    def save_pose_prediction(self, dataFrame, video_id):
         # Save prediction to .h5 file
         if self.gui is not None:
             basename = self.gui.save_path
@@ -255,8 +264,8 @@ class Pose():
         else:
             basename, filename = os.path.split(self.filenames[0][video_id])
             videoname, _ = os.path.splitext(filename)
-        if refined:
-            poseFilepath = os.path.join(basename, videoname+"_FacemapPoseRefined.h5")
+        if self.finetuned_model:
+            poseFilepath = os.path.join(basename, videoname+"_FacemapPoseFinetuned.h5")
         else:
             poseFilepath = os.path.join(basename, videoname+"_FacemapPose.h5")
         dataFrame.to_hdf(poseFilepath, "df_with_missing", mode="w")
