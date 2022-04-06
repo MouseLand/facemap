@@ -759,17 +759,6 @@ class MainW(QtWidgets.QMainWindow):
         self.update_status_bar("Subset keypoints processed")
         return pred_data, im_input, subset_ind, bbox
 
-    def visualize_subset_keypoints(self, video_id, pred_data, subset_ind, bodyparts):
-        pose_gui.VisualizeVideoSubset(self, video_id, pred_data, subset_ind, bodyparts)
-
-    def train_model(self, image_data, keypoints_data, output_folder_path):
-        if self.pose_model is None:
-            self.setup_pose_model()
-        self.pose_model.train(image_data, keypoints_data)
-        self.update_status_bar("Model training completed!")
-        savepath = self.pose_model.save_model(output_folder_path)
-        self.update_status_bar("Model saved to:", savepath)
-
     ### ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Clustering and ROI ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ 
     def vis_combobox_selection_changed(self):
         """
@@ -877,19 +866,40 @@ class MainW(QtWidgets.QMainWindow):
         if self.pose_model is None:
             self.pose_model = pose.Pose(gui=self, GUIobject=QtWidgets, filenames=self.filenames, 
                                         bbox=self.bbox, bbox_set=self.bbox_set)
+   
+    def visualize_subset_keypoints(self, video_id, pred_data, subset_ind, bodyparts):
+        pose_gui.VisualizeVideoSubset(self, video_id, pred_data, subset_ind, bodyparts)
 
-    def keypoints_refinement(self):
+    def show_model_training_popup(self):
         if self.process.isEnabled():
-           refine_pose.KeypointsRefinementPopup(self)
+            refine_pose.ModelTrainingPopup(gui=self)
         else:
-            # Open a qmessage box to notify the user that the video is not loaded
-            msg = QtWidgets.QMessageBox()
-            # Error icon in the top left corner
-            msg.setIcon(QtWidgets.QMessageBox.Critical)
-            msg.setText("Please load a video first.")
-            msg.setWindowTitle("No video loaded")
-            msg.exec_()
-            
+            self.load_video_popup()
+
+    def train_model(self, image_data, keypoints_data, output_folder_path):
+        if self.pose_model is None:
+            self.setup_pose_model()
+        self.pose_model.train(image_data, keypoints_data)
+        self.update_status_bar("Model training completed!")
+        savepath = self.pose_model.save_model(output_folder_path)
+        self.update_status_bar("Model saved to:", savepath)
+
+    def load_finetuned_model(self):
+        if not self.process.isEnabled():
+            self.load_video_popup()
+        model_path = io.get_pose_model_filepath(self)
+        if model_path is None:
+            return
+        if self.pose_model is None:
+            self.setup_pose_model()
+        self.pose_model.load_model(model_path)
+        self.update_status_bar("Model loaded from:", model_path, hide_progress=True)
+        # Open a qmessagebox to notify the user that the model has been loaded and the user has to select ok to continue
+        msgBox = QtWidgets.QMessageBox(self)
+        msgBox.setText("Model loaded from: " + model_path)
+        msgBox.setWindowTitle("Model loaded")
+        msgBox.exec_()
+
     def load_labels(self):
         # Read Pose file
         self.keypoints_labels = []
@@ -949,38 +959,6 @@ class MainW(QtWidgets.QMainWindow):
                 if len(point_hovered) > cutoff:
                     tip.append('({} other...)'.format(len(point_hovered) - cutoff))
                 vb.setToolTip('\n\n'.join(tip))
-
-    # Retrain the model using the refined keypoints
-    def retrain_model(self):
-        if not self.process.isEnabled():
-            # Open a qmessage box to notify the user that the video is not loaded
-            msg = QtWidgets.QMessageBox()
-            # Error icon in the top left corner
-            msg.setIcon(QtWidgets.QMessageBox.Critical)
-            msg.setText("Please load a video first.")
-            msg.setWindowTitle("No video loaded")
-            msg.exec_()
-            return
-        
-        refine_pose.ModelTrainingPopup(gui=self)
-
-        """
-        pose_data = pd.read_hdf(self.poseFilepath[0], 'df_with_missing')
-        imgs, keypoints, selected_frame_ind = self.pose_model.preprocess_refined_keypoints(pose_data, 
-                                                                                        selected_frame_ind,
-                                                                                        video_id=0)
-        savepath = self.pose_model.save_refined_data(imgs, keypoints, selected_frame_ind, video_id=0)                                                                                    
-        self.update_status_bar("Model retrained")
-        # Open a message box to notify user and ask if they want to reprocess the video
-        msg = "Would you like to reprocess the video using refined keypoints?"
-        reply = QMessageBox.question(self, 'Message', msg, QMessageBox.Yes, QMessageBox.No)
-        if reply == QMessageBox.Yes:
-            self.pose_model.retrain_model(savepath)
-            self.update_status_bar("Reprocessing video using fintuned model")
-        else:
-            self.update_status_bar("Video reprocessing cancelled")
-            return
-        """
 
     ### ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Plot 1 and 2 functions ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ 
     def load_trace_button_clicked(self, plot_id):
@@ -1316,6 +1294,16 @@ class MainW(QtWidgets.QMainWindow):
                 self.cframe = np.maximum(0, np.minimum(self.nframes-1, int(np.round(posx))))
                 self.frameSlider.setValue(self.cframe)
                 #self.jump_to_frame()
+
+### ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Popup ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ 
+    def load_video_popup(self):
+        # Open a qmessage box to notify the user that the video is not loaded
+        msg = QtWidgets.QMessageBox()
+        # Error icon in the top left corner
+        msg.setIcon(QtWidgets.QMessageBox.Critical)
+        msg.setText("Please load a video first.")
+        msg.setWindowTitle("No video loaded")
+        msg.exec_()
 
 ### ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Main ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ 
 

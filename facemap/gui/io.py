@@ -16,6 +16,8 @@ def open_file(parent, file_name=None):
     if file_name:
         parent.filelist = [[file_name[0]]]
         load_movies(parent)
+    else:
+        return None
 
 def open_folder(parent, folder_name=None):
     if folder_name is None:
@@ -311,6 +313,15 @@ def load_cluster_labels(parent):
         msg.setStandardButtons(QMessageBox.Ok)
         msg.exec_()
         print(e)
+
+def get_pose_model_filepath(parent):
+    # Open a file dialog to select a model file
+    model_file = QFileDialog.getOpenFileName(parent,
+                            "Select model file", "", "model files (*.pt)")[0]
+    if model_file:
+        return model_file
+    else:
+        return None
 
 def load_umap(parent):
     try:

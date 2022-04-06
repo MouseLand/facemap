@@ -34,21 +34,13 @@ def mainmenu(parent):
     loadPose.triggered.connect(lambda: io.get_pose_file(parent))
     parent.addAction(loadPose)
 
-    retrain_model = QAction("Retrain model", parent)
-    retrain_model.triggered.connect(lambda: parent.retrain_model())
-    parent.addAction(retrain_model)
+    train_model = QAction("Train model", parent)
+    train_model.triggered.connect(lambda: parent.show_model_training_popup())
+    parent.addAction(train_model)
 
-    """
-    process_subset_keypoints = QAction("Process subset of video", parent)
-    #process_subset_keypoints.setShortcut("Ctrl+X")
-    process_subset_keypoints.triggered.connect(lambda: parent.process_subset_keypoints())
-    parent.addAction(process_subset_keypoints)
-
-    # Keypoints actions
-    keypointsRefinement = QAction("Keypoints refinement", parent)
-    keypointsRefinement.triggered.connect(lambda: parent.keypoints_refinement())
-    parent.addAction(keypointsRefinement)
-    """
+    load_finetuned_model = QAction("Load finetuned model", parent)
+    load_finetuned_model.triggered.connect(lambda: parent.load_finetuned_model())
+    parent.addAction(load_finetuned_model)
 
     # Help menu actions
     helpContent = QAction("Help Content", parent)
@@ -65,9 +57,8 @@ def mainmenu(parent):
     file_menu.addAction(setOutputFolder)
     pose_menu = main_menu.addMenu("Pose")
     pose_menu.addAction(loadPose)
-    #pose_menu.addAction(process_subset_keypoints)
-    #pose_menu.addAction(keypointsRefinement)
-    pose_menu.addAction(retrain_model)
+    pose_menu.addAction(load_finetuned_model)
+    pose_menu.addAction(train_model)
     help_menu = main_menu.addMenu("Help")
     help_menu.addAction(helpContent)
 

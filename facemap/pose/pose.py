@@ -43,7 +43,7 @@ class Pose():
     def pose_prediction_setup(self):
         # Setup the model
         if self.net is None:
-            self.net = self.load_model()
+            self.load_model()
         # Setup the bounding box
         if not self.bbox_set:
             resize = True 
@@ -59,9 +59,8 @@ class Pose():
         if self.finetuned_model:
             print("Using finetuned model for pose estimation")
         start_time = time.time()
-        if not self.finetuned_model:
-            self.pose_prediction_setup()
-        for video_id in range(len(self.bbox)):
+        self.pose_prediction_setup()
+        for video_id in range(len(self.filenames[0])):
             utils.update_mainwindow_message(MainWindow=self.gui, GUIobject=self.GUIobject, 
                                     prompt="Processing video: {}".format(self.filenames[0][video_id]), hide_progress=True)
             pred_data, metadata = self.predict_landmarks(video_id)
@@ -325,12 +324,15 @@ class Pose():
         self.gui.load_labels()
         self.gui.Labels_checkBox.setChecked(True)    
 
-    def load_model(self):
+    def load_model(self, model_state_file=None):
         """
-        Load pre-trained UNet model for labels prediction 
+        Load pre-trained model for keypoints prediction 
         """
+        if model_state_file is None:
+            model_state_file = models.get_model_state_path()   
+        else:
+            self.finetuned_model = True
         model_params_file = models.get_model_params_path()       
-        model_state_file = models.get_model_state_path()   
         if torch.cuda.is_available():
             print("Using cuda as device")
         else:
@@ -347,5 +349,5 @@ class Pose():
                                 channels=channels, kernel=kernel_size, device=self.device)
         net.load_state_dict(torch.load(model_state_file, map_location=self.device))
         net.to(self.device);
-        return net
+        self.net = net
 
