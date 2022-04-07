@@ -469,7 +469,7 @@ class ModelTrainingPopup(QDialog):
         
         self.clear_window()
         self.update_window_title("Final step: Evaluate model training")
-        self.update_window_size(frac=0.6, aspect_ratio=1.5)
+        self.update_window_size(frac=0.5, aspect_ratio=1.5)
 
         self.show_sample_predictions()
 
@@ -495,13 +495,21 @@ class ModelTrainingPopup(QDialog):
         random_frame_index = np.random.choice(np.arange(self.gui.cumframes[-1]), size=4*4, replace=False)
         # Remove any indices that are in the self.random_frames_ind list
         random_frame_index = np.setdiff1d(random_frame_index, self.random_frames_ind)
+
+        pose_data, imgs = self.generate_predictions(random_frame_index)
         for i in range(4):
             for j in range(4):
-                frame = utils.get_frame(random_frame_index[i*4+j], self.gui.nframes, self.gui.cumframes, self.gui.video)[0]
+                frame = imgs[i*4+j] #utils.get_frame(random_frame_index[i*4+j], self.gui.nframes, self.gui.cumframes, self.gui.video)[0]
                 self.win = pg.GraphicsLayoutWidget()
                 frame_win = self.win.addViewBox(invertY=True)
                 frame_win.addItem(pg.LabelItem("Frame {}".format(random_frame_index[i*4+j]+1)))
                 frame_win.addItem(pg.ImageItem(frame))
+                # Add a keypoints scatterplot to the window
+                pose_scatter = pg.ScatterPlotItem(size=10, pen=pg.mkPen('r',width=2))
+                x, y = pose_data[i*4+j][:,0], pose_data[i*4+j][:,1]
+                pose_scatter.setData(x=x, y=y, size=12, symbol='o', brush=self.brushes, hoverable=True,
+                                 hoverSize=12, hoverSymbol="x", pen=(0,0,0,0), data=self.bodyparts)
+                frame_win.addItem(pose_scatter)
                 self.win.show()
                 self.sample_predictions_groupbox.layout().addWidget(self.win, i, j)
         self.verticalLayout.addWidget(self.sample_predictions_groupbox)
@@ -538,16 +546,6 @@ class ModelTrainingPopup(QDialog):
                 self.keypoints_scatterplot.updateGraph(dragged=True)
             else:
                 return
-
-class ImageLabel(QWidget):
-    def __init__(self, parent=None, frame=None):
-        super(ImageLabel, self).__init__()
-        self.win = pg.GraphicsLayoutWidget()
-        frame_win = self.win.addViewBox(invertY=True)
-        self.image = pg.ImageItem(frame)
-        frame_win.addItem(self.image)
-        self.win.show()
-
 
 # Following adatped from https://github.com/pyqtgraph/pyqtgraph/blob/develop/examples/CustomGraphItem.py       
 class KeypointsGraph(pg.GraphItem):
