@@ -72,7 +72,7 @@ class ModelTrainingPopup(QDialog):
         """
         Ask user to set path to output folder where refined keypoints and trained model will be saved
         """
-        self.update_window_size(0.5)
+        self.update_window_size(0.25, aspect_ratio=0.8)
 
         # Add a QLineEdit widget to the layout and a browse button to set the path to the output folder
         self.output_folder_path = QLabel(self)
@@ -136,7 +136,7 @@ class ModelTrainingPopup(QDialog):
 
         self.model_label = QLabel(self)
         self.model_label.setText("Model:")
-        self.model_label.setStyleSheet("QLabel {color: 'white';}")
+        self.model_label.setStyleSheet("QLabel {color: 'white'; font-weight: bold; font-size: 16}")
         self.model_groupbox.layout().addWidget(self.model_label)
 
         self.model_dropdown = QComboBox(self)
@@ -154,7 +154,7 @@ class ModelTrainingPopup(QDialog):
         
         self.npy_files_label = QLabel(self)
         self.npy_files_label.setText("Data files:")
-        self.npy_files_label.setStyleSheet("QLabel {color: 'white';}")
+        self.npy_files_label.setStyleSheet("QLabel {color: 'white'; font-weight: bold; font-size: 16}")
         self.npy_files_groupbox.layout().addWidget(self.npy_files_label)
 
         self.npy_files_checkboxes = []
@@ -167,11 +167,14 @@ class ModelTrainingPopup(QDialog):
         self.verticalLayout.addWidget(self.npy_files_groupbox)
 
         # Add a QCheckBox widget for user to select whether to use the current video
+        self.use_current_video_checkbox_groupbox = QGroupBox(self)
+        self.use_current_video_checkbox_groupbox.setLayout(QHBoxLayout())
         self.use_current_video_checkbox = QCheckBox(self)
-        self.use_current_video_checkbox.setText("Use current video")
+        self.use_current_video_checkbox.setText("Refine current video")
         self.use_current_video_checkbox.setStyleSheet("QCheckBox {color: 'white'; }")
         self.use_current_video_checkbox.stateChanged.connect(lambda state: self.toggle_num_frames(state))
-        self.verticalLayout.addWidget(self.use_current_video_checkbox)
+        self.use_current_video_checkbox_groupbox.layout().addWidget(self.use_current_video_checkbox)
+        self.verticalLayout.addWidget(self.use_current_video_checkbox_groupbox)
 
         # Add a QLabel and QSpinBox widget for user to select the number of frames to use in the current video group
         self.current_video_groupbox = QGroupBox(self)
@@ -192,6 +195,28 @@ class ModelTrainingPopup(QDialog):
         self.verticalLayout.addWidget(self.current_video_groupbox)
         self.current_video_groupbox.hide()
 
+        # Add a + button to show additional options
+        self.additional_options_groupbox = QGroupBox(self)
+        self.additional_options_groupbox.setLayout(QVBoxLayout())
+
+        self.add_button_groupbox = QGroupBox(self)
+        self.add_button_groupbox.setLayout(QHBoxLayout())
+
+        self.add_button = QPushButton(self)
+        self.add_button.setText("+")
+        self.add_button.setFixedSize(30, 30)
+        self.add_button.setStyleSheet("QPushButton {color: 'black'; font-size: 14}")
+        self.add_button.clicked.connect(lambda clicked: self.add_training_params_to_window())  # Add training parameters to the window
+        self.add_button_groupbox.layout().addWidget(self.add_button)
+
+        self.training_params_label = QLabel(self)
+        self.training_params_label.setText("Show training parameters")
+        self.training_params_label.setStyleSheet("QLabel {color: 'white';}")
+        self.add_button_groupbox.layout().addWidget(self.training_params_label)
+
+        self.additional_options_groupbox.layout().addWidget(self.add_button_groupbox)
+        self.verticalLayout.addWidget(self.additional_options_groupbox, alignment=QtCore.Qt.AlignCenter)
+
         # Add a QGroupbox widget to hold two buttons for cancel and next step with a horizontal layout aligned to the right
         self.buttons_groupbox = QGroupBox(self)
         self.buttons_groupbox.setLayout(QHBoxLayout())
@@ -206,6 +231,90 @@ class ModelTrainingPopup(QDialog):
         self.buttons_groupbox.layout().addWidget(self.next_button, alignment=QtCore.Qt.AlignRight)
 
         self.verticalLayout.addWidget(self.buttons_groupbox)
+
+    def add_training_params_to_window(self):
+        """
+        Add training parameters to the window
+        """
+        if self.add_button.text() == "+":
+            self.add_button.setText("-")
+            self.training_params_label.setText("Hide training parameters")
+
+            # Add a QGroupbox widget to hold a qlabel and dropdown menu
+            self.training_params_groupbox = QGroupBox(self)
+            self.training_params_groupbox.setLayout(QHBoxLayout())
+
+            # Add a label and spinbox for user to select the number of epochs to train
+            self.epochs_groupbox = QGroupBox(self)
+            self.epochs_groupbox.setLayout(QHBoxLayout())
+
+            self.epochs_label = QLabel(self)
+            self.epochs_label.setText("Epochs:")
+            self.epochs_label.setStyleSheet("QLabel {color: 'white';}")
+            self.epochs_groupbox.layout().addWidget(self.epochs_label)
+
+            self.spinbox_epochs = QSpinBox(self)
+            self.spinbox_epochs.setRange(1, 50)
+            self.spinbox_epochs.setValue(30)
+            self.spinbox_epochs.setStyleSheet("QSpinBox {color: 'black';}")
+            self.epochs_groupbox.layout().addWidget(self.spinbox_epochs)
+
+            # Add a label and QLineEdit widget for user to enter the learning rate
+            self.learning_rate_groupbox = QGroupBox(self)
+            self.learning_rate_groupbox.setLayout(QHBoxLayout())
+
+            self.learning_rate_label = QLabel(self)
+            self.learning_rate_label.setText("Learning rate:")
+            self.learning_rate_label.setStyleSheet("QLabel {color: 'white';}")
+            self.learning_rate_groupbox.layout().addWidget(self.learning_rate_label)
+
+            self.lineedit_learning_rate = QLineEdit(self)
+            self.lineedit_learning_rate.setText("0.001")
+            self.lineedit_learning_rate.setStyleSheet("QLineEdit {color: 'black';}")
+            self.learning_rate_groupbox.layout().addWidget(self.lineedit_learning_rate)
+
+            # Add a label and QLineEdit widget for user to enter the batch size
+            self.batch_size_groupbox = QGroupBox(self)
+            self.batch_size_groupbox.setLayout(QHBoxLayout())
+
+            self.batch_size_label = QLabel(self)
+            self.batch_size_label.setText("Batch size:")
+            self.batch_size_label.setStyleSheet("QLabel {color: 'white';}")
+            self.batch_size_groupbox.layout().addWidget(self.batch_size_label)
+
+            self.lineedit_batch_size = QLineEdit(self)
+            self.lineedit_batch_size.setText("4")
+            self.lineedit_batch_size.setStyleSheet("QLineEdit {color: 'black';}")
+            self.batch_size_groupbox.layout().addWidget(self.lineedit_batch_size)
+
+            # Add a label and QLineEdit widget for user to enter the weight decay factor
+            self.weight_decay_groupbox = QGroupBox(self)
+            self.weight_decay_groupbox.setLayout(QHBoxLayout())
+
+            self.weight_decay_label = QLabel(self)
+            self.weight_decay_label.setText("Weight decay:")
+            self.weight_decay_label.setStyleSheet("QLabel {color: 'white';}")
+            self.weight_decay_groupbox.layout().addWidget(self.weight_decay_label)
+
+            self.lineedit_weight_decay = QLineEdit(self)
+            self.lineedit_weight_decay.setText("0.0001")
+            self.lineedit_weight_decay.setStyleSheet("QLineEdit {color: 'black';}")
+            self.weight_decay_groupbox.layout().addWidget(self.lineedit_weight_decay)
+
+            self.training_params_groupbox.layout().addWidget(self.epochs_groupbox)
+            self.training_params_groupbox.layout().addWidget(self.learning_rate_groupbox)
+            self.training_params_groupbox.layout().addWidget(self.batch_size_groupbox)
+            self.training_params_groupbox.layout().addWidget(self.weight_decay_groupbox)
+
+            self.additional_options_groupbox.layout().addWidget(self.training_params_groupbox)
+
+        else:
+            self.add_button.setText("+")
+            self.training_params_label.setText("Show training parameters")
+
+            self.training_params_groupbox.deleteLater()
+        
+        return
 
     def toggle_num_frames(self, state):
         if state == QtCore.Qt.Checked:
@@ -232,10 +341,6 @@ class ModelTrainingPopup(QDialog):
         self.show_step_3()
 
     def show_step_3(self):
-        print("Path set to {}".format(self.output_folder_path))
-        print("Model set to {}".format(self.model_files))
-        print("Use current video: {}".format(self.use_current_video))
-        print("Selected videos: {}".format(self.selected_videos))
         if self.use_current_video:
             self.show_refinement_options()
         else:
@@ -471,6 +576,12 @@ class ModelTrainingPopup(QDialog):
         self.update_window_title("Final step: Evaluate model training")
         self.update_window_size(frac=0.5, aspect_ratio=1.5)
 
+        # Adda a label to the window describing the purpose of the window
+        label = QLabel("Please check following sample frames predicted keypoints are labelled correctly for the visible bodyparts to qualitatively evaluate model training. If most of the predictions are correct, please press the 'Save model' button. If you would like to further improve the prediction, please select 'Continue training' for keypoints refinement of additional frames.")
+        label.setWordWrap(True)
+        label.setStyleSheet("font-size: 12; color: gray;")
+        self.verticalLayout.addWidget(label)
+
         self.show_sample_predictions()
 
         # Add a set of buttons to the window asking the user to save finetuned model or continue training
@@ -520,33 +631,36 @@ class ModelTrainingPopup(QDialog):
         self.close()
 
     def continue_training(self):
-        print("Add continue training code here")
         self.clear_window()
         self.update_window_title("Select number of additional frames to train")
-        self.update_window_size(frac=0.5)
+        self.update_window_size(frac=0.3, aspect_ratio=0.5)
 
         self.add_frames_groupbox = QGroupBox()
         self.add_frames_groupbox.setLayout(QHBoxLayout())
         self.add_frames_groupbox.setTitle("Select number of additional frames to train")
-        self.add_frames_groupbox.layout().addWidget(QLabel("Number of frames to train:"))   
+        label = QLabel("Number of frames to train:")
+        label.setWordWrap(True)
+        label.setStyleSheet("font-size: 12; color: white;")
+        self.add_frames_groupbox.layout().addWidget(label)   
         self.add_frames_spinbox = QSpinBox()
         self.add_frames_spinbox.setRange(1, self.gui.nframes-self.num_random_frames)
         self.add_frames_spinbox.setValue(5)
         self.add_frames_groupbox.layout().addWidget(self.add_frames_spinbox)
-
-        self.add_frames_button = QPushButton('Add frames')
-        self.add_frames_button.clicked.connect(self.add_additional_training_frames)
-        self.add_frames_groupbox.layout().addWidget(self.add_frames_button)
-
         self.verticalLayout.addWidget(self.add_frames_groupbox)
-        self.close()
+
+        ##### Add training parameters groupbox
+
+        self.add_frames_button = QPushButton('Next')
+        self.add_frames_button.clicked.connect(self.add_additional_training_frames)
+        self.verticalLayout.addWidget(self.add_frames_button)
+
 
     def add_additional_training_frames(self):
         total_frames_to_train = self.add_frames_spinbox.value() + self.num_random_frames
         while not self.num_random_frames == total_frames_to_train:
             new_random_frames = self.get_random_frames(self.gui.cumframes[-1], total_frames_to_train-self.num_random_frames)
             # Check if any of the new random frames are already in the self.random_frames list
-            if np.any(np.isin(new_random_frames, self.random_frames)):
+            if np.any(np.isin(new_random_frames, self.random_frames_ind)):
                 # If so, get more random frames
                 new_random_frames = np.setdiff1d(new_random_frames, self.random_frames_ind)
                 self.random_frames = np.concatenate((self.random_frames, new_random_frames))
@@ -556,6 +670,9 @@ class ModelTrainingPopup(QDialog):
                 # If not, update the self.random_frames list
                 self.random_frames_ind = np.concatenate((self.random_frames_ind, new_random_frames), axis=0)
                 self.num_random_frames += len(new_random_frames)
+        print("num random frames: {}".format(self.num_random_frames))
+        print("random frames: {}".format(self.random_frames_ind))
+        self.random_frames_ind = sorted(self.random_frames_ind)
         return
 
     def get_random_frames(self, total_frames, size):
