@@ -515,12 +515,53 @@ class ModelTrainingPopup(QDialog):
         self.verticalLayout.addWidget(self.sample_predictions_groupbox)
 
     def save_model(self):
-        print("Model saved to {}".format(self.output_folder_path))
+        message = "Model saved to {}".format(self.output_folder_path)
+        self.gui.update_status_bar(message, update_progress=False, hide_progress=True)
         self.close()
 
     def continue_training(self):
         print("Add continue training code here")
+        self.clear_window()
+        self.update_window_title("Select number of additional frames to train")
+        self.update_window_size(frac=0.5)
+
+        self.add_frames_groupbox = QGroupBox()
+        self.add_frames_groupbox.setLayout(QHBoxLayout())
+        self.add_frames_groupbox.setTitle("Select number of additional frames to train")
+        self.add_frames_groupbox.layout().addWidget(QLabel("Number of frames to train:"))   
+        self.add_frames_spinbox = QSpinBox()
+        self.add_frames_spinbox.setRange(1, self.gui.nframes-self.num_random_frames)
+        self.add_frames_spinbox.setValue(5)
+        self.add_frames_groupbox.layout().addWidget(self.add_frames_spinbox)
+
+        self.add_frames_button = QPushButton('Add frames')
+        self.add_frames_button.clicked.connect(self.add_additional_training_frames)
+        self.add_frames_groupbox.layout().addWidget(self.add_frames_button)
+
+        self.verticalLayout.addWidget(self.add_frames_groupbox)
         self.close()
+
+    def add_additional_training_frames(self):
+        total_frames_to_train = self.add_frames_spinbox.value() + self.num_random_frames
+        while not self.num_random_frames == total_frames_to_train:
+            new_random_frames = self.get_random_frames(self.gui.cumframes[-1], total_frames_to_train-self.num_random_frames)
+            # Check if any of the new random frames are already in the self.random_frames list
+            if np.any(np.isin(new_random_frames, self.random_frames)):
+                # If so, get more random frames
+                new_random_frames = np.setdiff1d(new_random_frames, self.random_frames_ind)
+                self.random_frames = np.concatenate((self.random_frames, new_random_frames))
+                self.num_random_frames += len(new_random_frames)
+                # Check how many more random frames are needed
+            else:
+                # If not, update the self.random_frames list
+                self.random_frames_ind = np.concatenate((self.random_frames_ind, new_random_frames), axis=0)
+                self.num_random_frames += len(new_random_frames)
+        return
+
+    def get_random_frames(self, total_frames, size):
+        # Get random frames indices
+        random_frames_ind = np.random.choice(np.arange(total_frames), size=size, replace=False)
+        return random_frames_ind
 
     # Add a keyPressEvent for deleting the selected keypoint using the delete key and set the value to NaN 
     def keyPressEvent(self, ev):
