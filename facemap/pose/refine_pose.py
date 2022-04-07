@@ -15,7 +15,7 @@ from matplotlib import cm
 from glob import glob
 from PyQt5.QtGui import QColor
 from PyQt5.QtWidgets import (QDialog, QWidget, QLineEdit, QLabel, QRadioButton,
-                            QSpinBox, QPushButton, QVBoxLayout, QComboBox, QMessageBox,
+                            QSpinBox, QPushButton, QVBoxLayout, QComboBox, QGridLayout,
                             QHBoxLayout, QVBoxLayout, QButtonGroup, QGroupBox,
                             QListWidget, QCheckBox, QDesktopWidget)
 
@@ -53,9 +53,9 @@ class ModelTrainingPopup(QDialog):
 
         self.show()
 
-    def update_window_size(self, frac=0.5):
-        # Set the size of the window to be a fraction of the screen size
-        self.resize(int(np.floor(self.window_max_size.width()*frac)), int(np.floor(self.window_max_size.height()*frac)))
+    def update_window_size(self, frac=0.5, aspect_ratio=1.0):
+        # Set the size of the window to be a fraction of the screen size using the aspect ratio
+        self.resize(int(np.floor(self.window_max_size.width()*frac)), int(np.floor(self.window_max_size.height()*frac*aspect_ratio)))
 
     def clear_window(self):
         # Clear the window
@@ -245,7 +245,7 @@ class ModelTrainingPopup(QDialog):
 
         self.clear_window()
         self.update_window_title("Step 3: Refine keypoints")
-        self.update_window_size(0.5)
+        self.update_window_size(0.5, aspect_ratio=1.3)
 
         self.random_frames_ind = np.random.choice(self.gui.cumframes[-1], self.num_random_frames, replace=False)
         self.hide()
@@ -463,7 +463,55 @@ class ModelTrainingPopup(QDialog):
         bbox_data = np.array(bbox_data)
 
         self.gui.train_model(image_data, keypoints_data, self.output_folder_path)
+        self.show_finetuned_model_predictions()
 
+    def show_finetuned_model_predictions(self):
+        
+        self.clear_window()
+        self.update_window_title("Final step: Evaluate model training")
+        self.update_window_size(frac=0.6, aspect_ratio=1.5)
+
+        self.show_sample_predictions()
+
+        # Add a set of buttons to the window asking the user to save finetuned model or continue training
+        self.buttons_groupbox = QGroupBox()
+        self.buttons_groupbox.setLayout(QHBoxLayout())        
+        self.save_model_button = QPushButton('Save model')
+        self.save_model_button.clicked.connect(self.save_model)
+        self.continue_training_button = QPushButton('Continue training')
+        self.continue_training_button.clicked.connect(self.continue_training)
+        self.buttons_groupbox.layout().addWidget(self.save_model_button)
+        self.buttons_groupbox.layout().addWidget(self.continue_training_button)
+        self.verticalLayout.addWidget(self.buttons_groupbox)
+
+    def show_sample_predictions(self):
+        # Add a grid of images to the window with the predictions of the finetuned model for each image 
+        self.sample_predictions_groupbox = QGroupBox()
+        self.sample_predictions_groupbox.setLayout(QGridLayout())
+        self.sample_predictions_groupbox.setTitle("Sample predictions")
+
+        # Create a grid plot 4x4 of images
+        # Get random frame indices that are not in the self.random_frames list
+        random_frame_index = np.random.choice(np.arange(self.gui.cumframes[-1]), size=4*4, replace=False)
+        # Remove any indices that are in the self.random_frames_ind list
+        random_frame_index = np.setdiff1d(random_frame_index, self.random_frames_ind)
+        for i in range(4):
+            for j in range(4):
+                frame = utils.get_frame(random_frame_index[i*4+j], self.gui.nframes, self.gui.cumframes, self.gui.video)[0]
+                self.win = pg.GraphicsLayoutWidget()
+                frame_win = self.win.addViewBox(invertY=True)
+                frame_win.addItem(pg.LabelItem("Frame {}".format(random_frame_index[i*4+j]+1)))
+                frame_win.addItem(pg.ImageItem(frame))
+                self.win.show()
+                self.sample_predictions_groupbox.layout().addWidget(self.win, i, j)
+        self.verticalLayout.addWidget(self.sample_predictions_groupbox)
+
+    def save_model(self):
+        print("Model saved to {}".format(self.output_folder_path))
+        self.close()
+
+    def continue_training(self):
+        print("Add continue training code here")
         self.close()
 
     # Add a keyPressEvent for deleting the selected keypoint using the delete key and set the value to NaN 
@@ -490,6 +538,16 @@ class ModelTrainingPopup(QDialog):
                 self.keypoints_scatterplot.updateGraph(dragged=True)
             else:
                 return
+
+class ImageLabel(QWidget):
+    def __init__(self, parent=None, frame=None):
+        super(ImageLabel, self).__init__()
+        self.win = pg.GraphicsLayoutWidget()
+        frame_win = self.win.addViewBox(invertY=True)
+        self.image = pg.ImageItem(frame)
+        frame_win.addItem(self.image)
+        self.win.show()
+
 
 # Following adatped from https://github.com/pyqtgraph/pyqtgraph/blob/develop/examples/CustomGraphItem.py       
 class KeypointsGraph(pg.GraphItem):
