@@ -881,8 +881,16 @@ class MainW(QtWidgets.QMainWindow):
             self.setup_pose_model()
         self.pose_model.train(image_data, keypoints_data, num_epochs, batch_size, learning_rate, weight_decay)
         self.update_status_bar("Model training completed!")
+       
+    def save_pose_model(self, output_folder_path):
+        """
+        Save pose model to folder path specified by user
+        """
+        if self.pose_model is None:
+            self.setup_pose_model()
         savepath = self.pose_model.save_model(output_folder_path)
-        self.update_status_bar("Model saved to:", savepath)
+        self.update_status_bar("Model saved to {}".format(savepath), hide_progress=True)
+        print("Model saved to {}".format(savepath))
 
     def load_finetuned_model(self):
         if not self.process.isEnabled():

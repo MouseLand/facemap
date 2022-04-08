@@ -123,9 +123,7 @@ class Pose():
         print("Model training complete!")
         return
 
-    def save_model(self, save_folder):
-        # Get existing model file
-        model_filepath = glob(os.path.join(save_folder, "*.pt"))[0]
+    def save_model(self, model_filepath):
         torch.save(self.net.state_dict(), model_filepath)
         return model_filepath
 

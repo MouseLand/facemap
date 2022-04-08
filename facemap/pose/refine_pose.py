@@ -29,6 +29,7 @@ class ModelTrainingPopup(QDialog):
         super().__init__(gui)
         self.gui = gui
         self.output_folder_path = None
+        self.output_model_name = None
         self.model_files = None
         self.data_files = None
         self.selected_videos = None
@@ -43,7 +44,7 @@ class ModelTrainingPopup(QDialog):
         self.learning_rate = 1e-4
         self.weight_decay = 0
 
-        self.setWindowTitle('Step 1: Set folder path')
+        self.setWindowTitle('Step 1: Set folders')
         self.setStyleSheet("QDialog {background: 'black';}")
 
         self.verticalLayout = QVBoxLayout(self)
@@ -80,7 +81,7 @@ class ModelTrainingPopup(QDialog):
 
         # Add a QLineEdit widget to the layout and a browse button to set the path to the output folder
         self.output_folder_path = QLabel(self)
-        self.output_folder_path.setText("Step 1: Set output folder path for saving refined keypoints and trained model")
+        self.output_folder_path.setText("Output folder path")
         self.output_folder_path.setStyleSheet("QLabel {color: 'white';}")
         self.verticalLayout.addWidget(self.output_folder_path)
 
@@ -129,7 +130,7 @@ class ModelTrainingPopup(QDialog):
             return
 
         self.clear_window()
-        self.update_window_title("Step 2: Choose training files")
+        self.update_window_title("Step 2: Select training data")
         print("Path set to {}".format(self.output_folder_path))
 
         # Check if the selected output folder path contains a model file (*.pt) and data files (*.npy)
@@ -148,7 +149,7 @@ class ModelTrainingPopup(QDialog):
         self.model_groupbox.setLayout(QHBoxLayout())
 
         self.model_label = QLabel(self)
-        self.model_label.setText("Model:")
+        self.model_label.setText("Initial model:")
         self.model_label.setStyleSheet("QLabel {color: 'white'; font-weight: bold; font-size: 16}")
         self.model_groupbox.layout().addWidget(self.model_label)
 
@@ -157,9 +158,27 @@ class ModelTrainingPopup(QDialog):
         for model_file in self.model_files:
             self.model_dropdown.addItem(os.path.basename(model_file))
         self.model_dropdown.setStyleSheet("QComboBox {color: 'black';}")
-        self.model_groupbox.layout().addWidget(self.model_dropdown)
+        self.model_dropdown.setFixedWidth(int(np.floor(self.window_max_size.width()*0.25*0.5)))
+        self.model_groupbox.layout().addWidget(self.model_dropdown, alignment=QtCore.Qt.AlignRight)
 
         self.verticalLayout.addWidget(self.model_groupbox)
+
+        # Add a QGroupBox widget to hold a QLabel and QLineEdit widgets for setting model name
+        self.model_name_groupbox = QGroupBox(self)
+        self.model_name_groupbox.setLayout(QHBoxLayout())
+
+        self.model_name_label = QLabel(self)
+        self.model_name_label.setText("Output model name:")
+        self.model_name_label.setStyleSheet("QLabel {color: 'white'; font-weight: bold; font-size: 16}")
+        self.model_name_groupbox.layout().addWidget(self.model_name_label)
+
+        self.model_name_box = QLineEdit(self)
+        self.model_name_box.setStyleSheet("QLineEdit {color: 'black';}")
+        self.model_name_box.setText("facemap_model_state")
+        self.model_name_box.setFixedWidth(int(np.floor(self.window_max_size.width()*0.25*0.5)))
+        self.model_name_groupbox.layout().addWidget(self.model_name_box, alignment=QtCore.Qt.AlignRight)
+
+        self.verticalLayout.addWidget(self.model_name_groupbox)
 
         # Add a QGroupbox widget to hold checkboxes for selecting videos using the list of data files
         self.npy_files_groupbox = QGroupBox(self)
@@ -368,6 +387,7 @@ class ModelTrainingPopup(QDialog):
     def update_user_training_options(self):
         # Get the selected model
         self.model_files = self.model_files[self.model_dropdown.currentIndex()]
+        self.output_model_name = self.model_name_box.text()
         # Get the selected videos
         self.selected_videos = []
         for i, checkbox in enumerate(self.npy_files_checkboxes):
@@ -660,8 +680,8 @@ class ModelTrainingPopup(QDialog):
         self.show_finetuned_model_predictions()
 
     def save_model(self):
-        message = "Model saved to {}".format(self.output_folder_path)
-        self.gui.update_status_bar(message, update_progress=False, hide_progress=True)
+        output_filepath = os.path.join(self.output_folder_path, self.output_model_name+".pt")
+        self.gui.save_pose_model(output_filepath)
         self.close()
 
     ### ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Model Evaluation ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ ###
@@ -696,23 +716,35 @@ class ModelTrainingPopup(QDialog):
         self.sample_predictions_groupbox.setLayout(QGridLayout())
         self.sample_predictions_groupbox.setTitle("Sample predictions")
 
+        if self.gui.cumframes[-1] >= 16:
+            num_frames_to_show = 16
+        else:
+            num_frames_to_show = self.gui.cumframes[-1]
         # Create a grid plot 4x4 of images
         # Get random frame indices that are not in the self.random_frames list
-        random_frame_index = self.get_random_frames(total_frames=self.gui.cumframes[-1], size=4*4)
-        # Remove any indices that are in the self.random_frames_ind list
-        random_frame_index = np.setdiff1d(random_frame_index, self.random_frames_ind)
+        random_frame_index = []
+        while len(random_frame_index) < num_frames_to_show:
+            random_frame_index = self.get_random_frames(self.gui.cumframes[-1], size=num_frames_to_show-len(random_frame_index))
+            # Check if any of the new random frames are already in the self.random_frames list
+            if np.any(np.isin(random_frame_index, self.random_frames_ind)):
+                # If so, get more random frames
+                random_frame_index = np.setdiff1d(random_frame_index, self.random_frames_ind)
 
         pose_data, imgs = self.generate_predictions(random_frame_index)
-        for i in range(4):
-            for j in range(4):
-                frame = imgs[i*4+j]
+
+        rows = int(np.floor(np.sqrt(len(imgs))))
+        cols = int(np.ceil(len(imgs)/rows))
+        # Add images to the grid
+        for i in range(rows):
+            for j in range(cols):
+                frame = imgs[i*rows+j]
                 self.win = pg.GraphicsLayoutWidget()
                 frame_win = self.win.addViewBox(invertY=True)
                 frame_win.addItem(pg.LabelItem("Frame {}".format(random_frame_index[i*4+j]+1)))
                 frame_win.addItem(pg.ImageItem(frame))
                 # Add a keypoints scatterplot to the window
                 pose_scatter = pg.ScatterPlotItem(size=10, pen=pg.mkPen('r',width=2))
-                x, y = pose_data[i*4+j][:,0], pose_data[i*4+j][:,1]
+                x, y = pose_data[i*4+j][:,0], pose_data[i*rows+j][:,1]
                 pose_scatter.setData(x=x, y=y, size=12, symbol='o', brush=self.brushes, hoverable=True,
                                  hoverSize=12, hoverSymbol="x", pen=(0,0,0,0), data=self.bodyparts)
                 frame_win.addItem(pose_scatter)
