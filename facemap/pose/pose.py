@@ -122,8 +122,6 @@ class Pose():
         self.finetuned_model = True
         print("Model training complete!")
         return
-        #self.run_all(plot=True, refined=True)
-        #print(self.gui.poseFilepath)
 
     def save_model(self, save_folder):
         # Get existing model file

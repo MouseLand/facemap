@@ -39,9 +39,6 @@ def preprocess_images_landmarks(imgs, landmarks, bbox_region):
             Xlabel, Ylabel = landmarks[set][frame].T[::3], landmarks[set][frame].T[1::3]
             Xlabel, Ylabel = transforms.labels_crop_resize(Xlabel, Ylabel, Ystart, Xstart, current_size=imgs[set][frame].shape, 
                                                             desired_size=(256, 256))
-            # Adjust corrected annotations to the cropped region
-            #landmarks[set][frame].T[::3] = (landmarks[set][frame].T[::3]- bbox_region[set][0])/ ((bbox_region[set][1]-bbox_region[set][0])/256)
-            #landmarks[set][frame].T[1::3] = (landmarks[set][frame].T[1::3]- bbox_region[set][2])/ ((bbox_region[set][3]-bbox_region[set][2])/256)
             landmarks = np.hstack((Xlabel, Ylabel))
             landmarks = landmarks.reshape((-1, 2))
             landmarks_preprocessed.append(landmarks) #landmarks[set][frame])
@@ -52,12 +49,6 @@ def preprocess_images_landmarks(imgs, landmarks, bbox_region):
             im = torch.from_numpy(im).to(dtype=torch.float32)
             im = transforms.crop_resize(im, Ystart, Ystop, Xstart, Xstop, resize).clone().detach()
             im = transforms.preprocess_img(im).numpy()
-            """
-            im = np.multiply(imgs[set][frame], 1 / 255.0).astype(np.float32)
-            im = transforms.normalize99(im)
-            im = im[bbox_region[set][2]:bbox_region[set][3], bbox_region[set][0]:bbox_region[set][1]]
-            im = cv2.resize(im, (256,256))
-            """
             imgs_preprocessed.append(im.squeeze())
     imgs_preprocessed = np.array(imgs_preprocessed)
     landmarks_preprocessed = np.array(landmarks_preprocessed)
@@ -189,7 +180,7 @@ def finetune_model(imgs, landmarks, net, n_epochs, batch_size, learning_rate, we
         train_mean /= n_batches
 
         if epoch % 10 == 0:
-            print('Epoch %d: loss %f, mean %f, gnorm %f' % (epoch, train_loss, train_mean, gnorm_max))
+            print('Epoch %d: loss %f, mean %f' % (epoch, train_loss, train_mean))
 
     return net
 

@@ -1,23 +1,22 @@
-"""
-Keypoints correction feature for new mouse videos
-"""
 import os
-from natsort import natsorted
 import pyqtgraph as pg
 import numpy as np
-from .. import utils
 from ..gui import io
 from PyQt5 import QtCore
 import shutil
-import cv2
 from . import models
 from matplotlib import cm
 from glob import glob
 from PyQt5.QtGui import QColor
 from PyQt5.QtWidgets import (QDialog, QWidget, QLineEdit, QLabel, QRadioButton,
-                            QSpinBox, QPushButton, QVBoxLayout, QComboBox, QGridLayout,
-                            QHBoxLayout, QVBoxLayout, QButtonGroup, QGroupBox,
-                            QListWidget, QCheckBox, QDesktopWidget)
+                            QMessageBox, QSpinBox, QPushButton, QVBoxLayout,
+                            QComboBox, QGridLayout, QHBoxLayout, QVBoxLayout, 
+                            QButtonGroup, QGroupBox, QCheckBox, QDesktopWidget)
+
+"""
+Single workflow for re-training the model or fine-tuning the model with new data.
+Keypoints correction feature for new mouse videos
+"""
 
 BODYPARTS = ['eye(back)', 'eye(bottom)', 'eye(front)',
              'eye(top)', 'lowerlip', 'mouth',
@@ -25,10 +24,6 @@ BODYPARTS = ['eye(back)', 'eye(bottom)', 'eye(front)',
             'nose(top)', 'nosebridge', 'paw',
             'whisker(c1)', 'whisker(c2)', 'whisker(d1)']
 
-"""
-Single workflow for re-training the model or fine-tuning the model with new data.
-Trained model overwrites any previously trained model.
-"""
 class ModelTrainingPopup(QDialog):
     def __init__(self, gui):
         super().__init__(gui)
@@ -40,13 +35,15 @@ class ModelTrainingPopup(QDialog):
         self.use_current_video = False
         self.num_random_frames = None
         self.random_frames_ind = None
+        self.pose_data = None
+        self.all_frames = None
         # Training parameters
         self.batch_size = 1
         self.epochs = 36
         self.learning_rate = 1e-4
         self.weight_decay = 0
 
-        self.setWindowTitle('Model training')
+        self.setWindowTitle('Step 1: Set folder path')
         self.setStyleSheet("QDialog {background: 'black';}")
 
         self.verticalLayout = QVBoxLayout(self)
@@ -69,9 +66,11 @@ class ModelTrainingPopup(QDialog):
 
     def update_window_title(self, title=None):
         if title is None:
-            self.setWindowTitle('Keypoints refinement: frame {}/{}'.format(self.current_frame+1, self.spinbox_nframes.value()))
+            self.setWindowTitle('Keypoints refinement: frame {}/{}'.format(self.current_frame+1, self.num_random_frames))
         else:
             self.setWindowTitle(title)
+
+    #### ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Step 1: Choose folder ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ ####
 
     def show_choose_folder(self):
         """
@@ -81,7 +80,7 @@ class ModelTrainingPopup(QDialog):
 
         # Add a QLineEdit widget to the layout and a browse button to set the path to the output folder
         self.output_folder_path = QLabel(self)
-        self.output_folder_path.setText("Step 1: Choose output folder path")
+        self.output_folder_path.setText("Step 1: Set output folder path for saving refined keypoints and trained model")
         self.output_folder_path.setStyleSheet("QLabel {color: 'white';}")
         self.verticalLayout.addWidget(self.output_folder_path)
 
@@ -110,13 +109,25 @@ class ModelTrainingPopup(QDialog):
         self.next_button_groupbox.layout().addWidget(self.next_button, alignment=QtCore.Qt.AlignRight)
         self.verticalLayout.addWidget(self.next_button_groupbox)
 
-
     def set_output_folder_path(self):
         path = io.get_folder_path(parent=self.gui)
         self.output_folder_path_box.setText(path)
-        self.output_folder_path = path
+
+    ### ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Step 2: Choose training files ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ ###
 
     def show_choose_training_files(self):
+
+        self.output_folder_path = self.output_folder_path_box.text()
+        # Check if path exists
+        if not os.path.exists(self.output_folder_path):
+            msg = QMessageBox(self)
+            msg.setIcon(QMessageBox.Warning)
+            msg.setStyleSheet("QLabel{ color: white}")
+            msg.setText("Please set a valid output folder path first")
+            msg.setWindowTitle("Warning")
+            msg.exec_()
+            return
+
         self.clear_window()
         self.update_window_title("Step 2: Choose training files")
         print("Path set to {}".format(self.output_folder_path))
@@ -315,7 +326,6 @@ class ModelTrainingPopup(QDialog):
         else:
             self.add_button.setText("+")
             self.training_params_label.setText("Show training parameters")
-
             self.training_params_groupbox.deleteLater()
         
         return
@@ -373,21 +383,29 @@ class ModelTrainingPopup(QDialog):
 
         self.show_step_3()
 
+    ### ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Step 3: Keypoints refinement ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ ###
     def show_step_3(self):
         if self.use_current_video:
             self.show_refinement_options()
         else:
             self.train_model()
 
-    def show_refinement_options(self):
+    def show_refinement_options(self, predict_frame_index=None):
 
         self.clear_window()
         self.update_window_title("Step 3: Refine keypoints")
         self.update_window_size(0.5, aspect_ratio=1.3)
 
-        self.random_frames_ind = np.random.choice(self.gui.cumframes[-1], self.num_random_frames, replace=False)
+        if self.random_frames_ind is None:
+            self.random_frames_ind = self.get_random_frames(total_frames=self.gui.cumframes[-1], size=self.num_random_frames)
+        
         self.hide()
-        self.pose_data, self.all_frames = self.generate_predictions(self.random_frames_ind)
+        if self.pose_data is None:
+            self.pose_data, self.all_frames = self.generate_predictions(self.random_frames_ind)
+        else:
+            additional_pose, additional_frames = self.generate_predictions(predict_frame_index)
+            self.pose_data = np.concatenate((self.pose_data, additional_pose), axis=0)
+            self.all_frames = np.concatenate((self.all_frames, additional_frames), axis=0)
         self.show()
         
         self.overall_horizontal_group = QGroupBox()
@@ -577,6 +595,33 @@ class ModelTrainingPopup(QDialog):
         self.frame_win.setMenuEnabled(False)
         self.win.show()
 
+        # Add a keyPressEvent for deleting the selected keypoint using the delete key and set the value to NaN 
+    def keyPressEvent(self, ev):
+        if ev.key() in (QtCore.Qt.Key_Backspace, QtCore.Qt.Key_Delete):
+            self.delete_keypoint()
+        else:
+            return
+
+    def delete_keypoint(self):
+        # Get index of radio button that is selected
+        index = self.radio_buttons_group.checkedId()
+        # Get the bodypart that is selected
+        bodypart = self.radio_buttons_group.button(index).text()
+        # Get index of item in an array
+        selected_items = np.where(np.array(self.bodyparts) == bodypart)[0]      
+        for i in selected_items:
+            if not np.isnan(self.keypoints_scatterplot.data['pos'][i]).any():
+                self.keypoints_scatterplot.data['pos'][i] = np.nan
+                # Update radio buttons
+                if i < len(self.radio_buttons)-1:
+                    self.radio_buttons[i+1].setChecked(True)
+                    self.radio_buttons[i+1].clicked.emit(True)
+                self.keypoints_scatterplot.updateGraph(dragged=True)
+            else:
+                return
+
+    ### ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Model training ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ ###
+
     def train_model(self):
         self.keypoints_scatterplot.save_refined_data()
         # Get the selected videos
@@ -614,6 +659,12 @@ class ModelTrainingPopup(QDialog):
         self.gui.train_model(image_data, keypoints_data, self.output_folder_path, num_epochs, batch_size, learning_rate, weight_decay)
         self.show_finetuned_model_predictions()
 
+    def save_model(self):
+        message = "Model saved to {}".format(self.output_folder_path)
+        self.gui.update_status_bar(message, update_progress=False, hide_progress=True)
+        self.close()
+
+    ### ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Model Evaluation ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ ###
     def show_finetuned_model_predictions(self):
         
         self.clear_window()
@@ -647,14 +698,14 @@ class ModelTrainingPopup(QDialog):
 
         # Create a grid plot 4x4 of images
         # Get random frame indices that are not in the self.random_frames list
-        random_frame_index = np.random.choice(np.arange(self.gui.cumframes[-1]), size=4*4, replace=False)
+        random_frame_index = self.get_random_frames(total_frames=self.gui.cumframes[-1], size=4*4)
         # Remove any indices that are in the self.random_frames_ind list
         random_frame_index = np.setdiff1d(random_frame_index, self.random_frames_ind)
 
         pose_data, imgs = self.generate_predictions(random_frame_index)
         for i in range(4):
             for j in range(4):
-                frame = imgs[i*4+j] #utils.get_frame(random_frame_index[i*4+j], self.gui.nframes, self.gui.cumframes, self.gui.video)[0]
+                frame = imgs[i*4+j]
                 self.win = pg.GraphicsLayoutWidget()
                 frame_win = self.win.addViewBox(invertY=True)
                 frame_win.addItem(pg.LabelItem("Frame {}".format(random_frame_index[i*4+j]+1)))
@@ -669,10 +720,7 @@ class ModelTrainingPopup(QDialog):
                 self.sample_predictions_groupbox.layout().addWidget(self.win, i, j)
         self.verticalLayout.addWidget(self.sample_predictions_groupbox)
 
-    def save_model(self):
-        message = "Model saved to {}".format(self.output_folder_path)
-        self.gui.update_status_bar(message, update_progress=False, hide_progress=True)
-        self.close()
+    ### ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Optional steps: further training ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ ###
 
     def continue_training(self):
         self.clear_window()
@@ -708,6 +756,7 @@ class ModelTrainingPopup(QDialog):
 
     def add_additional_training_frames(self):
         total_frames_to_train = self.add_frames_spinbox.value() + self.num_random_frames
+        old_random_frames = self.random_frames_ind
         while not self.num_random_frames == total_frames_to_train:
             new_random_frames = self.get_random_frames(self.gui.cumframes[-1], total_frames_to_train-self.num_random_frames)
             # Check if any of the new random frames are already in the self.random_frames list
@@ -721,40 +770,23 @@ class ModelTrainingPopup(QDialog):
                 # If not, update the self.random_frames list
                 self.random_frames_ind = np.concatenate((self.random_frames_ind, new_random_frames), axis=0)
                 self.num_random_frames += len(new_random_frames)
-        print("num random frames: {}".format(self.num_random_frames))
-        print("random frames: {}".format(self.random_frames_ind))
-        self.random_frames_ind = sorted(self.random_frames_ind)
-        return
+        # Compare the new random frames with the old random frames to find the indices of the new random frames
+        new_random_frames_ind = np.setdiff1d(self.random_frames_ind, old_random_frames)
+        self.show_refinement_options(new_random_frames_ind)
 
     def get_random_frames(self, total_frames, size):
         # Get random frames indices
         random_frames_ind = np.random.choice(np.arange(total_frames), size=size, replace=False)
         return random_frames_ind
 
-    # Add a keyPressEvent for deleting the selected keypoint using the delete key and set the value to NaN 
-    def keyPressEvent(self, ev):
-        if ev.key() in (QtCore.Qt.Key_Backspace, QtCore.Qt.Key_Delete):
-            self.delete_keypoint()
-        else:
-            return
+    def add_to_pose_data(self, pose_data, frame_index):
+        # Get the frame index of the current frame
+        frame_index = np.where(self.random_frames_ind == frame_index)[0][0]
+        # Get the pose data for the current frame
+        pose_data = np.concatenate((pose_data, self.pose_data[frame_index]), axis=0)
+        return pose_data
 
-    def delete_keypoint(self):
-        # Get index of radio button that is selected
-        index = self.radio_buttons_group.checkedId()
-        # Get the bodypart that is selected
-        bodypart = self.radio_buttons_group.button(index).text()
-        # Get index of item in an array
-        selected_items = np.where(np.array(self.bodyparts) == bodypart)[0]      
-        for i in selected_items:
-            if not np.isnan(self.keypoints_scatterplot.data['pos'][i]).any():
-                self.keypoints_scatterplot.data['pos'][i] = np.nan
-                # Update radio buttons
-                if i < len(self.radio_buttons)-1:
-                    self.radio_buttons[i+1].setChecked(True)
-                    self.radio_buttons[i+1].clicked.emit(True)
-                self.keypoints_scatterplot.updateGraph(dragged=True)
-            else:
-                return
+### ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Keypoints graph features ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ ###
 
 # Following adatped from https://github.com/pyqtgraph/pyqtgraph/blob/develop/examples/CustomGraphItem.py       
 class KeypointsGraph(pg.GraphItem):
@@ -888,14 +920,10 @@ class KeypointsGraph(pg.GraphItem):
                 bp_selected = bp
                 selected_bp_ind = i
                 break
-        """
-        # Get position of the selected bodypart
-        selected_bp_ind = np.where(self.data['data'] == bp_selected)[0]
-        """
-        print("bp_selected", bp_selected)
-        print("selected_bp_ind", selected_bp_ind)
+        print("bodypart selected", bp_selected)
+        print("bodypart index", selected_bp_ind)
         # Check if position of bodypart is nan
-        print("position", self.data['pos'][selected_bp_ind])
+        print("bodypart coords", self.data['pos'][selected_bp_ind])
         selected_bp_pos = self.data['pos'][selected_bp_ind]
         x, y = selected_bp_pos[0], selected_bp_pos[1]
         # If keypoint is deleted, then add it back using the user selected position
