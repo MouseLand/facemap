@@ -63,7 +63,7 @@ def preprocess_images_landmarks(imgs, landmarks, bbox_region):
     landmarks_preprocessed = np.array(landmarks_preprocessed)
     return imgs_preprocessed, landmarks_preprocessed
 
-def finetune_model(imgs, landmarks, net, batch_size, n_epochs=36):
+def finetune_model(imgs, landmarks, net, n_epochs, batch_size, learning_rate, weight_decay):
 
     # Train the model on a subset of the corrected annotations
     nimg = imgs.shape[0]
@@ -76,8 +76,7 @@ def finetune_model(imgs, landmarks, net, batch_size, n_epochs=36):
     sigma  = 3 * 4 / n_factor
     Lx = 64
 
-    learning_rate = 1e-4
-    optimizer = optim.Adam(net.parameters(), lr=learning_rate)
+    optimizer = optim.Adam(net.parameters(), lr=learning_rate, weight_decay=weight_decay)
 
     ggmax = 50
     LR = learning_rate * np.ones(n_epochs,)

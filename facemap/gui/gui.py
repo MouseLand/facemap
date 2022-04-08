@@ -876,10 +876,10 @@ class MainW(QtWidgets.QMainWindow):
         else:
             self.load_video_popup()
 
-    def train_model(self, image_data, keypoints_data, output_folder_path):
+    def train_model(self, image_data, keypoints_data, output_folder_path, num_epochs, batch_size, learning_rate, weight_decay):
         if self.pose_model is None:
             self.setup_pose_model()
-        self.pose_model.train(image_data, keypoints_data)
+        self.pose_model.train(image_data, keypoints_data, num_epochs, batch_size, learning_rate, weight_decay)
         self.update_status_bar("Model training completed!")
         savepath = self.pose_model.save_model(output_folder_path)
         self.update_status_bar("Model saved to:", savepath)
