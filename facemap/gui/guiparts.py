@@ -4,30 +4,42 @@ from pyqtgraph import functions as fn
 from pyqtgraph import Point
 import numpy as np
 from PyQt5.QtWidgets import (
-    QListWidget, QDialog, QPushButton, QWidget, QGridLayout, QRadioButton, QLabel, QLineEdit, 
-    QAbstractItemView, QSlider, QButtonGroup, QStyleOptionSlider
+    QListWidget,
+    QDialog,
+    QPushButton,
+    QWidget,
+    QGridLayout,
+    QRadioButton,
+    QLabel,
+    QLineEdit,
+    QAbstractItemView,
+    QSlider,
+    QButtonGroup,
+    QStyleOptionSlider,
 )
 
 ### custom QDialog which makes a list of items you can include/exclude
 class ListChooser(QDialog):
     def __init__(self, title, parent):
         super(ListChooser, self).__init__(parent)
-        self.setGeometry(300,300,320,320)
+        self.setGeometry(300, 300, 320, 320)
         self.setWindowTitle(title)
         self.win = QWidget(self)
         layout = QGridLayout()
         self.win.setLayout(layout)
-        #self.setCentralWidget(self.win)
-        layout.addWidget(QLabel('click to select videos (none selected => all used)'),0,0,1,1)
+        # self.setCentralWidget(self.win)
+        layout.addWidget(
+            QLabel("click to select videos (none selected => all used)"), 0, 0, 1, 1
+        )
         self.list = QListWidget(parent)
         for f in parent.filelist:
             self.list.addItem(f)
-        layout.addWidget(self.list,1,0,7,4)
-        #self.list.resize(450,250)
+        layout.addWidget(self.list, 1, 0, 7, 4)
+        # self.list.resize(450,250)
         self.list.setSelectionMode(QAbstractItemView.MultiSelection)
-        done = QPushButton('done')
+        done = QPushButton("done")
         done.clicked.connect(lambda: self.exit_list(parent))
-        layout.addWidget(done,8,0,1,1)
+        layout.addWidget(done, 8, 0, 1, 1)
 
     def exit_list(self, parent):
         parent.filelist = []
@@ -36,25 +48,26 @@ class ListChooser(QDialog):
             parent.filelist.append(str(self.list.selectedItems()[i].text()))
         self.accept()
 
+
 class Slider(QSlider):
     def __init__(self, bid, parent=None):
         super(self.__class__, self).__init__()
-        initval = [99,99]
+        initval = [99, 99]
         self.bid = bid
         self.setOrientation(QtCore.Qt.Horizontal)
         self.setMinimum(0)
         self.setMaximum(100)
         self.setValue(initval[bid])
         self.setTickInterval(10)
-        self.valueChanged.connect(lambda: self.level_change(parent,bid))
+        self.valueChanged.connect(lambda: self.level_change(parent, bid))
         self.setTracking(False)
 
     def level_change(self, parent, bid):
-        parent.sat[bid] = float(self.value())/100 * 255
-        if bid==0:
+        parent.sat[bid] = float(self.value()) / 100 * 255
+        if bid == 0:
             parent.pimg.setLevels([0, parent.sat[bid]])
         else:
-            #parent.pROIimg.setLevels([0, parent.sat[bid]])
+            # parent.pROIimg.setLevels([0, parent.sat[bid]])
             parent.saturation[parent.iROI] = parent.sat[bid]
             if len(parent.ROIs) > 0:
                 parent.ROIs[parent.iROI].plot(parent)
@@ -62,23 +75,24 @@ class Slider(QSlider):
 
 
 class TextChooser(QDialog):
-    def __init__(self,parent=None):
+    def __init__(self, parent=None):
         super(TextChooser, self).__init__(parent)
-        self.setGeometry(300,300,350,100)
-        self.setWindowTitle('folder path')
+        self.setGeometry(300, 300, 350, 100)
+        self.setWindowTitle("folder path")
         self.win = QWidget(self)
         layout = QGridLayout()
         self.win.setLayout(layout)
-        self.qedit = QLineEdit('')
-        layout.addWidget(QLabel('folder name (does not have to exist yet)'),0,0,1,3)
-        layout.addWidget(self.qedit,1,0,1,3)
-        done = QPushButton('OK')
+        self.qedit = QLineEdit("")
+        layout.addWidget(QLabel("folder name (does not have to exist yet)"), 0, 0, 1, 3)
+        layout.addWidget(self.qedit, 1, 0, 1, 3)
+        done = QPushButton("OK")
         done.clicked.connect(self.exit)
-        layout.addWidget(done,2,1,1,1)
+        layout.addWidget(done, 2, 1, 1, 1)
 
     def exit(self):
         self.folder = self.qedit.text()
         self.accept()
+
 
 class RGBRadioButtons(QButtonGroup):
     def __init__(self, parent=None, row=0, col=0):
@@ -89,25 +103,45 @@ class RGBRadioButtons(QButtonGroup):
         self.dropdown = []
         for b in range(len(self.bstr)):
             button = QRadioButton(self.bstr[b])
-            button.setStyleSheet('color: white;')
-            if b==0:
+            button.setStyleSheet("color: white;")
+            if b == 0:
                 button.setChecked(True)
             self.addButton(button, b)
             button.toggled.connect(lambda: self.btnpress(parent))
-            self.parent.l0.addWidget(button, row+b,col,1,1)
+            self.parent.l0.addWidget(button, row + b, col, 1, 1)
         self.setExclusive(True)
-        #self.buttons.
+        # self.buttons.
 
     def btnpress(self, parent):
-       b = self.checkedId()
-       self.parent.view = b
-       if self.parent.loaded:
-           self.parent.update_plot()
+        b = self.checkedId()
+        self.parent.view = b
+        if self.parent.loaded:
+            self.parent.update_plot()
+
 
 class ViewBoxNoRightDrag(pg.ViewBox):
-    def __init__(self, parent=None, border=None, lockAspect=False, enableMouse=True, invertY=False, enableMenu=True, name=None, invertX=False):
-        pg.ViewBox.__init__(self, parent, border, lockAspect, enableMouse,
-                            invertY, enableMenu, name, invertX)
+    def __init__(
+        self,
+        parent=None,
+        border=None,
+        lockAspect=False,
+        enableMouse=True,
+        invertY=False,
+        enableMenu=True,
+        name=None,
+        invertX=False,
+    ):
+        pg.ViewBox.__init__(
+            self,
+            parent,
+            border,
+            lockAspect,
+            enableMouse,
+            invertY,
+            enableMenu,
+            name,
+            invertX,
+        )
 
     def mouseDragEvent(self, ev, axis=None):
         ## if axis is specified, event will only affect that axis.
@@ -119,35 +153,38 @@ class ViewBoxNoRightDrag(pg.ViewBox):
         dif = dif * -1
 
         ## Ignore axes if mouse is disabled
-        mouseEnabled = np.array(self.state['mouseEnabled'], dtype=np.float)
+        mouseEnabled = np.array(self.state["mouseEnabled"], dtype=np.float)
         mask = mouseEnabled.copy()
         if axis is not None:
-            mask[1-axis] = 0.0
+            mask[1 - axis] = 0.0
 
         ## Scale or translate based on mouse button
         if ev.button() & (QtCore.Qt.LeftButton | QtCore.Qt.MidButton):
-            if self.state['mouseMode'] == pg.ViewBox.RectMode:
-                if ev.isFinish():  ## This is the final move in the drag; change the view scale now
-                    #print "finish"
+            if self.state["mouseMode"] == pg.ViewBox.RectMode:
+                if (
+                    ev.isFinish()
+                ):  ## This is the final move in the drag; change the view scale now
+                    # print "finish"
                     self.rbScaleBox.hide()
                     ax = QtCore.QRectF(Point(ev.buttonDownPos(ev.button())), Point(pos))
                     ax = self.childGroup.mapRectFromParent(ax)
                     self.showAxRect(ax)
                     self.axHistoryPointer += 1
-                    self.axHistory = self.axHistory[:self.axHistoryPointer] + [ax]
+                    self.axHistory = self.axHistory[: self.axHistoryPointer] + [ax]
                 else:
                     ## update shape of scale box
                     self.updateScaleBox(ev.buttonDownPos(), ev.pos())
             else:
-                tr = dif*mask
-                tr = self.mapToView(tr) - self.mapToView(Point(0,0))
+                tr = dif * mask
+                tr = self.mapToView(tr) - self.mapToView(Point(0, 0))
                 x = tr.x() if mask[0] == 1 else None
                 y = tr.y() if mask[1] == 1 else None
 
                 self._resetTarget()
                 if x is not None or y is not None:
                     self.translateBy(x=x, y=y)
-                self.sigRangeChangedManually.emit(self.state['mouseEnabled'])
+                self.sigRangeChangedManually.emit(self.state["mouseEnabled"])
+
 
 class ImageDraw(pg.ImageItem):
     """
@@ -168,23 +205,27 @@ class ImageDraw(pg.ImageItem):
 
     def __init__(self, image=None, viewbox=None, parent=None, **kargs):
         super(ImageDraw, self).__init__()
-        #self.image=None
-        #self.viewbox=viewbox
-        self.levels = np.array([0,255])
+        # self.image=None
+        # self.viewbox=viewbox
+        self.levels = np.array([0, 255])
         self.lut = None
         self.autoDownsample = False
-        self.axisOrder = 'row-major'
+        self.axisOrder = "row-major"
         self.removable = False
 
         self.parent = parent
-        #kernel[1,1] = 1
+        # kernel[1,1] = 1
         self.setDrawKernel(kernel_size=self.parent.brush_size)
         self.parent.current_stroke = []
         self.parent.in_stroke = False
 
     def mouseClickEvent(self, ev):
         if self.parent.masksOn:
-            if ev.button()==QtCore.Qt.RightButton and self.parent.loaded and self.parent.nmasks < 2:
+            if (
+                ev.button() == QtCore.Qt.RightButton
+                and self.parent.loaded
+                and self.parent.nmasks < 2
+            ):
                 if not self.parent.in_stroke:
                     ev.accept()
                     self.parent.in_stroke = True
@@ -202,7 +243,6 @@ class ImageDraw(pg.ImageItem):
             ev.ignore()
             return
 
-
     def mouseDragEvent(self, ev):
         ev.ignore()
         return
@@ -218,27 +258,34 @@ class ImageDraw(pg.ImageItem):
                     self.parent.in_stroke = False
         else:
             ev.acceptClicks(QtCore.Qt.RightButton)
-            #ev.acceptClicks(QtCore.Qt.LeftButton)
+            # ev.acceptClicks(QtCore.Qt.LeftButton)
 
     def create_start(self, pos):
-        self.scatter = pg.ScatterPlotItem([pos.x()], [pos.y()], pxMode=False,
-                                        pen=pg.mkPen(color=(255,0,0), width=self.parent.brush_size),
-                                        size=max(3*2, self.parent.brush_size*1.8*2), brush=None)
+        self.scatter = pg.ScatterPlotItem(
+            [pos.x()],
+            [pos.y()],
+            pxMode=False,
+            pen=pg.mkPen(color=(255, 0, 0), width=self.parent.brush_size),
+            size=max(3 * 2, self.parent.brush_size * 1.8 * 2),
+            brush=None,
+        )
         self.parent.p0.addItem(self.scatter)
 
     def is_at_start(self, pos):
-        thresh_out = max(6, self.parent.brush_size*3)
-        thresh_in = max(3, self.parent.brush_size*1.8)
+        thresh_out = max(6, self.parent.brush_size * 3)
+        thresh_in = max(3, self.parent.brush_size * 1.8)
         # first check if you ever left the start
         if len(self.parent.current_stroke) > 3:
             stroke = np.array(self.parent.current_stroke)
-            dist = (((stroke[1:] - stroke[:1][np.newaxis,:,:])**2).sum(axis=-1))**0.5
+            dist = (
+                ((stroke[1:] - stroke[:1][np.newaxis, :, :]) ** 2).sum(axis=-1)
+            ) ** 0.5
             dist = dist.flatten()
-            #print(dist)
+            # print(dist)
             has_left = (dist > thresh_out).nonzero()[0]
             if len(has_left) > 0:
                 first_left = np.sort(has_left)[0]
-                has_returned = (dist[max(4,first_left+1):] < thresh_in).sum()
+                has_returned = (dist[max(4, first_left + 1) :] < thresh_in).sum()
                 if has_returned > 0:
                     return True
                 else:
@@ -252,15 +299,15 @@ class ImageDraw(pg.ImageItem):
             self.parent.stroke = np.array(self.parent.current_stroke)
             self.parent.current_stroke = []
             self.parent.stroke_appended = True
-            ioutline = self.parent.stroke[:,-1]==1
+            ioutline = self.parent.stroke[:, -1] == 1
             self.parent.point_set = list(self.parent.stroke[ioutline])
             self.parent.add_set()
 
     def tabletEvent(self, ev):
         pass
-        #print(ev.device())
-        #print(ev.pointerType())
-        #print(ev.pressure())
+        # print(ev.device())
+        # print(ev.pointerType())
+        # print(ev.pressure())
 
     def drawAt(self, pos, ev=None):
         mask = self.greenmask
@@ -269,71 +316,73 @@ class ImageDraw(pg.ImageItem):
         pos = [int(pos.y()), int(pos.x())]
         dk = self.drawKernel
         kc = self.drawKernelCenter
-        sx = [0,dk.shape[0]]
-        sy = [0,dk.shape[1]]
-        tx = [pos[0] - kc[0], pos[0] - kc[0]+ dk.shape[0]]
-        ty = [pos[1] - kc[1], pos[1] - kc[1]+ dk.shape[1]]
+        sx = [0, dk.shape[0]]
+        sy = [0, dk.shape[1]]
+        tx = [pos[0] - kc[0], pos[0] - kc[0] + dk.shape[0]]
+        ty = [pos[1] - kc[1], pos[1] - kc[1] + dk.shape[1]]
         kcent = kc.copy()
-        if tx[0]<=0:
+        if tx[0] <= 0:
             sx[0] = 0
             sx[1] = kc[0] + 1
-            tx    = sx
+            tx = sx
             kcent[0] = 0
-        if ty[0]<=0:
+        if ty[0] <= 0:
             sy[0] = 0
             sy[1] = kc[1] + 1
-            ty    = sy
+            ty = sy
             kcent[1] = 0
-        if tx[1] >= self.parent.Ly-1:
+        if tx[1] >= self.parent.Ly - 1:
             sx[0] = dk.shape[0] - kc[0] - 1
             sx[1] = dk.shape[0]
             tx[0] = self.parent.Ly - kc[0] - 1
             tx[1] = self.parent.Ly
-            kcent[0] = tx[1]-tx[0]-1
-        if ty[1] >= self.parent.Lx-1:
+            kcent[0] = tx[1] - tx[0] - 1
+        if ty[1] >= self.parent.Lx - 1:
             sy[0] = dk.shape[1] - kc[1] - 1
             sy[1] = dk.shape[1]
             ty[0] = self.parent.Lx - kc[1] - 1
             ty[1] = self.parent.Lx
-            kcent[1] = ty[1]-ty[0]-1
+            kcent[1] = ty[1] - ty[0] - 1
 
-
-        ts = (slice(tx[0],tx[1]), slice(ty[0],ty[1]))
-        ss = (slice(sx[0],sx[1]), slice(sy[0],sy[1]))
+        ts = (slice(tx[0], tx[1]), slice(ty[0], ty[1]))
+        ss = (slice(sx[0], sx[1]), slice(sy[0], sy[1]))
         self.image[ts] = mask[ss]
 
-        for ky,y in enumerate(np.arange(ty[0], ty[1], 1, int)):
-            for kx,x in enumerate(np.arange(tx[0], tx[1], 1, int)):
-                iscent = np.logical_and(kx==kcent[0], ky==kcent[1])
+        for ky, y in enumerate(np.arange(ty[0], ty[1], 1, int)):
+            for kx, x in enumerate(np.arange(tx[0], tx[1], 1, int)):
+                iscent = np.logical_and(kx == kcent[0], ky == kcent[1])
                 stroke.append([x, y, iscent])
         self.updateImage()
 
     def setDrawKernel(self, kernel_size=3):
         bs = kernel_size
-        kernel = np.ones((bs,bs), np.uint8)
+        kernel = np.ones((bs, bs), np.uint8)
         self.drawKernel = kernel
-        self.drawKernelCenter = [int(np.floor(kernel.shape[0]/2)),
-                                 int(np.floor(kernel.shape[1]/2))]
-        onmask = 255 * kernel[:,:,np.newaxis]
-        offmask = np.zeros((bs,bs,1))
-        opamask = 100 * kernel[:,:,np.newaxis]
-        self.redmask = np.concatenate((onmask,offmask,offmask,onmask), axis=-1)
-        self.greenmask = np.concatenate((onmask,offmask,onmask,opamask), axis=-1)
+        self.drawKernelCenter = [
+            int(np.floor(kernel.shape[0] / 2)),
+            int(np.floor(kernel.shape[1] / 2)),
+        ]
+        onmask = 255 * kernel[:, :, np.newaxis]
+        offmask = np.zeros((bs, bs, 1))
+        opamask = 100 * kernel[:, :, np.newaxis]
+        self.redmask = np.concatenate((onmask, offmask, offmask, onmask), axis=-1)
+        self.greenmask = np.concatenate((onmask, offmask, onmask, opamask), axis=-1)
 
 
 class RangeSlider(QSlider):
-    """ A slider for ranges.
+    """A slider for ranges.
 
-        This class provides a dual-slider for ranges, where there is a defined
-        maximum and minimum, as is a normal slider, but instead of having a
-        single slider value, there are 2 slider values.
+    This class provides a dual-slider for ranges, where there is a defined
+    maximum and minimum, as is a normal slider, but instead of having a
+    single slider value, there are 2 slider values.
 
-        This class emits the same signals as the QSlider base class, with the
-        exception of valueChanged
+    This class emits the same signals as the QSlider base class, with the
+    exception of valueChanged
 
-        Found this slider here: https://www.mail-archive.com/pyqt@riverbankcomputing.com/msg22889.html
-        and modified it
+    Found this slider here: https://www.mail-archive.com/pyqt@riverbankcomputing.com/msg22889.html
+    and modified it
     """
+
     def __init__(self, parent=None, *args):
         super(RangeSlider, self).__init__(*args)
 
@@ -346,8 +395,8 @@ class RangeSlider(QSlider):
 
         self.setOrientation(QtCore.Qt.Vertical)
         self.setTickPosition(QSlider.TicksRight)
-        self.setStyleSheet(\
-                "QSlider::handle:horizontal {\
+        self.setStyleSheet(
+            "QSlider::handle:horizontal {\
                 background-color: white;\
                 border: 1px solid #5c5c5c;\
                 border-radius: 0px;\
@@ -355,16 +404,15 @@ class RangeSlider(QSlider):
                 height: 8px;\
                 width: 6px;\
                 margin: -8px 2; \
-                }")
+                }"
+        )
 
-
-        #self.opt = QtGui.QStyleOptionSlider()
-        #self.opt.orientation=QtCore.Qt.Vertical
-        #self.initStyleOption(self.opt)
+        # self.opt = QtGui.QStyleOptionSlider()
+        # self.opt.orientation=QtCore.Qt.Vertical
+        # self.initStyleOption(self.opt)
         # 0 for the low, 1 for the high, -1 for both
         self.active_slider = 0
         self.parent = parent
-
 
     def level_change(self):
         if self.parent is not None:
@@ -398,7 +446,9 @@ class RangeSlider(QSlider):
             # Only draw the groove for the first slider so it doesn't get drawn
             # on top of the existing ones every time
             if i == 0:
-                opt.subControls = QtGui.QStyle.SC_SliderHandle#QtGui.QStyle.SC_SliderGroove | QtGui.QStyle.SC_SliderHandle
+                opt.subControls = (
+                    QtGui.QStyle.SC_SliderHandle
+                )  # QtGui.QStyle.SC_SliderGroove | QtGui.QStyle.SC_SliderHandle
             else:
                 opt.subControls = QtGui.QStyle.SC_SliderHandle
 
@@ -414,7 +464,6 @@ class RangeSlider(QSlider):
             opt.sliderPosition = value
             opt.sliderValue = value
             style.drawComplexControl(QtGui.QStyle.CC_Slider, opt, painter, self)
-
 
     def mousePressEvent(self, event):
         event.accept()
@@ -434,7 +483,9 @@ class RangeSlider(QSlider):
 
             for i, value in enumerate([self._low, self._high]):
                 opt.sliderPosition = value
-                hit = style.hitTestComplexControl(style.CC_Slider, opt, event.pos(), self)
+                hit = style.hitTestComplexControl(
+                    style.CC_Slider, opt, event.pos(), self
+                )
                 if hit == style.SC_SliderHandle:
                     self.active_slider = i
                     self.pressed_control = hit
@@ -447,7 +498,9 @@ class RangeSlider(QSlider):
 
             if self.active_slider < 0:
                 self.pressed_control = QtGui.QStyle.SC_SliderHandle
-                self.click_offset = self.__pixelPosToRangeValue(self.__pick(event.pos()))
+                self.click_offset = self.__pixelPosToRangeValue(
+                    self.__pick(event.pos())
+                )
                 self.triggerAction(self.SliderMove)
                 self.setRepeatAction(self.SliderNoAction)
         else:
@@ -496,7 +549,6 @@ class RangeSlider(QSlider):
         else:
             return pt.y()
 
-
     def __pixelPosToRangeValue(self, pos):
         opt = QtGui.QStyleOptionSlider()
         self.initStyleOption(opt)
@@ -514,6 +566,10 @@ class RangeSlider(QSlider):
             slider_min = gr.y()
             slider_max = gr.bottom() - slider_length + 1
 
-        return style.sliderValueFromPosition(self.minimum(), self.maximum(),
-                                             pos-slider_min, slider_max-slider_min,
-                                             opt.upsideDown)
+        return style.sliderValueFromPosition(
+            self.minimum(),
+            self.maximum(),
+            pos - slider_min,
+            slider_max - slider_min,
+            opt.upsideDown,
+        )

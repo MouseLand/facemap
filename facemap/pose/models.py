@@ -11,6 +11,7 @@ import shutil
 MODEL_PARAMS_URL = "https://www.facemappy.org/models/facemap_model_params.pth"
 MODEL_STATE_URL = "https://www.facemappy.org/models/facemap_model_state.pt"
 
+
 def get_data_dir():
     """
     Get the path to the data directory.
@@ -21,15 +22,17 @@ def get_data_dir():
     model_dir = Path(model_dir)
     return model_dir
 
+
 def get_models_dir():
     """
     Get the path to the hidden data directory containing model data.
     """
-    fm_dir = Path.home().joinpath('.facemap')
+    fm_dir = Path.home().joinpath(".facemap")
     fm_dir.mkdir(exist_ok=True)
-    models_dir = fm_dir.joinpath('models')
+    models_dir = fm_dir.joinpath("models")
     models_dir.mkdir(exist_ok=True)
     return models_dir
+
 
 def copy_to_models_dir(filename):
     """
@@ -46,6 +49,7 @@ def copy_to_models_dir(filename):
     shutil.copy(filename, model_dir)
     return model_dir
 
+
 def get_model_params_path():
     """
     Get the path to the model parameters file.
@@ -58,6 +62,7 @@ def get_model_params_path():
     if not os.path.exists(cached_params_file):
         copy_to_models_dir(cached_params_file)
     return cached_params_file
+
 
 def get_model_state_path():
     """
@@ -72,6 +77,7 @@ def get_model_state_path():
         copy_to_models_dir(cached_state_file)
     return cached_state_file
 
+
 def download_url_to_file(url, filename):
     """
     Download a file from a URL to a local file.
@@ -83,6 +89,7 @@ def download_url_to_file(url, filename):
     # Download file
     print("Downloading %s to %s" % (url, filename))
     urlretrieve(url, filename)
+
 
 def update_models_data_txtfile(filenames):
     """
@@ -97,19 +104,20 @@ def update_models_data_txtfile(filenames):
     # Check if the file exists
     if not os.path.exists(models_data_file):
         # Create the file
-        open(models_data_file, 'w').close()
+        open(models_data_file, "w").close()
     # Open the file
-    file_readobject = open(models_data_file, 'r')
-        # Read the file
-    with open(models_data_file, 'a') as f:          # append mode
+    file_readobject = open(models_data_file, "r")
+    # Read the file
+    with open(models_data_file, "a") as f:  # append mode
         for data_file in filenames:
             # If the filename exists in the file, skip it
             if data_file in file_readobject.read():
                 continue
             else:
                 # Write the filename to the file
-                f.write(data_file + '\n')
+                f.write(data_file + "\n")
     return models_data_file
+
 
 def get_model_files():
     """
@@ -122,10 +130,10 @@ def get_model_files():
     # Check if the file exists
     if not os.path.exists(models_data_file):
         # Create the file
-        open(models_data_file, 'w').close()
+        open(models_data_file, "w").close()
         return []
     # Open the file
-    file_readobject = open(models_data_file, 'r')
+    file_readobject = open(models_data_file, "r")
     # Read the file
     filenames = file_readobject.read().splitlines()
     return filenames

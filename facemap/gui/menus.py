@@ -5,7 +5,8 @@ from . import guiparts, io
 from PyQt5.QtGui import QPixmap, QFont, QPainterPath, QPainter, QBrush
 from PyQt5.QtWidgets import QAction, QLabel
 
-def mainmenu(parent):    
+
+def mainmenu(parent):
     # --------------- MENU BAR --------------------------
     # run suite2p from scratch
     openFile = QAction("&Load single movie file", parent)
@@ -14,7 +15,7 @@ def mainmenu(parent):
     parent.addAction(openFile)
 
     openFolder = QAction("Open folder of movies", parent)
-    #openFolder.setShortcut("Ctrl+I")
+    # openFolder.setShortcut("Ctrl+I")
     openFolder.triggered.connect(lambda: io.open_folder(parent))
     parent.addAction(openFolder)
 
@@ -30,7 +31,7 @@ def mainmenu(parent):
     parent.addAction(setOutputFolder)
 
     loadPose = QAction("Load keypoints", parent)
-    #loadPose.setShortcut("Ctrl+P")
+    # loadPose.setShortcut("Ctrl+P")
     loadPose.triggered.connect(lambda: io.get_pose_file(parent))
     parent.addAction(loadPose)
 
@@ -62,25 +63,31 @@ def mainmenu(parent):
     help_menu = main_menu.addMenu("Help")
     help_menu.addAction(helpContent)
 
+
 def launch_user_manual(parent):
     w = Dialog(parent)
     w.resize(640, 480)
     w.show()
 
+
 class DrawWidget(QtWidgets.QWidget):
     def __init__(self, *args, **kwargs):
         super(DrawWidget, self).__init__(*args, **kwargs)
         self.setFixedSize(630, 470)
-        icon_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "mouse.png")
-        self.logo = QPixmap(icon_path).scaled(120, 90, QtCore.Qt.KeepAspectRatio, QtCore.Qt.SmoothTransformation)
-        self.logoLabel = QLabel(self) 
-        self.logoLabel.setPixmap(self.logo) 
+        icon_path = os.path.join(
+            os.path.dirname(os.path.realpath(__file__)), "mouse.png"
+        )
+        self.logo = QPixmap(icon_path).scaled(
+            120, 90, QtCore.Qt.KeepAspectRatio, QtCore.Qt.SmoothTransformation
+        )
+        self.logoLabel = QLabel(self)
+        self.logoLabel.setPixmap(self.logo)
         self.logoLabel.setScaledContents(True)
-        self.logoLabel.move(240,10)
+        self.logoLabel.move(240, 10)
         self.logoLabel.setAlignment(QtCore.Qt.AlignCenter)
         self.helpText = QtWidgets.QPlainTextEdit(self)
-        self.helpText.move(10,160)
-        self.helpText.resize(580,400)
+        self.helpText.move(10, 160)
+        self.helpText.resize(580, 400)
         self.helpText.setReadOnly(True)
 
     def paintEvent(self, event):
