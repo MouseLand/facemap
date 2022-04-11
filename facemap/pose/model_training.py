@@ -6,11 +6,12 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch import optim
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-from . import FMnet_torch as model
 from . import pose_helper_functions as pose_utils
-from . import pose
 from . import transforms
-import cv2
+from io import StringIO
+from tqdm import tqdm
+from PyQt5 import QtWidgets
+from PyQt5.QtWidgets import QProgressBar, QProgressDialog, QDesktopWidget, QPushButton, QDialog
 
 """
 Fine-tuning the model using the pre-trained weights and refined training data
@@ -54,7 +55,7 @@ def preprocess_images_landmarks(imgs, landmarks, bbox_region):
     landmarks_preprocessed = np.array(landmarks_preprocessed)
     return imgs_preprocessed, landmarks_preprocessed
 
-def finetune_model(imgs, landmarks, net, n_epochs, batch_size, learning_rate, weight_decay):
+def finetune_model(imgs, landmarks, net, n_epochs, batch_size, learning_rate, weight_decay, gui=None, gui_obj=None):
 
     # Train the model on a subset of the corrected annotations
     nimg = imgs.shape[0]
@@ -74,7 +75,11 @@ def finetune_model(imgs, landmarks, net, n_epochs, batch_size, learning_rate, we
     LR[-6:-3] = learning_rate/10
     LR[-3:] = learning_rate/25
 
-    for epoch in range(n_epochs): 
+    if gui is not None and gui_obj is not None:
+        progress_bar = ProgressBarPopup(gui)
+    
+    progress_output = StringIO()
+    for epoch in tqdm(range(n_epochs), file=progress_output):
         for param_group in optimizer.param_groups:
             param_group['lr'] = LR[epoch]
             
@@ -182,5 +187,45 @@ def finetune_model(imgs, landmarks, net, n_epochs, batch_size, learning_rate, we
         if epoch % 10 == 0:
             print('Epoch %d: loss %f, mean %f' % (epoch, train_loss, train_mean))
 
+        if gui is not None and gui_obj is not None:
+            progress_bar.update_progress_bar(progress_output, gui_obj)
+    
+    if gui is not None:
+        progress_bar.close()
+
     return net
+
+class ProgressBarPopup(QDialog):
+    def __init__(self, gui):
+        super().__init__(gui)
+        self.gui = gui
+        self.setWindowTitle('Training model...')
+        window_size = QDesktopWidget().screenGeometry(-1)
+        self.setFixedSize(int(np.floor(window_size.width()*.31)), int(np.floor(window_size.height()*.31*.5)))
+        self.verticalLayout = QtWidgets.QVBoxLayout(self)
+
+        self.progress_bar = QProgressBar(gui)
+        self.progress_bar.setRange(0, 100)
+        self.progress_bar.setValue(0)
+        self.progress_bar.setFixedSize(int(np.floor(window_size.width()*.3)), int(np.floor(window_size.height()*.3*.2)))
+        self.progress_bar.show()
+        # Add the progress bar to the dialog
+        self.verticalLayout.addWidget(self.progress_bar)
+
+        # Add a cancel button to the dialog
+        cancel_button = QPushButton('Cancel')
+        cancel_button.clicked.connect(self.close)
+        self.verticalLayout.addWidget(cancel_button)
+
+        self.show()
+
+    def update_progress_bar(self, message, gui_obj):
+        message = message.getvalue().split('\x1b[A\n\r')[0].split('\r')[-1]
+        progressBar_value = [int(s) for s in message.split("%")[0].split() if s.isdigit()]
+        if len(progressBar_value)>0:
+            progress_percentage = int(progressBar_value[0])
+            self.progress_bar.setValue(progress_percentage)
+            self.progress_bar.setFormat(str(progress_percentage) + ' %')
+        gui_obj.QApplication.processEvents()
+
 

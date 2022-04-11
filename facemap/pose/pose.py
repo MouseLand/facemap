@@ -118,7 +118,9 @@ class Pose():
     # Retrain model using refined pose data
     def train(self, image_data, keypoints_data, num_epochs, batch_size, learning_rate, weight_decay):
         # Use preprocessed data to train the model
-        self.net = model_training.finetune_model(image_data, keypoints_data[:,:,:-1], self.net, num_epochs, batch_size, learning_rate, weight_decay)
+        self.net = model_training.finetune_model(image_data, keypoints_data[:,:,:-1], self.net, 
+                                                num_epochs, batch_size, learning_rate, weight_decay, 
+                                                self.gui, self.GUIobject)
         self.finetuned_model = True
         print("Model training complete!")
         return

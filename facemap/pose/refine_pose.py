@@ -287,7 +287,7 @@ class ModelTrainingPopup(QDialog):
             self.epochs_groupbox.layout().addWidget(self.epochs_label)
 
             self.spinbox_epochs = QSpinBox(self)
-            self.spinbox_epochs.setRange(1, 50)
+            self.spinbox_epochs.setRange(1, 200)
             self.spinbox_epochs.setValue(self.epochs)
             self.spinbox_epochs.valueChanged.connect(lambda value: self.update_epochs(value))
             self.spinbox_epochs.setStyleSheet("QSpinBox {color: 'black';}")
