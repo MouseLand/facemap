@@ -43,6 +43,8 @@ class ModelTrainingPopup(QDialog):
         self.epochs = 36
         self.learning_rate = 1e-4
         self.weight_decay = 0
+        self.bodyparts = BODYPARTS
+        self.brushes, self.colors = self.get_brushes(self.bodyparts)
 
         self.setWindowTitle('Step 1: Set folders')
         self.setStyleSheet("QDialog {background: 'black';}")
@@ -434,9 +436,6 @@ class ModelTrainingPopup(QDialog):
         self.left_vertical_group = QGroupBox()
         self.left_vertical_group.setLayout(QVBoxLayout())
 
-        self.bodyparts = BODYPARTS
-        self.brushes, self.colors = self.get_brushes(self.bodyparts)
-
         self.frame_group = QGroupBox()
         self.frame_group.setLayout(QHBoxLayout())
         self.win = pg.GraphicsLayoutWidget()
@@ -509,6 +508,8 @@ class ModelTrainingPopup(QDialog):
             self.radio_buttons[i].clicked.connect(self.radio_button_clicked)
             self.radio_buttons_group.addButton(self.radio_buttons[i])
             self.radio_group.layout().addWidget(self.radio_buttons[i])
+            if i==0:
+                self.radio_buttons[i].setChecked(True)
 
         self.overall_horizontal_group.layout().addWidget(self.left_vertical_group)
         self.overall_horizontal_group.layout().addWidget(self.radio_group)
@@ -543,6 +544,7 @@ class ModelTrainingPopup(QDialog):
                                                     a = alpha
                                                     )
                 button.setStyleSheet("QRadioButton { background-color: rgba("+values+"); color: 'white'; border: 0px solid black; }")
+        print("radio button clicked")
     
     def plot_keypoints(self, frame_ind):
         # Plot the keypoints of the selected frames
@@ -643,7 +645,8 @@ class ModelTrainingPopup(QDialog):
     ### ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Model training ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ ###
 
     def train_model(self):
-        self.keypoints_scatterplot.save_refined_data()
+        if self.use_current_video:
+            self.keypoints_scatterplot.save_refined_data()
         # Get the selected videos
         # Combine all keypoints and image data from selected videos into one list
         keypoints_data = []
@@ -676,7 +679,7 @@ class ModelTrainingPopup(QDialog):
         print("Learning rate:", learning_rate)
         print("Weight decay:", weight_decay)
         print("")
-        self.gui.train_model(image_data, keypoints_data, self.output_folder_path, num_epochs, batch_size, learning_rate, weight_decay)
+        self.gui.train_model(image_data, keypoints_data, num_epochs, batch_size, learning_rate, weight_decay)
         self.show_finetuned_model_predictions()
 
     def save_model(self):
@@ -890,10 +893,18 @@ class KeypointsGraph(pg.GraphItem):
         return self.data['pos']
 
     def mousePressEvent(self, QMouseEvent):
-        if QMouseEvent.button() == QtCore.Qt.RightButton:
+        print("mousePressEvent", QMouseEvent.button())
+        if QMouseEvent.button() == QtCore.Qt.LeftButton and QMouseEvent.modifiers() == QtCore.Qt.ControlModifier:
+            QMouseEvent.accept()
+            self.right_click_keypoint(QMouseEvent)
+        elif QMouseEvent.button() == QtCore.Qt.RightButton:
+            QMouseEvent.accept()
             self.right_click_keypoint(QMouseEvent)
         elif QMouseEvent.button() == QtCore.Qt.LeftButton:
+            QMouseEvent.accept()
             super().mousePressEvent(QMouseEvent)
+        else:
+            QMouseEvent.ignore()
 
     def mouseDragEvent(self, ev):
         if ev.button() == QtCore.Qt.LeftButton:
@@ -948,6 +959,8 @@ class KeypointsGraph(pg.GraphItem):
     # Add feature for adding a keypoint to the scatterplot
     def right_click_keypoint(self, mouseEvent=None):
         # Get the name of the bodypart selected in the radio buttons
+        bp_selected = None
+        selected_bp_ind = None
         for i, bp in enumerate(self.parent.bodyparts):
             if self.parent.radio_buttons[i].isChecked():
                 bp_selected = bp

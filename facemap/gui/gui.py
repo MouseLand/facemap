@@ -854,6 +854,13 @@ class MainW(QtWidgets.QMainWindow):
         """
 
     ### ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Pose functions ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ 
+
+    def train_model(self, image_data, keypoints_data, num_epochs, batch_size, learning_rate, weight_decay):
+        if self.pose_model is None:
+            self.setup_pose_model()
+        self.pose_model.train(image_data, keypoints_data, num_epochs, batch_size, learning_rate, weight_decay)
+        self.update_status_bar("Model training completed!")
+       
     def set_pose_bbox(self):
         # User defined bbox selection
         self.pose_gui = pose_gui.PoseGUI(gui=self)
@@ -866,6 +873,7 @@ class MainW(QtWidgets.QMainWindow):
         if self.pose_model is None:
             self.pose_model = pose.Pose(gui=self, GUIobject=QtWidgets, filenames=self.filenames, 
                                         bbox=self.bbox, bbox_set=self.bbox_set)
+            self.pose_model.pose_prediction_setup()
    
     def visualize_subset_keypoints(self, video_id, pred_data, subset_ind, bodyparts):
         pose_gui.VisualizeVideoSubset(self, video_id, pred_data, subset_ind, bodyparts)
@@ -876,12 +884,6 @@ class MainW(QtWidgets.QMainWindow):
         else:
             self.load_video_popup()
 
-    def train_model(self, image_data, keypoints_data, output_folder_path, num_epochs, batch_size, learning_rate, weight_decay):
-        if self.pose_model is None:
-            self.setup_pose_model()
-        self.pose_model.train(image_data, keypoints_data, num_epochs, batch_size, learning_rate, weight_decay)
-        self.update_status_bar("Model training completed!")
-       
     def save_pose_model(self, output_folder_path):
         """
         Save pose model to folder path specified by user

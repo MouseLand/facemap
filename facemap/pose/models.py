@@ -104,10 +104,7 @@ def update_models_data_txtfile(filenames):
     with open(models_data_file, 'a') as f:          # append mode
         for data_file in filenames:
             # If the filename exists in the file, skip it
-            print("destination file: %s" % f)
-            print("models_data_file: %s" % data_file)
             if data_file in file_readobject.read():
-                print("File %s already exists in %s" % (data_file, models_data_file))
                 continue
             else:
                 # Write the filename to the file
@@ -132,4 +129,3 @@ def get_model_files():
     # Read the file
     filenames = file_readobject.read().splitlines()
     return filenames
-    
