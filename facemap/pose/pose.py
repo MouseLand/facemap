@@ -125,6 +125,7 @@ class Pose():
 
     def save_model(self, model_filepath):
         torch.save(self.net.state_dict(), model_filepath)
+        models.copy_to_models_dir(model_filepath)
         return model_filepath
 
     def write_dataframe(self, data, selected_frame_ind=None):

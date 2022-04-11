@@ -134,8 +134,8 @@ class ModelTrainingPopup(QDialog):
         print("Path set to {}".format(self.output_folder_path))
 
         # Check if the selected output folder path contains a model file (*.pt) and data files (*.npy)
-        self.model_files = glob(os.path.join(self.output_folder_path, '*.pt'))
-        self.data_files = glob(os.path.join(self.output_folder_path, '*Facemap_refined_images_landmarks.npy'))
+        self.model_files = glob(os.path.join(models.get_models_dir(), '*.pt'))
+        self.data_files = models.get_model_files()
         if len(self.model_files) == 0:
             # If no model file exists then copy the default model file from the package to the output folder
             print("No model file found in the selected output folder")
@@ -877,6 +877,7 @@ class KeypointsGraph(pg.GraphItem):
         video_path = self.parent.gui.filenames[0][0] 
         video_name = os.path.basename(video_path).split('.')[0]
         savepath = os.path.join(self.parent.output_folder_path, video_name+"_Facemap_refined_images_landmarks.npy")
+        models.update_models_data_txtfile([savepath])
         # Save the data
         np.save(savepath, {"imgs": self.parent.all_frames,
                             "keypoints": keypoints,
