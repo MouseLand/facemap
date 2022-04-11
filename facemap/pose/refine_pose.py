@@ -1,4 +1,5 @@
 import os
+from tkinter import N
 import pyqtgraph as pg
 import numpy as np
 from ..gui import io
@@ -34,8 +35,8 @@ class ModelTrainingPopup(QDialog):
         self.data_files = None
         self.selected_videos = None
         self.use_current_video = False
-        self.num_random_frames = None
-        self.random_frames_ind = None
+        self.num_random_frames = 0
+        self.random_frames_ind = []
         self.pose_data = None
         self.all_frames = None
         # Training parameters
@@ -401,7 +402,7 @@ class ModelTrainingPopup(QDialog):
             self.num_random_frames = self.spinbox_nframes.value()
         else:
             self.use_current_video = False
-            self.num_random_frames = None
+            self.num_random_frames = 0
 
         self.show_step_3()
 
@@ -418,7 +419,7 @@ class ModelTrainingPopup(QDialog):
         self.update_window_title("Step 3: Refine keypoints")
         self.update_window_size(0.5, aspect_ratio=1.3)
 
-        if self.random_frames_ind is None:
+        if len(self.random_frames_ind) == 0:
             self.random_frames_ind = self.get_random_frames(total_frames=self.gui.cumframes[-1], size=self.num_random_frames)
         
         self.hide()
@@ -770,8 +771,12 @@ class ModelTrainingPopup(QDialog):
         label.setStyleSheet("font-size: 12; color: white;")
         self.add_frames_groupbox.layout().addWidget(label)   
         self.add_frames_spinbox = QSpinBox()
-        self.add_frames_spinbox.setRange(1, self.gui.nframes-self.num_random_frames)
-        self.add_frames_spinbox.setValue(5)
+        if self.num_random_frames == 0:
+            self.add_frames_spinbox.setRange(1, self.gui.nframes)
+            self.add_frames_spinbox.setValue(25)
+        else:
+            self.add_frames_spinbox.setRange(1, self.gui.nframes-self.num_random_frames)
+            self.add_frames_spinbox.setValue(5)
         self.add_frames_groupbox.layout().addWidget(self.add_frames_spinbox)
         self.verticalLayout.addWidget(self.add_frames_groupbox)
 
@@ -798,7 +803,7 @@ class ModelTrainingPopup(QDialog):
             if np.any(np.isin(new_random_frames, self.random_frames_ind)):
                 # If so, get more random frames
                 new_random_frames = np.setdiff1d(new_random_frames, self.random_frames_ind)
-                self.random_frames = np.concatenate((self.random_frames, new_random_frames))
+                self.random_frames_ind = np.concatenate((self.random_frames_ind, new_random_frames))
                 self.num_random_frames += len(new_random_frames)
                 # Check how many more random frames are needed
             else:
