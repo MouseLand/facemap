@@ -8,13 +8,10 @@ from glob import glob  # listing files
 from platform import python_version
 
 import cv2  # opencv
-import pandas as pd
 import torch  # pytorch
 import torch.nn as nn
 import torch.nn.functional as F
 from scipy.ndimage import gaussian_filter
-from torch import optim
-from tqdm import tqdm  # waitbar
 
 print("python version:", python_version())
 

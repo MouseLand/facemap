@@ -32,6 +32,7 @@ FaceMap/ops_user.npy
 *.pth
 *.pt
 *.gif
+*.sh
 
 #
 # =========================

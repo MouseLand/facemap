@@ -1,6 +1,6 @@
 import umap
 import numpy as np
-from PyQt5 import QtGui, QtCore, QtWidgets
+from PyQt5 import QtCore, QtWidgets
 import pyqtgraph as pg
 
 # import pyqtgraph.opengl as gl

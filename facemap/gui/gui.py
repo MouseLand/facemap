@@ -1,4 +1,3 @@
-from re import sub
 import sys, os
 import numpy as np
 from PyQt5 import QtGui, QtCore, QtWidgets
@@ -10,7 +9,7 @@ import pandas as pd
 from . import io, menus, guiparts
 from facemap import process, roi, utils, cluster
 from facemap.pose import pose_gui, pose, refine_pose
-from PyQt5.QtGui import QPixmap, QFont, QPainterPath, QIcon, QColor
+from PyQt5.QtGui import QPixmap, QFont, QPainterPath, QIcon
 from PyQt5.QtWidgets import (
     QLabel,
     QPushButton,

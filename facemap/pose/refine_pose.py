@@ -2,7 +2,7 @@ import os
 from tkinter import N
 import pyqtgraph as pg
 import numpy as np
-from ..gui import io
+from ..gui import io, help_windows
 from PyQt5 import QtCore
 import shutil
 from . import models
@@ -50,7 +50,6 @@ BODYPARTS = [
     "whisker(c2)",
     "whisker(d1)",
 ]
-
 
 class ModelTrainingPopup(QDialog):
     def __init__(self, gui):
@@ -317,6 +316,13 @@ class ModelTrainingPopup(QDialog):
         self.buttons_groupbox = QGroupBox(self)
         self.buttons_groupbox.setLayout(QHBoxLayout())
 
+        # Add a help button
+        self.help_button = QPushButton("Help", self)
+        self.help_button.clicked.connect(self.show_step2_help)
+        self.buttons_groupbox.layout().addWidget(
+            self.help_button, alignment=QtCore.Qt.AlignRight
+        )
+
         self.cancel_button = QPushButton("Cancel", self)
         self.cancel_button.clicked.connect(lambda clicked: self.close())
         self.buttons_groupbox.layout().addWidget(
@@ -332,6 +338,12 @@ class ModelTrainingPopup(QDialog):
         )
 
         self.verticalLayout.addWidget(self.buttons_groupbox)
+
+    def show_step2_help(self):
+        """
+        Show help for step 2 of the training process involving setting parameters and selecting data files
+        """
+        help_windows.PoseRefinementStep2HelpWindow(self, self.window_max_size)
 
     def add_training_params_to_window(self):
         """
@@ -550,6 +562,10 @@ class ModelTrainingPopup(QDialog):
         # Define buttons for main window
         self.toggle_button_group = QGroupBox()
         self.toggle_button_group.setLayout(QHBoxLayout())
+        # Add a help button 
+        self.refinement_help_button = QPushButton(self)
+        self.refinement_help_button.setText("Help")
+        self.refinement_help_button.clicked.connect(self.show_refinement_help)
         self.previous_button = QPushButton("Previous")
         self.previous_button.setEnabled(False)
         self.previous_button.clicked.connect(self.previous_frame)
@@ -557,6 +573,7 @@ class ModelTrainingPopup(QDialog):
         self.next_button = QPushButton("Next")
         self.next_button.setDefault(True)
         self.next_button.clicked.connect(self.next_frame)
+        self.toggle_button_group.layout().addWidget(self.refinement_help_button)
         self.toggle_button_group.layout().addWidget(self.previous_button)
         self.toggle_button_group.layout().addWidget(self.next_button)
 
@@ -612,6 +629,9 @@ class ModelTrainingPopup(QDialog):
         self.verticalLayout.addWidget(self.overall_horizontal_group)
 
         self.next_frame()
+
+    def show_refinement_help(self):
+        help_windows.RefinementHelpWindow(self, self.window_max_size)
 
     def generate_predictions(self, frame_indices):
         pred_data, im_input, _, self.bbox = self.gui.process_subset_keypoints(
