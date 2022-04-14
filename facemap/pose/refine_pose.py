@@ -51,6 +51,7 @@ BODYPARTS = [
     "whisker(d1)",
 ]
 
+
 class ModelTrainingPopup(QDialog):
     def __init__(self, gui):
         super().__init__(gui)
@@ -562,7 +563,7 @@ class ModelTrainingPopup(QDialog):
         # Define buttons for main window
         self.toggle_button_group = QGroupBox()
         self.toggle_button_group.setLayout(QHBoxLayout())
-        # Add a help button 
+        # Add a help button
         self.refinement_help_button = QPushButton(self)
         self.refinement_help_button.setText("Help")
         self.refinement_help_button.clicked.connect(self.show_refinement_help)
