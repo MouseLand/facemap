@@ -1,8 +1,10 @@
-import numpy as np
-import time
-from facemap.gui import gui
-from facemap import process
 import argparse
+import time
+
+import numpy as np
+
+from facemap import process
+from facemap.gui import gui
 
 
 def tic():

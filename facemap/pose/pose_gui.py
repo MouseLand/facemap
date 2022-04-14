@@ -1,13 +1,13 @@
 import numpy as np
 import pyqtgraph as pg
+from matplotlib import cm
 from PyQt5 import QtWidgets
 from PyQt5.QtWidgets import QDialog, QPushButton
 
 from facemap import utils
 from facemap.pose import pose
-from . import transforms
 
-from matplotlib import cm
+from . import transforms
 
 """
 Pose subclass for generating obtaining bounding box from user input.

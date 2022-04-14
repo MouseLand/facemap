@@ -1,21 +1,22 @@
-from PyQt5 import QtGui, QtCore, QtWidgets
-import pyqtgraph as pg
-from pyqtgraph import Point
 import numpy as np
+import pyqtgraph as pg
+from PyQt5 import QtCore, QtGui, QtWidgets
 from PyQt5.QtWidgets import (
-    QListWidget,
+    QAbstractItemView,
+    QButtonGroup,
     QDialog,
-    QPushButton,
-    QWidget,
     QGridLayout,
-    QRadioButton,
     QLabel,
     QLineEdit,
-    QAbstractItemView,
+    QListWidget,
+    QPushButton,
+    QRadioButton,
     QSlider,
-    QButtonGroup,
     QStyleOptionSlider,
+    QWidget,
 )
+from pyqtgraph import Point
+
 
 ### custom QDialog which makes a list of items you can include/exclude
 class ListChooser(QDialog):

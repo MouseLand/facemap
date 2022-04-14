@@ -1,17 +1,18 @@
 import os
+import pickle
 import time
-from tqdm import tqdm
+from io import StringIO
 
 import numpy as np
 import pandas as pd
 import torch
-import pickle
-from io import StringIO
+from tqdm import tqdm
 
 from facemap import utils
 
-from . import FMnet_torch, pose_helper_functions as pose_utils
-from . import transforms, models, model_training
+from . import FMnet_torch, model_training, models
+from . import pose_helper_functions as pose_utils
+from . import transforms
 
 """
 Base class for generating pose estimates.

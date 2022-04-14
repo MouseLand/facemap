@@ -4,17 +4,14 @@ import torch
 from torch import optim
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+from io import StringIO
+
+from PyQt5 import QtWidgets
+from PyQt5.QtWidgets import QDesktopWidget, QDialog, QProgressBar, QPushButton
+from tqdm import tqdm
+
 from . import pose_helper_functions as pose_utils
 from . import transforms
-from io import StringIO
-from tqdm import tqdm
-from PyQt5 import QtWidgets
-from PyQt5.QtWidgets import (
-    QProgressBar,
-    QDesktopWidget,
-    QPushButton,
-    QDialog,
-)
 
 """
 Fine-tuning the model using the pre-trained weights and refined training data

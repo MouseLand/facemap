@@ -1,34 +1,36 @@
-import sys, os
-import numpy as np
-from PyQt5 import QtGui, QtCore, QtWidgets
-import pyqtgraph as pg
-from scipy.stats import zscore, skew
-from matplotlib import cm
+import os
+import sys
+
 import matplotlib.pyplot as plt
+import numpy as np
 import pandas as pd
-from . import io, menus, guiparts
-from facemap import process, roi, utils, cluster
-from facemap.pose import pose_gui, pose, refine_pose
-from PyQt5.QtGui import QFont, QPainterPath, QIcon
+import pyqtgraph as pg
+from matplotlib import cm
+from PyQt5 import QtCore, QtGui, QtWidgets
+from PyQt5.QtGui import QFont, QIcon, QPainterPath
 from PyQt5.QtWidgets import (
-    QLabel,
-    QPushButton,
-    QLineEdit,
-    QCheckBox,
-    QDesktopWidget,
-    QComboBox,
-    QToolButton,
-    QStatusBar,
-    QSlider,
-    QProgressBar,
-    QSpinBox,
-    QMessageBox,
     QButtonGroup,
+    QCheckBox,
+    QComboBox,
+    QDesktopWidget,
     QGridLayout,
-    QWidget,
+    QLabel,
+    QLineEdit,
+    QMessageBox,
+    QProgressBar,
     QPushButton,
+    QSlider,
+    QSpinBox,
+    QStatusBar,
+    QToolButton,
     QWidget,
 )
+from scipy.stats import skew, zscore
+
+from facemap import cluster, process, roi, utils
+from facemap.pose import pose, pose_gui, refine_pose
+
+from . import guiparts, io, menus
 
 istr = ["pupil", "motSVD", "blink", "running", "movSVD"]
 

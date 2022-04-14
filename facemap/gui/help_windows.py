@@ -1,57 +1,107 @@
 import os
+from ctypes import alignment
+
 from PyQt5 import QtCore
-from PyQt5.QtGui import QPixmap
 from PyQt5.QtCore import Qt
+from PyQt5.QtGui import QPixmap
 from PyQt5.QtWidgets import (
     QDialog,
-    QLabel,
-    QVBoxLayout,
-    QHBoxLayout,
-    QWidget,
-    QPushButton,
     QGroupBox,
-    QSizePolicy,
+    QHBoxLayout,
+    QLabel,
+    QPushButton,
     QScrollArea,
+    QSizePolicy,
+    QVBoxLayout,
+    QWidget,
 )
 
 
 class MainWindowHelp(QDialog):
     def __init__(self, parent=None, window_size=None):
         super(MainWindowHelp, self).__init__(parent)
-        width, height = int(window_size.width() * 0.5), int(window_size.height() * 0.5)
+        width, height = int(window_size.width() * 0.6), int(window_size.height() * 0.6)
         self.resize(width, height)
         self.setWindowTitle("Help")
         self.setStyleSheet("QDialog {background: 'black';}")
         self.win = QWidget(self)
         layout = QVBoxLayout()
         layout.setAlignment(QtCore.Qt.AlignCenter)
+        layout.setStretchFactor(self.win, 1)
+        layout.setStretch(1, 1)
         self.win.setLayout(layout)
 
-        text = """
+        self.scrollArea = QScrollArea(self)
+        self.scrollArea.setWidgetResizable(True)
+        self.scrollArea.resize(width, height)
+        self.scrollArea.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOn)
+        self.scrollArea.setStyleSheet("background: 'black'; ")
+        self.scrollArea.setWidget(self.win)
+
+        # Main text section
+        main_text = """
             <h1>Facemap</h1>
             <p>
-            Pose tracking of mouse face from different camera views (python only) and svd processing of videos (python and MATLAB). Includes GUI and CLI for easy use.
+            Pose tracking of mouse face from different camera views (python only) and svd processing of videos (python and MATLAB).
             </p>
+            """
+        main_text = QLabel(main_text, self)
+        main_text.setStyleSheet(
+            "font-size: 12pt; font-family: Arial; color: white; text-align: center; "
+        )
+        main_text.setWordWrap(True)
+        layout.addWidget(main_text, stretch=1)
+
+        # Pose tracking section
+        pose_tracking_group = QGroupBox("Pose tracking", self)
+        pose_tracking_group.setStyleSheet(
+            "QGroupBox {background: 'black'; border: 0px ;}"
+        )
+        pose_tracking_group.setLayout(QVBoxLayout())
+        pose_tracking_text = """
             <h2>Pose tracking</h2>
             <p>
-            The latest python version is integrated with Facemap network for tracking 14 distinct keypoints on mouse face and an additional point for tracking paw. The keypoints can be tracked from different camera views.
+            The latest python version is integrated with Facemap network for tracking 14 distinct keypoints on mouse face and an additional point for tracking paw. The keypoints can be tracked from different camera views as shown below.
             </p>
+            """
+        pose_tracking_text = QLabel(pose_tracking_text, self)
+        pose_tracking_text.setStyleSheet(
+            "font-size: 12pt; font-family: Arial; color: white; text-align: center; "
+        )
+        pose_tracking_text.setWordWrap(True)
+        pose_tracking_group.layout().addWidget(pose_tracking_text, stretch=1)
+        # Add images
+        img_width = int(window_size.width() * 0.3)
+        img_height = int(window_size.height() * 0.3)
+        img_groupbox = get_img_groupbox(img_width=img_width, img_height=img_height)
+        pose_tracking_group.layout().addWidget(img_groupbox, alignment=Qt.AlignCenter)
+
+        layout.addWidget(pose_tracking_group, stretch=1)
+
+        # SVD section
+        svd_group = QGroupBox("SVD", self)
+        svd_group.setStyleSheet("QGroupBox {background: 'black'; border: 0px ;}")
+        svd_group.setLayout(QVBoxLayout())
+        svd_text = """
             <h2>SVD processing</h2>
             <p>
             Facemap can be used to perform SVD computation on videos. This is implemented in MATLAB and Python, although the GUI is updated in Python only.
             </p>
         """
-        label = QLabel(text)
-        label.setStyleSheet(
+        svd_text = QLabel(svd_text)
+        svd_text.setStyleSheet(
             "font-size: 12pt; font-family: Arial; color: white; text-align: center; "
         )
-        label.setWordWrap(True)
-        label.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
-        layout.addWidget(label, alignment=QtCore.Qt.AlignCenter, stretch=1)
+        svd_text.setWordWrap(True)
+        svd_text.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+        svd_group.layout().addWidget(svd_text, stretch=1)
+
+        layout.addWidget(svd_group, stretch=1)
 
         # Add a ok button to close the window
         self.ok_button = QPushButton("Ok")
         self.ok_button.clicked.connect(self.close)
+        self.ok_button.setStyleSheet("background: 'black'; color: 'white'; ")
         layout.addWidget(self.ok_button, alignment=QtCore.Qt.AlignCenter, stretch=1)
 
         self.show()
@@ -112,71 +162,9 @@ class RefinementHelpWindow(QDialog):
         self.scrollArea.setStyleSheet("background: 'black'; ")
         self.scrollArea.setWidget(self.win)
 
-        # Create an image groupbox with horizontal layout
-        self.img_groupbox = QGroupBox()
-        self.img_groupbox.setLayout(QHBoxLayout())
-
-        # Add an image to the help window
-        # Get current directory
-        curr_dir = os.path.dirname(os.path.abspath(__file__))
-        # Get path that excludes last two directories
-        curr_dir = os.path.join(curr_dir, "..", "..")
-
-        # Create first image groupbox
-        image1_groupbox = QGroupBox()
-        image1_groupbox.setLayout(QVBoxLayout())
-        image1_groupbox.layout().setSpacing(10)
-        # Add header to image groupbox
-        image1_header = QLabel("<h4>Side view</h4>")
-        image1_header.setStyleSheet(
-            "font-size: 14pt; font-family: Arial; color: white;"
-        )
-        image1_groupbox.layout().addWidget(
-            image1_header, alignment=QtCore.Qt.AlignCenter
-        )
-        # Get path to first image
-        image_path = os.path.join(curr_dir, "figs", "mouse_face1_keypoints.png")
-        # resize image
-        image = QLabel()
-        image.setStyleSheet(
-            "background: 'black'; border: 1px; border-style: solid; border-color: white;"
-        )
-        pixmap = QPixmap(image_path)
-        pixmap = pixmap.scaled(img_width, img_height, QtCore.Qt.KeepAspectRatio)
-        image.setPixmap(pixmap)
-        image1_groupbox.layout().addWidget(image)
-        self.img_groupbox.layout().addWidget(
-            image1_groupbox, alignment=QtCore.Qt.AlignLeft
-        )
-
-        # Add another image to the help window
-        # Create first image groupbox
-        image2_groupbox = QGroupBox()
-        image2_groupbox.setLayout(QVBoxLayout())
-        image2_groupbox.layout().setSpacing(10)
-        # Add header to image groupbox
-        image2_header = QLabel("<h4>Top view</h4>")
-        image2_header.setStyleSheet(
-            "font-size: 14pt; font-family: Arial; color: white;"
-        )
-        image2_groupbox.layout().addWidget(
-            image2_header, alignment=QtCore.Qt.AlignCenter
-        )
-        image_path = os.path.join(curr_dir, "figs", "mouse_face0_keypoints.png")
-        # resize image
-        image = QLabel()
-        image.setStyleSheet(
-            "background: 'black'; border: 1px; border-style: solid; border-color: white;"
-        )
-        pixmap = QPixmap(image_path)
-        pixmap = pixmap.scaled(img_width, img_height, QtCore.Qt.KeepAspectRatio)
-        image.setPixmap(pixmap)
-        image2_groupbox.layout().addWidget(image)
-        self.img_groupbox.layout().addWidget(
-            image2_groupbox, alignment=QtCore.Qt.AlignRight
-        )
-
-        layout.addWidget(self.img_groupbox, alignment=QtCore.Qt.AlignCenter)
+        # Add images
+        img_groupbox = get_img_groupbox(img_width=img_width, img_height=img_height)
+        layout.addWidget(img_groupbox, alignment=QtCore.Qt.AlignCenter)
 
         text = """
             <h2>Labelling instructions</h2>
@@ -262,3 +250,62 @@ class RefinementHelpWindow(QDialog):
         layout.addWidget(self.ok_button, alignment=QtCore.Qt.AlignCenter)
 
         self.show()
+
+
+def get_img_groupbox(img_width, img_height):
+    """
+    Add face keypoints label examples to an image groupbox
+    """
+
+    # Create an image groupbox with horizontal layout
+    img_groupbox = QGroupBox()
+    img_groupbox.setLayout(QHBoxLayout())
+
+    # Get current directory
+    curr_dir = os.path.dirname(os.path.abspath(__file__))
+    # Get path that excludes last two directories
+    curr_dir = os.path.join(curr_dir, "..", "..")
+
+    # Create first image groupbox
+    image1_groupbox = QGroupBox()
+    image1_groupbox.setLayout(QVBoxLayout())
+    image1_groupbox.layout().setSpacing(10)
+    # Add header to image groupbox
+    image1_header = QLabel("<h4>Side view</h4>")
+    image1_header.setStyleSheet("font-size: 14pt; font-family: Arial; color: white;")
+    image1_groupbox.layout().addWidget(image1_header, alignment=QtCore.Qt.AlignCenter)
+    # Get path to first image
+    image_path = os.path.join(curr_dir, "figs", "mouse_face1_keypoints.png")
+    # resize image
+    image = QLabel()
+    image.setStyleSheet(
+        "background: 'black'; border: 1px; border-style: solid; border-color: white;"
+    )
+    pixmap = QPixmap(image_path)
+    pixmap = pixmap.scaled(img_width, img_height, QtCore.Qt.KeepAspectRatio)
+    image.setPixmap(pixmap)
+    image1_groupbox.layout().addWidget(image)
+    img_groupbox.layout().addWidget(image1_groupbox, alignment=QtCore.Qt.AlignLeft)
+
+    # Add another image to the help window
+    # Create first image groupbox
+    image2_groupbox = QGroupBox()
+    image2_groupbox.setLayout(QVBoxLayout())
+    image2_groupbox.layout().setSpacing(10)
+    # Add header to image groupbox
+    image2_header = QLabel("<h4>Top view</h4>")
+    image2_header.setStyleSheet("font-size: 14pt; font-family: Arial; color: white;")
+    image2_groupbox.layout().addWidget(image2_header, alignment=QtCore.Qt.AlignCenter)
+    image_path = os.path.join(curr_dir, "figs", "mouse_face0_keypoints.png")
+    # resize image
+    image = QLabel()
+    image.setStyleSheet(
+        "background: 'black'; border: 1px; border-style: solid; border-color: white;"
+    )
+    pixmap = QPixmap(image_path)
+    pixmap = pixmap.scaled(img_width, img_height, QtCore.Qt.KeepAspectRatio)
+    image.setPixmap(pixmap)
+    image2_groupbox.layout().addWidget(image)
+    img_groupbox.layout().addWidget(image2_groupbox, alignment=QtCore.Qt.AlignRight)
+
+    return img_groupbox

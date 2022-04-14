@@ -1,31 +1,32 @@
 import os
-import pyqtgraph as pg
-import numpy as np
-from ..gui import io, help_windows
-from PyQt5 import QtCore
 import shutil
-from . import models
-from matplotlib import cm
 from glob import glob
+
+import numpy as np
+import pyqtgraph as pg
+from matplotlib import cm
+from PyQt5 import QtCore
 from PyQt5.QtGui import QColor
 from PyQt5.QtWidgets import (
-    QDialog,
-    QLineEdit,
-    QLabel,
-    QRadioButton,
-    QMessageBox,
-    QSpinBox,
-    QPushButton,
-    QVBoxLayout,
-    QComboBox,
-    QGridLayout,
-    QHBoxLayout,
-    QVBoxLayout,
     QButtonGroup,
-    QGroupBox,
     QCheckBox,
+    QComboBox,
     QDesktopWidget,
+    QDialog,
+    QGridLayout,
+    QGroupBox,
+    QHBoxLayout,
+    QLabel,
+    QLineEdit,
+    QMessageBox,
+    QPushButton,
+    QRadioButton,
+    QSpinBox,
+    QVBoxLayout,
 )
+
+from ..gui import help_windows, io
+from . import models
 
 """
 Single workflow for re-training the model or fine-tuning the model with new data.

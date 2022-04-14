@@ -4,9 +4,9 @@ Facemap model trained for generating pose estimates. Contains functions for:
 - Model class 
 """
 import os
+import shutil
 from pathlib import Path
 from urllib.request import urlretrieve
-import shutil
 
 MODEL_PARAMS_URL = "https://www.facemappy.org/models/facemap_model_params.pth"
 MODEL_STATE_URL = "https://www.facemappy.org/models/facemap_model_state.pt"

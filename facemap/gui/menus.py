@@ -1,9 +1,10 @@
-from PyQt5 import QtCore, QtWidgets
 import os
-from . import io
-from PyQt5.QtGui import QPixmap, QFont, QPainterPath, QPainter, QBrush
-from PyQt5.QtWidgets import QAction, QLabel, QDesktopWidget
-from . import help_windows
+
+from PyQt5 import QtCore, QtWidgets
+from PyQt5.QtGui import QBrush, QFont, QPainter, QPainterPath, QPixmap
+from PyQt5.QtWidgets import QAction, QDesktopWidget, QLabel
+
+from . import help_windows, io
 
 
 def mainmenu(parent):
@@ -65,9 +66,7 @@ def mainmenu(parent):
 
 
 def launch_user_manual(parent):
-    help_windows.RefinementHelpWindow(
-        parent, QDesktopWidget().screenGeometry(-1)
-    )  # .MainWindowHelp(parent, QDesktopWidget().screenGeometry(-1))
+    help_windows.MainWindowHelp(parent, QDesktopWidget().screenGeometry(-1))
 
 
 class DrawWidget(QtWidgets.QWidget):

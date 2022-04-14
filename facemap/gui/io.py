@@ -1,10 +1,14 @@
-import os, glob
-import numpy as np
-from . import guiparts
-from facemap import roi, utils
-from natsort import natsorted
+import glob
+import os
 import pickle
+
+import numpy as np
+from natsort import natsorted
 from PyQt5.QtWidgets import QFileDialog, QMessageBox
+
+from facemap import roi, utils
+
+from . import guiparts
 
 
 def open_file(parent, file_name=None):

@@ -1,28 +1,30 @@
-import umap
+import os
+
+import cv2
 import numpy as np
-from PyQt5 import QtCore, QtWidgets
 import pyqtgraph as pg
+import umap
+
+# import hdbscan
+from matplotlib import cm
+from PyQt5 import QtCore, QtWidgets
+from PyQt5.QtGui import QFont
+from PyQt5.QtWidgets import (
+    QButtonGroup,
+    QCheckBox,
+    QLabel,
+    QLineEdit,
+    QMessageBox,
+    QPushButton,
+    QRadioButton,
+    QSpinBox,
+)
 
 # import pyqtgraph.opengl as gl
 from sklearn.cluster import MiniBatchKMeans
 
-# import hdbscan
-from matplotlib import cm
 from facemap import utils
 from facemap.gui import io
-import cv2
-import os
-from PyQt5.QtGui import QFont
-from PyQt5.QtWidgets import (
-    QLabel,
-    QPushButton,
-    QRadioButton,
-    QSpinBox,
-    QButtonGroup,
-    QMessageBox,
-    QLineEdit,
-    QCheckBox,
-)
 
 
 class Cluster:

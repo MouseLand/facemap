@@ -11,18 +11,18 @@ import pyqtgraph as pg
 from guiparts import ImageDraw, RangeSlider, ViewBoxNoRightDrag
 from mxnet import nd
 from PyQt5 import QtCore, QtGui, QtWidgets
-from skimage import draw, io
 from PyQt5.QtWidgets import (
+    QAction,
+    QCheckBox,
+    QComboBox,
+    QFileDialog,
+    QGridLayout,
     QLabel,
     QPushButton,
-    QFileDialog,
-    QWidget,
-    QAction,
-    QGridLayout,
     QSlider,
-    QComboBox,
-    QCheckBox,
+    QWidget,
 )
+from skimage import draw, io
 
 
 def make_bwr():
