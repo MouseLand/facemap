@@ -54,7 +54,7 @@ class MainW(QtGui.QMainWindow):
         self.setGeometry(50, 50, 850, 850)
         self.setWindowTitle("train eyenet")
         icon_path = os.path.join(
-            os.path.dirname(os.path.realpath(__file__)), "logo/logo.png"
+            os.path.dirname(os.path.realpath(__file__)), "../mouse.png"
         )
         app_icon = QtGui.QIcon()
         app_icon.addFile(icon_path, QtCore.QSize(16, 16))
@@ -172,7 +172,7 @@ class MainW(QtGui.QMainWindow):
         # choose models
         self.ModelChoose = QComboBox()
         self.model_dir = os.path.abspath(
-            os.path.join(os.path.dirname(__file__), "..", "models")
+            os.path.join(os.path.dirname(), "..", "models")
         )
         models = glob(self.model_dir + "/*")
         models = [os.path.split(m)[-1] for m in models]
@@ -721,7 +721,7 @@ if __name__ == "__main__":
     warnings.filterwarnings("ignore")
     app = QtGui.QApplication(sys.argv)
     icon_path = os.path.join(
-        os.path.dirname(os.path.realpath(__file__)), "logo/logo.png"
+        os.path.dirname(os.path.realpath(__file__)), "../mouse.png"
     )
     app_icon = QtGui.QIcon()
     app_icon.addFile(icon_path, QtCore.QSize(16, 16))

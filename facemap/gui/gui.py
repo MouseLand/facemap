@@ -39,8 +39,9 @@ class MainW(QtWidgets.QMainWindow):
     def __init__(self, moviefile=None, savedir=None):
         super(MainW, self).__init__()
         icon_path = os.path.join(
-            os.path.dirname(os.path.realpath(__file__)), "mouse.png"
+            os.path.dirname(os.path.realpath(__file__)), "../mouse.png"
         )
+        print("icon path", icon_path)
         app_icon = QIcon()
         app_icon.addFile(icon_path, QtCore.QSize(16, 16))
         app_icon.addFile(icon_path, QtCore.QSize(24, 24))
@@ -1602,7 +1603,9 @@ class MainW(QtWidgets.QMainWindow):
 def run(moviefile=None, savedir=None):
     # Always start by initializing Qt (only once per application)
     app = QtWidgets.QApplication(sys.argv)
-    icon_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "mouse.png")
+    icon_path = os.path.join(
+        os.path.dirname(os.path.realpath(__file__)), "../mouse.png"
+    )
     app_icon = QIcon()
     app_icon.addFile(icon_path, QtCore.QSize(16, 16))
     app_icon.addFile(icon_path, QtCore.QSize(24, 24))

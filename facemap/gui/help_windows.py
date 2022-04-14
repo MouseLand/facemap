@@ -107,6 +107,72 @@ class MainWindowHelp(QDialog):
         self.show()
 
 
+class AboutWindow(QDialog):
+    def __init__(self, parent=None, window_size=None):
+        super(AboutWindow, self).__init__(parent)
+        width, height = int(window_size.width() * 0.28), int(
+            window_size.height() * 0.42
+        )
+        self.resize(width, height)
+        self.setWindowTitle("About")
+        self.setStyleSheet("QDialog {background: 'black';}")
+        self.win = QWidget(self)
+        layout = QVBoxLayout()
+        layout.setAlignment(QtCore.Qt.AlignCenter)
+        self.win.setLayout(layout)
+
+        # Add a logo image
+        logo_width = int(window_size.width() * 0.15)
+        logo_height = int(window_size.height() * 0.15)
+        logo_path = os.path.join(os.path.dirname(__file__), "..", "mouse.png")
+        logo_pixmap = QPixmap(logo_path)
+        logo_pixmap = logo_pixmap.scaled(logo_width, logo_height, Qt.KeepAspectRatio)
+        logo_label = QLabel(self)
+        logo_label.setPixmap(logo_pixmap)
+        layout.addWidget(logo_label, alignment=QtCore.Qt.AlignCenter, stretch=1)
+
+        # Add a text section
+        header_text = """
+            <h1>Facemap</h1>
+            """
+        header_text = QLabel(header_text, self)
+        header_text.setStyleSheet(
+            "font-size: 12pt; font-family: Arial; color: white; text-align: center; "
+        )
+        header_text.setWordWrap(True)
+        header_text.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+        layout.addWidget(header_text, stretch=1, alignment=QtCore.Qt.AlignCenter)
+
+        text = """
+            <p>
+            Pose tracking of mouse face from different camera views (python only) and svd processing of videos (python and MATLAB).
+            </p>
+            <p>
+            <b>Authors:</b> Carsen Stringer & Atika Syeda & Renee Tung
+            </p>
+            <p>
+            <b>Contact:</b> syedaa[at]janelia.hhmi.org, stringerc[at]janelia.hhmi.org
+            <p>
+            <b>License:</b> GPLv3
+            </p>
+            <p>
+            <b>Version:</b> 0.2.0
+            </p>
+            <p>
+            Visit our <a href="https://github.com/MouseLand/FaceMap"> github page </a> for more information.
+            </p>
+        """
+        text = QLabel(text, self)
+        text.setStyleSheet(
+            "font-size: 12pt; font-family: Arial; color: white; text-align: center; "
+        )
+        text.setWordWrap(True)
+        text.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+        layout.addWidget(text, stretch=1)
+
+        self.show()
+
+
 class PoseRefinementStep2HelpWindow(QDialog):
     def __init__(self, parent=None, window_size=None):
         super(PoseRefinementStep2HelpWindow, self).__init__(parent)
@@ -245,7 +311,7 @@ class RefinementHelpWindow(QDialog):
         self.ok_button = QPushButton("Ok")
         self.ok_button.clicked.connect(self.close)
         self.ok_button.setStyleSheet(
-            "background: 'black'; color: 'white'; font-size: 12pt;     font-family: Arial; "
+            "background: 'black'; color: 'white'; font-size: 12pt; font-family: Arial; "
         )
         layout.addWidget(self.ok_button, alignment=QtCore.Qt.AlignCenter)
 

@@ -49,6 +49,10 @@ def mainmenu(parent):
     user_manual.triggered.connect(lambda: launch_user_manual(parent))
     parent.addAction(user_manual)
 
+    about_option = QAction("About", parent)
+    about_option.triggered.connect(lambda: show_about(parent))
+    parent.addAction(about_option)
+
     # make mainmenu!
     main_menu = parent.menuBar()
     file_menu = main_menu.addMenu("&File")
@@ -63,10 +67,15 @@ def mainmenu(parent):
     pose_menu.addAction(train_model)
     help_menu = main_menu.addMenu("&Help")
     help_menu.addAction(user_manual)
+    help_menu.addAction(about_option)
 
 
 def launch_user_manual(parent):
     help_windows.MainWindowHelp(parent, QDesktopWidget().screenGeometry(-1))
+
+
+def show_about(parent):
+    help_windows.AboutWindow(parent, QDesktopWidget().screenGeometry(-1))
 
 
 class DrawWidget(QtWidgets.QWidget):
@@ -74,7 +83,7 @@ class DrawWidget(QtWidgets.QWidget):
         super(DrawWidget, self).__init__(*args, **kwargs)
         self.setFixedSize(630, 470)
         icon_path = os.path.join(
-            os.path.dirname(os.path.realpath(__file__)), "mouse.png"
+            os.path.dirname(os.path.realpath(__file__)), "../mouse.png"
         )
         self.logo = QPixmap(icon_path).scaled(
             120, 90, QtCore.Qt.KeepAspectRatio, QtCore.Qt.SmoothTransformation
