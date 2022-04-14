@@ -24,7 +24,6 @@ from PyQt5.QtWidgets import (
     QCheckBox,
 )
 
-
 class Cluster:
     def __init__(
         self,

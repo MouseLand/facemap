@@ -3,10 +3,7 @@ import numpy as np
 from scipy.interpolate import interp1d
 from scipy.linalg import eigh
 from scipy.ndimage import gaussian_filter1d
-from scipy.sparse.linalg import eigsh
 from sklearn.decomposition import PCA
-from tqdm import tqdm
-
 
 def update_mainwindow_progressbar(MainWindow, GUIobject, s, prompt):
     if MainWindow is not None and GUIobject is not None:

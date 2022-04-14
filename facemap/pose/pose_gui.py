@@ -3,7 +3,7 @@ import pyqtgraph as pg
 from PyQt5 import QtWidgets
 from PyQt5.QtWidgets import QDialog, QPushButton
 
-from facemap import roi, utils
+from facemap import utils
 from facemap.pose import pose
 from . import transforms
 

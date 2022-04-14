@@ -2,12 +2,10 @@
 # N-1. If the movement is larger than half the frame size, outputs NaN.
 # ops.yrange, xrange are ranges to use for rectangular section of movie
 import numpy as np
-from numba import complex64, float32, int16, uint8, vectorize
+from numba import complex64, vectorize
 from numpy.fft import fft2, ifft2, ifftshift
-from scipy.fftpack import next_fast_len
 
 eps0 = 1e-20
-
 
 def spatial_taper(sig, Ly, Lx):
     """spatial taper  on edges with gaussian of std sig"""

@@ -1,7 +1,6 @@
 import numpy as np
 from scipy.ndimage import gaussian_filter
 
-
 def fit_gaussian(im, sigma=2.0, do_xy=False, missing=None):
     """iterative fitting of pupil with gaussian @ sigma"""
     ix, iy = im.nonzero()

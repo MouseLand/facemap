@@ -1,7 +1,5 @@
-import os, glob, sys
+import os, glob
 import numpy as np
-from PyQt5 import QtGui, QtCore
-import pyqtgraph as pg
 from . import guiparts
 from facemap import roi, utils
 from natsort import natsorted

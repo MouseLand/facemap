@@ -1,7 +1,5 @@
 import os
 import time
-from tkinter import N
-from tkinter.messagebox import NO
 from tqdm import tqdm
 
 import numpy as np
@@ -9,7 +7,6 @@ import pandas as pd
 import torch
 import pickle
 from io import StringIO
-from glob import glob
 
 from facemap import utils
 
@@ -22,6 +19,8 @@ Contains functions that can be used through CLI or GUI
 Currently supports single video processing, whereas multi-view videos recorded simultaneously are processed sequentially.
 """
 
+# TO-DO:
+# Support other batch sizes depending on GPU memory and CPU
 
 class Pose:
     def __init__(
@@ -223,8 +222,7 @@ class Pose:
         Predict labels for all frames in video and save output as .h5 file
         """
         nchannels = 1
-        # TO-DO:
-        # Support other batch sizes depending on GPU memory and CPU
+
         if torch.cuda.is_available():
             batch_size = 1
         else:

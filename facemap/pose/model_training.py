@@ -1,8 +1,6 @@
 ## Import packages
 import numpy as np
 import torch
-import torch.nn as nn
-import torch.nn.functional as F
 from torch import optim
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -13,7 +11,6 @@ from tqdm import tqdm
 from PyQt5 import QtWidgets
 from PyQt5.QtWidgets import (
     QProgressBar,
-    QProgressDialog,
     QDesktopWidget,
     QPushButton,
     QDialog,

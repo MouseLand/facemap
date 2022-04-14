@@ -1,7 +1,6 @@
-from PyQt5 import QtGui, QtCore, QtWidgets
-import pyqtgraph as pg
+from PyQt5 import QtCore, QtWidgets
 import os
-from . import guiparts, io
+from . import io
 from PyQt5.QtGui import QPixmap, QFont, QPainterPath, QPainter, QBrush
 from PyQt5.QtWidgets import QAction, QLabel
 

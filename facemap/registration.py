@@ -16,7 +16,6 @@ from . import process, utils
 MOTION TRACES
 """
 
-
 def imall_init(nfr, Ly, Lx):
     imall = []
     for n in range(len(Ly)):

@@ -1,6 +1,5 @@
 from PyQt5 import QtGui, QtCore, QtWidgets
 import pyqtgraph as pg
-from pyqtgraph import functions as fn
 from pyqtgraph import Point
 import numpy as np
 from PyQt5.QtWidgets import (

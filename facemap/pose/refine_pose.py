@@ -1,5 +1,4 @@
 import os
-from tkinter import N
 import pyqtgraph as pg
 import numpy as np
 from ..gui import io, help_windows

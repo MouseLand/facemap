@@ -1,9 +1,6 @@
 import numpy as np
 import pyqtgraph as pg
 from PyQt5 import QtCore
-from pyqtgraph import GraphicsScene
-from scipy.ndimage import gaussian_filter
-from scipy.stats import skew, zscore
 
 from facemap import pupil, utils
 
@@ -16,7 +13,6 @@ from facemap import pupil, utils
 colors = np.array(
     [[0, 200, 50], [180, 0, 50], [40, 100, 250], [150, 50, 150], [0, 255, 255]]
 )
-
 
 class reflectROI:
     def __init__(

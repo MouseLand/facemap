@@ -2,15 +2,11 @@
 import numpy as np
 
 print("numpy version: %s" % np.__version__)
-import os  # file path stuff
 import random
-from glob import glob  # listing files
 from platform import python_version
 
 import cv2  # opencv
 import torch  # pytorch
-import torch.nn as nn
-import torch.nn.functional as F
 from scipy.ndimage import gaussian_filter
 
 print("python version:", python_version())

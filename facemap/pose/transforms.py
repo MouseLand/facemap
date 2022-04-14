@@ -6,11 +6,9 @@ Facemap functions for:
 """
 import cv2
 import numpy as np
-import torchvision.transforms as transforms
 from torch.nn import functional as F
 
 from . import pose_helper_functions
-
 
 def preprocess_img(im):
     """

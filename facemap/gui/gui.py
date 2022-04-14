@@ -9,7 +9,7 @@ import pandas as pd
 from . import io, menus, guiparts
 from facemap import process, roi, utils, cluster
 from facemap.pose import pose_gui, pose, refine_pose
-from PyQt5.QtGui import QPixmap, QFont, QPainterPath, QIcon
+from PyQt5.QtGui import QFont, QPainterPath, QIcon
 from PyQt5.QtWidgets import (
     QLabel,
     QPushButton,

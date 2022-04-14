@@ -1,9 +1,6 @@
 import argparse
-import copy
 import os
-import shutil
 import sys
-import time
 import warnings
 from glob import glob
 
@@ -11,13 +8,10 @@ import matplotlib.pyplot as plt
 import mxnet as mx
 import numpy as np
 import pyqtgraph as pg
-from guiparts import ImageDraw, RangeSlider, RGBRadioButtons, ViewBoxNoRightDrag
+from guiparts import ImageDraw, RangeSlider, ViewBoxNoRightDrag
 from mxnet import nd
-from PyQt5 import Qt, QtCore, QtGui, QtWidgets
-from pyqtgraph import GraphicsScene
-from scipy.interpolate import interp1d
-from scipy.ndimage import gaussian_filter1d
-from skimage import draw, io, measure, segmentation, transform
+from PyQt5 import QtCore, QtGui, QtWidgets
+from skimage import draw, io
 from PyQt5.QtWidgets import (
     QLabel,
     QPushButton,
@@ -29,9 +23,6 @@ from PyQt5.QtWidgets import (
     QComboBox,
     QCheckBox,
 )
-
-from .gui import guiparts
-
 
 def make_bwr():
     # make a bwr colormap
