@@ -111,7 +111,6 @@ class RefinementHelpWindow(QDialog):
         self.scrollArea.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOn)
         self.scrollArea.setStyleSheet("background: 'black'; ")
         self.scrollArea.setWidget(self.win)
-        # layout.addWidget(self.scrollArea)
 
         # Create an image groupbox with horizontal layout
         self.img_groupbox = QGroupBox()
@@ -122,30 +121,67 @@ class RefinementHelpWindow(QDialog):
         curr_dir = os.path.dirname(os.path.abspath(__file__))
         # Get path that excludes last two directories
         curr_dir = os.path.join(curr_dir, "..", "..")
-        # Get path to image
+
+        # Create first image groupbox
+        image1_groupbox = QGroupBox()
+        image1_groupbox.setLayout(QVBoxLayout())
+        image1_groupbox.layout().setSpacing(10)
+        # Add header to image groupbox
+        image1_header = QLabel("<h4>Side view</h4>")
+        image1_header.setStyleSheet(
+            "font-size: 14pt; font-family: Arial; color: white;"
+        )
+        image1_groupbox.layout().addWidget(
+            image1_header, alignment=QtCore.Qt.AlignCenter
+        )
+        # Get path to first image
         image_path = os.path.join(curr_dir, "figs", "mouse_face1_keypoints.png")
         # resize image
         image = QLabel()
+        image.setStyleSheet(
+            "background: 'black'; border: 1px; border-style: solid; border-color: white;"
+        )
         pixmap = QPixmap(image_path)
         pixmap = pixmap.scaled(img_width, img_height, QtCore.Qt.KeepAspectRatio)
         image.setPixmap(pixmap)
-        self.img_groupbox.layout().addWidget(image, alignment=QtCore.Qt.AlignLeft)
+        image1_groupbox.layout().addWidget(image)
+        self.img_groupbox.layout().addWidget(
+            image1_groupbox, alignment=QtCore.Qt.AlignLeft
+        )
 
         # Add another image to the help window
+        # Create first image groupbox
+        image2_groupbox = QGroupBox()
+        image2_groupbox.setLayout(QVBoxLayout())
+        image2_groupbox.layout().setSpacing(10)
+        # Add header to image groupbox
+        image2_header = QLabel("<h4>Top view</h4>")
+        image2_header.setStyleSheet(
+            "font-size: 14pt; font-family: Arial; color: white;"
+        )
+        image2_groupbox.layout().addWidget(
+            image2_header, alignment=QtCore.Qt.AlignCenter
+        )
         image_path = os.path.join(curr_dir, "figs", "mouse_face0_keypoints.png")
         # resize image
         image = QLabel()
+        image.setStyleSheet(
+            "background: 'black'; border: 1px; border-style: solid; border-color: white;"
+        )
         pixmap = QPixmap(image_path)
         pixmap = pixmap.scaled(img_width, img_height, QtCore.Qt.KeepAspectRatio)
         image.setPixmap(pixmap)
-        self.img_groupbox.layout().addWidget(image, alignment=QtCore.Qt.AlignRight)
+        image2_groupbox.layout().addWidget(image)
+        self.img_groupbox.layout().addWidget(
+            image2_groupbox, alignment=QtCore.Qt.AlignRight
+        )
 
         layout.addWidget(self.img_groupbox, alignment=QtCore.Qt.AlignCenter)
 
         text = """
             <h2>Labelling instructions</h2>
             <p>
-            Keypoints for different facial regions are labelled as follows:
+            Keypoints for different facial regions are labelled as shown above in the side view and top view. Detailed instructions for each region are given below for different views:
             </p>
             <h3>Eye</h3>
             <ul>
@@ -211,7 +247,7 @@ class RefinementHelpWindow(QDialog):
             """
         label = QLabel(text)
         label.setStyleSheet(
-            "font-size: 12pt; font-family: Arial; color: white; text-align: center; "
+            "font-size: 12pt; font-family: Arial; color: white; text-align: center; padding: 15;"
         )
         label.setWordWrap(True)
         label.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)

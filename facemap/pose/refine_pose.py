@@ -761,7 +761,10 @@ class ModelTrainingPopup(QDialog):
         # Add a keyPressEvent for deleting the selected keypoint using the delete key and set the value to NaN
 
     def keyPressEvent(self, ev):
-        if ev.key() in (QtCore.Qt.Key_Backspace, QtCore.Qt.Key_Delete):
+        if ev.key() in (
+            QtCore.Qt.Key_Backspace,
+            QtCore.Qt.Key_Delete,
+        ):  # TODO: make this work for mac. Change key or use modifiers
             self.delete_keypoint()
         else:
             return

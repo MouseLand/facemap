@@ -65,7 +65,9 @@ def mainmenu(parent):
 
 
 def launch_user_manual(parent):
-    help_windows.MainWindowHelp(parent, QDesktopWidget().screenGeometry(-1))
+    help_windows.RefinementHelpWindow(
+        parent, QDesktopWidget().screenGeometry(-1)
+    )  # .MainWindowHelp(parent, QDesktopWidget().screenGeometry(-1))
 
 
 class DrawWidget(QtWidgets.QWidget):
