@@ -7,6 +7,7 @@ from numpy.fft import fft2, ifft2, ifftshift
 
 eps0 = 1e-20
 
+
 def spatial_taper(sig, Ly, Lx):
     """spatial taper  on edges with gaussian of std sig"""
     x = np.arange(0, Lx)

@@ -19,8 +19,6 @@ Contains functions that can be used through CLI or GUI
 Currently supports single video processing, whereas multi-view videos recorded simultaneously are processed sequentially.
 """
 
-# TO-DO:
-# Support other batch sizes depending on GPU memory and CPU
 
 class Pose:
     def __init__(
@@ -223,9 +221,11 @@ class Pose:
         """
         nchannels = 1
 
-        if torch.cuda.is_available():
+        if (
+            torch.cuda.is_available()
+        ):  # TODO - Support other batch sizes depending on GPU memory and CPU
             batch_size = 1
-        else:
+        else:  # TODO - Optimize for CPU usage
             batch_size = 1
 
         total_frames = self.cumframes[-1]

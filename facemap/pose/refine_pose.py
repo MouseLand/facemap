@@ -502,14 +502,22 @@ class ModelTrainingPopup(QDialog):
     def show_step_3(self):
         if self.use_current_video:
             self.show_refinement_options()
-        else:
+        elif len(self.selected_videos) > 0:
             self.train_model()
+        else:
+            # Show error message
+            self.error_message = QMessageBox()
+            self.error_message.setIcon(QMessageBox.Critical)
+            self.error_message.setText("Please select at least one video for training.")
+            self.error_message.setWindowTitle("Error")
+            self.error_message.exec_()
+        return
 
     def show_refinement_options(self, predict_frame_index=None):
 
         self.clear_window()
         self.update_window_title("Step 3: Refine keypoints")
-        self.update_window_size(0.5, aspect_ratio=1.3)
+        self.update_window_size(0.6, aspect_ratio=1.3)
 
         if len(self.random_frames_ind) == 0:
             self.random_frames_ind = self.get_random_frames(
@@ -1092,10 +1100,10 @@ class KeypointsGraph(pg.GraphItem):
             and QMouseEvent.modifiers() == QtCore.Qt.ControlModifier
         ):
             QMouseEvent.accept()
-            self.right_click_keypoint(QMouseEvent)
+            self.right_click_add_keypoint(QMouseEvent)
         elif QMouseEvent.button() == QtCore.Qt.RightButton:
             QMouseEvent.accept()
-            self.right_click_keypoint(QMouseEvent)
+            self.right_click_add_keypoint(QMouseEvent)
         elif QMouseEvent.button() == QtCore.Qt.LeftButton:
             QMouseEvent.accept()
             super().mousePressEvent(QMouseEvent)
@@ -1153,7 +1161,12 @@ class KeypointsGraph(pg.GraphItem):
         self.parent.radio_buttons[ind].clicked.emit(True)
 
     # Add feature for adding a keypoint to the scatterplot
-    def right_click_keypoint(self, mouseEvent=None):
+    def right_click_add_keypoint(
+        self, mouseEvent=None
+    ):  # FIXME: This does not always work after clicking radio button
+        """
+        Use right click to add a keypoint to the scatter plot (if the keypoint is not already present)
+        """
         # Get the name of the bodypart selected in the radio buttons
         bp_selected = None
         selected_bp_ind = None

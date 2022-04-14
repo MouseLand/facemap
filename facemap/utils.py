@@ -5,6 +5,7 @@ from scipy.linalg import eigh
 from scipy.ndimage import gaussian_filter1d
 from sklearn.decomposition import PCA
 
+
 def update_mainwindow_progressbar(MainWindow, GUIobject, s, prompt):
     if MainWindow is not None and GUIobject is not None:
         message = s.getvalue().split("\x1b[A\n\r")[0].split("\r")[-1]

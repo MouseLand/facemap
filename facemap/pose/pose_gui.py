@@ -150,7 +150,7 @@ class ROI_popup(QDialog):
         self.pose.bbox.append([x1, x2, y1, y2, False])
         self.close()
 
-    def cancel_exec(self):
+    def cancel_exec(self):  # TODO: add functionality to cancel training/prediction loop
         self.pose.cancel = True
         self.close()
 

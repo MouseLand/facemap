@@ -4,15 +4,19 @@ from facemap.gui import gui
 from facemap import process
 import argparse
 
+
 def tic():
     return time.time()
+
 
 def toc(i0):
     return time.time() - i0
 
+
 def main():
     ops = np.load("ops.npy")
     ops = ops.item()
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Movie files")

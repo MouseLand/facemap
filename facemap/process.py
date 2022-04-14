@@ -9,6 +9,7 @@ from tqdm import tqdm
 
 from facemap import pupil, running, utils
 
+
 def binned_inds(Ly, Lx, sbin):
     Lyb = np.zeros((len(Ly),), np.int32)
     Lxb = np.zeros((len(Ly),), np.int32)

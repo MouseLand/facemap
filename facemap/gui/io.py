@@ -45,14 +45,19 @@ def open_folder(parent, folder_name=None):
                 ]
                 file_name.extend(files)
         if len(file_name) > 1:
-            choose_files(parent, file_name)
-            load_movies(parent)
+            files = choose_files(parent, file_name)
+            if files is not None:
+                load_movies(parent)
+            else:
+                return None
 
 
 def choose_files(parent, file_name):
     parent.filelist = file_name
     LC = guiparts.ListChooser("Choose movies", parent)
     result = LC.exec_()
+    if result == 0:
+        return None
     if len(parent.filelist) == 0:
         parent.filelist = file_name
     parent.filelist = natsorted(parent.filelist)
@@ -93,6 +98,7 @@ def choose_files(parent, file_name):
     else:
         parent.filelist = [parent.filelist]
     parent.filelist = natsorted(parent.filelist)
+    return parent.filelist
 
 
 def open_proc(parent, file_name=None):

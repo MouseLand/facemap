@@ -10,6 +10,7 @@ from torch.nn import functional as F
 
 from . import pose_helper_functions
 
+
 def preprocess_img(im):
     """
     Preproccesing of image involves: conversion to float32 in range0-1, normalize99, and padding image size to be

@@ -24,6 +24,7 @@ from PyQt5.QtWidgets import (
     QCheckBox,
 )
 
+
 def make_bwr():
     # make a bwr colormap
     b = np.append(255 * np.ones(128), np.linspace(0, 255, 128)[::-1])[:, np.newaxis]
