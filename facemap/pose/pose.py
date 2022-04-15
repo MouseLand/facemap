@@ -123,7 +123,7 @@ class Pose:
             self.gui.poseFilepath.append(savepath)
         else:
             self.gui.poseFilepath[video_id] = savepath
-        self.gui.load_labels()
+        self.gui.load_keypoints()
         self.gui.Labels_checkBox.setChecked(False)
         self.gui.Labels_checkBox.setChecked(True)
         self.gui.start()
@@ -410,7 +410,7 @@ class Pose:
     def plot_pose_estimates(self):
         # Plot labels
         self.gui.poseFileLoaded = True
-        self.gui.load_labels()
+        self.gui.load_keypoints()
         self.gui.Labels_checkBox.setChecked(True)
 
     def load_model(self, model_state_file=None):

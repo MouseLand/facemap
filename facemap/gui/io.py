@@ -360,7 +360,7 @@ def get_pose_file(parent):
     else:
         parent.poseFilepath = natsorted(filelist[0])
         parent.poseFileLoaded = True
-        parent.load_labels()
+        parent.load_keypoints()
         parent.Labels_checkBox.setChecked(True)
         parent.update_status_bar("Pose file(s) loaded")
 
