@@ -106,6 +106,8 @@ class MainWindowHelp(QDialog):
 
         self.show()
 
+        # TODO - Add instructions for filetypes accepted for different load buttons
+
 
 class AboutWindow(QDialog):
     def __init__(self, parent=None, window_size=None):

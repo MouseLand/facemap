@@ -30,6 +30,12 @@ def mainmenu(parent):
     setOutputFolder.triggered.connect(lambda: io.save_folder(parent))
     parent.addAction(setOutputFolder)
 
+    # Load neural data
+    loadNeural = QAction("Load neural data", parent)
+    loadNeural.setShortcut("Ctrl+N")
+    loadNeural.triggered.connect(lambda: io.load_neural_data(parent))
+    parent.addAction(loadNeural)
+
     loadPose = QAction("Load keypoints", parent)
     # loadPose.setShortcut("Ctrl+P")
     loadPose.triggered.connect(lambda: io.get_pose_file(parent))
@@ -55,16 +61,20 @@ def mainmenu(parent):
 
     # make mainmenu!
     main_menu = parent.menuBar()
+
     file_menu = main_menu.addMenu("&File")
     file_menu.grabShortcut("Ctrl+F")
     file_menu.addAction(openFile)
     file_menu.addAction(openFolder)
     file_menu.addAction(loadProc)
     file_menu.addAction(setOutputFolder)
+    file_menu.addAction(loadNeural)
+
     pose_menu = main_menu.addMenu("Pose")
     pose_menu.addAction(loadPose)
     pose_menu.addAction(load_finetuned_model)
     pose_menu.addAction(train_model)
+
     help_menu = main_menu.addMenu("&Help")
     help_menu.addAction(user_manual)
     help_menu.addAction(about_option)
@@ -76,45 +86,3 @@ def launch_user_manual(parent):
 
 def show_about(parent):
     help_windows.AboutWindow(parent, QDesktopWidget().screenGeometry(-1))
-
-
-class DrawWidget(QtWidgets.QWidget):
-    def __init__(self, *args, **kwargs):
-        super(DrawWidget, self).__init__(*args, **kwargs)
-        self.setFixedSize(630, 470)
-        icon_path = os.path.join(
-            os.path.dirname(os.path.realpath(__file__)), "../mouse.png"
-        )
-        self.logo = QPixmap(icon_path).scaled(
-            120, 90, QtCore.Qt.KeepAspectRatio, QtCore.Qt.SmoothTransformation
-        )
-        self.logoLabel = QLabel(self)
-        self.logoLabel.setPixmap(self.logo)
-        self.logoLabel.setScaledContents(True)
-        self.logoLabel.move(240, 10)
-        self.logoLabel.setAlignment(QtCore.Qt.AlignCenter)
-        self.helpText = QtWidgets.QPlainTextEdit(self)
-        self.helpText.move(10, 160)
-        self.helpText.resize(580, 400)
-        self.helpText.setReadOnly(True)
-
-    def paintEvent(self, event):
-        painter = QPainter(self)
-        painter.setRenderHint(QPainter.Antialiasing)
-        painter.setBrush(QBrush(QtCore.Qt.black))
-        painter.setPen(QtCore.Qt.NoPen)
-        path = QPainterPath()
-        path.addText(QtCore.QPoint(235, 130), QFont("Times", 30, QFont.Bold), "Facemap")
-        help_text = "Help content"
-        path.addText(QtCore.QPoint(10, 150), QFont("Times", 20), help_text)
-        painter.drawPath(path)
-
-
-class Dialog(QtWidgets.QDialog):
-    def __init__(self, parent):
-        super(Dialog, self).__init__(parent)
-        scroll_area = QtWidgets.QScrollArea(widgetResizable=True)
-        draw_widget = DrawWidget()
-        scroll_area.setWidget(draw_widget)
-        lay = QtWidgets.QVBoxLayout(self)
-        lay.addWidget(scroll_area)

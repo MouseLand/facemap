@@ -337,6 +337,27 @@ def load_movies(parent, filelist=None):
     return good
 
 
+def load_neural_data(parent):
+    # Open a file dialog to select a folder
+    file_name = QFileDialog.getOpenFileName(
+        parent, "Select a file", "", "Neural data files (*.npy *.npz)"
+    )[0]
+    # Check if path exists
+    if file_name:
+        parent.neural_data = np.load(file_name, allow_pickle=True)
+        parent.neural_data_file = file_name
+        parent.neural_data_loaded = True
+        parent.plot_neural_data()
+    else:
+        # Open a qmessagebox to inform the user that the path does not exist
+        msg = QMessageBox()
+        msg.setIcon(QMessageBox.Warning)
+        msg.setText("Filepath does not exist")
+        msg.setWindowTitle("Warning")
+        msg.exec_()
+        return None
+
+
 def save_folder(parent):
     folderName = QFileDialog.getExistingDirectory(parent, "Choose save folder")
     # load ops in same folder

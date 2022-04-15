@@ -169,20 +169,25 @@ class MainW(QtWidgets.QMainWindow):
         self.p1.hideAxis("left")
         self.scatter1 = pg.ScatterPlotItem()
         self.p1.addItem(self.scatter1)
+
         self.p2 = self.win.addPlot(
             name="plot2", row=2, col=0, colspan=2, title="Plot 2"
         )
-        self.traces1 = None
         self.p2.setMouseEnabled(x=True, y=False)
         self.p2.setMenuEnabled(False)
         self.p2.hideAxis("left")
         self.scatter2 = pg.ScatterPlotItem()
         self.p2.addItem(self.scatter1)
         self.p2.setXLink("plot1")
-        self.traces2 = None
+
         self.win.ci.layout.setRowStretchFactor(0, 4)
         self.nframes = 0
         self.cframe = 0
+        self.traces1 = None
+        self.traces2 = None
+        self.neural_data = None
+        self.neural_data_file = None
+        self.neural_data_loaded = False
 
         ## Pose plot
         self.Pose_scatterplot = pg.ScatterPlotItem(hover=True)
@@ -339,7 +344,6 @@ class MainW(QtWidgets.QMainWindow):
 
         # Create ROI features
         self.comboBox = QComboBox(self)
-        self.comboBox.setFixedWidth(200)
         self.comboBox.addItem("Select ROI")
         self.comboBox.addItem("Pupil")
         self.comboBox.addItem("motion SVD")
@@ -352,7 +356,6 @@ class MainW(QtWidgets.QMainWindow):
         self.addROI = QPushButton("Add ROI")
         self.addROI.setFont(QFont("Arial", 10, QFont.Bold))
         self.addROI.clicked.connect(lambda clicked: self.add_ROI())
-        self.addROI.setFixedWidth(150)
         self.addROI.setEnabled(False)
 
         # Add clustering analysis/visualization features
@@ -419,7 +422,7 @@ class MainW(QtWidgets.QMainWindow):
         # Add features to window
         # ~~~~~~~~~~ motsvd/movsvd options ~~~~~~~~~~
         self.l0.addWidget(VideoLabel, 0, 0, 1, 2)
-        self.l0.addWidget(self.comboBox, 1, 0, 1, 2)
+        self.l0.addWidget(self.comboBox, 1, 0, 1, 1)
         self.l0.addWidget(self.addROI, 1, 1, 1, 1)
         self.l0.addWidget(self.reflector, 0, 14, 1, 2)
         self.l0.addWidget(SVDbinLabel, 2, 0, 1, 2)
@@ -539,10 +542,11 @@ class MainW(QtWidgets.QMainWindow):
         self.ClusteringPlot_legend.clear()
         # Clear keypoints when a new file is loaded
         self.Pose_scatterplot.clear()
-        # self.p0.clear()
         self.poseFileLoaded = False
         self.trace1_data_loaded = None
         self.trace2_data_loaded = None
+        self.traces1 = None
+        self.traces2 = None
         # clear checkboxes
         for k in range(len(self.cbs1)):
             self.cbs1[k].setText("")
@@ -562,6 +566,13 @@ class MainW(QtWidgets.QMainWindow):
         self.keypoints_brushes = []
         self.bbox = []
         self.bbox_set = False
+        # Update neural data variables
+        self.neural_data = None
+        self.neural_data_file = None
+        self.neural_data_loaded = False
+        # Clear plots
+        self.p1.clear()
+        self.p2.clear()
 
     def pupil_sigma_change(self):
         self.pupil_sigma = float(self.sigmaBox.text())
@@ -726,6 +737,7 @@ class MainW(QtWidgets.QMainWindow):
                 self.processed
                 or self.trace1_data_loaded is not None
                 or self.trace2_data_loaded is not None
+                or self.poseFileLoaded
             ):
                 self.plot_scatter()
         else:
@@ -739,6 +751,7 @@ class MainW(QtWidgets.QMainWindow):
         self.pimg.setLevels([0, self.sat[0]])
         self.setFrame.setText(str(self.cframe))
         self.update_pose()
+        self.update_neural_data_vtick()
         # self.frameNumber.setText(str(self.cframe))
         self.totalFrameNumber.setText("/ " + str(self.nframes) + " frames")
         self.win.show()
@@ -1497,6 +1510,47 @@ class MainW(QtWidgets.QMainWindow):
                 )
                 self.frameSlider.setValue(self.cframe)
                 # self.jump_to_frame()
+
+    ## ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Neural data plot ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ ##
+    def plot_neural_data(self):
+        # Hide plot 2
+        self.p2.clear()
+
+        # Note: neural data is of shape (neurons, time)
+        # Create a heatmap for the neural data and add it to plot 1
+        vmin, vmax = -np.percentile(self.neural_data, 95), np.percentile(
+            self.neural_data, 95
+        )
+        self.neural_heatmap = pg.ImageItem(
+            self.neural_data, autoDownsample=True, levels=(vmin, vmax)
+        )
+        self.p2.addItem(self.neural_heatmap)
+        self.p2.setXRange(0, self.neural_data.shape[1])
+
+        colormap = cm.get_cmap("gray_r")
+        colormap._init()
+        lut = (colormap._lut * 255).view(
+            np.ndarray
+        )  # Convert matplotlib colormap from 0-1 to 0 -255 for Qt
+        lut = lut[0:-3, :]
+        # apply the colormap
+        self.neural_heatmap.setLookupTable(lut)
+
+        self.neural_vtick = pg.InfiniteLine(
+            pos=self.cframe, angle=90, pen=pg.mkPen(color=(255, 0, 0), width=2)
+        )
+        self.p2.addItem(self.neural_vtick)
+
+        self.update_status_bar("Neural data loaded")
+
+    def update_neural_data_vtick(self):
+        if self.neural_data_loaded:
+            # Add a vertical line to plot 1 to show the current frame
+            self.p2.removeItem(self.neural_vtick)
+            self.neural_vtick = pg.InfiniteLine(
+                pos=self.cframe, angle=90, pen=pg.mkPen(color=(255, 0, 0), width=2)
+            )
+            self.p2.addItem(self.neural_vtick)
 
     ### ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Clustering and ROI ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     def vis_combobox_selection_changed(self):
