@@ -1,8 +1,4 @@
-import os
-
-from PyQt5 import QtCore, QtWidgets
-from PyQt5.QtGui import QBrush, QFont, QPainter, QPainterPath, QPixmap
-from PyQt5.QtWidgets import QAction, QDesktopWidget, QLabel
+from PyQt5.QtWidgets import QAction, QDesktopWidget
 
 from . import help_windows, io
 

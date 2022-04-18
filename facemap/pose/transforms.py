@@ -6,28 +6,54 @@ Facemap functions for:
 """
 import cv2
 import numpy as np
+import torch
 from torch.nn import functional as F
 
 from . import pose_helper_functions
 
 
-def preprocess_img(im):
+def preprocess_img(im, add_padding, resize, bbox, device=None):
     """
-    Preproccesing of image involves: conversion to float32 in range0-1, normalize99, and padding image size to be
-    compatible with UNet model input i.e. divisible by 16
+    Preproccesing of image involves:
+        1. Conversion to float32 in range0-1, normalize99
+        2. Cropping image to select bounding box (bbox) region
+        3. padding image size to be square
+        4. Resize image to 256x256 for model input
      Parameters
     -------------
     im: ND-array
         image of size [(Lz) x Ly x Lx]
+    add_padding: bool
+        whether to add padding to image
+    resize: bool
+        whether to resize image
+    bbox: tuple of size (4,)
+        bounding box positions in order x1, x2, y1, y2
      Returns
     --------------
     im: ND-array
         preprocessed image of size [1 x Ly x Lx] if input dimensions==2, else [Lz x Ly x Lx]
     """
+    # 1. Convert to float32 in range 0-1
     if im.ndim == 2:
         im = im[np.newaxis, ...]
+    if device is not None:
+        # Convert to torch tensor
+        im = torch.from_numpy(im).to(device, dtype=torch.float32)
     # Adjust image contrast
-    im = pose_helper_functions.normalize99(im)
+    im = pose_helper_functions.normalize99(im, device=device)
+
+    # 2. Crop image
+    Xstart, Xstop, Ystart, Ystop = bbox
+    im = crop_image(im, Ystart, Ystop, Xstart, Xstop).clone().detach()
+
+    # 3. Pad image to square
+    if add_padding:
+        im = pad_to_square(im, bbox)
+
+    # 4. Resize image to 256x256 for model input
+    if resize:
+        im = F.interpolate(im, size=(256, 256), mode="bilinear")
     return im
 
 
@@ -54,6 +80,59 @@ def get_cropped_imgs(imgs, bbox):
         for n in range(nchannels):
             cropped_imgs[i, n] = imgs[i, n, x1:x2, y1:y2]
     return cropped_imgs
+
+
+def pad_to_square(img, bbox):
+    """
+    Pad image to make it square if the bounding box region is not square. Uses value of the largest dimension to pad the image
+    Parameters
+    -------------
+    img: ND-array
+        image of size [nchan x Ly x Lx]
+    bbox: tuple of size (4,)
+        bounding box positions in order x1, x2, y1, y2
+    Returns
+    --------------
+    I: ND-array
+        padded image of size [nchan x Ly' x Lx'] where Ly' = max(Ly, Lx) and Lx'=max(Ly, Lx)
+    """
+    # Check if bbox is square
+    Xstart, Xstop, Ystart, Ystop = bbox
+    dx, dy = Xstop - Xstart, Ystop - Ystart
+    if dx == dy:
+        return img
+
+    largest_dim = max(dx, dy)
+    if dx < largest_dim:
+        pad_x = abs(dx - largest_dim)
+        pad_x_left = pad_x // 2
+        pad_x_right = pad_x - pad_x_left
+    else:
+        pad_x_left = 0
+        pad_x_right = 0
+
+    if dy < largest_dim:
+        pad_y = abs(dy - largest_dim)
+        pad_y_top = pad_y // 2
+        pad_y_bottom = pad_y - pad_y_top
+    else:
+        pad_y_top = 0
+        pad_y_bottom = 0
+
+    if img.ndim > 3:
+        pads = (pad_y_top, pad_y_bottom, pad_x_left, pad_x_right, 0, 0, 0, 0)
+    elif img.ndim == 3:
+        pads = (pad_y_top, pad_y_bottom, pad_x_left, pad_x_right, 0, 0)
+    else:
+        pads = (pad_y_top, pad_y_bottom, pad_x_left, pad_x_right)
+
+    I = F.pad(
+        img,
+        pads,
+        mode="constant",
+        value=0,
+    )
+    return I
 
 
 def get_crop_resize_params(img, x_dims, y_dims, xy=(256, 256)):
@@ -112,7 +191,7 @@ def get_crop_resize_params(img, x_dims, y_dims, xy=(256, 256)):
     return Xstart, Xstop, Ystart, Ystop, resize
 
 
-def crop_resize(img, Xstart, Xstop, Ystart, Ystop, resize, xy=[256, 256]):
+def crop_image(img, Xstart, Xstop, Ystart, Ystop, xy=[256, 256]):
     """
     Crop and resize image using dimensions provided
     Input:-
@@ -121,15 +200,11 @@ def crop_resize(img, Xstart, Xstop, Ystart, Ystop, resize, xy=[256, 256]):
         Xstop: (int) x dim stop pos
         Ystart: (int) y dim start pos
         Ystop: (int) y dim stop pos
-        resize: (bool) whether to resize image
     Output:-
         im_cropped: (2D array) cropped image
     """
     # Crop image and landmarks
     im_cropped = img[:, :, Ystart:Ystop, Xstart:Xstop]
-    # Resize image
-    if resize:
-        im_cropped = F.interpolate(im_cropped, size=(256, 256), mode="bilinear")
     return im_cropped
 
 
@@ -205,27 +280,6 @@ def adjust_bbox(prev_bbox, img_yx, div=16, extra=1):
         x2 = min(x2 + xpad // 2, img_yx[1])
     adjusted_bbox = (x1, x2, y1, y2)
     return adjusted_bbox
-
-
-#  Following Function adopted from cellpose:
-#  https://github.com/MouseLand/cellpose/blob/35c16c94e285a4ec2fa17f148f06bbd414deb5b8/cellpose/transforms.py#L187
-def normalize99(img):
-    """
-    Normalize image so 0.0 is 1st percentile and 1.0 is 99th percentile
-     Parameters
-    -------------
-    img: ND-array
-        image of size [Ly x Lx]
-    Returns
-    --------------
-    X: ND-array
-        normalized image of size [Ly x Lx]
-    """
-    X = img.copy()
-    x01 = np.percentile(X, 1)
-    x99 = np.percentile(X, 99)
-    X = (X - x01) / (x99 - x01)
-    return X
 
 
 def random_rotate_and_resize(

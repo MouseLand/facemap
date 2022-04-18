@@ -6,6 +6,7 @@ import numpy as np
 import pandas as pd
 import pyqtgraph as pg
 from matplotlib import cm
+from pyparsing import col
 from PyQt5 import QtCore, QtWidgets
 from PyQt5.QtGui import QFont, QIcon, QPainterPath
 from PyQt5.QtWidgets import (
@@ -26,6 +27,7 @@ from PyQt5.QtWidgets import (
     QWidget,
 )
 from scipy.stats import skew, zscore
+from torch import column_stack, row_stack
 
 from facemap import cluster, process, roi, utils
 from facemap.pose import pose, pose_gui, refine_pose
@@ -198,6 +200,7 @@ class MainW(QtWidgets.QMainWindow):
         self.keypoints_brushes = []
         self.bbox = []
         self.bbox_set = False
+        self.resize_img, self.add_padding = False, False
 
         self.ClusteringPlot = self.win.addPlot(
             row=0, col=1, lockAspect=True, enableMouse=False
@@ -301,10 +304,10 @@ class MainW(QtWidgets.QMainWindow):
 
         # Pose/labels variables
         self.poseFileLoaded = False
-        self.Labels_checkBox = QCheckBox("Keypoints")
-        self.Labels_checkBox.setStyleSheet("color: gray;")
-        self.Labels_checkBox.stateChanged.connect(self.update_pose)
-        self.Labels_checkBox.setEnabled(False)
+        self.keypoints_checkbox = QCheckBox("Keypoints")
+        self.keypoints_checkbox.setStyleSheet("color: gray;")
+        self.keypoints_checkbox.stateChanged.connect(self.update_pose)
+        self.keypoints_checkbox.setEnabled(False)
 
         # Process features
         self.batchlist = []
@@ -314,7 +317,7 @@ class MainW(QtWidgets.QMainWindow):
             self.batchname[-1].setStyleSheet("color: white;")
             self.l0.addWidget(self.batchname[-1], 9 + k, 0, 1, 4)
 
-        self.processbatch = QPushButton(u"process batch \u2b07")
+        self.processbatch = QPushButton("process batch \u2b07")
         self.processbatch.setFont(QFont("Arial", 10, QFont.Bold))
         self.processbatch.clicked.connect(self.process_batch)
         self.processbatch.setEnabled(False)
@@ -360,7 +363,6 @@ class MainW(QtWidgets.QMainWindow):
 
         # Add clustering analysis/visualization features
         self.clusteringVisComboBox = QComboBox(self)
-        self.clusteringVisComboBox.setFixedWidth(200)
         self.clusteringVisComboBox.addItem("--Select display--")
         self.clusteringVisComboBox.addItem("ROI")
         self.clusteringVisComboBox.addItem("UMAP")
@@ -368,9 +370,7 @@ class MainW(QtWidgets.QMainWindow):
         self.clusteringVisComboBox.currentIndexChanged.connect(
             self.vis_combobox_selection_changed
         )
-        self.clusteringVisComboBox.setFixedWidth(140)
         self.roiVisComboBox = QComboBox(self)
-        self.roiVisComboBox.setFixedWidth(100)
         self.roiVisComboBox.hide()
         self.roiVisComboBox.activated.connect(self.display_ROI)
         self.run_clustering_button = QPushButton("Run")
@@ -386,7 +386,6 @@ class MainW(QtWidgets.QMainWindow):
         )
         self.save_clustering_button.hide()
         self.data_clustering_combobox = QComboBox(self)
-        self.data_clustering_combobox.setFixedWidth(100)
         self.data_clustering_combobox.hide()
         self.zoom_in_button = QPushButton("+")
         self.zoom_in_button.setMaximumWidth(
@@ -439,7 +438,7 @@ class MainW(QtWidgets.QMainWindow):
         # ~~~~~~~~~~ Save/file IO ~~~~~~~~~~
         self.l0.addWidget(self.savelabel, 8, 0, 1, 2)
         # ~~~~~~~~~~ Pose features ~~~~~~~~~~
-        self.l0.addWidget(self.Labels_checkBox, 6, 0, 1, 1)
+        self.l0.addWidget(self.keypoints_checkbox, 6, 0, 1, 1)
         # ~~~~~~~~~~ clustering & ROI visualization window features
         self.l0.addWidget(self.clusteringVisComboBox, 0, 11, 1, 1)
         self.l0.addWidget(self.data_clustering_combobox, 0, 12, 1, 2)
@@ -604,7 +603,12 @@ class MainW(QtWidgets.QMainWindow):
             roitype = self.comboBox.currentIndex()
             roistr = self.comboBox.currentText()
         if "pose" in roistr:
-            self.bbox, self.bbox_set, cancel = self.set_pose_bbox()
+            (
+                self.bbox,
+                self.bbox_set,
+                self.resize_img,
+                self.add_padding,
+            ) = self.set_pose_bbox()
         elif roitype > 0:
             if self.online_mode and roitype > 1:
                 self.invalid_roi_popup()
@@ -809,7 +813,7 @@ class MainW(QtWidgets.QMainWindow):
         self.load_trace2_button.setEnabled(True)
 
         # Enable pose features for single video only
-        self.Labels_checkBox.setEnabled(True)
+        self.keypoints_checkbox.setEnabled(True)
 
     def button_status(self, status):
         self.playButton.setEnabled(status)
@@ -832,6 +836,12 @@ class MainW(QtWidgets.QMainWindow):
             rois = utils.roi_to_dict(self.ROIs, self.rROI)
         else:
             rois = None
+        pose_settings = {
+            "bbox": self.bbox,
+            "bbox_set": self.bbox_set,
+            "resize_img": self.resize_img,
+            "add_padding": self.add_padding,
+        }
         proc = {
             "Ly": self.Ly,
             "Lx": self.Lx,
@@ -844,8 +854,7 @@ class MainW(QtWidgets.QMainWindow):
             "rois": rois,
             "motSVD": self.motSVD_checkbox.isChecked(),
             "movSVD": self.movSVD_checkbox.isChecked(),
-            "bbox": self.bbox,
-            "bbox_set": self.bbox_set,
+            "pose_settings": pose_settings,
             "save_mat": ops["save_mat"],
             "save_path": ops["save_path"],
             "filenames": self.filenames,
@@ -876,8 +885,10 @@ class MainW(QtWidgets.QMainWindow):
             pose.Pose(
                 gui=None,
                 filenames=proc["filenames"],
-                bbox=proc["bbox"],
-                bbox_set=proc["bbox_set"],
+                bbox=proc["pose_settings"]["bbox"],
+                bbox_set=proc["pose_settings"]["bbox_set"],
+                resize=proc["pose_settings"]["resize_img"],
+                add_padding=proc["pose_settings"]["add_padding"],
             ).run(plot=False)
         if len(files) == 1 and (proc["motSVD"] or proc["movSVD"]):
             io.open_proc(self, file_name=savename)
@@ -897,7 +908,7 @@ class MainW(QtWidgets.QMainWindow):
             io.open_proc(self, file_name=savename)
             print("Output saved in", savepath)
             self.update_status_bar("Output saved in " + savepath)
-        if self.Labels_checkBox.isChecked():
+        if self.keypoints_checkbox.isChecked():
             self.setup_pose_model()
             self.pose_model.run_all()
             self.update_status_bar("Pose labels saved in " + savepath)
@@ -940,12 +951,22 @@ class MainW(QtWidgets.QMainWindow):
     def set_pose_bbox(self):
         # User defined bbox selection
         self.pose_gui = pose_gui.PoseGUI(gui=self)
-        self.bbox, self.bbox_set, cancel = self.pose_gui.draw_user_bbox()
-        return self.bbox, self.bbox_set, cancel
+        (
+            self.bbox,
+            self.bbox_set,
+            self.resize_img,
+            self.add_padding,
+        ) = self.pose_gui.draw_user_bbox()
+        return self.bbox, self.bbox_set, self.resize_img, self.add_padding
 
     def setup_pose_model(self):
         if not self.bbox_set:
-            self.bbox, self.bbox_set, _ = self.set_pose_bbox()
+            (
+                self.bbox,
+                self.bbox_set,
+                self.resize_img,
+                self.add_padding,
+            ) = self.set_pose_bbox()
         if self.pose_model is None:
             self.pose_model = pose.Pose(
                 gui=self,
@@ -953,6 +974,8 @@ class MainW(QtWidgets.QMainWindow):
                 filenames=self.filenames,
                 bbox=self.bbox,
                 bbox_set=self.bbox_set,
+                resize=self.resize_img,
+                add_padding=self.add_padding,
             )
             self.pose_model.pose_prediction_setup()
 
@@ -994,7 +1017,7 @@ class MainW(QtWidgets.QMainWindow):
         self.pose_y_coord = []
         self.pose_likelihood = []
         for video_id in range(len(self.poseFilepath)):
-            print("Loading new labels:", self.poseFilepath[video_id])
+            print("Loading keypoints:", self.poseFilepath[video_id])
             pose_data = pd.read_hdf(self.poseFilepath[video_id], "df_with_missing")
             # Append pose data to list for each video_id
             self.keypoints_labels.append(
@@ -1025,10 +1048,10 @@ class MainW(QtWidgets.QMainWindow):
                 np.array([pg.mkBrush(color=c) for c in colors])
             )
             self.poseFileLoaded = True
-            self.Labels_checkBox.setChecked(True)
+            self.keypoints_checkbox.setChecked(True)
 
     def update_pose(self):
-        if self.poseFileLoaded and self.Labels_checkBox.isChecked():
+        if self.poseFileLoaded and self.keypoints_checkbox.isChecked():
             self.statusBar.clearMessage()
             self.p0.addItem(self.Pose_scatterplot)
             self.p0.setRange(xRange=(0, self.LX), yRange=(0, self.LY), padding=0.0)
@@ -1069,14 +1092,14 @@ class MainW(QtWidgets.QMainWindow):
                 hoverSize=10,
                 data=labels,
             )
-        elif not self.poseFileLoaded and self.Labels_checkBox.isChecked():
+        elif not self.poseFileLoaded and self.keypoints_checkbox.isChecked():
             self.update_status_bar("Please upload a pose (*.h5) file")
         else:
             self.statusBar.clearMessage()
             self.Pose_scatterplot.clear()
 
     def add_keypoints_traces(self):
-        if self.poseFileLoaded and self.Labels_checkBox.isChecked():
+        if self.poseFileLoaded and self.keypoints_checkbox.isChecked():
             x_data = np.array(self.pose_x_coord).squeeze()
             if self.traces1 is None:
                 self.traces1 = x_data
@@ -1090,7 +1113,7 @@ class MainW(QtWidgets.QMainWindow):
     def keypoints_clicked(self, obj, points):
         # Show trace of keypoint clicked
         # Get name of keypoint clicked and its index
-        if self.poseFileLoaded and self.Labels_checkBox.isChecked():
+        if self.poseFileLoaded and self.keypoints_checkbox.isChecked():
             if len(points) > 0:
                 keypoint_name = points[0].data()
                 keypoint_index = np.where(self.keypoints_labels[0] == keypoint_name)[0][
@@ -1494,20 +1517,19 @@ class MainW(QtWidgets.QMainWindow):
             x_pen = pg.mkPen(color, width=1)
             x_trace = keypoints_data[:, 0]
             x_plot = wp.plot(x_trace, pen=x_pen)
-            self.trace1_legend.addItem(
-                x_plot, name="<font color='white'><b>x-coord</b></font>"
+            lg = wp.addLegend(colCount=2, offset=(0, 0))
+            lg.addItem(
+                x_plot, "<font color='white'><b>{} x-coord</b></font>".format(bodypart)
             )
             # y-coordinates
             y_pen = pg.mkPen(color, width=1, style=QtCore.Qt.DashLine)
             y_trace = keypoints_data[:, 1]
             y_plot = wp.plot(y_trace, pen=y_pen)
-            self.trace1_legend.addItem(
-                y_plot, name="<font color='white'><b>y-coord</b></font>"
+            lg.addItem(
+                y_plot,
+                name="<font color='white'><b>{} y-coord</b></font>".format(bodypart),
             )
-            # Add legend
-            self.trace1_legend.setPos(wp.x(), wp.y())
-            self.trace1_legend.setParentItem(wp)
-            self.trace1_legend.setVisible(True)
+            lg.setPos(wp.x(), wp.y())
             wp.setRange(xRange=(0, self.nframes))
             tr = None
         return tr

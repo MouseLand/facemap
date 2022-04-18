@@ -28,8 +28,11 @@ class Pose:
         bodyparts=None,
         bbox=[],
         bbox_set=False,
+        resize=False,
+        add_padding=False,
         gui=None,
         GUIobject=None,
+        net=None,
     ):
         self.gui = gui
         self.GUIobject = GUIobject
@@ -46,7 +49,9 @@ class Pose:
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.bbox = bbox
         self.bbox_set = bbox_set
-        self.net = None
+        self.resize = resize
+        self.add_padding = add_padding
+        self.net = net
         self.finetuned_model = False
 
     def pose_prediction_setup(self):
@@ -55,13 +60,13 @@ class Pose:
             self.load_model()
         # Setup the bounding box
         if not self.bbox_set:
-            resize = True
+            self.resize = True
             for i in range(len(self.Ly)):
                 x1, x2, y1, y2 = 0, self.Ly[i], 0, self.Lx[i]
-                self.bbox.append([x1, x2, y1, y2, resize])
+                self.bbox.append([x1, x2, y1, y2, self.resize])
                 prompt = (
                     "No bbox set. Using entire frame view: {} and resize={}".format(
-                        self.gui.bbox, resize
+                        self.gui.bbox, self.resize
                     )
                 )
                 utils.update_mainwindow_message(
@@ -124,8 +129,8 @@ class Pose:
         else:
             self.gui.poseFilepath[video_id] = savepath
         self.gui.load_keypoints()
-        self.gui.Labels_checkBox.setChecked(False)
-        self.gui.Labels_checkBox.setChecked(True)
+        self.gui.keypoints_checkbox.setChecked(False)
+        self.gui.keypoints_checkbox.setChecked(True)
         self.gui.start()
 
     def run_subset(self, subset_ind=None):
@@ -239,8 +244,13 @@ class Pose:
         self.net.eval()
         start = 0
         end = batch_size
-        Xstart, Xstop, Ystart, Ystop, resize = self.bbox[video_id]
+        Xstart, Xstop, Ystart, Ystop = self.bbox[video_id]
         inference_time = 0
+
+        print("Using params:")
+        print("BBOX:", self.bbox[video_id])
+        print("resize:", self.resize)
+        print("paddding:", self.add_padding)
 
         progress_output = StringIO()
         with tqdm(
@@ -254,22 +264,22 @@ class Pose:
                 )
                 cframes = np.array(frame_ind[start:end])
                 utils.get_frames(imall, self.containers, cframes, self.cumframes)
-
                 # Inference time includes: pre-processing, inference, post-processing
                 t0 = time.time()
-                imall = torch.from_numpy(imall).to(self.net.device, dtype=torch.float32)
-                frame_grayscale = (
-                    transforms.crop_resize(imall, Ystart, Ystop, Xstart, Xstop, resize)
-                    .clone()
-                    .detach()
+                # Pre-process images
+                imall = transforms.preprocess_img(
+                    imall,
+                    self.add_padding,
+                    self.resize,
+                    self.bbox[video_id],
+                    device=self.net.device,
                 )
-                imall = transforms.preprocess_img(frame_grayscale)
-                # Network prediction
-                Xlabel, Ylabel, likelihood = pose_utils.get_predicted_landmarks(
+                # Run inference
+                Xlabel, Ylabel, likelihood = pose_utils.predict(
                     self.net, imall, batchsize=batch_size, smooth=False
                 )
 
-                # Get adjusted landmarks that fit to original image size
+                # TODO - Adjust/project landmarks to original image size (when padding used for inference)
                 Xlabel, Ylabel = transforms.labels_crop_resize(
                     Xlabel,
                     Ylabel,
@@ -282,12 +292,13 @@ class Pose:
                     ),
                 )
 
-                # Assign predictions to dataframe
+                # Add predictions to array
                 pred_data[start:end, :, 0] = Xlabel
                 pred_data[start:end, :, 1] = Ylabel
                 pred_data[start:end, :, 2] = likelihood
-                inference_time += time.time() - t0
 
+                # Update progress bar and inference time
+                inference_time += time.time() - t0
                 pbar.update(batch_size)
                 start = end
                 end += batch_size
@@ -333,7 +344,7 @@ class Pose:
         self.net.eval()
         start = 0
         end = batch_size
-        Xstart, Xstop, Ystart, Ystop, resize = self.bbox[0]
+        Xstart, Xstop, Ystart, Ystop = self.bbox[0]
 
         im_input = []  # list of images used as input for the network
         pred_data = torch.zeros(
@@ -357,7 +368,9 @@ class Pose:
                 t0 = time.time()
                 imall = torch.from_numpy(imall).to(self.net.device, dtype=torch.float32)
                 frame_grayscale = (
-                    transforms.crop_resize(imall, Ystart, Ystop, Xstart, Xstop, resize)
+                    transforms.crop_resize(
+                        imall, Ystart, Ystop, Xstart, Xstop, self.resize
+                    )
                     .clone()
                     .detach()
                 )
@@ -365,7 +378,7 @@ class Pose:
 
                 im_input.append(imall.detach().cpu().numpy())
                 # Network prediction
-                Xlabel, Ylabel, likelihood = pose_utils.get_predicted_landmarks(
+                Xlabel, Ylabel, likelihood = pose_utils.predict(
                     self.net, imall, batchsize=batch_size, smooth=False
                 )
 
@@ -411,7 +424,7 @@ class Pose:
         # Plot labels
         self.gui.poseFileLoaded = True
         self.gui.load_keypoints()
-        self.gui.Labels_checkBox.setChecked(True)
+        self.gui.keypoints_checkbox.setChecked(True)
 
     def load_model(self, model_state_file=None):
         """

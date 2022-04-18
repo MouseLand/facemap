@@ -16,12 +16,14 @@ Currently supports single video processing only.
 
 
 class PoseGUI(pose.Pose):
-    def __init__(self, gui=None):
+    def __init__(self, gui=None, img_xy=(256, 256)):
         self.gui = gui
         super(PoseGUI, self).__init__(gui=self.gui)
         self.bbox_set = False
         self.bbox = []
-        self.cancel = False
+        self.resize = False
+        self.add_padding = False
+        self.img_xy = img_xy
 
     # Draw box on GUI using user's input
     def draw_user_bbox(self):
@@ -36,31 +38,12 @@ class PoseGUI(pose.Pose):
             if video_id == len(sample_frame) - 1:
                 last_video = True
             ROI_popup(frame, video_id, self.gui, self, last_video)
-        return self.bbox, self.bbox_set, self.cancel
-
-    def adjust_bbox_params(self):
-        # This function adjusts bbox so that it is of minimum dimension: 256,256
-        sample_frame = utils.get_frame(0, self.nframes, self.cumframes, self.containers)
-        for i, bbox in enumerate(self.bbox):
-            x1, x2, y1, y2, resize = transforms.get_crop_resize_params(
-                sample_frame[i], x_dims=(bbox[0], bbox[1]), y_dims=(bbox[2], bbox[3])
-            )
-            self.bbox[i] = [x1, x2, y1, y2, resize]
-            # Adjust bbox to be square while preserving aspect ratio i.e. use padding for the smaller dimension
-            """
-            if x2-x1 < y2-y1:
-                self.bbox[i][0] = self.bbox[i][0] - (y2-y1-x2+x1)/2
-                self.bbox[i][1] = self.bbox[i][1] + (y2-y1-x2+x1)/2
-            else:
-                self.bbox[i][2] = self.bbox[i][2] - (x2-x1-y2+y1)/2
-                self.bbox[i][3] = self.bbox[i][3] + (x2-x1-y2+y1)/2
-            """
-        print("user selected bbox after adjustment:", self.bbox)
+        return self.bbox, self.bbox_set, self.resize, self.add_padding
 
     def plot_bbox_roi(self):
-        self.adjust_bbox_params()
+        # Plot bbox on GUI
         for i, bbox in enumerate(self.bbox):
-            x1, x2, y1, y2, _ = bbox
+            x1, x2, y1, y2 = bbox
             dy, dx = y2 - y1, x2 - x1
             xrange = np.arange(y1 + self.gui.sx[i], y2 + self.gui.sx[i]).astype(
                 np.int32
@@ -80,6 +63,39 @@ class PoseGUI(pose.Pose):
                 xrange=xrange,
             )
         self.bbox_set = True
+
+    def adjust_bbox(self):
+        # This function adjusts bbox so that it is of minimum dimension: 256, 256
+        sample_frame = utils.get_frame(0, self.nframes, self.cumframes, self.containers)
+        print("BBOX:", self.bbox)
+        for i, bbox in enumerate(self.bbox):
+            x1, x2, y1, y2 = bbox
+            dy, dx = y2 - y1, x2 - x1
+            if dx != dy:  # If bbox is not square then add padding to image
+                self.add_padding = True
+            larger_dim = max(dx, dy)
+            if larger_dim < self.img_xy[0] or larger_dim < self.img_xy[1]:
+                # If the largest dimension of the image is smaller than the minimum required dimension,
+                # then resize the image to the minimum dimension
+                self.resize = True
+            else:
+                # If the largest dimension of the image is larger than the minimum required dimension,
+                # then crop the image to the minimum dimension
+                (
+                    Xstart,
+                    Xstop,
+                    Ystart,
+                    Ystop,
+                    self.resize,
+                ) = transforms.get_crop_resize_params(
+                    sample_frame[i],
+                    x_dims=(bbox[0], bbox[1]),
+                    y_dims=(bbox[2], bbox[3]),
+                )
+                self.bbox[i] = Xstart, Xstop, Ystart, Ystop
+            print("BBOX after adjustment:", self.bbox)
+            print("RESIZE:", self.resize)
+            print("PADDING:", self.add_padding)
 
 
 class ROI_popup(QDialog):
@@ -157,8 +173,11 @@ class ROI_popup(QDialog):
     def done_exec(self):
         # User finished drawing ROI
         (x1, x2), (y1, y2) = self.get_coordinates()
-        self.pose.bbox.append([x1, x2, y1, y2, False])
+        self.pose.bbox.append([x1, x2, y1, y2])
+        self.resize = False
+        self.add_padding = False
         self.pose.plot_bbox_roi()
+        self.pose.adjust_bbox()
         self.close()
 
 

@@ -12,7 +12,7 @@ from scipy.ndimage import gaussian_filter
 print("python version:", python_version())
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~Global variables~~~~~~~~~~~~~~~~~~~~~~~~~~~~~`
-N_FACTOR = 2 ** 4 // (2 ** 2)
+N_FACTOR = 2**4 // (2**2)
 SIGMA = 3 * 4 / N_FACTOR
 Lx = 64
 print("Global varaibles set:")
@@ -29,23 +29,32 @@ def set_seed(seed):
     random.seed(seed)
 
 
-def normalize_mean(in_img):
-    zz = in_img.astype("float")
-    # subtract mean for each img.
-    mm = zz.mean(axis=(2, 3))
-    xx = zz - mm[:, :, np.newaxis, np.newaxis]
-    return xx
-
-
-def normalize99(X):
-    """normalize image so 0.0 is 1st percentile and 1.0 is 99th percentile"""
-    x01 = torch.quantile(X, 0.01)
-    x99 = torch.quantile(X, 0.99)
-    X = (X - x01) / (x99 - x01)
+#  Following Function adopted from cellpose:
+#  https://github.com/MouseLand/cellpose/blob/35c16c94e285a4ec2fa17f148f06bbd414deb5b8/cellpose/transforms.py#L187
+def normalize99(X, device=None):
+    """
+    Normalize image so 0.0 is 1st percentile and 1.0 is 99th percentile
+     Parameters
+    -------------
+    img: ND-array
+        image of size [Ly x Lx]
+    Returns
+    --------------
+    X: ND-array
+        normalized image of size [Ly x Lx]
+    """
+    if device is not None:
+        x01 = torch.quantile(X, 0.01)
+        x99 = torch.quantile(X, 0.99)
+        X = (X - x01) / (x99 - x01)
+    else:
+        x01 = np.percentile(X, 1)
+        x99 = np.percentile(X, 99)
+        X = (X - x01) / (x99 - x01)
     return X
 
 
-def get_predicted_landmarks(net, im_input, batchsize=1, smooth=True):
+def predict(net, im_input, batchsize=1, smooth=True):
 
     xmesh, ymesh = np.meshgrid(
         torch.arange(net.image_shape[0] / N_FACTOR),
