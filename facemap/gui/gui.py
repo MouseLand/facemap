@@ -6,7 +6,7 @@ import numpy as np
 import pandas as pd
 import pyqtgraph as pg
 from matplotlib import cm
-from PyQt5 import QtCore, QtGui, QtWidgets
+from PyQt5 import QtCore, QtWidgets
 from PyQt5.QtGui import QFont, QIcon, QPainterPath
 from PyQt5.QtWidgets import (
     QButtonGroup,
@@ -1026,7 +1026,6 @@ class MainW(QtWidgets.QMainWindow):
             )
             self.poseFileLoaded = True
             self.Labels_checkBox.setChecked(True)
-            self.add_keypoints_traces()
 
     def update_pose(self):
         if self.poseFileLoaded and self.Labels_checkBox.isChecked():
@@ -1078,7 +1077,6 @@ class MainW(QtWidgets.QMainWindow):
 
     def add_keypoints_traces(self):
         if self.poseFileLoaded and self.Labels_checkBox.isChecked():
-            print("Adding keypoints traces")
             x_data = np.array(self.pose_x_coord).squeeze()
             if self.traces1 is None:
                 self.traces1 = x_data
@@ -1090,8 +1088,36 @@ class MainW(QtWidgets.QMainWindow):
             self.plot_scatter()
 
     def keypoints_clicked(self, obj, points):
-        ## Can add functionality for clicking key points
-        return ""
+        # Show trace of keypoint clicked
+        # Get name of keypoint clicked and its index
+        if self.poseFileLoaded and self.Labels_checkBox.isChecked():
+            if len(points) > 0:
+                keypoint_name = points[0].data()
+                keypoint_index = np.where(self.keypoints_labels[0] == keypoint_name)[0][
+                    0
+                ]
+                # Get x and y coordinates of keypoint clicked
+                x_coord = np.array(self.pose_x_coord[0][keypoint_index]).squeeze()
+                y_coord = np.array(self.pose_y_coord[0][keypoint_index]).squeeze()
+                # Mean center coordinates
+                x_coord -= np.mean(x_coord)
+                y_coord -= np.mean(y_coord)
+                # Update traces1
+                self.traces1 = []
+                self.traces1.append(x_coord)
+                self.traces1.append(y_coord)
+                self.traces1 = np.array(self.traces1)
+                color = self.keypoints_brushes[0][keypoint_index].color()
+                # Plot trace of keypoint clicked
+                self.plot_trace(
+                    wplot=1,
+                    proctype=5,
+                    wroi=None,
+                    color=color,
+                    keypoints_data=np.array([x_coord, y_coord]).T,
+                    bodypart=keypoint_name,
+                )
+                self.plot_scatter()
 
     def keypoints_hovered(self, obj, ev):
         point_hovered = np.where(self.Pose_scatterplot.data["hovered"])[0]
@@ -1393,7 +1419,9 @@ class MainW(QtWidgets.QMainWindow):
             )
             self.p2.addItem(self.scatter2)
 
-    def plot_trace(self, wplot, proctype, wroi, color, keypoints_data=None):
+    def plot_trace(
+        self, wplot, proctype, wroi, color, keypoints_data=None, bodypart=None
+    ):
         if wplot == 1:
             wp = self.p1
         else:
@@ -1459,14 +1487,29 @@ class MainW(QtWidgets.QMainWindow):
             wp.plot(running[:, 0], pen=color)
             wp.plot(running[:, 1], pen=color)
             tr = running.T
-        elif proctype == 5 and keypoints_data is not None:  # Keypoints
-            cmap = cm.get_cmap("jet")
-            cmap = (255 * cmap(np.linspace(0, 1, keypoints_data.shape[1]))).astype(int)
-            for kp_ind in range(keypoints_data.shape[1]):
-                pen = pg.mkPen(cmap[kp_ind], width=1)  # , style=QtCore.Qt.DashLine)
-                tr = keypoints_data[:, kp_ind]
-                wp.plot(tr, pen=pen)
-                wp.setRange(xRange=(0, self.nframes))
+        elif proctype == 5 and keypoints_data is not None:  # Keypoints traces
+            wp.clear()
+            self.trace1_legend.clear()
+            # x-coordinates
+            x_pen = pg.mkPen(color, width=1)
+            x_trace = keypoints_data[:, 0]
+            x_plot = wp.plot(x_trace, pen=x_pen)
+            self.trace1_legend.addItem(
+                x_plot, name="<font color='white'><b>x-coord</b></font>"
+            )
+            # y-coordinates
+            y_pen = pg.mkPen(color, width=1, style=QtCore.Qt.DashLine)
+            y_trace = keypoints_data[:, 1]
+            y_plot = wp.plot(y_trace, pen=y_pen)
+            self.trace1_legend.addItem(
+                y_plot, name="<font color='white'><b>y-coord</b></font>"
+            )
+            # Add legend
+            self.trace1_legend.setPos(wp.x(), wp.y())
+            self.trace1_legend.setParentItem(wp)
+            self.trace1_legend.setVisible(True)
+            wp.setRange(xRange=(0, self.nframes))
+            tr = None
         return tr
 
     def plot_clicked(self, event):
@@ -1513,7 +1556,7 @@ class MainW(QtWidgets.QMainWindow):
 
     ## ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Neural data plot ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ ##
     def plot_neural_data(self):
-        # Hide plot 2
+        # Clear plot 2
         self.p2.clear()
 
         # Note: neural data is of shape (neurons, time)
