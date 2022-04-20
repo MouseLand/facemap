@@ -63,7 +63,7 @@ class Pose:
             self.resize = True
             for i in range(len(self.Ly)):
                 x1, x2, y1, y2 = 0, self.Ly[i], 0, self.Lx[i]
-                self.bbox.append([x1, x2, y1, y2, self.resize])
+                self.bbox.append([x1, x2, y1, y2])
                 prompt = (
                     "No bbox set. Using entire frame view: {} and resize={}".format(
                         self.gui.bbox, self.resize
@@ -244,6 +244,7 @@ class Pose:
         self.net.eval()
         start = 0
         end = batch_size
+        # Get bounding box for the video
         Xstart, Xstop, Ystart, Ystop = self.bbox[video_id]
         inference_time = 0
 
@@ -264,32 +265,32 @@ class Pose:
                 )
                 cframes = np.array(frame_ind[start:end])
                 utils.get_frames(imall, self.containers, cframes, self.cumframes)
+
                 # Inference time includes: pre-processing, inference, post-processing
                 t0 = time.time()
+
                 # Pre-process images
-                imall = transforms.preprocess_img(
+                imall, postpad_shape = transforms.preprocess_img(
                     imall,
                     self.add_padding,
                     self.resize,
                     self.bbox[video_id],
                     device=self.net.device,
                 )
+
                 # Run inference
                 Xlabel, Ylabel, likelihood = pose_utils.predict(
                     self.net, imall, batchsize=batch_size, smooth=False
                 )
 
-                # TODO - Adjust/project landmarks to original image size (when padding used for inference)
-                Xlabel, Ylabel = transforms.labels_crop_resize(
+                # TODO - Adjust/project keypoints to original image size (when padding used for inference)
+                Xlabel, Ylabel = transforms.adjust_keypoints(
                     Xlabel,
                     Ylabel,
                     Ystart,
                     Xstart,
                     current_size=(256, 256),
-                    desired_size=(
-                        self.bbox[video_id][1] - self.bbox[video_id][0],
-                        self.bbox[video_id][3] - self.bbox[video_id][2],
-                    ),
+                    desired_size=postpad_shape,
                 )
 
                 # Add predictions to array

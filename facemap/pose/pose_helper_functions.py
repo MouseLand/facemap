@@ -6,7 +6,10 @@ import random
 from platform import python_version
 
 import cv2  # opencv
+import pyqtgraph as pg
 import torch  # pytorch
+from PyQt5 import QtWidgets
+from PyQt5.QtWidgets import QDialog, QPushButton
 from scipy.ndimage import gaussian_filter
 
 print("python version:", python_version())
@@ -44,7 +47,7 @@ def normalize99(X, device=None):
         normalized image of size [Ly x Lx]
     """
     if device is not None:
-        x01 = torch.quantile(X, 0.01)
+        x01 = torch.quantile(X, 0.01)  # TODO - check if all values are positive
         x99 = torch.quantile(X, 0.99)
         X = (X - x01) / (x99 - x01)
     else:
@@ -139,3 +142,35 @@ def add_motion_blur(img, kernel_size=None, vertical=True, horizontal=True):
         img = cv2.filter2D(img, -1, kernel_h)
 
     return img
+
+
+# Following used to check cropped sections of frames
+class test_popup(QDialog):
+    def __init__(self, frame, gui):
+        super().__init__(gui)
+        self.gui = gui
+        self.frame = frame
+
+        self.setWindowTitle("Chosen ROI")
+        self.verticalLayout = QtWidgets.QVBoxLayout(self)
+
+        # Add image and ROI bbox
+        self.win = pg.GraphicsLayoutWidget()
+        ROI_win = self.win.addViewBox(invertY=True)
+        self.img = pg.ImageItem(self.frame)
+        ROI_win.addItem(self.img)
+        self.win.show()
+        self.verticalLayout.addWidget(self.win)
+
+        self.cancel_button = QPushButton("Cancel")
+        self.cancel_button.clicked.connect(self.close)
+
+        # Position buttons
+        self.widget = QtWidgets.QWidget(self)
+        self.horizontalLayout = QtWidgets.QHBoxLayout(self.widget)
+        self.horizontalLayout.setContentsMargins(-1, -1, -1, 0)
+        self.horizontalLayout.setObjectName("horizontalLayout")
+        self.horizontalLayout.addWidget(self.cancel_button)
+        self.verticalLayout.addWidget(self.widget)
+
+        self.show()

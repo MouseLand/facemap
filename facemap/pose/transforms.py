@@ -37,10 +37,11 @@ def preprocess_img(im, add_padding, resize, bbox, device=None):
     # 1. Convert to float32 in range 0-1
     if im.ndim == 2:
         im = im[np.newaxis, ...]
+
     if device is not None:
         # Convert to torch tensor
         im = torch.from_numpy(im).to(device, dtype=torch.float32)
-    # Adjust image contrast
+    # Normalize
     im = pose_helper_functions.normalize99(im, device=device)
 
     # 2. Crop image
@@ -52,9 +53,11 @@ def preprocess_img(im, add_padding, resize, bbox, device=None):
         im = pad_to_square(im, bbox)
 
     # 4. Resize image to 256x256 for model input
+    postpad_shape = im.shape[-2:]
     if resize:
         im = F.interpolate(im, size=(256, 256), mode="bilinear")
-    return im
+
+    return im, postpad_shape
 
 
 def get_cropped_imgs(imgs, bbox):
@@ -105,7 +108,7 @@ def pad_to_square(img, bbox):
     largest_dim = max(dx, dy)
     if dx < largest_dim:
         pad_x = abs(dx - largest_dim)
-        pad_x_left = pad_x // 2
+        pad_x_left = 0  # pad_x // 2
         pad_x_right = pad_x - pad_x_left
     else:
         pad_x_left = 0
@@ -113,7 +116,7 @@ def pad_to_square(img, bbox):
 
     if dy < largest_dim:
         pad_y = abs(dy - largest_dim)
-        pad_y_top = pad_y // 2
+        pad_y_top = 0  # pad_y // 2
         pad_y_bottom = pad_y - pad_y_top
     else:
         pad_y_top = 0
@@ -208,27 +211,45 @@ def crop_image(img, Xstart, Xstop, Ystart, Ystop, xy=[256, 256]):
     return im_cropped
 
 
-def labels_crop_resize(Xlabel, Ylabel, Xstart, Ystart, current_size, desired_size):
+def adjust_keypoints(Xlabel, Ylabel, Xstart, Ystart, current_size, desired_size):
     """
-    Adjust x,y labels on a 2D image to perform a resize operation
+    Adjust raw keypoints (x,y coordinates) obtained from model to plot on original image
     Parameters
     -------------
     Xlabel: ND-array
+        x coordinates of keypoints
     Ylabel: ND-array
-    current_size: tuple or array of size(2,)
-    desired_size: tuple or array of size(2,)
+        y coordinates of keypoints
+    Xstart: (int) x dim start pos
+    Ystart: (int) y dim start pos
+    current_size: (tuple) size of cropped image (height, width)
+    desired_size: (tuple) size of cropped image (height, width)
+    pad: (tuple) padding added to cropped image
     Returns
     --------------
     Xlabel: ND-array
-            adjusted x values on new/desired_size of image
+        x coordinates of keypoints
     Ylabel: ND-array
-            adjusted y values on new/desired_size of image
+        y coordinates of keypoints
     """
-    # Xlabel, Ylabel = Xlabel.astype(float), Ylabel.astype(float)
+    # Rescale keypoints to original image size
+    Xlabel, Ylabel = rescale_keypoints(Xlabel, Ylabel, current_size, desired_size)
+    # Adjust for cropping
+    Xlabel += Xstart
+    Ylabel += Ystart
+    return Xlabel, Ylabel
+
+
+def rescale_keypoints(Xlabel, Ylabel, current_size, desired_size):
     Xlabel *= desired_size[1] / current_size[1]  # x_scale
     Ylabel *= desired_size[0] / current_size[0]  # y_scale
-    Xlabel = Xlabel + Xstart
-    Ylabel = Ylabel + Ystart
+    return Xlabel, Ylabel
+
+
+def adjust_keypoints_for_padding(Xlabel, Ylabel, pad):
+    pad_x_right, pad_x_left, pad_y_bottom, pad_y_top = pad
+    Xlabel += pad_x_right
+    Ylabel += pad_y_bottom
     return Xlabel, Ylabel
 
 

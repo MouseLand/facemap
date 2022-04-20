@@ -67,7 +67,6 @@ class PoseGUI(pose.Pose):
     def adjust_bbox(self):
         # This function adjusts bbox so that it is of minimum dimension: 256, 256
         sample_frame = utils.get_frame(0, self.nframes, self.cumframes, self.containers)
-        print("BBOX:", self.bbox)
         for i, bbox in enumerate(self.bbox):
             x1, x2, y1, y2 = bbox
             dy, dx = y2 - y1, x2 - x1
@@ -307,35 +306,3 @@ class VisualizeVideoSubset(QDialog):
             + str(self.frame_idx[self.current_frame_idx])
             + " ({}/{})".format(self.current_frame_idx, len(self.frame_idx) - 1)
         )
-
-
-# Following used to check cropped sections of frames
-class test_popup(QDialog):
-    def __init__(self, frame, gui):
-        super().__init__(gui)
-        self.gui = gui
-        self.frame = frame
-
-        self.setWindowTitle("Chosen ROI")
-        self.verticalLayout = QtWidgets.QVBoxLayout(self)
-
-        # Add image and ROI bbox
-        self.win = pg.GraphicsLayoutWidget()
-        ROI_win = self.win.addViewBox(invertY=True)
-        self.img = pg.ImageItem(self.frame)
-        ROI_win.addItem(self.img)
-        self.win.show()
-        self.verticalLayout.addWidget(self.win)
-
-        self.cancel_button = QPushButton("Cancel")
-        self.cancel_button.clicked.connect(self.close)
-
-        # Position buttons
-        self.widget = QtWidgets.QWidget(self)
-        self.horizontalLayout = QtWidgets.QHBoxLayout(self.widget)
-        self.horizontalLayout.setContentsMargins(-1, -1, -1, 0)
-        self.horizontalLayout.setObjectName("horizontalLayout")
-        self.horizontalLayout.addWidget(self.cancel_button)
-        self.verticalLayout.addWidget(self.widget)
-
-        self.show()

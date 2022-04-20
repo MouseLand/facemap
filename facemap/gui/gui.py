@@ -1085,7 +1085,7 @@ class MainW(QtWidgets.QMainWindow):
             self.Pose_scatterplot.setData(
                 x,
                 y,
-                size=12,
+                size=20,  # TODO - make this a parameter dependent on the size of the main window
                 symbol="o",
                 brush=brushes,
                 hoverable=True,
