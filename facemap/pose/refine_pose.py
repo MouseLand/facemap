@@ -526,20 +526,30 @@ class ModelTrainingPopup(QDialog):
             )
 
         self.hide()
+
+        # Select frames for prediction
+        if self.pose_data is None:  # Generate predictions for random frames
+            frames = self.random_frames_ind
+        else:  # Use the predictions from the previous step and add new predictions
+            frames = predict_frame_index
+
+        # Get the predictions for the selected frames
+        output = self.generate_predictions(frames)
+        if output is None:  # User cancelled the refinement
+            self.close()
+            return
+
+        pose_pred, frames_input, _, self.bbox = output
+        # Update the predictions
         if self.pose_data is None:
-            self.pose_data, self.all_frames = self.generate_predictions(
-                self.random_frames_ind
-            )
+            self.pose_data = pose_pred
+            self.all_frames = frames_input
         else:
-            additional_pose, additional_frames = self.generate_predictions(
-                predict_frame_index
-            )
-            self.pose_data = np.concatenate((self.pose_data, additional_pose), axis=0)
-            self.all_frames = np.concatenate(
-                (self.all_frames, additional_frames), axis=0
-            )
+            self.pose_data = np.concatenate((self.pose_data, pose_pred), axis=0)
+            self.all_frames = np.concatenate((self.all_frames, frames_input), axis=0)
         self.show()
 
+        # Plot the predictions
         self.overall_horizontal_group = QGroupBox()
         self.overall_horizontal_group.setLayout(QHBoxLayout())
 
@@ -643,10 +653,8 @@ class ModelTrainingPopup(QDialog):
         help_windows.RefinementHelpWindow(self, self.window_max_size)
 
     def generate_predictions(self, frame_indices):
-        pred_data, im_input, _, self.bbox = self.gui.process_subset_keypoints(
-            frame_indices
-        )
-        return pred_data, im_input
+        output = self.gui.process_subset_keypoints(frame_indices)
+        return output
 
     def radio_button_clicked(self):
         # Change background color of the selected radio button to None
@@ -895,7 +903,11 @@ class ModelTrainingPopup(QDialog):
                     random_frame_index, self.random_frames_ind
                 )
 
-        pose_data, imgs = self.generate_predictions(random_frame_index)
+        output = self.generate_predictions(random_frame_index)
+        if output is None:
+            self.close()
+            return
+        pose_data, imgs, _, _ = output
 
         rows = int(np.floor(np.sqrt(len(imgs))))
         cols = int(np.ceil(len(imgs) / rows))

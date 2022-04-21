@@ -47,7 +47,7 @@ def normalize99(X, device=None):
         normalized image of size [Ly x Lx]
     """
     if device is not None:
-        x01 = torch.quantile(X, 0.01)  # TODO - check if all values are positive
+        x01 = torch.quantile(X, 0.01)
         x99 = torch.quantile(X, 0.99)
         X = (X - x01) / (x99 - x01)
     else:

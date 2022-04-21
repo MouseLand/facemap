@@ -288,7 +288,6 @@ class Pose:
                     self.net, imall, batchsize=batch_size, smooth=False
                 )
 
-                # TODO - Adjust/project keypoints to original image size (when padding used for inference)
                 Xlabel, Ylabel = transforms.adjust_keypoints(
                     Xlabel,
                     Ylabel,
@@ -372,18 +371,18 @@ class Pose:
 
                 # Inference time includes: pre-processing, inference, post-processing
                 t0 = time.time()
-                imall = torch.from_numpy(imall).to(self.net.device, dtype=torch.float32)
-                frame_grayscale = (
-                    transforms.crop_resize(
-                        imall, Ystart, Ystop, Xstart, Xstop, self.resize
-                    )
-                    .clone()
-                    .detach()
-                )
-                imall = transforms.preprocess_img(frame_grayscale)
 
-                im_input.append(imall.detach().cpu().numpy())
-                # Network prediction
+                # Pre-process images
+                imall, postpad_shape = transforms.preprocess_img(
+                    imall,
+                    self.add_padding,
+                    self.resize,
+                    self.bbox[video_id],
+                    device=self.net.device,
+                )
+                im_input.append(imall.cpu().numpy())
+
+                # Run inference
                 Xlabel, Ylabel, likelihood = pose_utils.predict(
                     self.net, imall, batchsize=batch_size, smooth=False
                 )

@@ -24,6 +24,7 @@ class PoseGUI(pose.Pose):
         self.resize = False
         self.add_padding = False
         self.img_xy = img_xy
+        self.cancel_bbox_selection = False
 
     # Draw box on GUI using user's input
     def draw_user_bbox(self):
@@ -172,8 +173,8 @@ class ROI_popup(QDialog):
         self.pose.bbox.append([x1, x2, y1, y2, False])
         self.close()
 
-    def cancel_exec(self):  # TODO: add functionality to cancel training/prediction loop
-        self.pose.cancel = True
+    def cancel_exec(self):
+        self.pose.cancel_bbox_selection = True
         self.close()
 
     def done_exec(self):

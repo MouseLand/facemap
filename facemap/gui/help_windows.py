@@ -107,7 +107,7 @@ class MainWindowHelp(QDialog):
         self.show()
 
         # TODO - Add instructions for filetypes accepted for different load buttons
-        # TODO - Add instructions for neural data
+        # TODO - Add instructions for loading neural data
 
 
 class AboutWindow(QDialog):

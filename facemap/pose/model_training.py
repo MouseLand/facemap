@@ -78,7 +78,6 @@ def finetune_model(
     gui=None,
     gui_obj=None,
 ):
-    # TODO - Preprocess the images!!
 
     # Train the model on a subset of the corrected annotations
     nimg = imgs.shape[0]

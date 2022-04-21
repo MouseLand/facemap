@@ -910,20 +910,27 @@ class MainW(QtWidgets.QMainWindow):
             self.update_status_bar("Output saved in " + savepath)
         if self.keypoints_checkbox.isChecked():
             self.setup_pose_model()
-            self.pose_model.run_all()
-            self.update_status_bar("Pose labels saved in " + savepath)
+            if not self.pose_gui.cancel_bbox_selection:
+                self.pose_model.run_all()
+                self.update_status_bar("Pose labels saved in " + savepath)
+            else:
+                self.update_status_bar("Pose estimation cancelled")
 
     def process_subset_keypoints(self, subset_frame_indices):
         if self.pose_model is None:
             self.setup_pose_model()
-        if subset_frame_indices is not None:
-            pred_data, im_input, subset_ind, bbox = self.pose_model.run_subset(
-                subset_frame_indices
-            )
+        if not self.pose_gui.cancel_bbox_selection:
+            if subset_frame_indices is not None:
+                pred_data, im_input, subset_ind, bbox = self.pose_model.run_subset(
+                    subset_frame_indices
+                )
+            else:
+                pred_data, im_input, subset_ind, bbox = self.pose_model.run_subset()
+            self.update_status_bar("Subset keypoints processed")
+            return pred_data, im_input, subset_ind, bbox
         else:
-            pred_data, im_input, subset_ind, bbox = self.pose_model.run_subset()
-        self.update_status_bar("Subset keypoints processed")
-        return pred_data, im_input, subset_ind, bbox
+            self.update_status_bar("Training cancelled")
+            return None
 
     ### ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Pose functions ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -938,15 +945,17 @@ class MainW(QtWidgets.QMainWindow):
     ):
         if self.pose_model is None:
             self.setup_pose_model()
-        self.pose_model.train(
-            image_data,
-            keypoints_data,
-            num_epochs,
-            batch_size,
-            learning_rate,
-            weight_decay,
-        )
-        self.update_status_bar("Model training completed!")
+        if not self.pose_gui.cancel_bbox_selection:
+            self.pose_model.train(
+                image_data,
+                keypoints_data,
+                num_epochs,
+                batch_size,
+                learning_rate,
+                weight_decay,
+            )
+            self.update_status_bar("Model training completed!")
+        return
 
     def set_pose_bbox(self):
         # User defined bbox selection
@@ -967,7 +976,7 @@ class MainW(QtWidgets.QMainWindow):
                 self.resize_img,
                 self.add_padding,
             ) = self.set_pose_bbox()
-        if self.pose_model is None:
+        if self.pose_model is None and not self.pose_gui.cancel_bbox_selection:
             self.pose_model = pose.Pose(
                 gui=self,
                 GUIobject=QtWidgets,
