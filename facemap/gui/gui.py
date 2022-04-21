@@ -99,10 +99,10 @@ class MainW(QtWidgets.QMainWindow):
         self.cwidget.setLayout(self.l0)
         # --- cells image
         self.win = pg.GraphicsLayoutWidget()
-        sizeObject = QDesktopWidget().screenGeometry(-1)
-        self.resize(sizeObject.width(), sizeObject.height())
-        self.win.move(sizeObject.height(), sizeObject.width())
-        self.win.resize(sizeObject.height(), sizeObject.width())
+        self.sizeObject = QDesktopWidget().screenGeometry(-1)
+        self.resize(self.sizeObject.width(), self.sizeObject.height())
+        self.win.move(self.sizeObject.height(), self.sizeObject.width())
+        self.win.resize(self.sizeObject.height(), self.sizeObject.width())
         self.l0.addWidget(self.win, 1, 2, 25, 15)
         layout = self.win.ci.layout
 
@@ -1094,7 +1094,7 @@ class MainW(QtWidgets.QMainWindow):
             self.Pose_scatterplot.setData(
                 x,
                 y,
-                size=20,  # TODO - make this a parameter dependent on the size of the main window
+                size=0.009 * self.sizeObject.height(),
                 symbol="o",
                 brush=brushes,
                 hoverable=True,

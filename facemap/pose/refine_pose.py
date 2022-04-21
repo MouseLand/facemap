@@ -697,13 +697,13 @@ class ModelTrainingPopup(QDialog):
             symbol="o",
             brush=self.brushes,
             hoverable=True,
-            hoverSize=25,
+            hoverSize=self.gui.sizeObject.height() * 0.006,
             hoverSymbol="x",
             pxMode=True,
             hoverBrush="r",
             name=self.bodyparts,
             data=self.bodyparts,
-            size=20,
+            size=self.gui.sizeObject.height() * 0.006,
         )
         self.frame_win.addItem(self.keypoints_scatterplot)
 
@@ -773,7 +773,7 @@ class ModelTrainingPopup(QDialog):
         if ev.key() in (
             QtCore.Qt.Key_Backspace,
             QtCore.Qt.Key_Delete,
-        ):  # TODO: make this work for mac. Change key or use modifiers
+        ):  # FIXME - make this work for mac. Change key or use modifiers
             self.delete_keypoint()
         else:
             return
@@ -927,11 +927,11 @@ class ModelTrainingPopup(QDialog):
                 pose_scatter.setData(
                     x=x,
                     y=y,
-                    size=12,
+                    size=self.gui.sizeObject.height() * 0.003,
                     symbol="o",
                     brush=self.brushes,
                     hoverable=True,
-                    hoverSize=12,
+                    hoverSize=self.gui.sizeObject.height() * 0.003,
                     hoverSymbol="x",
                     pen=(0, 0, 0, 0),
                     data=self.bodyparts,
@@ -1212,13 +1212,13 @@ class KeypointsGraph(pg.GraphItem):
                 symbol="o",
                 brush=self.parent.brushes,
                 hoverable=True,
-                hoverSize=25,
+                hoverSize=self.gui.sizeObject.height() * 0.006,
                 hoverSymbol="x",
                 pxMode=True,
                 hoverBrush="r",
                 name=self.parent.bodyparts,
                 data=self.parent.bodyparts,
-                size=20,
+                size=self.gui.sizeObject.height() * 0.006,
             )
             # Update the data
             self.updateGraph()

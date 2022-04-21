@@ -242,14 +242,15 @@ class VisualizeVideoSubset(QDialog):
             self.pose[self.current_frame_idx][:, 0],
             self.pose[self.current_frame_idx][:, 1],
         )
+
         self.pose_scatter.setData(
             x=x,
             y=y,
-            size=12,
+            size=self.gui.sizeObject.height() * 0.006,
             symbol="o",
             brush=self.brushes,
             hoverable=True,
-            hoverSize=15,
+            hoverSize=self.gui.sizeObject.height() * 0.007,
             hoverSymbol="x",
             pen=(0, 0, 0, 0),
             data=self.bodyparts,
@@ -298,11 +299,11 @@ class VisualizeVideoSubset(QDialog):
         self.pose_scatter.setData(
             x=x,
             y=y,
-            size=12,
+            size=self.gui.sizeObject.height() * 0.006,
             symbol="o",
             brush=self.brushes,
             hoverable=True,
-            hoverSize=10,
+            hoverSize=self.gui.sizeObject.height() * 0.005,
             hoverSymbol="x",
             pen=(0, 0, 0, 0),
             data=self.bodyparts,
