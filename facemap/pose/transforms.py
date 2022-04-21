@@ -15,7 +15,7 @@ from . import pose_helper_functions
 def preprocess_img(im, add_padding, resize, bbox, device=None):
     """
     Preproccesing of image involves:
-        1. Conversion to float32 in range0-1, normalize99
+        1. Conversion to float32 and normalize99
         2. Cropping image to select bounding box (bbox) region
         3. padding image size to be square
         4. Resize image to 256x256 for model input

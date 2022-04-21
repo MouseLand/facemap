@@ -60,10 +60,15 @@ class Pose:
             self.load_model()
         # Setup the bounding box
         if not self.bbox_set:
-            self.resize = True
             for i in range(len(self.Ly)):
                 x1, x2, y1, y2 = 0, self.Ly[i], 0, self.Lx[i]
                 self.bbox.append([x1, x2, y1, y2])
+
+                # Update resize and add padding flags
+                if x2 - x1 != y2 - y1:
+                    self.add_padding = True
+                if x2 - x1 != 256 or y2 - y1 != 256:
+                    self.resize = True
                 prompt = (
                     "No bbox set. Using entire frame view: {} and resize={}".format(
                         self.gui.bbox, self.resize
@@ -251,7 +256,7 @@ class Pose:
         print("Using params:")
         print("BBOX:", self.bbox[video_id])
         print("resize:", self.resize)
-        print("paddding:", self.add_padding)
+        print("padding:", self.add_padding)
 
         progress_output = StringIO()
         with tqdm(

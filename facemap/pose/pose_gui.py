@@ -2,7 +2,7 @@ import numpy as np
 import pyqtgraph as pg
 from matplotlib import cm
 from PyQt5 import QtWidgets
-from PyQt5.QtWidgets import QDialog, QPushButton
+from PyQt5.QtWidgets import QDesktopWidget, QDialog, QPushButton
 
 from facemap import utils
 from facemap.pose import pose
@@ -100,6 +100,13 @@ class PoseGUI(pose.Pose):
 class ROI_popup(QDialog):
     def __init__(self, frame, video_id, gui, pose, last_video):
         super().__init__()
+        window_max_size = QDesktopWidget().screenGeometry(-1)
+        fraction = 0.3
+        aspect_ratio = 1.2
+        self.resize(
+            int(np.floor(window_max_size.width() * fraction)),
+            int(np.floor(window_max_size.height() * fraction * aspect_ratio)),
+        )
         self.gui = gui
         self.frame = frame
         self.pose = pose
