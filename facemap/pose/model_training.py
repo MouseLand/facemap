@@ -83,7 +83,7 @@ def finetune_model(
     nimg = imgs.shape[0]
     if imgs.ndim == 3:
         imgs = imgs[:, np.newaxis, :, :]
-    n_factor = 2**4 // (2**net.n_upsample)
+    n_factor = 2 ** 4 // (2 ** net.n_upsample)
     xmesh, ymesh = np.meshgrid(np.arange(256 / n_factor), np.arange(256 / n_factor))
     ymesh = torch.from_numpy(ymesh).to(device)
     xmesh = torch.from_numpy(xmesh).to(device)
@@ -150,7 +150,7 @@ def finetune_model(
             locy = xmesh - y_true.unsqueeze(-1).unsqueeze(-1)
 
             # normalize the true heatmaps
-            hm_true = torch.exp(-(locx**2 + locy**2) / (2 * sigma**2))
+            hm_true = torch.exp(-(locx ** 2 + locy ** 2) / (2 * sigma ** 2))
             hm_true = (
                 10
                 * hm_true
@@ -158,7 +158,7 @@ def finetune_model(
             )
 
             # mask over which to train the location graphs
-            mask = (locx**2 + locy**2) ** 0.5 <= sigma
+            mask = (locx ** 2 + locy ** 2) ** 0.5 <= sigma
 
             # normalize the location graphs for prediction
             locx = locx / (2 * sigma)

@@ -10,8 +10,9 @@ import torch
 from torch.nn import functional as F
 
 from . import pose_helper_functions
+import torchvision.transforms as transforms
 
-
+# TODO - Use same training protocol as in base model training. use one function for both!!
 def preprocess_img(im, add_padding, resize, bbox, device=None):
     """
     Preproccesing of image involves:
