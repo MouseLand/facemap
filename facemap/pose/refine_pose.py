@@ -2,6 +2,7 @@ import os
 import shutil
 from glob import glob
 
+import cv2
 import numpy as np
 import pyqtgraph as pg
 from matplotlib import cm
@@ -25,8 +26,9 @@ from PyQt5.QtWidgets import (
     QVBoxLayout,
 )
 
+from .. import utils
 from ..gui import help_windows, io
-from . import models
+from . import model_loader
 
 """
 Single workflow for re-training the model or fine-tuning the model with new data.
@@ -177,13 +179,13 @@ class ModelTrainingPopup(QDialog):
         print("Path set to {}".format(self.output_folder_path))
 
         # Check if the selected output folder path contains a model file (*.pt) and data files (*.npy)
-        self.model_files = glob(os.path.join(models.get_models_dir(), "*.pt"))
-        self.data_files = models.get_model_files()
+        self.model_files = glob(os.path.join(model_loader.get_models_dir(), "*.pt"))
+        self.data_files = model_loader.get_model_files()
         if len(self.model_files) == 0:
             # If no model file exists then copy the default model file from the package to the output folder
             print("No model file found in the selected output folder")
             print("Copying default model file to the selected output folder")
-            model_state_path = models.get_model_state_path()
+            model_state_path = model_loader.get_model_state_path()
             shutil.copy(model_state_path, self.output_folder_path)
             self.model_files = glob(os.path.join(self.output_folder_path, "*.pt"))
 
@@ -529,17 +531,19 @@ class ModelTrainingPopup(QDialog):
 
         # Select frames for prediction
         if self.pose_data is None:  # Generate predictions for random frames
-            frames = self.random_frames_ind
+            frames_indices = self.random_frames_ind
         else:  # Use the predictions from the previous step and add new predictions
-            frames = predict_frame_index
+            frames_indices = predict_frame_index
 
         # Get the predictions for the selected frames
-        output = self.generate_predictions(frames)
+        output = self.generate_predictions(frames_indices)
         if output is None:  # User cancelled the refinement
             self.close()
             return
 
-        pose_pred, frames_input, _, self.bbox = output
+        pose_pred, _, self.bbox = output
+        pose_pred = pose_pred[:, :, :2]  # Remove the confidence score/likelihood
+        frames_input = self.get_frames_from_indices(frames_indices)
         # Update the predictions
         if self.pose_data is None:
             self.pose_data = pose_pred
@@ -648,6 +652,19 @@ class ModelTrainingPopup(QDialog):
         self.verticalLayout.addWidget(self.overall_horizontal_group)
 
         self.next_frame()
+
+    def get_frames_from_indices(self, indices):
+        # Pre-pocess images
+        imall = np.zeros((len(indices), 1, self.gui.Ly[0], self.gui.Lx[0]))
+        for i, index in enumerate(indices):
+            frame = utils.get_frame(
+                index, self.gui.nframes, self.gui.cumframes, self.gui.video
+            )[0]
+            # Convert to grayscale
+            imall[i] = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+            # Convert to int
+            imall[i] = imall[i].astype(int)
+        return imall.squeeze()
 
     def show_refinement_help(self):
         help_windows.RefinementHelpWindow(self, self.window_max_size)
@@ -865,7 +882,7 @@ class ModelTrainingPopup(QDialog):
         label.setStyleSheet("font-size: 12; color: gray;")
         self.verticalLayout.addWidget(label)
 
-        self.show_sample_predictions()
+        self.visualize_model_predictions()
 
         # Add a set of buttons to the window asking the user to save finetuned model or continue training
         self.buttons_groupbox = QGroupBox()
@@ -878,7 +895,7 @@ class ModelTrainingPopup(QDialog):
         self.buttons_groupbox.layout().addWidget(self.save_model_button)
         self.verticalLayout.addWidget(self.buttons_groupbox)
 
-    def show_sample_predictions(self):
+    def visualize_model_predictions(self):
         # Add a grid of images to the window with the predictions of the finetuned model for each image
         self.sample_predictions_groupbox = QGroupBox()
         self.sample_predictions_groupbox.setLayout(QGridLayout())
@@ -890,24 +907,26 @@ class ModelTrainingPopup(QDialog):
             num_frames_to_show = self.gui.cumframes[-1]
         # Create a grid plot 4x4 of images
         # Get random frame indices that are not in the self.random_frames list
-        random_frame_index = []
-        while len(random_frame_index) < num_frames_to_show:
-            random_frame_index = self.get_random_frames(
+        random_frame_indices = []
+        while len(random_frame_indices) < num_frames_to_show:
+            random_frame_indices = self.get_random_frames(
                 self.gui.cumframes[-1],
-                size=num_frames_to_show - len(random_frame_index),
+                size=num_frames_to_show - len(random_frame_indices),
             )
             # Check if any of the new random frames are already in the self.random_frames list
-            if np.any(np.isin(random_frame_index, self.random_frames_ind)):
+            if np.any(np.isin(random_frame_indices, self.random_frames_ind)):
                 # If so, get more random frames
-                random_frame_index = np.setdiff1d(
-                    random_frame_index, self.random_frames_ind
+                random_frame_indices = np.setdiff1d(
+                    random_frame_indices, self.random_frames_ind
                 )
 
-        output = self.generate_predictions(random_frame_index)
+        output = self.generate_predictions(random_frame_indices)
         if output is None:
             self.close()
             return
-        pose_data, imgs, _, _ = output
+        pose_data, _, _ = output
+        pose_data = pose_data[:, :, :2]  # Remove confidence scores/likelihoods
+        imgs = self.get_frames_from_indices(random_frame_indices)
 
         rows = int(np.floor(np.sqrt(len(imgs))))
         cols = int(np.ceil(len(imgs) / rows))
@@ -918,7 +937,7 @@ class ModelTrainingPopup(QDialog):
                 self.win = pg.GraphicsLayoutWidget()
                 frame_win = self.win.addViewBox(invertY=True)
                 frame_win.addItem(
-                    pg.LabelItem("Frame {}".format(random_frame_index[i * 4 + j] + 1))
+                    pg.LabelItem("Frame {}".format(random_frame_indices[i * 4 + j] + 1))
                 )
                 frame_win.addItem(pg.ImageItem(frame))
                 # Add a keypoints scatterplot to the window
@@ -1092,7 +1111,7 @@ class KeypointsGraph(pg.GraphItem):
             self.parent.output_folder_path,
             video_name + "_Facemap_refined_images_landmarks.npy",
         )
-        models.update_models_data_txtfile([savepath])
+        model_loader.update_models_data_txtfile([savepath])
         # Save the data
         np.save(
             savepath,

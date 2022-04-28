@@ -15,7 +15,7 @@ from scipy.ndimage import gaussian_filter
 print("python version:", python_version())
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~Global variables~~~~~~~~~~~~~~~~~~~~~~~~~~~~~`
-N_FACTOR = 2 ** 4 // (2 ** 2)
+N_FACTOR = 2**4 // (2**2)
 SIGMA = 3 * 4 / N_FACTOR
 Lx = 64
 print("Global varaibles set:")
@@ -57,7 +57,7 @@ def normalize99(X, device=None):
     return X
 
 
-def predict(net, im_input, batchsize=1, smooth=True):
+def predict(net, im_input, smooth=True):
 
     xmesh, ymesh = np.meshgrid(
         torch.arange(net.image_shape[0] / N_FACTOR),
@@ -146,12 +146,12 @@ def add_motion_blur(img, kernel_size=None, vertical=True, horizontal=True):
 
 # Following used to check cropped sections of frames
 class test_popup(QDialog):
-    def __init__(self, frame, gui):
+    def __init__(self, frame, gui, title="Test Popup"):
         super().__init__(gui)
         self.gui = gui
         self.frame = frame
 
-        self.setWindowTitle("Chosen ROI")
+        self.setWindowTitle(title)
         self.verticalLayout = QtWidgets.QVBoxLayout(self)
 
         # Add image and ROI bbox

@@ -2,7 +2,7 @@ import numpy as np
 import pyqtgraph as pg
 from matplotlib import cm
 from PyQt5 import QtWidgets
-from PyQt5.QtWidgets import QDesktopWidget, QDialog, QPushButton
+from PyQt5.QtWidgets import QDesktopWidget, QDialog, QProgressBar, QPushButton
 
 from facemap import utils
 from facemap.pose import pose
@@ -315,3 +315,45 @@ class VisualizeVideoSubset(QDialog):
             + str(self.frame_idx[self.current_frame_idx])
             + " ({}/{})".format(self.current_frame_idx, len(self.frame_idx) - 1)
         )
+
+
+class ProgressBarPopup(QDialog):
+    def __init__(self, gui):
+        super().__init__(gui)
+        self.gui = gui
+        self.setWindowTitle("Training model...")
+        window_size = QDesktopWidget().screenGeometry(-1)
+        self.setFixedSize(
+            int(np.floor(window_size.width() * 0.31)),
+            int(np.floor(window_size.height() * 0.31 * 0.5)),
+        )
+        self.verticalLayout = QtWidgets.QVBoxLayout(self)
+
+        self.progress_bar = QProgressBar(gui)
+        self.progress_bar.setRange(0, 100)
+        self.progress_bar.setValue(0)
+        self.progress_bar.setFixedSize(
+            int(np.floor(window_size.width() * 0.3)),
+            int(np.floor(window_size.height() * 0.3 * 0.2)),
+        )
+        self.progress_bar.show()
+        # Add the progress bar to the dialog
+        self.verticalLayout.addWidget(self.progress_bar)
+
+        # Add a cancel button to the dialog
+        cancel_button = QPushButton("Cancel")
+        cancel_button.clicked.connect(self.close)
+        self.verticalLayout.addWidget(cancel_button)
+
+        self.show()
+
+    def update_progress_bar(self, message, gui_obj):
+        message = message.getvalue().split("\x1b[A\n\r")[0].split("\r")[-1]
+        progressBar_value = [
+            int(s) for s in message.split("%")[0].split() if s.isdigit()
+        ]
+        if len(progressBar_value) > 0:
+            progress_percentage = int(progressBar_value[0])
+            self.progress_bar.setValue(progress_percentage)
+            self.progress_bar.setFormat(str(progress_percentage) + " %")
+        gui_obj.QApplication.processEvents()

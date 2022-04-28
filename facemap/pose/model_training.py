@@ -6,12 +6,10 @@ from torch import optim
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 from io import StringIO
 
-from PyQt5 import QtWidgets
-from PyQt5.QtWidgets import QDesktopWidget, QDialog, QProgressBar, QPushButton
 from tqdm import tqdm
 
+from . import pose_gui
 from . import pose_helper_functions as pose_utils
-from . import transforms
 
 """
 Fine-tuning the model using the pre-trained weights and refined training data
@@ -19,80 +17,48 @@ provided by the user.
 """
 
 
-def preprocess_images_landmarks(imgs, landmarks, bbox_region):
-    """
-    The function preprocesses the images and landmarks by cropping the images and
-    landmarks to the bounding box region and resizing the images to 256x256.
-    Parameters:
-        imgs: A list of multiple images of size (height, width): [(num_images, height, width), ...]
-        landmarks: A list of multiple landmarks of size (num_landmarks, 2): [(num_images, num_landmarks, 3), ...]
-        bbox_region: A list of bounding box regions for each set of frames [(Xstart, Xstop, Ystart, Ystop, resize), ...]
-    Returns:
-        imgs_preprocessed: ND-array of images of size (num_frames, 1, 256, 256)
-        landmarks_preprocessed: ND-array of landmarks of size (num_frames, num_landmarks, 2)
-    """
-    imgs_preprocessed = []
-    landmarks_preprocessed = []
-    # Loop through each list of frames and landmarks
-    for set in range(len(imgs)):
-        Xstart, Xstop, Ystart, Ystop, resize = bbox_region[set]
-        # Loop through each frame
-        for frame in range(len(imgs[set])):
-            Xlabel, Ylabel = landmarks[set][frame].T[::3], landmarks[set][frame].T[1::3]
-            Xlabel, Ylabel = transforms.labels_crop_resize(
-                Xlabel,
-                Ylabel,
-                Ystart,
-                Xstart,
-                current_size=imgs[set][frame].shape,
-                desired_size=(256, 256),
-            )
-            landmarks = np.hstack((Xlabel, Ylabel))
-            landmarks = landmarks.reshape((-1, 2))
-            landmarks_preprocessed.append(landmarks)  # landmarks[set][frame])
-            # Pre-processing using grayscale imagenet stats
-            im = imgs[set][frame]
-            if im.ndim == 2:
-                im = im[np.newaxis, np.newaxis, :, :]
-            im = torch.from_numpy(im).to(dtype=torch.float32)
-            im = (
-                transforms.crop_resize(im, Ystart, Ystop, Xstart, Xstop, resize)
-                .clone()
-                .detach()
-            )
-            im = transforms.preprocess_img(im).numpy()
-            imgs_preprocessed.append(im.squeeze())
-    imgs_preprocessed = np.array(imgs_preprocessed)
-    landmarks_preprocessed = np.array(landmarks_preprocessed)
-    return imgs_preprocessed, landmarks_preprocessed
-
-
-def finetune_model(
-    imgs,
-    landmarks,
+def train(
+    train_dataset,
+    train_loader,
     net,
     n_epochs,
-    batch_size,
     learning_rate,
     weight_decay,
     gui=None,
     gui_obj=None,
 ):
+    """
+    Fine-tuning the model using the pre-trained weights and refined training data provided by the user.
+    Parameters
+    ----------
+    train_dataset : torch.utils.data.Dataset
+        Dataset containing the training data i.e. the images and the corresponding keypoints.
+    train_loader : torch.utils.data.DataLoader
+        The dataloader object containing the training data.
+    net : torch.nn.Module
+        The model to be trained.
+    n_epochs : int
+        The number of epochs to be trained.
+    learning_rate : float
+        The learning rate for the optimizer.
+    weight_decay : float
+        The weight decay for the optimizer.
+    gui : PyQt5.QMainWindow
+        The main window of the application.
+    gui_obj : QtWidgets
+        The gui object of the application.
+    """
 
-    # Train the model on a subset of the corrected annotations
-    nimg = imgs.shape[0]
-    if imgs.ndim == 3:
-        imgs = imgs[:, np.newaxis, :, :]
-    n_factor = 2 ** 4 // (2 ** net.n_upsample)
-    xmesh, ymesh = np.meshgrid(np.arange(256 / n_factor), np.arange(256 / n_factor))
+    n_factor = 2**4 // (2**net.n_upsample)
+    xmesh, ymesh = np.meshgrid(
+        np.arange(train_dataset.img_size[0] / n_factor),
+        np.arange(train_dataset.img_size[1] / n_factor),
+    )
     ymesh = torch.from_numpy(ymesh).to(device)
     xmesh = torch.from_numpy(xmesh).to(device)
+
     sigma = 3 * 4 / n_factor
     Lx = 64
-
-    optimizer = optim.Adam(
-        net.parameters(), lr=learning_rate, weight_decay=weight_decay
-    )
 
     ggmax = 50
     LR = learning_rate * np.ones(
@@ -101,45 +67,38 @@ def finetune_model(
     LR[-6:-3] = learning_rate / 10
     LR[-3:] = learning_rate / 25
 
-    if gui is not None and gui_obj is not None:
-        progress_bar = ProgressBarPopup(gui)
+    # Initialize the optimizer
+    optimizer = optim.Adam(
+        net.parameters(), lr=learning_rate, weight_decay=weight_decay
+    )
 
+    if gui is not None and gui_obj is not None:
+        progress_bar = pose_gui.ProgressBarPopup(gui)
     progress_output = StringIO()
+
     for epoch in tqdm(range(n_epochs), file=progress_output):
         for param_group in optimizer.param_groups:
             param_group["lr"] = LR[epoch]
-
         pose_utils.set_seed(epoch)
-        net.train()
-        inds = np.random.permutation(nimg)
         train_loss = 0
         train_mean = 0
         n_batches = 0
-
         gnorm_max = 0
-        for k in np.arange(0, nimg, batch_size):
-            kend = min(nimg, k + batch_size)
-            imgi, lbl, _ = transforms.random_rotate_and_resize(
-                imgs[inds[k:kend]],
-                landmarks[inds[k:kend]],
-                contrast_adjustment=False,
-                do_flip=True,
-                scale_range=0.2,
-                rotation=0,
-                gamma_aug=False,
-            )
 
-            #### run the network FIRST for asynchronous CPU work below ##########
-            img_batch = torch.from_numpy(imgi).to(device=device, dtype=torch.float32)
-            hm_pred, locx_pred, locy_pred = net(img_batch)
+        net.train()
+        for batch in train_loader:
+            images = batch["image"].to(device, dtype=torch.float32)
+            lbl = batch["keypoints"].to(device, dtype=torch.float32)
+
+            hm_pred, locx_pred, locy_pred = net(images)
             ######################################################################
 
             # do a lot of preparations for the true heatmaps and the location graphs
-            lbl_mask = np.isnan(lbl).sum(axis=-1)
-            is_nan = lbl_mask > 0
-            lbl[is_nan] = 0
-            lbl_nan = torch.from_numpy(lbl_mask == 0).to(device=device)
-            lbl_batch = torch.from_numpy(lbl).to(device=device, dtype=torch.float32)
+            lbl_mask = torch.isnan(lbl).sum(axis=-1)
+            lbl[lbl_mask > 0] = 0
+            lbl_nan = lbl_mask == 0
+            lbl_nan = lbl_nan.to(device=device)
+            lbl_batch = lbl
 
             # divide by the downsampling factor (typically 4)
             y_true = (lbl_batch[:, :, 0]) / n_factor
@@ -150,7 +109,7 @@ def finetune_model(
             locy = xmesh - y_true.unsqueeze(-1).unsqueeze(-1)
 
             # normalize the true heatmaps
-            hm_true = torch.exp(-(locx ** 2 + locy ** 2) / (2 * sigma ** 2))
+            hm_true = torch.exp(-(locx**2 + locy**2) / (2 * sigma**2))
             hm_true = (
                 10
                 * hm_true
@@ -158,7 +117,7 @@ def finetune_model(
             )
 
             # mask over which to train the location graphs
-            mask = (locx ** 2 + locy ** 2) ** 0.5 <= sigma
+            mask = (locx**2 + locy**2) ** 0.5 <= sigma
 
             # normalize the location graphs for prediction
             locx = locx / (2 * sigma)
@@ -235,45 +194,3 @@ def finetune_model(
         progress_bar.close()
 
     return net
-
-
-class ProgressBarPopup(QDialog):
-    def __init__(self, gui):
-        super().__init__(gui)
-        self.gui = gui
-        self.setWindowTitle("Training model...")
-        window_size = QDesktopWidget().screenGeometry(-1)
-        self.setFixedSize(
-            int(np.floor(window_size.width() * 0.31)),
-            int(np.floor(window_size.height() * 0.31 * 0.5)),
-        )
-        self.verticalLayout = QtWidgets.QVBoxLayout(self)
-
-        self.progress_bar = QProgressBar(gui)
-        self.progress_bar.setRange(0, 100)
-        self.progress_bar.setValue(0)
-        self.progress_bar.setFixedSize(
-            int(np.floor(window_size.width() * 0.3)),
-            int(np.floor(window_size.height() * 0.3 * 0.2)),
-        )
-        self.progress_bar.show()
-        # Add the progress bar to the dialog
-        self.verticalLayout.addWidget(self.progress_bar)
-
-        # Add a cancel button to the dialog
-        cancel_button = QPushButton("Cancel")
-        cancel_button.clicked.connect(self.close)
-        self.verticalLayout.addWidget(cancel_button)
-
-        self.show()
-
-    def update_progress_bar(self, message, gui_obj):
-        message = message.getvalue().split("\x1b[A\n\r")[0].split("\r")[-1]
-        progressBar_value = [
-            int(s) for s in message.split("%")[0].split() if s.isdigit()
-        ]
-        if len(progressBar_value) > 0:
-            progress_percentage = int(progressBar_value[0])
-            self.progress_bar.setValue(progress_percentage)
-            self.progress_bar.setFormat(str(progress_percentage) + " %")
-        gui_obj.QApplication.processEvents()

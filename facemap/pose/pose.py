@@ -10,7 +10,7 @@ from tqdm import tqdm
 
 from facemap import utils
 
-from . import FMnet_torch, model_training, models
+from . import datasets, facemap_network, model_loader, model_training
 from . import pose_helper_functions as pose_utils
 from . import transforms
 
@@ -61,7 +61,7 @@ class Pose:
         # Setup the bounding box
         if not self.bbox_set:
             for i in range(len(self.Ly)):
-                x1, x2, y1, y2 = 0, self.Ly[i], 0, self.Lx[i]
+                x1, x2, y1, y2 = 0, self.Lx[i], 0, self.Ly[i]
                 self.bbox.append([x1, x2, y1, y2])
 
                 # Update resize and add padding flags
@@ -157,16 +157,15 @@ class Pose:
             prompt="Processing video: {}".format(self.filenames[0][0]),
             hide_progress=True,
         )
-        pred_data, im_input = self.get_refinement_data(0, frame_ind=subset_ind)
+        pred_data, _ = self.predict_landmarks(0, frame_ind=subset_ind)
         utils.update_mainwindow_message(
             MainWindow=self.gui,
             GUIobject=self.GUIobject,
             prompt="Finished processing subset of video",
             hide_progress=True,
         )
-        return pred_data, im_input, subset_ind, self.bbox
+        return pred_data, subset_ind, self.bbox
 
-    # Retrain model using refined pose data
     def train(
         self,
         image_data,
@@ -176,13 +175,43 @@ class Pose:
         learning_rate,
         weight_decay,
     ):
+        """
+        Train the model
+        Parameters
+        ----------
+        image_data: numpy array
+            Array of images
+        keypoints_data: numpy array
+            Array of keypoints
+        num_epochs: int
+            Number of epochs for training
+        batch_size: int
+            Batch size for training
+        learning_rate: float
+            Learning rate for training
+        weight_decay: float
+            Weight decay for training
+        Returns
+        -------
+        model: torch.nn.Module
+            Trained/finetuned model
+        """
+        # Create a dataset object for training
+        dataset = datasets.FacemapDataset(
+            image_data=image_data,
+            keypoints_data=keypoints_data,
+            bbox=self.bbox[0],
+        )
+        # Create a dataloader object for training
+        dataloader = torch.utils.data.DataLoader(
+            dataset, batch_size=batch_size, shuffle=True
+        )
         # Use preprocessed data to train the model
-        self.net = model_training.finetune_model(
-            image_data,
-            keypoints_data[:, :, :-1],
+        self.net = model_training.train(
+            dataset,
+            dataloader,
             self.net,
             num_epochs,
-            batch_size,
             learning_rate,
             weight_decay,
             self.gui,
@@ -190,11 +219,11 @@ class Pose:
         )
         self.finetuned_model = True
         print("Model training complete!")
-        return
+        return self.net
 
     def save_model(self, model_filepath):
         torch.save(self.net.state_dict(), model_filepath)
-        models.copy_to_models_dir(model_filepath)
+        model_loader.copy_to_models_dir(model_filepath)
         return model_filepath
 
     def write_dataframe(self, data, selected_frame_ind=None):
@@ -226,7 +255,7 @@ class Pose:
 
         return dataFrame
 
-    def predict_landmarks(self, video_id):
+    def predict_landmarks(self, video_id, frame_ind=None):
         """
         Predict labels for all frames in video and save output as .h5 file
         """
@@ -239,8 +268,11 @@ class Pose:
         else:  # TODO - Optimize for CPU usage
             batch_size = 1
 
-        total_frames = self.cumframes[-1]
-        frame_ind = np.arange(total_frames)
+        if frame_ind is None:
+            total_frames = self.cumframes[-1]
+            frame_ind = np.arange(total_frames)
+        else:
+            total_frames = len(frame_ind)
 
         # Create array for storing predictions
         pred_data = torch.zeros(total_frames, len(self.net.bodyparts), 3)
@@ -250,7 +282,7 @@ class Pose:
         start = 0
         end = batch_size
         # Get bounding box for the video
-        Xstart, Xstop, Ystart, Ystop = self.bbox[video_id]
+        x1, _, y1, _ = self.bbox[video_id]
         inference_time = 0
 
         print("Using params:")
@@ -277,29 +309,31 @@ class Pose:
                 # Pre-process images
                 imall, postpad_shape = transforms.preprocess_img(
                     imall,
+                    self.bbox[video_id],
                     self.add_padding,
                     self.resize,
-                    self.bbox[video_id],
                     device=self.net.device,
                 )
 
+                # obj = pose_utils.test_popup(imall[0].squeeze().detach().cpu().numpy(), self.gui, title="Post-processing {}".format(start))
+
                 # Run inference
-                Xlabel, Ylabel, likelihood = pose_utils.predict(
-                    self.net, imall, batchsize=batch_size, smooth=False
+                xlabels, ylabels, likelihood = pose_utils.predict(
+                    self.net, imall, smooth=False
                 )
 
-                Xlabel, Ylabel = transforms.adjust_keypoints(
-                    Xlabel,
-                    Ylabel,
-                    Ystart,
-                    Xstart,
+                xlabels, ylabels = transforms.adjust_keypoints(
+                    xlabels,
+                    ylabels,
+                    x1,
+                    y1,
                     current_size=(256, 256),
                     desired_size=postpad_shape,
                 )
 
                 # Add predictions to array
-                pred_data[start:end, :, 0] = Xlabel
-                pred_data[start:end, :, 1] = Ylabel
+                pred_data[start:end, :, 0] = xlabels
+                pred_data[start:end, :, 1] = ylabels
                 pred_data[start:end, :, 2] = likelihood
 
                 # Update progress bar and inference time
@@ -331,82 +365,6 @@ class Pose:
         }
         return pred_data, metadata
 
-    def get_refinement_data(self, video_id, frame_ind=None):
-        """
-        The function predicts keypoints for resized images selected for refinement.
-        Returns:
-            pred_data: Predicted keypoints for selected frames in the video in 256x256 resolution
-            im_input: Input images used for model prediction
-        """
-        nchannels = 1
-        if torch.cuda.is_available():
-            batch_size = 1
-        else:
-            batch_size = 1
-
-        total_frames = len(frame_ind)
-
-        self.net.eval()
-        start = 0
-        end = batch_size
-        Xstart, Xstop, Ystart, Ystop = self.bbox[0]
-
-        im_input = []  # list of images used as input for the network
-        pred_data = torch.zeros(
-            total_frames, len(self.net.bodyparts), 3
-        )  # landmarks (raw output) from model
-        progress_output = StringIO()
-
-        with tqdm(
-            total=total_frames, unit="frame", unit_scale=True, file=progress_output
-        ) as pbar:
-            while start != total_frames:  #  for analyzing entire video
-
-                # Pre-pocess images
-                imall = np.zeros(
-                    (batch_size, nchannels, self.Ly[video_id], self.Lx[video_id])
-                )
-                cframes = np.array(frame_ind[start:end])
-                utils.get_frames(imall, self.containers, cframes, self.cumframes)
-
-                # Inference time includes: pre-processing, inference, post-processing
-                t0 = time.time()
-
-                # Pre-process images
-                imall, postpad_shape = transforms.preprocess_img(
-                    imall,
-                    self.add_padding,
-                    self.resize,
-                    self.bbox[video_id],
-                    device=self.net.device,
-                )
-                im_input.append(imall.cpu().numpy())
-
-                # Run inference
-                Xlabel, Ylabel, likelihood = pose_utils.predict(
-                    self.net, imall, batchsize=batch_size, smooth=False
-                )
-
-                # Assign predictions to dataframe
-                pred_data[start:end, :, 0] = Xlabel
-                pred_data[start:end, :, 1] = Ylabel
-                pred_data[start:end, :, 2] = likelihood
-
-                pbar.update(batch_size)
-                start = end
-                end += batch_size
-                end = min(end, total_frames)
-                # Update progress bar for every 5% of the total frames
-                if (end) % np.floor(total_frames * 0.05) == 0:
-                    utils.update_mainwindow_progressbar(
-                        MainWindow=self.gui,
-                        GUIobject=self.GUIobject,
-                        s=progress_output,
-                        prompt="Pose prediction progress:",
-                    )
-
-        return pred_data.cpu().numpy(), np.array(im_input).squeeze()
-
     def save_pose_prediction(self, dataFrame, video_id):
         # Save prediction to .h5 file
         if self.gui is not None:
@@ -436,10 +394,10 @@ class Pose:
         Load pre-trained model for keypoints prediction
         """
         if model_state_file is None:
-            model_state_file = models.get_model_state_path()
+            model_state_file = model_loader.get_model_state_path()
         else:
             self.finetuned_model = True
-        model_params_file = models.get_model_params_path()
+        model_params_file = model_loader.get_model_params_path()
         if torch.cuda.is_available():
             print("Using cuda as device")
         else:
@@ -455,7 +413,7 @@ class Pose:
         channels = model_params["params"]["channels"]
         kernel_size = 3
         nout = len(self.bodyparts)  # number of outputs from the model
-        net = FMnet_torch.FMnet(
+        net = facemap_network.FMnet(
             img_ch=1,
             output_ch=nout,
             labels_id=self.bodyparts,

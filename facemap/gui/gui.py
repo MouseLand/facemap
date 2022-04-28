@@ -6,7 +6,6 @@ import numpy as np
 import pandas as pd
 import pyqtgraph as pg
 from matplotlib import cm
-from pyparsing import col
 from PyQt5 import QtCore, QtWidgets
 from PyQt5.QtGui import QFont, QIcon, QPainterPath
 from PyQt5.QtWidgets import (
@@ -27,10 +26,10 @@ from PyQt5.QtWidgets import (
     QWidget,
 )
 from scipy.stats import skew, zscore
-from torch import column_stack, row_stack
 
 from facemap import cluster, process, roi, utils
-from facemap.pose import pose, pose_gui, refine_pose
+from facemap.pose import pose_gui, refine_pose
+from facemap.pose import pose
 
 from . import guiparts, io, menus
 
@@ -921,13 +920,13 @@ class MainW(QtWidgets.QMainWindow):
             self.setup_pose_model()
         if not self.pose_gui.cancel_bbox_selection:
             if subset_frame_indices is not None:
-                pred_data, im_input, subset_ind, bbox = self.pose_model.run_subset(
+                pred_data, subset_ind, bbox = self.pose_model.run_subset(
                     subset_frame_indices
                 )
             else:
-                pred_data, im_input, subset_ind, bbox = self.pose_model.run_subset()
+                pred_data, subset_ind, bbox = self.pose_model.run_subset()
             self.update_status_bar("Subset keypoints processed")
-            return pred_data, im_input, subset_ind, bbox
+            return pred_data.cpu().numpy(), subset_ind, bbox
         else:
             self.update_status_bar("Training cancelled")
             return None
