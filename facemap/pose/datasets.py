@@ -200,8 +200,8 @@ class FacemapDataset(torch.utils.data.Dataset):
         keypoints[:, 1] = keypoints[:, 1] - y1
 
         # 2. Pad image to square
-        image, (pad_w, pad_h) = transforms.pad_img_to_square(image)
-        keypoints = transforms.pad_keypoints(keypoints, pad_w, pad_h)
+        image, (pad_y_top, _, pad_x_left, _) = transforms.pad_img_to_square(image)
+        keypoints = transforms.pad_keypoints(keypoints, pad_y_top, pad_x_left)
 
         # 3. Resize image to resize_shape for model input
         keypoints = transforms.resize_keypoints(

@@ -139,7 +139,7 @@ def get_cropped_imgs(imgs, bbox):
     return cropped_imgs
 
 
-def pad_keypoints(keypoints, pad_w, pad_h):
+def pad_keypoints(keypoints, pad_x, pad_y):
     """
     Pad keypoints using padding values for width and height.
     Parameters
@@ -155,8 +155,8 @@ def pad_keypoints(keypoints, pad_w, pad_h):
     keypoints : ND-array
         padded keypoints of size [N x 2]
     """
-    keypoints[:, 0] += pad_h
-    keypoints[:, 1] += pad_w
+    keypoints[:, 0] += pad_x
+    keypoints[:, 1] += pad_y
     return keypoints
 
 
@@ -186,16 +186,14 @@ def pad_img_to_square(img, bbox=None):
         dx, dy = img.shape[-2:]
 
     if dx == dy:
-        return img
-
-    if abs(dx - dy) % 2 == 0:
-        pad_addition = 0
-    else:
-        pad_addition = 1
+        return img, (0, 0, 0, 0)
 
     largest_dim = max(dx, dy)
+    if (dx < largest_dim and abs(dx-largest_dim) % 2 !=0) or (dy < largest_dim and abs(dy-largest_dim) % 2 !=0):
+        largest_dim += 1
+
     if dx < largest_dim:
-        pad_x = abs((dx - largest_dim) + pad_addition)
+        pad_x = abs(dx - largest_dim)
         pad_x_left = pad_x // 2
         pad_x_right = pad_x - pad_x_left
     else:
@@ -203,7 +201,7 @@ def pad_img_to_square(img, bbox=None):
         pad_x_right = 0
 
     if dy < largest_dim:
-        pad_y = abs((dy - largest_dim) + pad_addition)
+        pad_y = abs(dy - largest_dim)
         pad_y_top = pad_y // 2
         pad_y_bottom = pad_y - pad_y_top
     else:

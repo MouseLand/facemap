@@ -542,7 +542,7 @@ class ModelTrainingPopup(QDialog):
             return
 
         pose_pred, _, self.bbox = output
-        pose_pred = pose_pred[:, :, :2]  # Remove the confidence score/likelihood
+        #pose_pred = pose_pred[:, :, :2]  # Remove the confidence score/likelihood
         frames_input = self.get_frames_from_indices(frames_indices)
         # Update the predictions
         if self.pose_data is None:
@@ -698,7 +698,6 @@ class ModelTrainingPopup(QDialog):
                     + values
                     + "); color: 'white'; border: 0px solid black; }"
                 )
-        print("radio button clicked")
 
     def plot_keypoints(self, frame_ind):
         # Plot the keypoints of the selected frames
@@ -925,7 +924,7 @@ class ModelTrainingPopup(QDialog):
             self.close()
             return
         pose_data, _, _ = output
-        pose_data = pose_data[:, :, :2]  # Remove confidence scores/likelihoods
+        #pose_data = pose_data[:, :, :2]  # Remove confidence scores/likelihoods
         imgs = self.get_frames_from_indices(random_frame_indices)
 
         rows = int(np.floor(np.sqrt(len(imgs))))
@@ -1129,7 +1128,6 @@ class KeypointsGraph(pg.GraphItem):
         return self.data["pos"]
 
     def mousePressEvent(self, QMouseEvent):
-        print("mousePressEvent", QMouseEvent.button())
         if (
             QMouseEvent.button() == QtCore.Qt.LeftButton
             and QMouseEvent.modifiers() == QtCore.Qt.ControlModifier
