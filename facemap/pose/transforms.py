@@ -228,60 +228,6 @@ def pad_img_to_square(img, bbox=None):
     return img, (pad_y_top, pad_y_bottom, pad_x_left, pad_x_right)
 
 
-def pad_img_to_square_old(im, bbox=None):
-    """
-    Pad image to square.
-    Parameters
-    ----------
-    im : ND-array
-        image of size [c x h x w]
-    bbox: tuple of size (4,)
-        bounding box positions in order x1, x2, y1, y2 used for cropping image
-    Returns
-    -------
-    im : ND-array
-        padded image of size [c x h x w]
-    (pad_w, pad_h) : tuple of int
-        padding values for width and height
-    """
-    if not isinstance(im, torch.Tensor):
-        im = torch.from_numpy(im)
-
-    if bbox is not None:
-        # Check if bbox is square
-        x1, x2, y1, y2 = bbox
-        w, h = x2 - x1, y2 - y1
-    else:
-        w, h = im.shape[-2:]
-
-    if w == h:
-        return im
-
-    if abs(h - w) % 2 == 0:
-        pad_addition = 1
-    else:
-        pad_addition = 0
-    if h > w:
-        pad_w = ((h - w) + pad_addition) // 2
-        pad_h = 0
-    else:
-        pad_h = ((w - h) + pad_addition) // 2
-        pad_w = 0
-
-    if im.ndim > 3:
-        pads = (pad_h, pad_h, pad_w, pad_w, 0, 0, 0, 0)
-    elif im.ndim == 3:
-        pads = (pad_h, pad_h, pad_w, pad_w, 0, 0)
-    else:
-        pads = (pad_h, pad_h, pad_w, pad_w)
-
-    im = F.pad(im, pad=pads, mode="constant", value=0)
-
-    if not isinstance(im, torch.Tensor):
-        im = im.clone().detach()
-    return im, (pad_w, pad_h)
-
-
 def resize_keypoints(keypoints, desired_shape, original_shape):
     """
     Resize keypoints to desired shape.
