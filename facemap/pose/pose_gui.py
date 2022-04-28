@@ -82,17 +82,17 @@ class PoseGUI(pose.Pose):
                 # If the largest dimension of the image is larger than the minimum required dimension,
                 # then crop the image to the minimum dimension
                 (
-                    Xstart,
-                    Xstop,
-                    Ystart,
-                    Ystop,
+                    x1,
+                    x2,
+                    y1,
+                    y2,
                     self.resize,
                 ) = transforms.get_crop_resize_params(
                     sample_frame[i],
-                    x_dims=(bbox[0], bbox[1]),
-                    y_dims=(bbox[2], bbox[3]),
+                    x_dims=(x1,x2),
+                    y_dims=(y1,y2),
                 )
-                self.bbox[i] = Xstart, Xstop, Ystart, Ystop
+                self.bbox[i] = x1, x2, y1, y2
             print("BBOX after adjustment:", self.bbox)
             print("RESIZE:", self.resize)
             print("PADDING:", self.add_padding)
@@ -170,7 +170,10 @@ class ROI_popup(QDialog):
 
     def next_exec(self):
         (x1, x2), (y1, y2) = self.get_coordinates()
-        self.pose.bbox.append([x1, x2, y1, y2, False])
+        self.pose.bbox.append([x1, x2, y1, y2])
+        self.resize = False
+        self.add_padding = False
+        self.pose.adjust_bbox()
         self.close()
 
     def cancel_exec(self):

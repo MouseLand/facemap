@@ -33,6 +33,10 @@ def preprocess_img(im, bbox, add_padding, resize, device=None):
     --------------
     im: ND-array
         preprocessed image of size [1 x Ly x Lx] if input dimensions==2, else [Lz x Ly x Lx]
+    postpad_shape: tuple of size (2,)
+        shape of padded image
+    pads: tuple of size (4,)
+        padding values for (pad_y_top, pad_y_bottom, pad_x_left, pad_x_right)
     """
     # 1. Convert to float32 in range 0-1
     if im.ndim == 2:
@@ -47,17 +51,19 @@ def preprocess_img(im, bbox, add_padding, resize, device=None):
 
     # 2. Crop image
     im = crop_image(im, bbox).clone().detach()
-
+    
     # 3. Pad image to square
     if add_padding:
-        im = pad_img_to_square_w_bbox(im, bbox)
+        im, pads = pad_img_to_square(im, bbox)
+    else:
+        pads = (0, 0, 0, 0)
 
     # 4. Resize image to 256x256 for model input
     postpad_shape = im.shape[-2:]
     if resize:
         im = F.interpolate(im, size=(256, 256), mode="bilinear")
 
-    return im, postpad_shape
+    return im, postpad_shape, pads
 
 
 def randomize_bbox_coordinates(bbox, im_shape, random_factor_range=(0.1, 0.3)):
@@ -154,38 +160,51 @@ def pad_keypoints(keypoints, pad_w, pad_h):
     return keypoints
 
 
-def pad_img_to_square_w_bbox(img, bbox):
+def pad_img_to_square(img, bbox=None):
     """
-    Pad image to make it square if the bounding box region is not square. Uses value of the largest dimension to pad the image
+    Pad image to square.
     Parameters
-    -------------
-    img: ND-array
-        image of size [nchan x Ly x Lx]
+    ----------
+    im : ND-array
+        image of size [c x h x w]
     bbox: tuple of size (4,)
-        bounding box positions in order x1, x2, y1, y2
+        bounding box positions in order x1, x2, y1, y2 used for cropping image
     Returns
-    --------------
-    I: ND-array
-        padded image of size [nchan x Ly' x Lx'] where Ly' = max(Ly, Lx) and Lx'=max(Ly, Lx)
+    -------
+    im : ND-array
+        padded image of size [c x h x w]
+    (pad_w, pad_h) : tuple of int
+        padding values for width and height
     """
-    # Check if bbox is square
-    x1, x2, y1, y2 = bbox
-    dx, dy = x2 - x1, y2 - y1
+    if not isinstance(img, torch.Tensor):
+        img = torch.from_numpy(img)
+
+    if bbox is not None:          # Check if bbox is square
+        x1, x2, y1, y2 = bbox
+        dx, dy = x2 - x1, y2 - y1
+    else:
+        dx, dy = img.shape[-2:]
+
     if dx == dy:
         return img
 
+    if abs(dx - dy) % 2 == 0:
+        pad_addition = 0
+    else:
+        pad_addition = 1
+
     largest_dim = max(dx, dy)
     if dx < largest_dim:
-        pad_x = abs(dx - largest_dim)
-        pad_x_left = 0  # pad_x // 2
+        pad_x = abs((dx - largest_dim) + pad_addition)
+        pad_x_left = pad_x // 2
         pad_x_right = pad_x - pad_x_left
     else:
         pad_x_left = 0
         pad_x_right = 0
 
     if dy < largest_dim:
-        pad_y = abs(dy - largest_dim)
-        pad_y_top = 0  # pad_y // 2
+        pad_y = abs((dy - largest_dim) + pad_addition)
+        pad_y_top = pad_y // 2
         pad_y_bottom = pad_y - pad_y_top
     else:
         pad_y_top = 0
@@ -198,30 +217,46 @@ def pad_img_to_square_w_bbox(img, bbox):
     else:
         pads = (pad_y_top, pad_y_bottom, pad_x_left, pad_x_right)
 
-    I = F.pad(
+    img = F.pad(
         img,
         pads,
         mode="constant",
         value=0,
     )
-    return I
+    if not isinstance(img, torch.Tensor):
+        img = img.clone().detach()
+    return img, (pad_y_top, pad_y_bottom, pad_x_left, pad_x_right)
 
 
-def pad_img_to_square(im):
+def pad_img_to_square_old(im, bbox=None):
     """
     Pad image to square.
     Parameters
     ----------
     im : ND-array
         image of size [c x h x w]
+    bbox: tuple of size (4,)
+        bounding box positions in order x1, x2, y1, y2 used for cropping image
     Returns
     -------
     im : ND-array
         padded image of size [c x h x w]
+    (pad_w, pad_h) : tuple of int
+        padding values for width and height
     """
     if not isinstance(im, torch.Tensor):
         im = torch.from_numpy(im)
-    w, h = im.shape[-2:]
+
+    if bbox is not None:
+        # Check if bbox is square
+        x1, x2, y1, y2 = bbox
+        w, h = x2 - x1, y2 - y1
+    else:
+        w, h = im.shape[-2:]
+
+    if w == h:
+        return im
+
     if abs(h - w) % 2 == 0:
         pad_addition = 1
     else:
@@ -383,7 +418,7 @@ def crop_image(im, bbox=None):
     return im
 
 
-def adjust_keypoints(xlabels, ylabels, x1, y1, current_size, desired_size):
+def adjust_keypoints(xlabels, ylabels, crop_xy, padding, current_size, desired_size):
     """
     Adjust raw keypoints (x,y coordinates) obtained from model to plot on original image
     Parameters
@@ -392,23 +427,24 @@ def adjust_keypoints(xlabels, ylabels, x1, y1, current_size, desired_size):
         x coordinates of keypoints
     ylabels: ND-array
         y coordinates of keypoints
-    x1: (int) x dim start pos
-    y1: (int) y dim start pos
-    current_size: (tuple) size of cropped image (height, width)
-    desired_size: (tuple) size of cropped image (height, width)
-    pad: (tuple) padding added to cropped image
+    crop_xy: tuple of size (2,)
+        initial coordinates of bounding box (x1,y1) for cropping
+    padding: tuple of size (4,)
+        padding values for bounding box (x1,x2,y1,y2)
     Returns
     --------------
-    Xlabel: ND-array
+    xlabels: ND-array
         x coordinates of keypoints
-    Ylabel: ND-array
+    ylabels: ND-array
         y coordinates of keypoints
     """
     # Rescale keypoints to original image size
     xlabels, ylabels = rescale_keypoints(xlabels, ylabels, current_size, desired_size)
+    xlabels, ylabels = adjust_keypoints_for_padding(xlabels, ylabels, padding)
     # Adjust for cropping
-    xlabels += y1  # x1
-    ylabels += x1  # y1
+    x1, y1 = crop_xy[0], crop_xy[1]
+    xlabels += y1  
+    ylabels += x1 
     return xlabels, ylabels
 
 
@@ -418,10 +454,10 @@ def rescale_keypoints(xlabels, ylabels, current_size, desired_size):
     return xlabels, ylabels
 
 
-def adjust_keypoints_for_padding(xlabels, ylabels, pad):
-    pad_x_right, pad_x_left, pad_y_bottom, pad_y_top = pad
-    xlabels += pad_x_right
-    ylabels += pad_y_bottom
+def adjust_keypoints_for_padding(xlabels, ylabels, pads):
+    pad_y_top, pad_y_bottom, pad_x_left, pad_x_right = pads
+    xlabels -= pad_y_top 
+    ylabels -= pad_x_left
     return xlabels, ylabels
 
 

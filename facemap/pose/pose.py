@@ -61,7 +61,7 @@ class Pose:
         # Setup the bounding box
         if not self.bbox_set:
             for i in range(len(self.Ly)):
-                x1, x2, y1, y2 = 0, self.Lx[i], 0, self.Ly[i]
+                x1, x2, y1, y2 = 0, self.Ly[i], 0, self.Lx[i]
                 self.bbox.append([x1, x2, y1, y2])
 
                 # Update resize and add padding flags
@@ -307,7 +307,7 @@ class Pose:
                 t0 = time.time()
 
                 # Pre-process images
-                imall, postpad_shape = transforms.preprocess_img(
+                imall, postpad_shape, pads = transforms.preprocess_img(
                     imall,
                     self.bbox[video_id],
                     self.add_padding,
@@ -315,7 +315,7 @@ class Pose:
                     device=self.net.device,
                 )
 
-                # obj = pose_utils.test_popup(imall[0].squeeze().detach().cpu().numpy(), self.gui, title="Post-processing {}".format(start))
+                #obj = pose_utils.test_popup(imall[0].squeeze().detach().cpu().numpy(), self.gui, title="Post-processing {}".format(start))
 
                 # Run inference
                 xlabels, ylabels, likelihood = pose_utils.predict(
@@ -325,8 +325,8 @@ class Pose:
                 xlabels, ylabels = transforms.adjust_keypoints(
                     xlabels,
                     ylabels,
-                    x1,
-                    y1,
+                    crop_xy=(x1, y1),
+                    padding = pads,
                     current_size=(256, 256),
                     desired_size=postpad_shape,
                 )
