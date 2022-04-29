@@ -81,16 +81,10 @@ class PoseGUI(pose.Pose):
             else:
                 # If the largest dimension of the image is larger than the minimum required dimension,
                 # then crop the image to the minimum dimension
-                (
-                    x1,
-                    x2,
-                    y1,
-                    y2,
-                    self.resize,
-                ) = transforms.get_crop_resize_params(
+                (x1, x2, y1, y2, self.resize,) = transforms.get_crop_resize_params(
                     sample_frame[i],
-                    x_dims=(x1,x2),
-                    y_dims=(y1,y2),
+                    x_dims=(x1, x2),
+                    y_dims=(y1, y2),
                 )
                 self.bbox[i] = x1, x2, y1, y2
             print("BBOX after adjustment:", self.bbox)

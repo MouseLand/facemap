@@ -380,7 +380,7 @@ def get_pose_file(parent):
         return
     else:
         parent.poseFilepath = natsorted(filelist[0])
-        parent.poseFileLoaded = True
+        parent.is_pose_loaded = True
         parent.load_keypoints()
         parent.keypoints_checkbox.setChecked(True)
         parent.update_status_bar("Pose file(s) loaded")

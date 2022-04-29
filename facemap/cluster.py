@@ -403,11 +403,11 @@ class Cluster:
         if num_comps == 2:
             # Set pixel size of embedded points on plot
             if self.embedded_output.shape[0] < 500:
-                point_size = 6
+                point_size = 0.007 * parent.sizeObject.height()
             elif self.embedded_output.shape[0] < 2000:
-                point_size = 4
+                point_size = 0.005 * parent.sizeObject.height()
             else:
-                point_size = 2
+                point_size = 0.003 * parent.sizeObject.height()
             if is_cluster_colored:
                 scatter_plots = []
                 if len(np.unique(self.cluster_labels)) > 9:  # Adjust legend
@@ -430,7 +430,6 @@ class Cluster:
                 for i, cluster in enumerate(
                     np.unique(self.cluster_labels)
                 ):  # range(max(self.cluster_labels)+1):
-                    print("cluster", cluster)
                     ind = np.where(self.cluster_labels == cluster)[0]
                     data = self.embedded_output[ind, :]
                     if cluster == -1:

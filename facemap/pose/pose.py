@@ -315,7 +315,7 @@ class Pose:
                     device=self.net.device,
                 )
 
-                #obj = pose_utils.test_popup(imall[0].squeeze().detach().cpu().numpy(), self.gui, title="Post-processing {}".format(start))
+                # obj = pose_utils.test_popup(imall[0].squeeze().detach().cpu().numpy(), self.gui, title="Post-processing {}".format(start))
 
                 # Run inference
                 xlabels, ylabels, likelihood = pose_utils.predict(
@@ -326,7 +326,7 @@ class Pose:
                     xlabels,
                     ylabels,
                     crop_xy=(x1, y1),
-                    padding = pads,
+                    padding=pads,
                     current_size=(256, 256),
                     desired_size=postpad_shape,
                 )
@@ -385,7 +385,7 @@ class Pose:
 
     def plot_pose_estimates(self):
         # Plot labels
-        self.gui.poseFileLoaded = True
+        self.gui.is_pose_loaded = True
         self.gui.load_keypoints()
         self.gui.keypoints_checkbox.setChecked(True)
 

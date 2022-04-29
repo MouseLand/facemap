@@ -51,7 +51,7 @@ def preprocess_img(im, bbox, add_padding, resize, device=None):
 
     # 2. Crop image
     im = crop_image(im, bbox).clone().detach()
-    
+
     # 3. Pad image to square
     if add_padding:
         im, pads = pad_img_to_square(im, bbox)
@@ -179,7 +179,7 @@ def pad_img_to_square(img, bbox=None):
     if not isinstance(img, torch.Tensor):
         img = torch.from_numpy(img)
 
-    if bbox is not None:          # Check if bbox is square
+    if bbox is not None:  # Check if bbox is square
         x1, x2, y1, y2 = bbox
         dx, dy = x2 - x1, y2 - y1
     else:
@@ -189,7 +189,9 @@ def pad_img_to_square(img, bbox=None):
         return img, (0, 0, 0, 0)
 
     largest_dim = max(dx, dy)
-    if (dx < largest_dim and abs(dx-largest_dim) % 2 !=0) or (dy < largest_dim and abs(dy-largest_dim) % 2 !=0):
+    if (dx < largest_dim and abs(dx - largest_dim) % 2 != 0) or (
+        dy < largest_dim and abs(dy - largest_dim) % 2 != 0
+    ):
         largest_dim += 1
 
     if dx < largest_dim:
@@ -387,8 +389,8 @@ def adjust_keypoints(xlabels, ylabels, crop_xy, padding, current_size, desired_s
     xlabels, ylabels = adjust_keypoints_for_padding(xlabels, ylabels, padding)
     # Adjust for cropping
     x1, y1 = crop_xy[0], crop_xy[1]
-    xlabels += y1  
-    ylabels += x1 
+    xlabels += y1
+    ylabels += x1
     return xlabels, ylabels
 
 
@@ -400,7 +402,7 @@ def rescale_keypoints(xlabels, ylabels, current_size, desired_size):
 
 def adjust_keypoints_for_padding(xlabels, ylabels, pads):
     pad_y_top, pad_y_bottom, pad_x_left, pad_x_right = pads
-    xlabels -= pad_y_top 
+    xlabels -= pad_y_top
     ylabels -= pad_x_left
     return xlabels, ylabels
 

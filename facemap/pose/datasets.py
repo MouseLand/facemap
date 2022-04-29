@@ -42,17 +42,17 @@ class FacemapDataset(torch.utils.data.Dataset):
             "eye(bottom)",
             "eye(front)",
             "eye(top)",
+            "lowerlip",
+            "mouth",
+            "nose(bottom)",
             "nose(r)",
             "nose(tip)",
             "nose(top)",
-            "nose(bottom)",
             "nosebridge",
-            "whisker(d1)",
+            "paw",
             "whisker(c1)",
             "whisker(c2)",
-            "lowerlip",
-            "mouth",
-            "paw",
+            "whisker(d1)",
         ]
         # Set image and keypoints data
         if datadir is None:
@@ -317,4 +317,3 @@ class FacemapDataset(torch.utils.data.Dataset):
                 df = df.drop(columns=[adjusted_label], level=1)
             df = df[sorted(df)]
         return df
-

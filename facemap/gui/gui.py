@@ -191,9 +191,9 @@ class MainW(QtWidgets.QMainWindow):
         self.neural_data_loaded = False
 
         ## Pose plot
-        self.Pose_scatterplot = pg.ScatterPlotItem(hover=True)
-        self.Pose_scatterplot.sigClicked.connect(self.keypoints_clicked)
-        self.Pose_scatterplot.sigHovered.connect(self.keypoints_hovered)
+        self.pose_scatterplot = pg.ScatterPlotItem(hover=True)
+        self.pose_scatterplot.sigClicked.connect(self.keypoints_clicked)
+        self.pose_scatterplot.sigHovered.connect(self.keypoints_hovered)
         self.pose_model = None
         self.poseFilepath = []
         self.keypoints_brushes = []
@@ -302,7 +302,7 @@ class MainW(QtWidgets.QMainWindow):
         self.saverois.setEnabled(False)
 
         # Pose/labels variables
-        self.poseFileLoaded = False
+        self.is_pose_loaded = False
         self.keypoints_checkbox = QCheckBox("Keypoints")
         self.keypoints_checkbox.setStyleSheet("color: gray;")
         self.keypoints_checkbox.stateChanged.connect(self.update_pose)
@@ -539,8 +539,8 @@ class MainW(QtWidgets.QMainWindow):
         self.ClusteringPlot.clear()
         self.ClusteringPlot_legend.clear()
         # Clear keypoints when a new file is loaded
-        self.Pose_scatterplot.clear()
-        self.poseFileLoaded = False
+        self.pose_scatterplot.clear()
+        self.is_pose_loaded = False
         self.trace1_data_loaded = None
         self.trace2_data_loaded = None
         self.traces1 = None
@@ -740,7 +740,7 @@ class MainW(QtWidgets.QMainWindow):
                 self.processed
                 or self.trace1_data_loaded is not None
                 or self.trace2_data_loaded is not None
-                or self.poseFileLoaded
+                or self.is_pose_loaded
             ):
                 self.plot_scatter()
         else:
@@ -1055,13 +1055,14 @@ class MainW(QtWidgets.QMainWindow):
             self.keypoints_brushes.append(
                 np.array([pg.mkBrush(color=c) for c in colors])
             )
-            self.poseFileLoaded = True
+            self.is_pose_loaded = True
             self.keypoints_checkbox.setChecked(True)
+            self.add_keypoints_traces()
 
     def update_pose(self):
-        if self.poseFileLoaded and self.keypoints_checkbox.isChecked():
+        if self.is_pose_loaded and self.keypoints_checkbox.isChecked():
             self.statusBar.clearMessage()
-            self.p0.addItem(self.Pose_scatterplot)
+            self.p0.addItem(self.pose_scatterplot)
             self.p0.setRange(xRange=(0, self.LX), yRange=(0, self.LY), padding=0.0)
             threshold = np.nanpercentile(
                 self.pose_likelihood, 10
@@ -1090,7 +1091,7 @@ class MainW(QtWidgets.QMainWindow):
                 brushes = np.append(
                     brushes, self.keypoints_brushes[video_id][filtered_keypoints]
                 )
-            self.Pose_scatterplot.setData(
+            self.pose_scatterplot.setData(
                 x,
                 y,
                 size=0.009 * self.sizeObject.height(),
@@ -1100,14 +1101,14 @@ class MainW(QtWidgets.QMainWindow):
                 hoverSize=10,
                 data=labels,
             )
-        elif not self.poseFileLoaded and self.keypoints_checkbox.isChecked():
+        elif not self.is_pose_loaded and self.keypoints_checkbox.isChecked():
             self.update_status_bar("Please upload a pose (*.h5) file")
         else:
             self.statusBar.clearMessage()
-            self.Pose_scatterplot.clear()
+            self.pose_scatterplot.clear()
 
     def add_keypoints_traces(self):
-        if self.poseFileLoaded and self.keypoints_checkbox.isChecked():
+        if self.is_pose_loaded and self.keypoints_checkbox.isChecked():
             x_data = np.array(self.pose_x_coord).squeeze()
             if self.traces1 is None:
                 self.traces1 = x_data
@@ -1116,12 +1117,11 @@ class MainW(QtWidgets.QMainWindow):
             self.plot_trace(
                 wplot=1, proctype=5, wroi=None, color=None, keypoints_data=x_data.T
             )
-            self.plot_scatter()
 
     def keypoints_clicked(self, obj, points):
         # Show trace of keypoint clicked
         # Get name of keypoint clicked and its index
-        if self.poseFileLoaded and self.keypoints_checkbox.isChecked():
+        if self.is_pose_loaded and self.keypoints_checkbox.isChecked():
             if len(points) > 0:
                 keypoint_name = points[0].data()
                 keypoint_index = np.where(self.keypoints_labels[0] == keypoint_name)[0][
@@ -1151,16 +1151,16 @@ class MainW(QtWidgets.QMainWindow):
                 self.plot_scatter()
 
     def keypoints_hovered(self, obj, ev):
-        point_hovered = np.where(self.Pose_scatterplot.data["hovered"])[0]
+        point_hovered = np.where(self.pose_scatterplot.data["hovered"])[0]
         if (
             point_hovered.shape[0] >= 1
         ):  # Show tooltip only when hovering over a point i.e. no empty array
-            points = self.Pose_scatterplot.points()
-            vb = self.Pose_scatterplot.getViewBox()
-            if vb is not None and self.Pose_scatterplot.opts["tip"] is not None:
+            points = self.pose_scatterplot.points()
+            vb = self.pose_scatterplot.getViewBox()
+            if vb is not None and self.pose_scatterplot.opts["tip"] is not None:
                 cutoff = 1  # Display info of only one point when hovering over multiple points
                 tip = [
-                    self.Pose_scatterplot.opts["tip"](
+                    self.pose_scatterplot.opts["tip"](
                         data=points[pt].data(),
                         x=points[pt].pos().x(),
                         y=points[pt].pos().y(),

@@ -542,7 +542,7 @@ class ModelTrainingPopup(QDialog):
             return
 
         pose_pred, _, self.bbox = output
-        #pose_pred = pose_pred[:, :, :2]  # Remove the confidence score/likelihood
+        # pose_pred = pose_pred[:, :, :2]  # Remove the confidence score/likelihood
         frames_input = self.get_frames_from_indices(frames_indices)
         # Update the predictions
         if self.pose_data is None:
@@ -924,7 +924,7 @@ class ModelTrainingPopup(QDialog):
             self.close()
             return
         pose_data, _, _ = output
-        #pose_data = pose_data[:, :, :2]  # Remove confidence scores/likelihoods
+        # pose_data = pose_data[:, :, :2]  # Remove confidence scores/likelihoods
         imgs = self.get_frames_from_indices(random_frame_indices)
 
         rows = int(np.floor(np.sqrt(len(imgs))))
