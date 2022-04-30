@@ -92,18 +92,20 @@ class MainW(QtWidgets.QMainWindow):
         self.online_mode = False
         # menus.onlinemenu(self)
 
-        self.cwidget = QWidget(self)
-        self.setCentralWidget(self.cwidget)
-        self.l0 = QGridLayout()
-        self.cwidget.setLayout(self.l0)
+        self.central_widget = QWidget(self)
+        self.setCentralWidget(self.central_widget)
+        self.scene_grid_layout = QGridLayout()
+        self.central_widget.setLayout(self.scene_grid_layout)
         # --- cells image
         self.win = pg.GraphicsLayoutWidget()
         self.sizeObject = QDesktopWidget().screenGeometry(-1)
         self.resize(self.sizeObject.width(), self.sizeObject.height())
         self.win.move(self.sizeObject.height(), self.sizeObject.width())
         self.win.resize(self.sizeObject.height(), self.sizeObject.width())
-        self.l0.addWidget(self.win, 1, 2, 25, 15)
+        self.scene_grid_layout.addWidget(self.win, 1, 2, 25, 15)
         layout = self.win.ci.layout
+        self.win.ci.layout.setRowStretchFactor(1, 1)
+        self.win.ci.layout.setColumnStretchFactor(1, 1)
 
         # Add logo
         # icon_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "mouse.png")
@@ -111,16 +113,22 @@ class MainW(QtWidgets.QMainWindow):
         # self.logoLabel = QtGui.QLabel(self)
         # self.logoLabel.setPixmap(self.logo)
         # self.logoLabel.setScaledContents(True)
-        # self.l0.addWidget(self.logoLabel,0,0,3,2)
+        # self.scene_grid_layout.addWidget(self.logoLabel,0,0,3,2)
 
         # A plot area (ViewBox + axes) for displaying the image
-        self.p0 = self.win.addViewBox(lockAspect=True, row=0, col=0, invertY=True)
+        self.p0 = self.win.addViewBox(
+            lockAspect=True, row=0, col=0, rowspan=2, invertY=True
+        )
         self.p0.setMenuEnabled(False)
         self.pimg = pg.ImageItem()
         self.p0.addItem(self.pimg)
 
         # image ROI
-        self.pROI = self.win.addViewBox(lockAspect=True, row=0, col=1, invertY=True)
+        self.pROI = self.win.addViewBox(
+            lockAspect=True, row=2, col=0, rowspan=2, invertY=True
+        )
+        # Set size of pROI to be the same as p0
+        self.pROI.setGeometry(self.p0.sceneBoundingRect())
         self.pROI.setMenuEnabled(False)
         self.pROIimg = pg.ImageItem()
         self.pROI.addItem(self.pROIimg)
@@ -139,20 +147,22 @@ class MainW(QtWidgets.QMainWindow):
         self.sat = [255, 255]
         for j in range(2):
             self.sl.append(guiparts.Slider(j, self))
-            self.l0.addWidget(self.sl[j], 1, 3 + 3 * j, 1, 2)  # +5*j,1,2)
+            self.scene_grid_layout.addWidget(
+                self.sl[j], 1, 3 + 3 * j, 1, 2
+            )  # +5*j,1,2)
             qlabel = QLabel(txt[j])
             qlabel.setStyleSheet("color: white;")
-            self.l0.addWidget(qlabel, 0, 3 + 3 * j, 1, 1)
+            self.scene_grid_layout.addWidget(qlabel, 0, 3 + 3 * j, 1, 1)
         self.sl[0].valueChanged.connect(self.set_saturation_label)
         self.sl[1].valueChanged.connect(self.set_ROI_saturation_label)
 
         # Add label to indicate saturation level
-        self.saturationLevelLabel = QLabel(str(self.sl[0].value()))
-        self.saturationLevelLabel.setStyleSheet("color: white;")
-        self.l0.addWidget(self.saturationLevelLabel, 0, 5, 1, 1)
-        self.roiSaturationLevelLabel = QLabel(str(self.sl[1].value()))
-        self.roiSaturationLevelLabel.setStyleSheet("color: white;")
-        self.l0.addWidget(self.roiSaturationLevelLabel, 0, 8, 1, 1)
+        self.saturation_level_label = QLabel(str(self.sl[0].value()))
+        self.saturation_level_label.setStyleSheet("color: white;")
+        self.scene_grid_layout.addWidget(self.saturation_level_label, 0, 5, 1, 1)
+        self.roi_saturation_label = QLabel(str(self.sl[1].value()))
+        self.roi_saturation_label.setStyleSheet("color: white;")
+        self.scene_grid_layout.addWidget(self.roi_saturation_label, 0, 8, 1, 1)
 
         # Reflector
         self.reflector = QPushButton("Add corneal reflection")
@@ -162,18 +172,14 @@ class MainW(QtWidgets.QMainWindow):
         self.reflectors = []
 
         # Plots
-        self.p1 = self.win.addPlot(
-            name="plot1", row=1, col=0, colspan=2, title="Plot 1"
-        )
+        self.p1 = self.win.addPlot(name="plot1", row=0, col=1, title="Plot 1")
         self.p1.setMouseEnabled(x=True, y=False)
         self.p1.setMenuEnabled(False)
         self.p1.hideAxis("left")
         self.scatter1 = pg.ScatterPlotItem()
         self.p1.addItem(self.scatter1)
 
-        self.p2 = self.win.addPlot(
-            name="plot2", row=2, col=0, colspan=2, title="Plot 2"
-        )
+        self.p2 = self.win.addPlot(name="plot2", row=1, col=1, title="Plot 2")
         self.p2.setMouseEnabled(x=True, y=False)
         self.p2.setMenuEnabled(False)
         self.p2.hideAxis("left")
@@ -181,7 +187,24 @@ class MainW(QtWidgets.QMainWindow):
         self.p2.addItem(self.scatter1)
         self.p2.setXLink("plot1")
 
-        self.win.ci.layout.setRowStretchFactor(0, 4)
+        # Add third plot
+        self.p3 = self.win.addPlot(name="plot3", row=2, col=1, title="Plot 3")
+        self.p3.setMouseEnabled(x=True, y=False)
+        self.p3.setMenuEnabled(False)
+        self.p3.hideAxis("left")
+        self.scatter3 = pg.ScatterPlotItem()
+        self.p3.addItem(self.scatter3)
+        self.p3.setXLink("plot1")
+
+        # Add fourth plot
+        self.p4 = self.win.addPlot(name="plot4", row=3, col=1, title="Plot 4")
+        self.p4.setMouseEnabled(x=True, y=False)
+        self.p4.setMenuEnabled(False)
+        self.p4.hideAxis("left")
+        self.scatter4 = pg.ScatterPlotItem()
+        self.p4.addItem(self.scatter4)
+        self.p4.setXLink("plot1")
+
         self.nframes = 0
         self.cframe = 0
         self.traces1 = None
@@ -201,11 +224,11 @@ class MainW(QtWidgets.QMainWindow):
         self.bbox_set = False
         self.resize_img, self.add_padding = False, False
 
-        self.ClusteringPlot = self.win.addPlot(
-            row=0, col=1, lockAspect=True, enableMouse=False
+        self.clustering_plot = self.win.addPlot(
+            row=2, col=0, rowspan=2, lockAspect=True, enableMouse=False
         )
-        self.ClusteringPlot.hideAxis("left")
-        self.ClusteringPlot.hideAxis("bottom")
+        self.clustering_plot.hideAxis("left")
+        self.clustering_plot.hideAxis("bottom")
         self.clustering_scatterplot = pg.ScatterPlotItem(hover=True)
         # self.clustering_scatterplot.sigClicked.connect(lambda obj, ev: self.cluster_model.highlight_embedded_point(obj, ev, parent=self))
         self.clustering_scatterplot.sigHovered.connect(
@@ -213,7 +236,7 @@ class MainW(QtWidgets.QMainWindow):
                 obj, ev, parent=self
             )
         )
-        # self.ClusteringPlot.scene().sigMouseMoved.connect(lambda pos: self.cluster_model.mouse_moved_embedding(pos, parent=self))
+        # self.clustering_plot.scene().sigMouseMoved.connect(lambda pos: self.cluster_model.mouse_moved_embedding(pos, parent=self))
         self.clustering_highlight_scatterplot = pg.ScatterPlotItem(hover=True)
         self.clustering_highlight_scatterplot.sigHovered.connect(
             lambda obj, ev: self.cluster_model.embedded_points_hovered(
@@ -221,7 +244,7 @@ class MainW(QtWidgets.QMainWindow):
             )
         )
 
-        self.ClusteringPlot_legend = pg.LegendItem(
+        self.clustering_plot_legend = pg.LegendItem(
             labelTextSize="12pt", title="Cluster"
         )
         self.cluster_model = cluster.Cluster(parent=self)
@@ -255,10 +278,10 @@ class MainW(QtWidgets.QMainWindow):
 
     def make_buttons(self):
         # create frame slider
-        VideoLabel = QLabel("Facemap - SVDs & Tracker")
-        VideoLabel.setStyleSheet("color: white;")
-        VideoLabel.setAlignment(QtCore.Qt.AlignCenter)
-        VideoLabel.setFont(QFont("Arial", 16, QFont.Bold))
+        facemap_label = QLabel("Facemap - SVDs & Tracker")
+        facemap_label.setStyleSheet("color: white;")
+        facemap_label.setAlignment(QtCore.Qt.AlignCenter)
+        facemap_label.setFont(QFont("Arial", 16, QFont.Bold))
         SVDbinLabel = QLabel("SVD spatial bin:")
         SVDbinLabel.setStyleSheet("color: gray;")
         self.binSpinBox = QSpinBox()
@@ -314,7 +337,7 @@ class MainW(QtWidgets.QMainWindow):
         for k in range(5):
             self.batchname.append(QLabel(""))
             self.batchname[-1].setStyleSheet("color: white;")
-            self.l0.addWidget(self.batchname[-1], 9 + k, 0, 1, 4)
+            self.scene_grid_layout.addWidget(self.batchname[-1], 9 + k, 0, 1, 4)
 
         self.processbatch = QPushButton("process batch \u2b07")
         self.processbatch.setFont(QFont("Arial", 10, QFont.Bold))
@@ -419,52 +442,52 @@ class MainW(QtWidgets.QMainWindow):
 
         # Add features to window
         # ~~~~~~~~~~ motsvd/movsvd options ~~~~~~~~~~
-        self.l0.addWidget(VideoLabel, 0, 0, 1, 2)
-        self.l0.addWidget(self.comboBox, 1, 0, 1, 1)
-        self.l0.addWidget(self.addROI, 1, 1, 1, 1)
-        self.l0.addWidget(self.reflector, 0, 14, 1, 2)
-        self.l0.addWidget(SVDbinLabel, 2, 0, 1, 2)
-        self.l0.addWidget(self.binSpinBox, 2, 1, 1, 2)
-        self.l0.addWidget(binLabel, 3, 0, 1, 1)
-        self.l0.addWidget(self.sigmaBox, 3, 1, 1, 1)
-        self.l0.addWidget(self.motSVD_checkbox, 4, 0, 1, 1)
-        self.l0.addWidget(self.movSVD_checkbox, 4, 1, 1, 1)
-        self.l0.addWidget(self.checkBox, 5, 0, 1, 1)
-        self.l0.addWidget(self.save_mat, 5, 1, 1, 1)
-        self.l0.addWidget(self.saverois, 6, 1, 1, 1)
-        self.l0.addWidget(self.process, 7, 0, 1, 1)
-        self.l0.addWidget(self.processbatch, 7, 1, 1, 1)
+        self.scene_grid_layout.addWidget(facemap_label, 0, 0, 1, 2)
+        self.scene_grid_layout.addWidget(self.comboBox, 1, 0, 1, 1)
+        self.scene_grid_layout.addWidget(self.addROI, 1, 1, 1, 1)
+        self.scene_grid_layout.addWidget(self.reflector, 0, 14, 1, 2)
+        self.scene_grid_layout.addWidget(SVDbinLabel, 2, 0, 1, 2)
+        self.scene_grid_layout.addWidget(self.binSpinBox, 2, 1, 1, 2)
+        self.scene_grid_layout.addWidget(binLabel, 3, 0, 1, 1)
+        self.scene_grid_layout.addWidget(self.sigmaBox, 3, 1, 1, 1)
+        self.scene_grid_layout.addWidget(self.motSVD_checkbox, 4, 0, 1, 1)
+        self.scene_grid_layout.addWidget(self.movSVD_checkbox, 4, 1, 1, 1)
+        self.scene_grid_layout.addWidget(self.checkBox, 5, 0, 1, 1)
+        self.scene_grid_layout.addWidget(self.save_mat, 5, 1, 1, 1)
+        self.scene_grid_layout.addWidget(self.saverois, 6, 1, 1, 1)
+        self.scene_grid_layout.addWidget(self.process, 7, 0, 1, 1)
+        self.scene_grid_layout.addWidget(self.processbatch, 7, 1, 1, 1)
         # ~~~~~~~~~~ Save/file IO ~~~~~~~~~~
-        self.l0.addWidget(self.savelabel, 8, 0, 1, 2)
+        self.scene_grid_layout.addWidget(self.savelabel, 8, 0, 1, 2)
         # ~~~~~~~~~~ Pose features ~~~~~~~~~~
-        self.l0.addWidget(self.keypoints_checkbox, 6, 0, 1, 1)
+        self.scene_grid_layout.addWidget(self.keypoints_checkbox, 6, 0, 1, 1)
         # ~~~~~~~~~~ clustering & ROI visualization window features
-        self.l0.addWidget(self.clusteringVisComboBox, 0, 11, 1, 1)
-        self.l0.addWidget(self.data_clustering_combobox, 0, 12, 1, 2)
-        self.l0.addWidget(self.roiVisComboBox, 0, 12, 1, 2)
-        self.l0.addWidget(self.zoom_in_button, 0, 12, 1, 1)
-        self.l0.addWidget(self.zoom_out_button, 0, 13, 1, 1)
-        self.l0.addWidget(self.run_clustering_button, 0, 14, 1, 1)
-        self.l0.addWidget(self.save_clustering_button, 0, 15, 1, 1)
+        self.scene_grid_layout.addWidget(self.clusteringVisComboBox, 0, 11, 1, 1)
+        self.scene_grid_layout.addWidget(self.data_clustering_combobox, 0, 12, 1, 2)
+        self.scene_grid_layout.addWidget(self.roiVisComboBox, 0, 12, 1, 2)
+        self.scene_grid_layout.addWidget(self.zoom_in_button, 0, 12, 1, 1)
+        self.scene_grid_layout.addWidget(self.zoom_out_button, 0, 13, 1, 1)
+        self.scene_grid_layout.addWidget(self.run_clustering_button, 0, 14, 1, 1)
+        self.scene_grid_layout.addWidget(self.save_clustering_button, 0, 15, 1, 1)
         #   ~~~~~~~~~~ Video playback ~~~~~~~~~~
-        self.l0.addWidget(self.playButton, iplay, 0, 1, 1)
-        self.l0.addWidget(self.pauseButton, iplay, 1, 1, 1)
+        self.scene_grid_layout.addWidget(self.playButton, iplay, 0, 1, 1)
+        self.scene_grid_layout.addWidget(self.pauseButton, iplay, 1, 1, 1)
         self.playButton.setEnabled(False)
         self.pauseButton.setEnabled(False)
         self.pauseButton.setChecked(True)
-        self.l0.addWidget(QLabel(""), istretch, 0, 1, 3)
-        self.l0.setRowStretch(istretch, 1)
-        self.l0.addWidget(self.setFrame, istretch + 7, 0, 1, 1)
-        self.l0.addWidget(self.totalFrameNumber, istretch + 7, 1, 1, 1)
-        self.l0.addWidget(self.frameSlider, istretch + 10, 2, 1, 15)
+        self.scene_grid_layout.addWidget(QLabel(""), istretch, 0, 1, 3)
+        self.scene_grid_layout.setRowStretch(istretch, 1)
+        self.scene_grid_layout.addWidget(self.setFrame, istretch + 7, 0, 1, 1)
+        self.scene_grid_layout.addWidget(self.totalFrameNumber, istretch + 7, 1, 1, 1)
+        self.scene_grid_layout.addWidget(self.frameSlider, istretch + 10, 2, 1, 15)
 
         # Plot 1 and 2 features
         pl = QLabel("Plot 1")
         pl.setStyleSheet("color: gray;")
-        self.l0.addWidget(pl, istretch, 0, 1, 1)
+        self.scene_grid_layout.addWidget(pl, istretch, 0, 1, 1)
         pl = QLabel("Plot 2")
         pl.setStyleSheet("color: gray;")
-        self.l0.addWidget(pl, istretch, 1, 1, 1)
+        self.scene_grid_layout.addWidget(pl, istretch, 1, 1, 1)
         self.load_trace1_button = QPushButton("Load 1D data")
         self.load_trace1_button.setFont(QFont("Arial", 12))
         self.load_trace1_button.clicked.connect(
@@ -481,16 +504,16 @@ class MainW(QtWidgets.QMainWindow):
         self.load_trace2_button.setEnabled(False)
         self.trace2_data_loaded = None
         self.trace2_legend = pg.LegendItem(labelTextSize="12pt", horSpacing=30)
-        self.l0.addWidget(self.load_trace1_button, istretch + 1, 0, 1, 1)
-        self.l0.addWidget(self.load_trace2_button, istretch + 1, 1, 1, 1)
+        self.scene_grid_layout.addWidget(self.load_trace1_button, istretch + 1, 0, 1, 1)
+        self.scene_grid_layout.addWidget(self.load_trace2_button, istretch + 1, 1, 1, 1)
         self.cbs1 = []
         self.cbs2 = []
         self.lbls = []
         for k in range(4):
             self.cbs1.append(QCheckBox(""))
-            self.l0.addWidget(self.cbs1[-1], istretch + 2 + k, 0, 1, 1)
+            self.scene_grid_layout.addWidget(self.cbs1[-1], istretch + 2 + k, 0, 1, 1)
             self.cbs2.append(QCheckBox(""))
-            self.l0.addWidget(self.cbs2[-1], istretch + 2 + k, 1, 1, 1)
+            self.scene_grid_layout.addWidget(self.cbs2[-1], istretch + 2 + k, 1, 1, 1)
             self.cbs1[-1].toggled.connect(self.plot_processed)
             self.cbs2[-1].toggled.connect(self.plot_processed)
             self.cbs1[-1].setEnabled(False)
@@ -502,13 +525,13 @@ class MainW(QtWidgets.QMainWindow):
         self.update_frame_slider()
 
     def set_saturation_label(self):
-        self.saturationLevelLabel.setText(str(self.sl[0].value()))
+        self.saturation_level_label.setText(str(self.sl[0].value()))
 
     def set_ROI_saturation_label(self, val=None):
         if val is None:
-            self.roiSaturationLevelLabel.setText(str(self.sl[1].value()))
+            self.roi_saturation_label.setText(str(self.sl[1].value()))
         else:
-            self.roiSaturationLevelLabel.setText(str(int(val)))
+            self.roi_saturation_label.setText(str(int(val)))
 
     def set_frame_changed(self, text):
         self.cframe = int(float(self.setFrame.text()))
@@ -536,8 +559,8 @@ class MainW(QtWidgets.QMainWindow):
         # Clear clusters
         self.cluster_model.disable_data_clustering_features(self)
         self.clusteringVisComboBox.setCurrentIndex(0)
-        self.ClusteringPlot.clear()
-        self.ClusteringPlot_legend.clear()
+        self.clustering_plot.clear()
+        self.clustering_plot_legend.clear()
         # Clear keypoints when a new file is loaded
         self.pose_scatterplot.clear()
         self.is_pose_loaded = False
@@ -1651,12 +1674,12 @@ class MainW(QtWidgets.QMainWindow):
         self.roiVisComboBox.hide()
         self.pROIimg.clear()
         self.pROI.removeItem(self.scatter)
-        self.ClusteringPlot.clear()
-        self.ClusteringPlot.hideAxis("left")
-        self.ClusteringPlot.hideAxis("bottom")
-        self.ClusteringPlot.removeItem(self.clustering_scatterplot)
-        self.ClusteringPlot_legend.setParentItem(None)
-        self.ClusteringPlot_legend.hide()
+        self.clustering_plot.clear()
+        self.clustering_plot.hideAxis("left")
+        self.clustering_plot.hideAxis("bottom")
+        self.clustering_plot.removeItem(self.clustering_scatterplot)
+        self.clustering_plot_legend.setParentItem(None)
+        self.clustering_plot_legend.hide()
 
     def cluster_plot_zoom_buttons(self, in_or_out):
         """
@@ -1665,7 +1688,7 @@ class MainW(QtWidgets.QMainWindow):
         """
         s = 0.9
         zoom = (s, s) if in_or_out == "in" else (1 / s, 1 / s)
-        self.ClusteringPlot.vb.scaleBy(zoom)
+        self.clustering_plot.vb.scaleBy(zoom)
 
     def update_ROI_vis_comboBox(self):
         """

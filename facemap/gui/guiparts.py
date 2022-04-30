@@ -108,7 +108,7 @@ class RGBRadioButtons(QButtonGroup):
                 button.setChecked(True)
             self.addButton(button, b)
             button.toggled.connect(lambda: self.btnpress(parent))
-            self.parent.l0.addWidget(button, row + b, col, 1, 1)
+            self.parent.scene_grid_layout.addWidget(button, row + b, col, 1, 1)
         self.setExclusive(True)
         # self.buttons.
 

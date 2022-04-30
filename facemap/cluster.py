@@ -104,23 +104,47 @@ class Cluster:
         parent.num_clusters.setText(str(5))
 
         istretch = 12
-        parent.l0.addWidget(parent.ClusteringLabel, istretch, 0, 1, 2)
-        parent.l0.addWidget(parent.min_dist_label, istretch + 1, 0, 1, 1)
-        parent.l0.addWidget(parent.min_dist_value, istretch + 1, 1, 1, 1)
-        parent.l0.addWidget(parent.n_neighbors_label, istretch + 2, 0, 1, 1)
-        parent.l0.addWidget(parent.n_neighbors_value, istretch + 2, 1, 1, 1)
-        parent.l0.addWidget(parent.n_components_label, istretch + 3, 0, 1, 1)
-        parent.l0.addWidget(parent.n_components_value, istretch + 3, 1, 1, 1)
-        parent.l0.addWidget(parent.load_embedding_button, istretch + 4, 0, 1, 2)
-        parent.l0.addWidget(parent.cluster_method_label, istretch + 5, 0, 1, 2)
-        parent.l0.addWidget(parent.loadlabels_radiobutton, istretch + 6, 0, 1, 1)
-        parent.l0.addWidget(parent.load_cluster_labels_button, istretch + 6, 1, 1, 1)
-        parent.l0.addWidget(parent.kmeans_radiobutton, istretch + 7, 0, 1, 1)
-        # parent.l0.addWidget(parent.hdbscan_radiobutton, istretch+7, 1, 1, 1)
-        parent.l0.addWidget(parent.min_cluster_size_label, istretch + 8, 0, 1, 1)
-        parent.l0.addWidget(parent.min_cluster_size, istretch + 8, 1, 1, 1)
-        parent.l0.addWidget(parent.num_clusters_label, istretch + 8, 0, 1, 1)
-        parent.l0.addWidget(parent.num_clusters, istretch + 8, 1, 1, 1)
+        parent.scene_grid_layout.addWidget(parent.ClusteringLabel, istretch, 0, 1, 2)
+        parent.scene_grid_layout.addWidget(parent.min_dist_label, istretch + 1, 0, 1, 1)
+        parent.scene_grid_layout.addWidget(parent.min_dist_value, istretch + 1, 1, 1, 1)
+        parent.scene_grid_layout.addWidget(
+            parent.n_neighbors_label, istretch + 2, 0, 1, 1
+        )
+        parent.scene_grid_layout.addWidget(
+            parent.n_neighbors_value, istretch + 2, 1, 1, 1
+        )
+        parent.scene_grid_layout.addWidget(
+            parent.n_components_label, istretch + 3, 0, 1, 1
+        )
+        parent.scene_grid_layout.addWidget(
+            parent.n_components_value, istretch + 3, 1, 1, 1
+        )
+        parent.scene_grid_layout.addWidget(
+            parent.load_embedding_button, istretch + 4, 0, 1, 2
+        )
+        parent.scene_grid_layout.addWidget(
+            parent.cluster_method_label, istretch + 5, 0, 1, 2
+        )
+        parent.scene_grid_layout.addWidget(
+            parent.loadlabels_radiobutton, istretch + 6, 0, 1, 1
+        )
+        parent.scene_grid_layout.addWidget(
+            parent.load_cluster_labels_button, istretch + 6, 1, 1, 1
+        )
+        parent.scene_grid_layout.addWidget(
+            parent.kmeans_radiobutton, istretch + 7, 0, 1, 1
+        )
+        # parent.scene_grid_layout.addWidget(parent.hdbscan_radiobutton, istretch+7, 1, 1, 1)
+        parent.scene_grid_layout.addWidget(
+            parent.min_cluster_size_label, istretch + 8, 0, 1, 1
+        )
+        parent.scene_grid_layout.addWidget(
+            parent.min_cluster_size, istretch + 8, 1, 1, 1
+        )
+        parent.scene_grid_layout.addWidget(
+            parent.num_clusters_label, istretch + 8, 0, 1, 1
+        )
+        parent.scene_grid_layout.addWidget(parent.num_clusters, istretch + 8, 1, 1, 1)
 
         self.hide_umap_param(parent)
         parent.load_embedding_button.clicked.connect(lambda: self.load_umap(parent))
@@ -141,7 +165,7 @@ class Cluster:
 
     def load_cluster_labels(self, parent):
         try:
-            self.ClusteringPlot_legend.clear()
+            self.clustering_plot_legend.clear()
         except Exception as e:
             pass
         io.load_cluster_labels(parent)
@@ -149,7 +173,7 @@ class Cluster:
 
     def enable_data_clustering_features(self, parent):
         parent.data_clustering_combobox.clear()
-        parent.ClusteringPlot.clear()
+        parent.clustering_plot.clear()
         # Add data to be used for clustering
         if parent.processed:
             parent.data_clustering_combobox.addItem("-- Data --")
@@ -203,7 +227,7 @@ class Cluster:
 
     def disable_data_clustering_features(self, parent):
         parent.data_clustering_combobox.hide()
-        parent.ClusteringPlot.clear()
+        parent.clustering_plot.clear()
         parent.zoom_in_button.hide()
         parent.zoom_out_button.hide()
         self.hide_umap_param(parent)
@@ -381,7 +405,7 @@ class Cluster:
         )  # cluster features/frames
 
     def plot_clustering_output(self, parent):
-        parent.ClusteringPlot.clear()
+        parent.clustering_plot.clear()
         num_feat = self.embedded_output.shape[0]
         num_comps = self.embedded_output.shape[1]
         is_cluster_colored = False
@@ -420,13 +444,13 @@ class Cluster:
                         len(np.unique(self.cluster_labels)),
                         1,
                     ]
-                parent.ClusteringPlot_legend = pg.LegendItem(
+                parent.clustering_plot_legend = pg.LegendItem(
                     labelTextSize="11pt",
                     horSpacing=10,
                     colCount=legend_num_col,
                     rowCount=legend_num_row,
                 )
-                parent.ClusteringPlot_legend.setPos(0, 20)
+                parent.clustering_plot_legend.setPos(0, 20)
                 for i, cluster in enumerate(
                     np.unique(self.cluster_labels)
                 ):  # range(max(self.cluster_labels)+1):
@@ -465,8 +489,8 @@ class Cluster:
                                 size=point_size,
                             )
                         )
-                    parent.ClusteringPlot.addItem(scatter_plots[i])
-                    parent.ClusteringPlot_legend.addItem(
+                    parent.clustering_plot.addItem(scatter_plots[i])
+                    parent.clustering_plot_legend.addItem(
                         scatter_plots[i], name=str(cluster)
                     )
                 # Add all points (transparent) to connect them to hovered function
@@ -485,13 +509,13 @@ class Cluster:
                     name=name,
                     size=point_size,
                 )
-                parent.ClusteringPlot.addItem(parent.clustering_scatterplot)
-                parent.ClusteringPlot.addItem(parent.clustering_highlight_scatterplot)
-                parent.ClusteringPlot_legend.setPos(
+                parent.clustering_plot.addItem(parent.clustering_scatterplot)
+                parent.clustering_plot.addItem(parent.clustering_highlight_scatterplot)
+                parent.clustering_plot_legend.setPos(
                     parent.clustering_scatterplot.x() + 5,
                     parent.clustering_scatterplot.y(),
                 )
-                parent.ClusteringPlot_legend.setParentItem(parent.ClusteringPlot)
+                parent.clustering_plot_legend.setParentItem(parent.clustering_plot)
                 parent.plot_cluster_labels_p1(self.cluster_labels, colors)
             else:
                 parent.clustering_scatterplot.setData(
@@ -508,11 +532,11 @@ class Cluster:
                     name=name,
                     size=point_size,
                 )
-                parent.ClusteringPlot.addItem(parent.clustering_scatterplot)
-                parent.ClusteringPlot.addItem(parent.clustering_highlight_scatterplot)
-            parent.ClusteringPlot.showAxis("left")
-            parent.ClusteringPlot.showAxis("bottom")
-            parent.ClusteringPlot.setLabels(bottom="Dimension 1", left="Dimension 2")
+                parent.clustering_plot.addItem(parent.clustering_scatterplot)
+                parent.clustering_plot.addItem(parent.clustering_highlight_scatterplot)
+            parent.clustering_plot.showAxis("left")
+            parent.clustering_plot.showAxis("bottom")
+            parent.clustering_plot.setLabels(bottom="Dimension 1", left="Dimension 2")
         else:  # 3D embedded visualization
             view = gl.GLViewWidget()
             view.setWindowTitle("3D plot of embedded points")
@@ -570,9 +594,9 @@ class Cluster:
 
     def mouse_moved_embedding(self, pos, parent):
         if self.embedded_output is not None:
-            if parent.ClusteringPlot.sceneBoundingRect().contains(pos):
-                x = parent.ClusteringPlot.vb.mapSceneToView(pos).x()
-                y = parent.ClusteringPlot.vb.mapSceneToView(pos).y()
+            if parent.clustering_plot.sceneBoundingRect().contains(pos):
+                x = parent.clustering_plot.vb.mapSceneToView(pos).x()
+                y = parent.clustering_plot.vb.mapSceneToView(pos).y()
                 scatter_x = np.array(
                     [i.pos().x() for i in parent.clustering_scatterplot.points()]
                 )

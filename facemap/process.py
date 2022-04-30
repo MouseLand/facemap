@@ -457,7 +457,7 @@ def process_ROIs(
                         imbin = np.concatenate(
                             (imend[ii][np.newaxis, :], imbin), axis=0
                         )
-                    imend[ii] = imbin[-1]
+                    imend[ii] = imbin[-1].copy()
                     if motSVD:  # compute motion energy for motSVD
                         imbin_mot = np.abs(np.diff(imbin, axis=0))
                     if movSVD:  # use raw frames for movSVD

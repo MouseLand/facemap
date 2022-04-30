@@ -92,17 +92,17 @@ class MainW(QtGui.QMainWindow):
         self.loaded = False
 
         # ---- MAIN WIDGET LAYOUT ---- #
-        self.cwidget = QWidget(self)
-        self.l0 = QGridLayout()
-        self.cwidget.setLayout(self.l0)
-        self.setCentralWidget(self.cwidget)
-        self.l0.setVerticalSpacing(4)
+        self.central_widget = QWidget(self)
+        self.scene_grid_layout = QGridLayout()
+        self.central_widget.setLayout(self.scene_grid_layout)
+        self.setCentralWidget(self.central_widget)
+        self.scene_grid_layout.setVerticalSpacing(4)
 
         self.imask = 0
 
         # ---- drawing area ---- #
         self.win = pg.GraphicsLayoutWidget()
-        self.l0.addWidget(self.win, 2, 3, 12, 10)
+        self.scene_grid_layout.addWidget(self.win, 2, 3, 12, 10)
         layout = self.win.ci.layout
         self.win.scene().sigMouseClicked.connect(self.plot_clicked)
         self.win.scene().sigMouseMoved.connect(self.mouse_moved)
@@ -134,16 +134,16 @@ class MainW(QtGui.QMainWindow):
         self.slider.setLow(0)
         self.slider.setHigh(255)
         self.slider.setTickPosition(QSlider.TicksBelow)
-        self.l0.addWidget(self.slider, 3, 0, 1, 1)
+        self.scene_grid_layout.addWidget(self.slider, 3, 0, 1, 1)
 
         self.brush_size = 3
         self.BrushChoose = QComboBox()
         self.BrushChoose.addItems(["1", "3", "5", "7"])
         self.BrushChoose.currentIndexChanged.connect(self.brush_choose)
-        self.l0.addWidget(self.BrushChoose, 1, 5, 1, 1)
+        self.scene_grid_layout.addWidget(self.BrushChoose, 1, 5, 1, 1)
         label = QLabel("brush size:")
         label.setStyleSheet("color: white;")
-        self.l0.addWidget(label, 0, 5, 1, 1)
+        self.scene_grid_layout.addWidget(label, 0, 5, 1, 1)
 
         # cross-hair
         self.vLine = pg.InfiniteLine(angle=90, movable=False)
@@ -153,20 +153,20 @@ class MainW(QtGui.QMainWindow):
         self.CHCheckBox = QCheckBox("cross-hairs")
         self.CHCheckBox.setStyleSheet("color: white;")
         self.CHCheckBox.toggled.connect(self.cross_hairs)
-        self.l0.addWidget(self.CHCheckBox, 1, 4, 1, 1)
+        self.scene_grid_layout.addWidget(self.CHCheckBox, 1, 4, 1, 1)
 
         # turn off masks
         self.MCheckBox = QCheckBox("masks on [SPACE]")
         self.MCheckBox.setStyleSheet("color: white;")
         self.MCheckBox.setChecked(True)
         self.MCheckBox.toggled.connect(self.masks_on)
-        self.l0.addWidget(self.MCheckBox, 0, 6, 1, 1)
+        self.scene_grid_layout.addWidget(self.MCheckBox, 0, 6, 1, 1)
         self.masksOn = True
 
         # clear all masks
         self.ClearButton = QPushButton("clear all masks")
         self.ClearButton.clicked.connect(self.clear_all)
-        self.l0.addWidget(self.ClearButton, 1, 6, 1, 1)
+        self.scene_grid_layout.addWidget(self.ClearButton, 1, 6, 1, 1)
         self.ClearButton.setEnabled(False)
 
         # choose models
@@ -178,15 +178,15 @@ class MainW(QtGui.QMainWindow):
         models = [os.path.split(m)[-1] for m in models]
         print(models)
         self.ModelChoose.addItems(models)
-        self.l0.addWidget(self.ModelChoose, 1, 7, 1, 1)
+        self.scene_grid_layout.addWidget(self.ModelChoose, 1, 7, 1, 1)
         label = QLabel("model: ")
         label.setStyleSheet("color: white;")
-        self.l0.addWidget(label, 0, 7, 1, 1)
+        self.scene_grid_layout.addWidget(label, 0, 7, 1, 1)
 
         # recompute model
         self.ModelButton = QPushButton("compute masks")
         self.ModelButton.clicked.connect(self.compute_model)
-        self.l0.addWidget(self.ModelButton, 1, 10, 1, 1)
+        self.scene_grid_layout.addWidget(self.ModelButton, 1, 10, 1, 1)
         self.ModelButton.setEnabled(False)
         self.imgLR = False
         self.saturation = [0, 255]
