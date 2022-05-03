@@ -71,7 +71,7 @@ class Pose:
                     self.resize = True
                 prompt = (
                     "No bbox set. Using entire frame view: {} and resize={}".format(
-                        self.gui.bbox, self.resize
+                        self.bbox, self.resize
                     )
                 )
                 utils.update_mainwindow_message(

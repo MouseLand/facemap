@@ -6,6 +6,7 @@ import numpy as np
 import pandas as pd
 import pyqtgraph as pg
 from matplotlib import cm
+from matplotlib import colors as mpl_colors
 from PyQt5 import QtCore, QtWidgets
 from PyQt5.QtGui import QFont, QIcon, QPainterPath
 from PyQt5.QtWidgets import (
@@ -1080,8 +1081,11 @@ class MainW(QtWidgets.QMainWindow):
             )
             self.is_pose_loaded = True
             self.keypoints_checkbox.setChecked(True)
-            self.add_keypoints_traces()
-
+            self.plot_trace(
+                wplot=1, proctype=5, wroi=None, color=None, 
+                keypoint_selected="eye(back)",
+            )
+            
     def update_pose(self):
         if self.is_pose_loaded and self.keypoints_checkbox.isChecked():
             self.statusBar.clearMessage()
@@ -1130,17 +1134,6 @@ class MainW(QtWidgets.QMainWindow):
             self.statusBar.clearMessage()
             self.pose_scatterplot.clear()
 
-    def add_keypoints_traces(self):
-        if self.is_pose_loaded and self.keypoints_checkbox.isChecked():
-            x_data = np.array(self.pose_x_coord).squeeze()
-            if self.traces1 is None:
-                self.traces1 = x_data
-            else:
-                self.traces1 = np.concatenate((self.traces1, x_data), axis=0)
-            self.plot_trace(
-                wplot=1, proctype=5, wroi=None, color=None, keypoints_data=x_data.T
-            )
-
     def keypoints_clicked(self, obj, points):
         # Show trace of keypoint clicked
         # Get name of keypoint clicked and its index
@@ -1161,15 +1154,13 @@ class MainW(QtWidgets.QMainWindow):
                 self.traces1.append(x_coord)
                 self.traces1.append(y_coord)
                 self.traces1 = np.array(self.traces1)
-                color = self.keypoints_brushes[0][keypoint_index].color()
                 # Plot trace of keypoint clicked
                 self.plot_trace(
                     wplot=1,
                     proctype=5,
                     wroi=None,
-                    color=color,
-                    keypoints_data=np.array([x_coord, y_coord]).T,
-                    bodypart=keypoint_name,
+                    color=None,
+                    keypoint_selected=keypoint_name
                 )
                 self.plot_scatter()
 
@@ -1474,14 +1465,13 @@ class MainW(QtWidgets.QMainWindow):
             self.p2.addItem(self.scatter2)
 
     def plot_trace(
-        self, wplot, proctype, wroi, color, keypoints_data=None, bodypart=None
+        self, wplot, proctype, wroi, color, keypoint_selected=None
     ):
         if wplot == 1:
             wp = self.p1
         else:
             wp = self.p2
-        if proctype == 0 or proctype == 2:  # motsvd
-            # motSVD
+        if proctype == 0 or proctype == 2:      # motsvd
             if proctype == 0:
                 ir = 0
             else:
@@ -1501,7 +1491,7 @@ class MainW(QtWidgets.QMainWindow):
             pen = pg.mkPen(color)
             wp.plot(tr, pen=pen)
             wp.setRange(yRange=(-3, 3))
-        elif proctype == 1:  # Pupil
+        elif proctype == 1:                     # Pupil
             pup = self.pupil[wroi]
             pen = pg.mkPen(color, width=2)
             pp = wp.plot(zscore(pup["area_smooth"]) * 2, pen=pen)
@@ -1541,29 +1531,55 @@ class MainW(QtWidgets.QMainWindow):
             wp.plot(running[:, 0], pen=color)
             wp.plot(running[:, 1], pen=color)
             tr = running.T
-        elif proctype == 5 and keypoints_data is not None:  # Keypoints traces
+        elif proctype == 5 and keypoint_selected is not None:  # Keypoints traces
             wp.clear()
             self.trace1_legend.clear()
+            bodypart_groups = ['Eye', 'Nose', 'Whiskers', 'Mouth', 'Paw']
+            sub_groups = [
+                ["eye(back)", "eye(bottom)", "eye(front)", "eye(top)" ],
+                ["nose(bottom)", "nose(r)", "nose(tip)", "nose(top)", "nosebridge"],
+                ["whisker(c1)", "whisker(c2)", "whisker(d1)"],
+                ["lowerlip", "mouth"],
+                ["paw"],
+            ]
+            # Create qbrush for sub_groups
+            subgroups_colors = ['blue', 'yellow', 'red', 'green', 'orange']
+            subgroups_colors = np.array([mpl_colors.to_rgb(c) for c in subgroups_colors])
+            subgroups_colors *= 255
+            subgroups_colors = subgroups_colors.astype(int)
+            subgroups_brushes = [pg.mkBrush(color=c) for c in subgroups_colors]
+            # Get index of keypoints group selected
+            for subgroup_idx, kp_group in enumerate(sub_groups):
+                if keypoint_selected in kp_group:
+                    break
+            kp_selected_idx = []
+            for _, bp in enumerate(kp_group):
+                kp_selected_idx.append(self.keypoints_labels[0].tolist().index(bp))
+            kp_selected_idx = np.array(kp_selected_idx)
             # x-coordinates
-            x_pen = pg.mkPen(color, width=1)
-            x_trace = keypoints_data[:, 0]
-            x_plot = wp.plot(x_trace, pen=x_pen)
+            x_trace = self.pose_x_coord[0][kp_selected_idx]
+            for i in range(x_trace.shape[0]):
+                x_pen = pg.mkPen(subgroups_brushes[subgroup_idx].color(), width=1)
+                x_plot = wp.plot(x_trace[i], pen=x_pen)
             lg = wp.addLegend(colCount=2, offset=(0, 0))
             lg.addItem(
-                x_plot, "<font color='white'><b>{} x-coord</b></font>".format(bodypart)
+                x_plot,
+                name="<font color='white'><b>{} x-coord</b></font>".format(bodypart_groups[subgroup_idx])
             )
             # y-coordinates
-            y_pen = pg.mkPen(color, width=1, style=QtCore.Qt.DashLine)
-            y_trace = keypoints_data[:, 1]
-            y_plot = wp.plot(y_trace, pen=y_pen)
+            y_trace = self.pose_y_coord[0][kp_selected_idx]
+            for i in range(y_trace.shape[0]):
+                y_pen = pg.mkPen(subgroups_brushes[subgroup_idx].color(), width=1, style=QtCore.Qt.DashLine)
+                y_plot = wp.plot(y_trace[i], pen=y_pen)
             lg.addItem(
                 y_plot,
-                name="<font color='white'><b>{} y-coord</b></font>".format(bodypart),
+                name="<font color='white'><b>{} y-coord</b></font>".format(bodypart_groups[subgroup_idx])
             )
             lg.setPos(wp.x(), wp.y())
             wp.setRange(xRange=(0, self.nframes))
             tr = None
         return tr
+
 
     def plot_clicked(self, event):
         items = self.win.scene().items(event.scenePos())

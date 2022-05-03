@@ -197,7 +197,7 @@ class sROI:
 
     def draw(self, parent, imy, imx, dy, dx):
         roipen = pg.mkPen(self.color, width=3, style=QtCore.Qt.SolidLine)
-        if self.rind == 1 or self.rind == 3 or self.rind == 4:
+        if self.rind == 1 or self.rind == 3 or self.rind == 4: 
             self.ROI = pg.RectROI(
                 [imx, imy],
                 [dx, dy],
