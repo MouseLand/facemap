@@ -190,7 +190,7 @@ class MainW(QtWidgets.QMainWindow):
         self.svd_traces_plot.hideAxis("left")
         self.scatter2 = pg.ScatterPlotItem()
         self.svd_traces_plot.addItem(self.scatter1)
-        self.svd_traces_plot.setXLink("plot1")
+        self.svd_traces_plot.setXLink("keypoints_traces_plot")
 
         # Add third plot
         self.neural_activity_plot = self.win.addPlot(
@@ -199,14 +199,14 @@ class MainW(QtWidgets.QMainWindow):
         self.neural_activity_plot.setMouseEnabled(x=True, y=False)
         self.neural_activity_plot.setMenuEnabled(False)
         self.neural_activity_plot.hideAxis("left")
-        self.neural_activity_plot.setXLink("plot1")
+        self.neural_activity_plot.setXLink("keypoints_traces_plot")
 
         # Add fourth plot
         self.p4 = self.win.addPlot(name="plot4", row=3, col=1, title="Plot 4")
         self.p4.setMouseEnabled(x=True, y=False)
         self.p4.setMenuEnabled(False)
         self.p4.hideAxis("left")
-        self.p4.setXLink("plot1")
+        self.p4.setXLink("keypoints_traces_plot")
 
         self.nframes = 0
         self.cframe = 0
@@ -1208,7 +1208,10 @@ class MainW(QtWidgets.QMainWindow):
             # If the user presses Cancel, the trace is not added
             dialog = QtWidgets.QDialog()
             dialog.setWindowTitle("Set data type")
-            dialog.setFixedWidth(400)
+            dialog.setBaseSize(
+                np.floor(self.sizeObject.width() * 0.5).astype(int),
+                np.floor(self.sizeObject.height() * 0.3).astype(int),
+            )
             dialog.verticalLayout = QtWidgets.QVBoxLayout(dialog)
             dialog.verticalLayout.setContentsMargins(10, 10, 10, 10)
 
@@ -1337,7 +1340,7 @@ class MainW(QtWidgets.QMainWindow):
                 self.trace2_legend.clear()
                 self.trace2_legend.addItem(self.trace2_plot, name=data_name)
                 self.trace2_legend.setPos(self.trace2_plot.x(), self.trace2_plot.y())
-                self.trace2_legend.setParentItem(self.neural_activity_plot)
+                self.trace2_legend.setParentItem(self.svd_traces_plot)
                 self.trace2_legend.setVisible(True)
                 self.trace2_plot.setVisible(True)
                 self.update_status_bar("Trace 2 data updated")
@@ -1396,7 +1399,7 @@ class MainW(QtWidgets.QMainWindow):
 
     def plot_processed(self):
         self.keypoints_traces_plot.clear()
-        self.neural_activity_plot.clear()
+        self.svd_traces_plot.clear()
         if self.traces1 is None:
             self.traces1 = np.zeros((0, self.nframes))
         if self.traces2 is None:
@@ -1418,7 +1421,6 @@ class MainW(QtWidgets.QMainWindow):
         for k in range(len(self.cbs2)):
             if self.cbs2[k].isChecked():
                 self.cbs2[k].setText(self.lbls[k].text())
-                # print(self.lbls[k].palette().color(QtGui.QPalette.Background))
                 self.cbs2[k].setStyleSheet(self.lbls[k].styleSheet())
                 tr = self.plot_trace(2, self.proctype[k], self.wroi[k], self.col[k])
                 if tr.ndim < 2:
@@ -1435,21 +1437,21 @@ class MainW(QtWidgets.QMainWindow):
             self.traces1 = np.concatenate(
                 (self.traces1, self.trace1_data_loaded[np.newaxis, :]), axis=0
             )
+            self.keypoints_traces_plot.setRange(
+                xRange=(0, self.nframes), yRange=(-4, 4), padding=0.0
+            )
+            self.keypoints_traces_plot.setLimits(xMin=0, xMax=self.nframes)
+            self.keypoints_traces_plot.show()
         if self.trace2_data_loaded is not None:
-            self.neural_activity_plot.addItem(self.trace2_plot)
+            self.svd_traces_plot.addItem(self.trace2_plot)
             self.traces2 = np.concatenate(
                 (self.traces2, self.trace2_data_loaded[np.newaxis, :]), axis=0
             )
-        self.keypoints_traces_plot.setRange(
-            xRange=(0, self.nframes), yRange=(-4, 4), padding=0.0
-        )
-        self.neural_activity_plot.setRange(
-            xRange=(0, self.nframes), yRange=(-4, 4), padding=0.0
-        )
-        self.keypoints_traces_plot.setLimits(xMin=0, xMax=self.nframes)
-        self.neural_activity_plot.setLimits(xMin=0, xMax=self.nframes)
-        self.keypoints_traces_plot.show()
-        self.neural_activity_plot.show()
+            self.svd_traces_plot.setRange(
+                xRange=(0, self.nframes), yRange=(-4, 4), padding=0.0
+            )
+            self.svd_traces_plot.setLimits(xMin=0, xMax=self.nframes)
+            self.svd_traces_plot.show()
         self.plot_scatter()
         self.jump_to_frame()
 
@@ -1467,20 +1469,23 @@ class MainW(QtWidgets.QMainWindow):
 
         if self.traces2 is not None and self.traces2.shape[0] > 0:
             ntr = self.traces2.shape[0]
-            self.neural_activity_plot.removeItem(self.scatter2)
+            self.svd_traces_plot.removeItem(self.scatter2)
             self.scatter2.setData(
                 self.cframe * np.ones((ntr,)),
                 self.traces2[:, self.cframe],
                 size=8,
                 brush=pg.mkBrush(255, 255, 255),
             )
-            self.neural_activity_plot.addItem(self.scatter2)
+            self.svd_traces_plot.addItem(self.scatter2)
 
     def plot_trace(self, wplot, proctype, wroi, color, keypoint_selected=None):
         if wplot == 1:
             wp = self.keypoints_traces_plot
+        elif wplot == 2:
+            wp = self.svd_traces_plot
         else:
-            wp = self.neural_activity_plot
+            print("Invalid plot window")
+            return
         if proctype == 0 or proctype == 2:  # motsvd
             if proctype == 0:
                 ir = 0
@@ -1615,7 +1620,7 @@ class MainW(QtWidgets.QMainWindow):
                     pos = vb.mapSceneToView(event.scenePos())
                     posx = pos.x()
                     iplot = 1
-                elif x == self.neural_activity_plot:
+                elif x == self.svd_traces_plot:
                     vb = self.keypoints_traces_plot.vb
                     pos = vb.mapSceneToView(event.scenePos())
                     posx = pos.x()
