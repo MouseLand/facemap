@@ -197,7 +197,7 @@ class sROI:
 
     def draw(self, parent, imy, imx, dy, dx):
         roipen = pg.mkPen(self.color, width=3, style=QtCore.Qt.SolidLine)
-        if self.rind == 1 or self.rind == 3 or self.rind == 4: 
+        if self.rind == 1 or self.rind == 3 or self.rind == 4:
             self.ROI = pg.RectROI(
                 [imx, imy],
                 [dx, dy],
@@ -393,24 +393,30 @@ class sROI:
                         traces -= traces.mean(axis=-1)[:, np.newaxis]
                         norm = traces.std(axis=-1)
                         norm[np.logical_or(norm == 0, np.isnan(norm))] = 1.0
-                        parent.p1.clear()
+                        parent.keypoints_traces_plot.clear()
                         pen = pg.mkPen(self.color, width=2)
-                        parent.p1.plot(traces[0] / norm[0] * 2, pen=pen)
+                        parent.keypoints_traces_plot.plot(
+                            traces[0] / norm[0] * 2, pen=pen
+                        )
                         pen = pg.mkPen(
                             (155, 255, 155), width=1, style=QtCore.Qt.DashLine
                         )
-                        parent.p1.plot(traces[1] / norm[1] * 2, pen=pen)
+                        parent.keypoints_traces_plot.plot(
+                            traces[1] / norm[1] * 2, pen=pen
+                        )
                         pen = pg.mkPen((0, 100, 0), width=1, style=QtCore.Qt.DashLine)
-                        parent.p1.plot(traces[2] / norm[2] * 2, pen=pen)
-                        parent.p1.setRange(
+                        parent.keypoints_traces_plot.plot(
+                            traces[2] / norm[2] * 2, pen=pen
+                        )
+                        parent.keypoints_traces_plot.setRange(
                             xRange=(0, nframes), yRange=(-4, 4), padding=0.0
                         )
-                        parent.p1.setLimits(xMin=0, xMax=nframes)
-                        parent.p1.show()
+                        parent.keypoints_traces_plot.setLimits(xMin=0, xMax=nframes)
+                        parent.keypoints_traces_plot.show()
                         parent.win.show()
                         parent.show()
                         parent.online_plotted = True
-                # self.p2.setLimits(xMin=0,xMax=self.nframes)
+                # self.svd_traces_plot.setLimits(xMin=0,xMax=self.nframes)
         elif self.rind == 1 or self.rind == 3 or self.rind == 4:
             parent.pROI.removeItem(parent.scatter)
             parent.scatter = pg.ScatterPlotItem([0], [0], pen="k", symbol="+")

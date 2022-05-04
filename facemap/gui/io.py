@@ -197,8 +197,10 @@ def open_proc(parent, file_name=None):
                             pos = [
                                 reflector_roi["yrange"][0],
                                 reflector_roi["xrange"][0],
-                                reflector_roi["yrange"][-1] - reflector_roi["yrange"][0],
-                                reflector_roi["xrange"][-1] - reflector_roi["xrange"][0],
+                                reflector_roi["yrange"][-1]
+                                - reflector_roi["yrange"][0],
+                                reflector_roi["xrange"][-1]
+                                - reflector_roi["xrange"][0],
                             ]
                             parent.rROI[-1].append(
                                 roi.reflectROI(
@@ -291,8 +293,8 @@ def load_movies(parent, filelist=None):
         parent.cumframes = np.array(cumframes).astype(int)
         parent.Ly = Ly
         parent.Lx = Lx
-        parent.p1.clear()
-        parent.p2.clear()
+        parent.keypoints_traces_plot.clear()
+        parent.svd_traces_plot.clear()
         if len(parent.Ly) < 2:
             parent.LY = parent.Ly[0]
             parent.LX = parent.Lx[0]
@@ -333,7 +335,7 @@ def load_movies(parent, filelist=None):
     return good
 
 
-def load_neural_data(parent):
+def load_neural_data_file(parent):
     # Open a file dialog to select a folder
     file_name = QFileDialog.getOpenFileName(
         parent, "Select a file", "", "Neural data files (*.npy *.npz)"

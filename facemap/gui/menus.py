@@ -29,7 +29,7 @@ def mainmenu(parent):
     # Load neural data
     loadNeural = QAction("Load neural data", parent)
     loadNeural.setShortcut("Ctrl+N")
-    loadNeural.triggered.connect(lambda: io.load_neural_data(parent))
+    loadNeural.triggered.connect(lambda: parent.load_neural_data())
     parent.addAction(loadNeural)
 
     loadPose = QAction("Load keypoints", parent)

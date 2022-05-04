@@ -31,7 +31,6 @@ from scipy.stats import skew, zscore
 from facemap import cluster, process, roi, utils
 from facemap.pose import pose_gui, refine_pose
 from facemap.pose import pose
-
 from . import guiparts, io, menus
 
 istr = ["pupil", "motSVD", "blink", "running", "movSVD"]
@@ -173,37 +172,39 @@ class MainW(QtWidgets.QMainWindow):
         self.reflectors = []
 
         # Plots
-        self.p1 = self.win.addPlot(name="plot1", row=0, col=1, title="Plot 1")
-        self.p1.setMouseEnabled(x=True, y=False)
-        self.p1.setMenuEnabled(False)
-        self.p1.hideAxis("left")
+        self.keypoints_traces_plot = self.win.addPlot(
+            name="plot1", row=0, col=1, title="Keyoints traces"
+        )
+        self.keypoints_traces_plot.setMouseEnabled(x=True, y=False)
+        self.keypoints_traces_plot.setMenuEnabled(False)
+        self.keypoints_traces_plot.hideAxis("left")
         self.scatter1 = pg.ScatterPlotItem()
-        self.p1.addItem(self.scatter1)
+        self.keypoints_traces_plot.addItem(self.scatter1)
 
-        self.p2 = self.win.addPlot(name="plot2", row=1, col=1, title="Plot 2")
-        self.p2.setMouseEnabled(x=True, y=False)
-        self.p2.setMenuEnabled(False)
-        self.p2.hideAxis("left")
+        self.svd_traces_plot = self.win.addPlot(
+            name="plot2", row=1, col=1, title="SVD traces"
+        )
+        self.svd_traces_plot.setMouseEnabled(x=True, y=False)
+        self.svd_traces_plot.setMenuEnabled(False)
+        self.svd_traces_plot.hideAxis("left")
         self.scatter2 = pg.ScatterPlotItem()
-        self.p2.addItem(self.scatter1)
-        self.p2.setXLink("plot1")
+        self.svd_traces_plot.addItem(self.scatter1)
+        self.svd_traces_plot.setXLink("plot1")
 
         # Add third plot
-        self.p3 = self.win.addPlot(name="plot3", row=2, col=1, title="Plot 3")
-        self.p3.setMouseEnabled(x=True, y=False)
-        self.p3.setMenuEnabled(False)
-        self.p3.hideAxis("left")
-        self.scatter3 = pg.ScatterPlotItem()
-        self.p3.addItem(self.scatter3)
-        self.p3.setXLink("plot1")
+        self.neural_heatmap = self.win.addPlot(
+            name="plot3", row=2, col=1, title="Neural activity heatmap"
+        )
+        self.neural_heatmap.setMouseEnabled(x=True, y=False)
+        self.neural_heatmap.setMenuEnabled(False)
+        self.neural_heatmap.hideAxis("left")
+        self.neural_heatmap.setXLink("plot1")
 
         # Add fourth plot
         self.p4 = self.win.addPlot(name="plot4", row=3, col=1, title="Plot 4")
         self.p4.setMouseEnabled(x=True, y=False)
         self.p4.setMenuEnabled(False)
         self.p4.hideAxis("left")
-        self.scatter4 = pg.ScatterPlotItem()
-        self.p4.addItem(self.scatter4)
         self.p4.setXLink("plot1")
 
         self.nframes = 0
@@ -483,12 +484,12 @@ class MainW(QtWidgets.QMainWindow):
         self.scene_grid_layout.addWidget(self.frameSlider, istretch + 10, 2, 1, 15)
 
         # Plot 1 and 2 features
-        pl = QLabel("Plot 1")
-        pl.setStyleSheet("color: gray;")
-        self.scene_grid_layout.addWidget(pl, istretch, 0, 1, 1)
-        pl = QLabel("Plot 2")
-        pl.setStyleSheet("color: gray;")
-        self.scene_grid_layout.addWidget(pl, istretch, 1, 1, 1)
+        plot_label = QLabel("Keypoints traces")
+        plot_label.setStyleSheet("color: gray;")
+        self.scene_grid_layout.addWidget(plot_label, istretch, 0, 1, 1)
+        plot_label = QLabel("SVD traces")
+        plot_label.setStyleSheet("color: gray;")
+        self.scene_grid_layout.addWidget(plot_label, istretch, 1, 1, 1)
         self.load_trace1_button = QPushButton("Load 1D data")
         self.load_trace1_button.setFont(QFont("Arial", 12))
         self.load_trace1_button.clicked.connect(
@@ -593,8 +594,8 @@ class MainW(QtWidgets.QMainWindow):
         self.neural_data_file = None
         self.neural_data_loaded = False
         # Clear plots
-        self.p1.clear()
-        self.p2.clear()
+        self.keypoints_traces_plot.clear()
+        self.svd_traces_plot.clear()
 
     def pupil_sigma_change(self):
         self.pupil_sigma = float(self.sigmaBox.text())
@@ -787,8 +788,7 @@ class MainW(QtWidgets.QMainWindow):
     def start(self):
         if self.online_mode:
             self.online_traces = None
-            # self.p1.clear()
-            self.p1.show()
+            self.keypoints_traces_plot.show()
             self.playButton.setEnabled(False)
             self.pauseButton.setEnabled(True)
             self.frameSlider.setEnabled(False)
@@ -1082,10 +1082,13 @@ class MainW(QtWidgets.QMainWindow):
             self.is_pose_loaded = True
             self.keypoints_checkbox.setChecked(True)
             self.plot_trace(
-                wplot=1, proctype=5, wroi=None, color=None, 
+                wplot=1,
+                proctype=5,
+                wroi=None,
+                color=None,
                 keypoint_selected="eye(back)",
             )
-            
+
     def update_pose(self):
         if self.is_pose_loaded and self.keypoints_checkbox.isChecked():
             self.statusBar.clearMessage()
@@ -1137,32 +1140,33 @@ class MainW(QtWidgets.QMainWindow):
     def keypoints_clicked(self, obj, points):
         # Show trace of keypoint clicked
         # Get name of keypoint clicked and its index
-        if self.is_pose_loaded and self.keypoints_checkbox.isChecked():
-            if len(points) > 0:
-                keypoint_name = points[0].data()
-                keypoint_index = np.where(self.keypoints_labels[0] == keypoint_name)[0][
-                    0
-                ]
-                # Get x and y coordinates of keypoint clicked
-                x_coord = np.array(self.pose_x_coord[0][keypoint_index]).squeeze()
-                y_coord = np.array(self.pose_y_coord[0][keypoint_index]).squeeze()
-                # Mean center coordinates
-                x_coord -= np.mean(x_coord)
-                y_coord -= np.mean(y_coord)
-                # Update traces1
-                self.traces1 = []
-                self.traces1.append(x_coord)
-                self.traces1.append(y_coord)
-                self.traces1 = np.array(self.traces1)
-                # Plot trace of keypoint clicked
-                self.plot_trace(
-                    wplot=1,
-                    proctype=5,
-                    wroi=None,
-                    color=None,
-                    keypoint_selected=keypoint_name
-                )
-                self.plot_scatter()
+        if (
+            self.is_pose_loaded
+            and self.keypoints_checkbox.isChecked()
+            and len(points) > 0
+        ):
+            keypoint_name = points[0].data()
+            keypoint_index = np.where(self.keypoints_labels[0] == keypoint_name)[0][0]
+            # Get x and y coordinates of keypoint clicked
+            x_coord = np.array(self.pose_x_coord[0][keypoint_index]).squeeze()
+            y_coord = np.array(self.pose_y_coord[0][keypoint_index]).squeeze()
+            # Mean center coordinates
+            x_coord -= np.mean(x_coord)
+            y_coord -= np.mean(y_coord)
+            # Update traces1
+            self.traces1 = []
+            self.traces1.append(x_coord)
+            self.traces1.append(y_coord)
+            self.traces1 = np.array(self.traces1)
+            # Plot trace of keypoint clicked
+            self.plot_trace(
+                wplot=1,
+                proctype=5,
+                wroi=None,
+                color=None,
+                keypoint_selected=keypoint_name,
+            )
+            self.plot_scatter()
 
     def keypoints_hovered(self, obj, ev):
         point_hovered = np.where(self.pose_scatterplot.data["hovered"])[0]
@@ -1297,7 +1301,7 @@ class MainW(QtWidgets.QMainWindow):
                 self.trace1_legend.clear()
                 self.trace1_legend.addItem(self.trace1_plot, name=data_name)
                 self.trace1_legend.setPos(self.trace1_plot.x(), self.trace1_plot.y())
-                self.trace1_legend.setParentItem(self.p1)
+                self.trace1_legend.setParentItem(self.keypoints_traces_plot)
                 self.trace1_legend.setVisible(True)
                 self.trace1_plot.setVisible(True)
                 self.update_status_bar("Trace 1 data updated")
@@ -1329,7 +1333,7 @@ class MainW(QtWidgets.QMainWindow):
                 self.trace2_legend.clear()
                 self.trace2_legend.addItem(self.trace2_plot, name=data_name)
                 self.trace2_legend.setPos(self.trace2_plot.x(), self.trace2_plot.y())
-                self.trace2_legend.setParentItem(self.p2)
+                self.trace2_legend.setParentItem(self.svd_traces_plot)
                 self.trace2_legend.setVisible(True)
                 self.trace2_plot.setVisible(True)
                 self.update_status_bar("Trace 2 data updated")
@@ -1345,7 +1349,7 @@ class MainW(QtWidgets.QMainWindow):
             print(e)
             self.update_status_bar("Error: data not recognized")
 
-    # Plot trace on p1 showing cluster labels as discrete data
+    # Plot trace on keypoints_traces_plot showing cluster labels as discrete data
     def plot_cluster_labels_p1(self, labels, color_palette):
         x = np.arange(len(labels))
         y = np.ones((len(x)))
@@ -1376,7 +1380,7 @@ class MainW(QtWidgets.QMainWindow):
         self.trace1_legend.clear()
         self.trace1_legend.addItem(self.trace1_plot, name=self.trace1_name)
         self.trace1_legend.setPos(self.trace1_plot.x(), self.trace1_plot.y())
-        self.trace1_legend.setParentItem(self.p1)
+        self.trace1_legend.setParentItem(self.keypoints_traces_plot)
         self.trace1_legend.setVisible(True)
         self.trace1_plot.setVisible(True)
         self.update_status_bar("Trace 1 data updated")
@@ -1387,8 +1391,8 @@ class MainW(QtWidgets.QMainWindow):
         self.plot_processed()
 
     def plot_processed(self):
-        self.p1.clear()
-        self.p2.clear()
+        self.keypoints_traces_plot.clear()
+        self.svd_traces_plot.clear()
         if self.traces1 is None:
             self.traces1 = np.zeros((0, self.nframes))
         if self.traces2 is None:
@@ -1423,55 +1427,57 @@ class MainW(QtWidgets.QMainWindow):
                 self.cbs2[k].setText(self.lbls[k].text())
                 self.cbs2[k].setStyleSheet("color: gray")
         if self.trace1_data_loaded is not None:
-            self.p1.addItem(self.trace1_plot)
+            self.keypoints_traces_plot.addItem(self.trace1_plot)
             self.traces1 = np.concatenate(
                 (self.traces1, self.trace1_data_loaded[np.newaxis, :]), axis=0
             )
         if self.trace2_data_loaded is not None:
-            self.p2.addItem(self.trace2_plot)
+            self.svd_traces_plot.addItem(self.trace2_plot)
             self.traces2 = np.concatenate(
                 (self.traces2, self.trace2_data_loaded[np.newaxis, :]), axis=0
             )
-        self.p1.setRange(xRange=(0, self.nframes), yRange=(-4, 4), padding=0.0)
-        self.p2.setRange(xRange=(0, self.nframes), yRange=(-4, 4), padding=0.0)
-        self.p1.setLimits(xMin=0, xMax=self.nframes)
-        self.p2.setLimits(xMin=0, xMax=self.nframes)
-        self.p1.show()
-        self.p2.show()
+        self.keypoints_traces_plot.setRange(
+            xRange=(0, self.nframes), yRange=(-4, 4), padding=0.0
+        )
+        self.svd_traces_plot.setRange(
+            xRange=(0, self.nframes), yRange=(-4, 4), padding=0.0
+        )
+        self.keypoints_traces_plot.setLimits(xMin=0, xMax=self.nframes)
+        self.svd_traces_plot.setLimits(xMin=0, xMax=self.nframes)
+        self.keypoints_traces_plot.show()
+        self.svd_traces_plot.show()
         self.plot_scatter()
         self.jump_to_frame()
 
     def plot_scatter(self):
         if self.traces1 is not None and self.traces1.shape[0] > 0:
             ntr = self.traces1.shape[0]
-            self.p1.removeItem(self.scatter1)
+            self.keypoints_traces_plot.removeItem(self.scatter1)
             self.scatter1.setData(
                 self.cframe * np.ones((ntr,)),
                 self.traces1[:, self.cframe],
                 size=8,
                 brush=pg.mkBrush(255, 255, 255),
             )
-            self.p1.addItem(self.scatter1)
+            self.keypoints_traces_plot.addItem(self.scatter1)
 
         if self.traces2 is not None and self.traces2.shape[0] > 0:
             ntr = self.traces2.shape[0]
-            self.p2.removeItem(self.scatter2)
+            self.svd_traces_plot.removeItem(self.scatter2)
             self.scatter2.setData(
                 self.cframe * np.ones((ntr,)),
                 self.traces2[:, self.cframe],
                 size=8,
                 brush=pg.mkBrush(255, 255, 255),
             )
-            self.p2.addItem(self.scatter2)
+            self.svd_traces_plot.addItem(self.scatter2)
 
-    def plot_trace(
-        self, wplot, proctype, wroi, color, keypoint_selected=None
-    ):
+    def plot_trace(self, wplot, proctype, wroi, color, keypoint_selected=None):
         if wplot == 1:
-            wp = self.p1
+            wp = self.keypoints_traces_plot
         else:
-            wp = self.p2
-        if proctype == 0 or proctype == 2:      # motsvd
+            wp = self.svd_traces_plot
+        if proctype == 0 or proctype == 2:  # motsvd
             if proctype == 0:
                 ir = 0
             else:
@@ -1491,7 +1497,7 @@ class MainW(QtWidgets.QMainWindow):
             pen = pg.mkPen(color)
             wp.plot(tr, pen=pen)
             wp.setRange(yRange=(-3, 3))
-        elif proctype == 1:                     # Pupil
+        elif proctype == 1:  # Pupil
             pup = self.pupil[wroi]
             pen = pg.mkPen(color, width=2)
             pp = wp.plot(zscore(pup["area_smooth"]) * 2, pen=pen)
@@ -1534,17 +1540,19 @@ class MainW(QtWidgets.QMainWindow):
         elif proctype == 5 and keypoint_selected is not None:  # Keypoints traces
             wp.clear()
             self.trace1_legend.clear()
-            bodypart_groups = ['Eye', 'Nose', 'Whiskers', 'Mouth', 'Paw']
+            bodypart_groups = ["Eye", "Nose", "Whiskers", "Mouth", "Paw"]
             sub_groups = [
-                ["eye(back)", "eye(bottom)", "eye(front)", "eye(top)" ],
+                ["eye(back)", "eye(bottom)", "eye(front)", "eye(top)"],
                 ["nose(bottom)", "nose(r)", "nose(tip)", "nose(top)", "nosebridge"],
                 ["whisker(c1)", "whisker(c2)", "whisker(d1)"],
                 ["lowerlip", "mouth"],
                 ["paw"],
             ]
             # Create qbrush for sub_groups
-            subgroups_colors = ['blue', 'yellow', 'red', 'green', 'orange']
-            subgroups_colors = np.array([mpl_colors.to_rgb(c) for c in subgroups_colors])
+            subgroups_colors = ["blue", "yellow", "red", "cyan", "orange"]
+            subgroups_colors = np.array(
+                [mpl_colors.to_rgb(c) for c in subgroups_colors]
+            )
             subgroups_colors *= 255
             subgroups_colors = subgroups_colors.astype(int)
             subgroups_brushes = [pg.mkBrush(color=c) for c in subgroups_colors]
@@ -1564,22 +1572,29 @@ class MainW(QtWidgets.QMainWindow):
             lg = wp.addLegend(colCount=2, offset=(0, 0))
             lg.addItem(
                 x_plot,
-                name="<font color='white'><b>{} x-coord</b></font>".format(bodypart_groups[subgroup_idx])
+                name="<font color='white'><b>{} x-coord</b></font>".format(
+                    bodypart_groups[subgroup_idx]
+                ),
             )
             # y-coordinates
             y_trace = self.pose_y_coord[0][kp_selected_idx]
             for i in range(y_trace.shape[0]):
-                y_pen = pg.mkPen(subgroups_brushes[subgroup_idx].color(), width=1, style=QtCore.Qt.DashLine)
+                y_pen = pg.mkPen(
+                    subgroups_brushes[subgroup_idx].color(),
+                    width=1,
+                    style=QtCore.Qt.DashLine,
+                )
                 y_plot = wp.plot(y_trace[i], pen=y_pen)
             lg.addItem(
                 y_plot,
-                name="<font color='white'><b>{} y-coord</b></font>".format(bodypart_groups[subgroup_idx])
+                name="<font color='white'><b>{} y-coord</b></font>".format(
+                    bodypart_groups[subgroup_idx]
+                ),
             )
             lg.setPos(wp.x(), wp.y())
             wp.setRange(xRange=(0, self.nframes))
             tr = None
         return tr
-
 
     def plot_clicked(self, event):
         items = self.win.scene().items(event.scenePos())
@@ -1591,13 +1606,13 @@ class MainW(QtWidgets.QMainWindow):
         choose = False
         if self.loaded:
             for x in items:
-                if x == self.p1:
-                    vb = self.p1.vb
+                if x == self.keypoints_traces_plot:
+                    vb = self.keypoints_traces_plot.vb
                     pos = vb.mapSceneToView(event.scenePos())
                     posx = pos.x()
                     iplot = 1
-                elif x == self.p2:
-                    vb = self.p1.vb
+                elif x == self.svd_traces_plot:
+                    vb = self.keypoints_traces_plot.vb
                     pos = vb.mapSceneToView(event.scenePos())
                     posx = pos.x()
                     iplot = 2
@@ -1614,7 +1629,7 @@ class MainW(QtWidgets.QMainWindow):
         if zoomImg:
             self.p0.setRange(xRange=(0, self.LX), yRange=(0, self.LY))
         if zoom:
-            self.p1.setRange(xRange=(0, self.nframes))
+            self.keypoints_traces_plot.setRange(xRange=(0, self.nframes))
         if choose:
             if self.playButton.isEnabled() and not self.online_mode:
                 self.cframe = np.maximum(
@@ -1624,20 +1639,194 @@ class MainW(QtWidgets.QMainWindow):
                 # self.jump_to_frame()
 
     ## ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Neural data plot ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ ##
+
+    # Open a QDialog to select the neural data to plot
+    def load_neural_data(self):
+        dialog = QtWidgets.QDialog()
+        dialog.setWindowTitle("Neural activity")
+        dialog.setContentsMargins(10, 10, 10, 10)
+        # Set size of the dialog
+        dialog.setFixedWidth(np.floor(self.sizeObject.width() / 3).astype(int))
+        dialog.setFixedHeight(np.floor(self.sizeObject.height() / 2).astype(int))
+
+        # Create a vertical layout for the dialog
+        vbox = QtWidgets.QVBoxLayout()
+        dialog.setLayout(vbox)
+
+        # Create a grouppbox for neural activity and set a vertical layout
+        neural_activity_groupbox = QtWidgets.QGroupBox("Neural activity")
+        neural_activity_groupbox.setLayout(QtWidgets.QVBoxLayout())
+        neural_activity_groupbox.setStyleSheet(
+            "QGroupBox {border: 1px solid gray; border-radius: 9px; margin-top: 0.5em;} "
+        )
+
+        # Add a label to the groupbox
+        neural_file_groupbox = QtWidgets.QGroupBox()
+        neural_file_groupbox.setLayout(QtWidgets.QHBoxLayout())
+        neural_file_groupbox.setStyleSheet("QGroupBox { border: 0px solid gray; }")
+        neural_data_label = QtWidgets.QLabel("Neural data:")
+        neural_file_groupbox.layout().addWidget(neural_data_label)
+        # Add a QLineEdit to the groupbox
+        neural_data_lineedit = QtWidgets.QLineEdit()
+        neural_data_lineedit.setText("...")
+        neural_data_lineedit.setReadOnly(True)
+        neural_file_groupbox.layout().addWidget(neural_data_lineedit)
+        # Add a QPushButton to the groupbox
+        neural_data_button = QtWidgets.QPushButton("Browse")
+        # neural_data_button.clicked.connect(io.load_neural_data_file(self))
+        neural_file_groupbox.layout().addWidget(neural_data_button)
+        # vbox.addLayout(neural_file_hbox)
+        neural_activity_groupbox.layout().addWidget(neural_file_groupbox)
+
+        # Create a hbox for neural data type selection
+        neural_data_type_groupbox = QtWidgets.QGroupBox()
+        neural_data_type_groupbox.setLayout(QtWidgets.QHBoxLayout())
+        neural_data_type_groupbox.setStyleSheet("QGroupBox { border: 0px solid gray; }")
+        # Add a label to the hbox
+        neural_data_type_label = QtWidgets.QLabel("Data type:")
+        neural_data_type_groupbox.layout().addWidget(neural_data_type_label)
+        dialog.neural_data_type_radiobuttons = QtWidgets.QButtonGroup()
+        dialog.neural_data_type_radiobuttons.setExclusive(True)
+        dialog.calcium_radiobutton = QtWidgets.QRadioButton("Calcium")
+        dialog.calcium_radiobutton.setChecked(True)
+        dialog.ephys_radiobutton = QtWidgets.QRadioButton("Electrophysiology")
+        dialog.neural_data_type_radiobuttons.addButton(dialog.calcium_radiobutton)
+        dialog.neural_data_type_radiobuttons.addButton(dialog.ephys_radiobutton)
+        # Add QRadiobuttons to the hbox
+        neural_data_type_groupbox.layout().addWidget(dialog.calcium_radiobutton)
+        neural_data_type_groupbox.layout().addWidget(dialog.ephys_radiobutton)
+        neural_activity_groupbox.layout().addWidget(neural_data_type_groupbox)
+
+        # Add a hbox for data visualization
+        neural_data_vis_groupbox = QtWidgets.QGroupBox()
+        neural_data_vis_groupbox.setLayout(QtWidgets.QHBoxLayout())
+        neural_data_vis_groupbox.setStyleSheet("QGroupBox { border: 0px solid gray; }")
+        neural_data_vis_label = QtWidgets.QLabel("Data visualization:")
+        neural_data_vis_groupbox.layout().addWidget(neural_data_vis_label)
+        dialog.neural_data_vis_radiobuttons = QtWidgets.QButtonGroup()
+        dialog.neural_data_vis_radiobuttons.setExclusive(True)
+        dialog.heatmap_button = QtWidgets.QRadioButton("Heatmap")
+        dialog.heatmap_button.setChecked(True)
+        dialog.trace_button = QtWidgets.QRadioButton("Traces")
+        dialog.neural_data_vis_radiobuttons.addButton(dialog.heatmap_button)
+        dialog.neural_data_vis_radiobuttons.addButton(dialog.trace_button)
+        # Add QRadiobuttons to the hbox
+        neural_data_vis_groupbox.layout().addWidget(dialog.heatmap_button)
+        neural_data_vis_groupbox.layout().addWidget(dialog.trace_button)
+        neural_activity_groupbox.layout().addWidget(neural_data_vis_groupbox)
+
+        vbox.addWidget(neural_activity_groupbox)
+
+        # Add a timestamps groupbox
+        timestamps_groupbox = QtWidgets.QGroupBox("Timestamps (Optional)")
+        timestamps_groupbox.setLayout(QtWidgets.QVBoxLayout())
+        timestamps_groupbox.setStyleSheet(
+            "QGroupBox {border: 1px solid gray; border-radius: 9px; margin-top: 0.5em;} "
+        )
+
+        # Add a groupbpx for neural timestamps selection
+        neural_data_timestamps_groupbox = QtWidgets.QGroupBox()
+        neural_data_timestamps_groupbox.setLayout(QtWidgets.QHBoxLayout())
+        neural_data_timestamps_groupbox.setStyleSheet(
+            "QGroupBox { border: 0px solid gray; }"
+        )
+        neural_timestamps_label = QtWidgets.QLabel("Neural timestamps:")
+        neural_data_timestamps_groupbox.layout().addWidget(neural_timestamps_label)
+        neural_data_timestamps_lineedit = QtWidgets.QLineEdit()
+        neural_data_timestamps_lineedit.setText("...")
+        neural_data_timestamps_lineedit.setReadOnly(True)
+        neural_data_timestamps_groupbox.layout().addWidget(
+            neural_data_timestamps_lineedit
+        )
+        neural_timestamps_browse_button = QtWidgets.QPushButton("Browse")
+        # neural_data_timestamps_button.clicked.connect(io.load_neural_timestamps(self))
+        neural_data_timestamps_groupbox.layout().addWidget(
+            neural_timestamps_browse_button
+        )
+        timestamps_groupbox.layout().addWidget(neural_data_timestamps_groupbox)
+
+        neural_time_groupbox = QtWidgets.QGroupBox()
+        neural_time_groupbox.setLayout(QtWidgets.QHBoxLayout())
+        neural_time_groupbox.setStyleSheet("QGroupBox { border: 0px solid gray; }")
+        neural_tstart_label = QtWidgets.QLabel("Start time:")
+        neural_time_groupbox.layout().addWidget(neural_tstart_label)
+        neural_tstart_qlineedit = QtWidgets.QLineEdit()
+        neural_tstart_qlineedit.setText("0")
+        neural_time_groupbox.layout().addWidget(neural_tstart_qlineedit)
+        neural_tend_label = QtWidgets.QLabel("End time:")
+        neural_time_groupbox.layout().addWidget(neural_tend_label)
+        neural_tend_qlineedit = QtWidgets.QLineEdit()
+        neural_tend_qlineedit.setText("0")
+        neural_time_groupbox.layout().addWidget(neural_tend_qlineedit)
+        timestamps_groupbox.layout().addWidget(neural_time_groupbox)
+
+        # Add a groupbpx for behav timestamps selection
+        behav_data_timestamps_groupbox = QtWidgets.QGroupBox()
+        behav_data_timestamps_groupbox.setLayout(QtWidgets.QHBoxLayout())
+        behav_data_timestamps_groupbox.setStyleSheet(
+            "QGroupBox { border: 0px solid gray; }"
+        )
+        behav_timestamps_label = QtWidgets.QLabel("Behavior timestamps:")
+        behav_data_timestamps_groupbox.layout().addWidget(behav_timestamps_label)
+        behav_data_timestamps_qlineedit = QtWidgets.QLineEdit()
+        behav_data_timestamps_qlineedit.setText("...")
+        behav_data_timestamps_qlineedit.setReadOnly(True)
+        behav_data_timestamps_groupbox.layout().addWidget(
+            behav_data_timestamps_qlineedit
+        )
+        behav_timestamps_browse_button = QtWidgets.QPushButton("Browse")
+        # behav_timestamps_browse_button.clicked.connect(io.load_behav_timestamps(self))
+        behav_data_timestamps_groupbox.layout().addWidget(
+            behav_timestamps_browse_button
+        )
+        timestamps_groupbox.layout().addWidget(behav_data_timestamps_groupbox)
+
+        behav_time_groupbox = QtWidgets.QGroupBox()
+        behav_time_groupbox.setLayout(QtWidgets.QHBoxLayout())
+        behav_time_groupbox.setStyleSheet("QGroupBox { border: 0px solid gray; }")
+        behav_tstart_label = QtWidgets.QLabel("Start time:")
+        behav_time_groupbox.layout().addWidget(behav_tstart_label)
+        behav_tstart_qlineedit = QtWidgets.QLineEdit()
+        behav_tstart_qlineedit.setText("0")
+        behav_time_groupbox.layout().addWidget(behav_tstart_qlineedit)
+        behav_tend_label = QtWidgets.QLabel("End time:")
+        behav_time_groupbox.layout().addWidget(behav_tend_label)
+        behav_tend_qlineedit = QtWidgets.QLineEdit()
+        behav_tend_qlineedit.setText("0")
+        behav_time_groupbox.layout().addWidget(behav_tend_qlineedit)
+        timestamps_groupbox.layout().addWidget(behav_time_groupbox)
+
+        vbox.addWidget(timestamps_groupbox)
+
+        # Add a hbox for cancel and done buttons
+        neural_data_buttons_hbox = QtWidgets.QHBoxLayout()
+        # Add a cancel button
+        neural_data_cancel_button = QtWidgets.QPushButton("Cancel")
+        neural_data_cancel_button.clicked.connect(dialog.reject)
+        neural_data_buttons_hbox.addWidget(neural_data_cancel_button)
+        # Add a done button
+        neural_data_done_button = QtWidgets.QPushButton("Done")
+        neural_data_done_button.clicked.connect(dialog.accept)
+        neural_data_buttons_hbox.addWidget(neural_data_done_button)
+        vbox.addLayout(neural_data_buttons_hbox)
+
+        dialog.exec_()
+        dialog.show()
+
     def plot_neural_data(self):
         # Clear plot 2
-        self.p2.clear()
+        self.svd_traces_plot.clear()
 
         # Note: neural data is of shape (neurons, time)
         # Create a heatmap for the neural data and add it to plot 1
-        vmin, vmax = -np.percentile(self.neural_data, 95), np.percentile(
-            self.neural_data, 95
-        )
+        vmin = -np.percentile(self.neural_data, 95)
+        vmax = np.percentile(self.neural_data, 95)
+
         self.neural_heatmap = pg.ImageItem(
             self.neural_data, autoDownsample=True, levels=(vmin, vmax)
         )
-        self.p2.addItem(self.neural_heatmap)
-        self.p2.setXRange(0, self.neural_data.shape[1])
+        self.svd_traces_plot.addItem(self.neural_heatmap)
+        self.svd_traces_plot.setXRange(0, self.neural_data.shape[1])
 
         colormap = cm.get_cmap("gray_r")
         colormap._init()
@@ -1651,18 +1840,18 @@ class MainW(QtWidgets.QMainWindow):
         self.neural_vtick = pg.InfiniteLine(
             pos=self.cframe, angle=90, pen=pg.mkPen(color=(255, 0, 0), width=2)
         )
-        self.p2.addItem(self.neural_vtick)
+        self.svd_traces_plot.addItem(self.neural_vtick)
 
         self.update_status_bar("Neural data loaded")
 
     def update_neural_data_vtick(self):
         if self.neural_data_loaded:
             # Add a vertical line to plot 1 to show the current frame
-            self.p2.removeItem(self.neural_vtick)
+            self.svd_traces_plot.removeItem(self.neural_vtick)
             self.neural_vtick = pg.InfiniteLine(
                 pos=self.cframe, angle=90, pen=pg.mkPen(color=(255, 0, 0), width=2)
             )
-            self.p2.addItem(self.neural_vtick)
+            self.svd_traces_plot.addItem(self.neural_vtick)
 
     ### ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Clustering and ROI ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     def vis_combobox_selection_changed(self):
