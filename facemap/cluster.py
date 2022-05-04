@@ -48,10 +48,10 @@ class Cluster:
 
     def create_clustering_widgets(self, parent):
         # Add options to change params for embedding using user input
-        parent.ClusteringLabel = QLabel("Clustering")
-        parent.ClusteringLabel.setStyleSheet("color: white;")
-        parent.ClusteringLabel.setAlignment(QtCore.Qt.AlignCenter)
-        parent.ClusteringLabel.setFont(QFont("Arial", 12, QFont.Bold))
+        parent.clustering_label = QLabel("Clustering")
+        parent.clustering_label.setStyleSheet("color: white;")
+        parent.clustering_label.setAlignment(QtCore.Qt.AlignCenter)
+        parent.clustering_label.setFont(QFont("Arial", 12, QFont.Bold))
 
         parent.min_dist_label = QLabel("min_dist:")
         parent.min_dist_label.setStyleSheet("color: gray;")
@@ -104,7 +104,7 @@ class Cluster:
         parent.num_clusters.setText(str(5))
 
         istretch = 12
-        parent.scene_grid_layout.addWidget(parent.ClusteringLabel, istretch, 0, 1, 2)
+        parent.scene_grid_layout.addWidget(parent.clustering_label, istretch, 0, 1, 2)
         parent.scene_grid_layout.addWidget(parent.min_dist_label, istretch + 1, 0, 1, 1)
         parent.scene_grid_layout.addWidget(parent.min_dist_value, istretch + 1, 1, 1, 1)
         parent.scene_grid_layout.addWidget(
@@ -235,7 +235,7 @@ class Cluster:
         parent.save_clustering_button.hide()
 
     def show_umap_param(self, parent):
-        parent.ClusteringLabel.show()
+        parent.clustering_label.show()
         parent.min_dist_label.show()
         parent.min_dist_value.show()
         parent.n_neighbors_label.show()
@@ -252,7 +252,7 @@ class Cluster:
         parent.zoom_out_button.show()
 
     def hide_umap_param(self, parent):
-        parent.ClusteringLabel.hide()
+        parent.clustering_label.hide()
         parent.min_dist_label.hide()
         parent.min_dist_value.hide()
         parent.n_neighbors_label.hide()

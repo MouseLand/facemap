@@ -28,10 +28,11 @@ from PyQt5.QtWidgets import (
 )
 from scipy.stats import skew, zscore
 
-from facemap import cluster, process, roi, utils
+from facemap import cluster, process, roi, utils, neural_activity
 from facemap.pose import pose_gui, refine_pose
 from facemap.pose import pose
 from . import guiparts, io, menus
+
 
 istr = ["pupil", "motSVD", "blink", "running", "movSVD"]
 
@@ -173,7 +174,7 @@ class MainW(QtWidgets.QMainWindow):
 
         # Plots
         self.keypoints_traces_plot = self.win.addPlot(
-            name="plot1", row=0, col=1, title="Keyoints traces"
+            name="keypoints_traces_plot", row=0, col=1, title="Keyoints traces"
         )
         self.keypoints_traces_plot.setMouseEnabled(x=True, y=False)
         self.keypoints_traces_plot.setMenuEnabled(False)
@@ -182,7 +183,7 @@ class MainW(QtWidgets.QMainWindow):
         self.keypoints_traces_plot.addItem(self.scatter1)
 
         self.svd_traces_plot = self.win.addPlot(
-            name="plot2", row=1, col=1, title="SVD traces"
+            name="svd_traces_plot", row=1, col=1, title="SVD traces"
         )
         self.svd_traces_plot.setMouseEnabled(x=True, y=False)
         self.svd_traces_plot.setMenuEnabled(False)
@@ -192,13 +193,13 @@ class MainW(QtWidgets.QMainWindow):
         self.svd_traces_plot.setXLink("plot1")
 
         # Add third plot
-        self.neural_heatmap = self.win.addPlot(
-            name="plot3", row=2, col=1, title="Neural activity heatmap"
+        self.neural_activity_plot = self.win.addPlot(
+            name="neural_activity_plot", row=2, col=1, title="Neural activity"
         )
-        self.neural_heatmap.setMouseEnabled(x=True, y=False)
-        self.neural_heatmap.setMenuEnabled(False)
-        self.neural_heatmap.hideAxis("left")
-        self.neural_heatmap.setXLink("plot1")
+        self.neural_activity_plot.setMouseEnabled(x=True, y=False)
+        self.neural_activity_plot.setMenuEnabled(False)
+        self.neural_activity_plot.hideAxis("left")
+        self.neural_activity_plot.setXLink("plot1")
 
         # Add fourth plot
         self.p4 = self.win.addPlot(name="plot4", row=3, col=1, title="Plot 4")
@@ -277,6 +278,9 @@ class MainW(QtWidgets.QMainWindow):
         self.progressBar.setMaximum(100)
         self.progressBar.hide()
         self.make_buttons()
+
+        # Create neural activity data object
+        self.neural_activity_data = neural_activity.NeuralActivity(parent=self)
 
     def make_buttons(self):
         # create frame slider
@@ -595,7 +599,7 @@ class MainW(QtWidgets.QMainWindow):
         self.neural_data_loaded = False
         # Clear plots
         self.keypoints_traces_plot.clear()
-        self.svd_traces_plot.clear()
+        self.neural_activity_plot.clear()
 
     def pupil_sigma_change(self):
         self.pupil_sigma = float(self.sigmaBox.text())
@@ -1333,7 +1337,7 @@ class MainW(QtWidgets.QMainWindow):
                 self.trace2_legend.clear()
                 self.trace2_legend.addItem(self.trace2_plot, name=data_name)
                 self.trace2_legend.setPos(self.trace2_plot.x(), self.trace2_plot.y())
-                self.trace2_legend.setParentItem(self.svd_traces_plot)
+                self.trace2_legend.setParentItem(self.neural_activity_plot)
                 self.trace2_legend.setVisible(True)
                 self.trace2_plot.setVisible(True)
                 self.update_status_bar("Trace 2 data updated")
@@ -1392,7 +1396,7 @@ class MainW(QtWidgets.QMainWindow):
 
     def plot_processed(self):
         self.keypoints_traces_plot.clear()
-        self.svd_traces_plot.clear()
+        self.neural_activity_plot.clear()
         if self.traces1 is None:
             self.traces1 = np.zeros((0, self.nframes))
         if self.traces2 is None:
@@ -1432,20 +1436,20 @@ class MainW(QtWidgets.QMainWindow):
                 (self.traces1, self.trace1_data_loaded[np.newaxis, :]), axis=0
             )
         if self.trace2_data_loaded is not None:
-            self.svd_traces_plot.addItem(self.trace2_plot)
+            self.neural_activity_plot.addItem(self.trace2_plot)
             self.traces2 = np.concatenate(
                 (self.traces2, self.trace2_data_loaded[np.newaxis, :]), axis=0
             )
         self.keypoints_traces_plot.setRange(
             xRange=(0, self.nframes), yRange=(-4, 4), padding=0.0
         )
-        self.svd_traces_plot.setRange(
+        self.neural_activity_plot.setRange(
             xRange=(0, self.nframes), yRange=(-4, 4), padding=0.0
         )
         self.keypoints_traces_plot.setLimits(xMin=0, xMax=self.nframes)
-        self.svd_traces_plot.setLimits(xMin=0, xMax=self.nframes)
+        self.neural_activity_plot.setLimits(xMin=0, xMax=self.nframes)
         self.keypoints_traces_plot.show()
-        self.svd_traces_plot.show()
+        self.neural_activity_plot.show()
         self.plot_scatter()
         self.jump_to_frame()
 
@@ -1463,20 +1467,20 @@ class MainW(QtWidgets.QMainWindow):
 
         if self.traces2 is not None and self.traces2.shape[0] > 0:
             ntr = self.traces2.shape[0]
-            self.svd_traces_plot.removeItem(self.scatter2)
+            self.neural_activity_plot.removeItem(self.scatter2)
             self.scatter2.setData(
                 self.cframe * np.ones((ntr,)),
                 self.traces2[:, self.cframe],
                 size=8,
                 brush=pg.mkBrush(255, 255, 255),
             )
-            self.svd_traces_plot.addItem(self.scatter2)
+            self.neural_activity_plot.addItem(self.scatter2)
 
     def plot_trace(self, wplot, proctype, wroi, color, keypoint_selected=None):
         if wplot == 1:
             wp = self.keypoints_traces_plot
         else:
-            wp = self.svd_traces_plot
+            wp = self.neural_activity_plot
         if proctype == 0 or proctype == 2:  # motsvd
             if proctype == 0:
                 ir = 0
@@ -1611,7 +1615,7 @@ class MainW(QtWidgets.QMainWindow):
                     pos = vb.mapSceneToView(event.scenePos())
                     posx = pos.x()
                     iplot = 1
-                elif x == self.svd_traces_plot:
+                elif x == self.neural_activity_plot:
                     vb = self.keypoints_traces_plot.vb
                     pos = vb.mapSceneToView(event.scenePos())
                     posx = pos.x()
@@ -1654,7 +1658,7 @@ class MainW(QtWidgets.QMainWindow):
         dialog.setLayout(vbox)
 
         # Create a grouppbox for neural activity and set a vertical layout
-        neural_activity_groupbox = QtWidgets.QGroupBox("Neural activity")
+        neural_activity_groupbox = QtWidgets.QGroupBox("Neural activity data")
         neural_activity_groupbox.setLayout(QtWidgets.QVBoxLayout())
         neural_activity_groupbox.setStyleSheet(
             "QGroupBox {border: 1px solid gray; border-radius: 9px; margin-top: 0.5em;} "
@@ -1667,15 +1671,15 @@ class MainW(QtWidgets.QMainWindow):
         neural_data_label = QtWidgets.QLabel("Neural data:")
         neural_file_groupbox.layout().addWidget(neural_data_label)
         # Add a QLineEdit to the groupbox
-        neural_data_lineedit = QtWidgets.QLineEdit()
-        neural_data_lineedit.setText("...")
-        neural_data_lineedit.setReadOnly(True)
-        neural_file_groupbox.layout().addWidget(neural_data_lineedit)
+        dialog.neural_data_lineedit = QtWidgets.QLineEdit()
+        dialog.neural_data_lineedit.setReadOnly(True)
+        neural_file_groupbox.layout().addWidget(dialog.neural_data_lineedit)
         # Add a QPushButton to the groupbox
-        neural_data_button = QtWidgets.QPushButton("Browse")
-        # neural_data_button.clicked.connect(io.load_neural_data_file(self))
+        neural_data_button = QtWidgets.QPushButton("Browse...")
+        neural_data_button.clicked.connect(
+            lambda clicked: self.set_neural_data_filepath(clicked, dialog)
+        )
         neural_file_groupbox.layout().addWidget(neural_data_button)
-        # vbox.addLayout(neural_file_hbox)
         neural_activity_groupbox.layout().addWidget(neural_file_groupbox)
 
         # Create a hbox for neural data type selection
@@ -1732,14 +1736,15 @@ class MainW(QtWidgets.QMainWindow):
         )
         neural_timestamps_label = QtWidgets.QLabel("Neural timestamps:")
         neural_data_timestamps_groupbox.layout().addWidget(neural_timestamps_label)
-        neural_data_timestamps_lineedit = QtWidgets.QLineEdit()
-        neural_data_timestamps_lineedit.setText("...")
-        neural_data_timestamps_lineedit.setReadOnly(True)
+        dialog.neural_data_timestamps_lineedit = QtWidgets.QLineEdit()
+        dialog.neural_data_timestamps_lineedit.setReadOnly(True)
         neural_data_timestamps_groupbox.layout().addWidget(
-            neural_data_timestamps_lineedit
+            dialog.neural_data_timestamps_lineedit
         )
-        neural_timestamps_browse_button = QtWidgets.QPushButton("Browse")
-        # neural_data_timestamps_button.clicked.connect(io.load_neural_timestamps(self))
+        neural_timestamps_browse_button = QtWidgets.QPushButton("Browse...")
+        neural_timestamps_browse_button.clicked.connect(
+            lambda clicked: self.set_neural_timestamps_filepath(clicked, dialog)
+        )
         neural_data_timestamps_groupbox.layout().addWidget(
             neural_timestamps_browse_button
         )
@@ -1750,14 +1755,12 @@ class MainW(QtWidgets.QMainWindow):
         neural_time_groupbox.setStyleSheet("QGroupBox { border: 0px solid gray; }")
         neural_tstart_label = QtWidgets.QLabel("Start time:")
         neural_time_groupbox.layout().addWidget(neural_tstart_label)
-        neural_tstart_qlineedit = QtWidgets.QLineEdit()
-        neural_tstart_qlineedit.setText("0")
-        neural_time_groupbox.layout().addWidget(neural_tstart_qlineedit)
+        dialog.neural_tstart_qlineedit = QtWidgets.QLineEdit()
+        neural_time_groupbox.layout().addWidget(dialog.neural_tstart_qlineedit)
         neural_tend_label = QtWidgets.QLabel("End time:")
         neural_time_groupbox.layout().addWidget(neural_tend_label)
-        neural_tend_qlineedit = QtWidgets.QLineEdit()
-        neural_tend_qlineedit.setText("0")
-        neural_time_groupbox.layout().addWidget(neural_tend_qlineedit)
+        dialog.neural_tend_qlineedit = QtWidgets.QLineEdit()
+        neural_time_groupbox.layout().addWidget(dialog.neural_tend_qlineedit)
         timestamps_groupbox.layout().addWidget(neural_time_groupbox)
 
         # Add a groupbpx for behav timestamps selection
@@ -1768,14 +1771,15 @@ class MainW(QtWidgets.QMainWindow):
         )
         behav_timestamps_label = QtWidgets.QLabel("Behavior timestamps:")
         behav_data_timestamps_groupbox.layout().addWidget(behav_timestamps_label)
-        behav_data_timestamps_qlineedit = QtWidgets.QLineEdit()
-        behav_data_timestamps_qlineedit.setText("...")
-        behav_data_timestamps_qlineedit.setReadOnly(True)
+        dialog.behav_data_timestamps_qlineedit = QtWidgets.QLineEdit()
+        dialog.behav_data_timestamps_qlineedit.setReadOnly(True)
         behav_data_timestamps_groupbox.layout().addWidget(
-            behav_data_timestamps_qlineedit
+            dialog.behav_data_timestamps_qlineedit
         )
-        behav_timestamps_browse_button = QtWidgets.QPushButton("Browse")
-        # behav_timestamps_browse_button.clicked.connect(io.load_behav_timestamps(self))
+        behav_timestamps_browse_button = QtWidgets.QPushButton("Browse...")
+        behav_timestamps_browse_button.clicked.connect(
+            lambda clicked: self.set_behav_timestamps_filepath(clicked, dialog)
+        )
         behav_data_timestamps_groupbox.layout().addWidget(
             behav_timestamps_browse_button
         )
@@ -1786,14 +1790,12 @@ class MainW(QtWidgets.QMainWindow):
         behav_time_groupbox.setStyleSheet("QGroupBox { border: 0px solid gray; }")
         behav_tstart_label = QtWidgets.QLabel("Start time:")
         behav_time_groupbox.layout().addWidget(behav_tstart_label)
-        behav_tstart_qlineedit = QtWidgets.QLineEdit()
-        behav_tstart_qlineedit.setText("0")
-        behav_time_groupbox.layout().addWidget(behav_tstart_qlineedit)
+        dialog.behav_tstart_qlineedit = QtWidgets.QLineEdit()
+        behav_time_groupbox.layout().addWidget(dialog.behav_tstart_qlineedit)
         behav_tend_label = QtWidgets.QLabel("End time:")
         behav_time_groupbox.layout().addWidget(behav_tend_label)
-        behav_tend_qlineedit = QtWidgets.QLineEdit()
-        behav_tend_qlineedit.setText("0")
-        behav_time_groupbox.layout().addWidget(behav_tend_qlineedit)
+        dialog.behav_tend_qlineedit = QtWidgets.QLineEdit()
+        behav_time_groupbox.layout().addWidget(dialog.behav_tend_qlineedit)
         timestamps_groupbox.layout().addWidget(behav_time_groupbox)
 
         vbox.addWidget(timestamps_groupbox)
@@ -1806,52 +1808,123 @@ class MainW(QtWidgets.QMainWindow):
         neural_data_buttons_hbox.addWidget(neural_data_cancel_button)
         # Add a done button
         neural_data_done_button = QtWidgets.QPushButton("Done")
-        neural_data_done_button.clicked.connect(dialog.accept)
+        neural_data_done_button.clicked.connect(
+            lambda clicked: self.set_neural_data(clicked, dialog)
+        )
         neural_data_buttons_hbox.addWidget(neural_data_done_button)
         vbox.addLayout(neural_data_buttons_hbox)
 
         dialog.exec_()
-        dialog.show()
+
+    def set_neural_data_filepath(self, clicked, dialog):
+        """
+        Set the neural data file
+        """
+        neural_data_file = io.load_npy_file(self)
+        dialog.neural_data_lineedit.setText(neural_data_file)
+
+    def set_neural_timestamps_filepath(self, clicked, dialog):
+        """
+        Set the neural timestamps file
+        """
+        neural_timestamps_file = io.load_npy_file(self)
+        dialog.neural_data_timestamps_lineedit.setText(neural_timestamps_file)
+
+    def set_behav_timestamps_filepath(self, clicked, dialog):
+        """
+        Set the behavioral data file
+        """
+        behav_data_file = io.load_npy_file(self)
+        dialog.behav_data_timestamps_qlineedit.setText(behav_data_file)
+
+    def set_neural_data(self, clicked, dialog):
+        """
+        Get user settings from the doalog box to set neural activity data
+        """
+        neural_data_filepath = dialog.neural_data_lineedit.text()
+        if dialog.calcium_radiobutton.isChecked():
+            neural_data_type = "calcium"
+        else:
+            neural_data_type = "ephys"
+        if dialog.heatmap_button.isChecked():
+            data_viz_method = "heatmap"
+        else:
+            data_viz_method = "lineplot"
+        neural_timestamps_filepath = dialog.neural_data_timestamps_lineedit.text()
+        neural_tstart = dialog.neural_tstart_qlineedit.text()
+        neural_tend = dialog.neural_tend_qlineedit.text()
+        behav_data_timestamps_filepath = dialog.behav_data_timestamps_qlineedit.text()
+        behav_tstart = dialog.behav_tstart_qlineedit.text()
+        behav_tend = dialog.behav_tend_qlineedit.text()
+        print("neural_data_filepath:", neural_data_filepath)
+        print("neural_datatype:", neural_data_type)
+        print("data_viz_type:", data_viz_method)
+        print("neural_timestamps_filepath:", neural_timestamps_filepath)
+        print("neural_tstart:", neural_tstart)
+        print("neural_tend:", neural_tend)
+        print("behav_data_timestamps_filepath:", behav_data_timestamps_filepath)
+        print("behav_tstart:", behav_tstart)
+        print("behav_tend:", behav_tend)
+        print("\n")
+        self.neural_activity_data.set_data(
+            neural_data_filepath,
+            neural_data_type,
+            data_viz_method,
+            neural_timestamps_filepath,
+            neural_tstart,
+            neural_tend,
+            behav_data_timestamps_filepath,
+            behav_tstart,
+            behav_tend,
+        )
+        dialog.accept()
 
     def plot_neural_data(self):
-        # Clear plot 2
-        self.svd_traces_plot.clear()
+        print("neural activity data:", self.neural_activity_data.data.shape)
+        print("num neurons:", self.neural_activity_data.num_neurons)
+        print("tcam:", self.neural_activity_data.behavior_timestamps)
+        print("tneural:", self.neural_activity_data.neural_timestamps)
+
+        # Clear plot
+        self.neural_activity_plot.clear()
 
         # Note: neural data is of shape (neurons, time)
         # Create a heatmap for the neural data and add it to plot 1
-        vmin = -np.percentile(self.neural_data, 95)
-        vmax = np.percentile(self.neural_data, 95)
+        vmin = -np.percentile(self.neural_activity_data.data, 95)
+        vmax = np.percentile(self.neural_activity_data.data, 95)
 
-        self.neural_heatmap = pg.ImageItem(
-            self.neural_data, autoDownsample=True, levels=(vmin, vmax)
-        )
-        self.svd_traces_plot.addItem(self.neural_heatmap)
-        self.svd_traces_plot.setXRange(0, self.neural_data.shape[1])
+        if self.neural_activity_data.data_viz_method == "heatmap":
+            self.neural_heatmap = pg.ImageItem(
+                self.neural_activity_data.data, autoDownsample=True, levels=(vmin, vmax)
+            )
+            self.neural_activity_plot.addItem(self.neural_heatmap)
+            colormap = cm.get_cmap("gray_r")
+            colormap._init()
+            lut = (colormap._lut * 255).view(
+                np.ndarray
+            )  # Convert matplotlib colormap from 0-1 to 0 -255 for Qt
+            lut = lut[0:-3, :]
+            # apply the colormap
+            self.neural_heatmap.setLookupTable(lut)
+        else:
+            self.neural_lineplot = pg.PlotCurveItem(self.neural_activity_data.data)
+            self.neural_activity_plot.addItem(self.neural_lineplot)
 
-        colormap = cm.get_cmap("gray_r")
-        colormap._init()
-        lut = (colormap._lut * 255).view(
-            np.ndarray
-        )  # Convert matplotlib colormap from 0-1 to 0 -255 for Qt
-        lut = lut[0:-3, :]
-        # apply the colormap
-        self.neural_heatmap.setLookupTable(lut)
-
+        # Add a vertical line to the plot to indicate the time of the current trial
         self.neural_vtick = pg.InfiniteLine(
             pos=self.cframe, angle=90, pen=pg.mkPen(color=(255, 0, 0), width=2)
         )
-        self.svd_traces_plot.addItem(self.neural_vtick)
+        self.neural_activity_plot.addItem(self.neural_vtick)
 
         self.update_status_bar("Neural data loaded")
 
     def update_neural_data_vtick(self):
-        if self.neural_data_loaded:
-            # Add a vertical line to plot 1 to show the current frame
-            self.svd_traces_plot.removeItem(self.neural_vtick)
-            self.neural_vtick = pg.InfiniteLine(
-                pos=self.cframe, angle=90, pen=pg.mkPen(color=(255, 0, 0), width=2)
-            )
-            self.svd_traces_plot.addItem(self.neural_vtick)
+        # Add a vertical line to plot 1 to show the current frame
+        self.neural_activity_plot.removeItem(self.neural_vtick)
+        self.neural_vtick = pg.InfiniteLine(
+            pos=self.cframe, angle=90, pen=pg.mkPen(color=(255, 0, 0), width=2)
+        )
+        self.neural_activity_plot.addItem(self.neural_vtick)
 
     ### ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Clustering and ROI ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     def vis_combobox_selection_changed(self):
