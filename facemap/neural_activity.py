@@ -3,7 +3,7 @@ import numpy as np
 
 class NeuralActivity:
     """
-    Neural activity class for neural displaying neural data as a heatmap in the GUI.
+    Neural activity class for storing and visualizing neural activity data.
     """
 
     def __init__(
@@ -23,24 +23,17 @@ class NeuralActivity:
         Initialize the neural activity class.
         """
         self.parent = parent
-        self.data = data
-        self.data_type = data_type
-        self.data_viz_method = data_viz_method
-        if self.data is not None:
-            self.num_neurons = self.data.shape[0]
-        self.neural_timestamps = neural_timestamps
-        self.neural_tstart = neural_tstart
-        self.neural_tstop = neural_tstop
-        self.behavior_timestamps = behavior_timestamps
-        self.behavior_tstart = behavior_tstart
-        self.behavior_tstop = behavior_tstop
-
-    def get_data(self):
-        """
-        Return the data.
-        """
-
-        return self.data
+        self.set_data(
+            data,
+            data_type,
+            data_viz_method,
+            neural_timestamps,
+            neural_tstart,
+            neural_tstop,
+            behavior_timestamps,
+            behavior_tstart,
+            behavior_tstop,
+        )
 
     def set_data(
         self,
@@ -57,22 +50,40 @@ class NeuralActivity:
         """
         Set the data.
         """
-
-        self.load_neural_data(neural_data_filepath)
+        # Check if neural_data_filepath is not None and is string
+        if isinstance(neural_data_filepath, str) and neural_data_filepath != "":
+            self.load_neural_data(neural_data_filepath)
+        else:
+            self.data = neural_data_filepath  # filepath not passed so use data passed
         self.data_type = neural_data_type
         self.data_viz_method = data_viz_type
-        print("neural timestamp file: ", neural_timestamps_filepath)
-        # CHeck if string is not empty
-        if neural_timestamps_filepath != "":
+        # Check if string is not empty
+        if (
+            isinstance(neural_timestamps_filepath, str)
+            and neural_timestamps_filepath != ""
+        ):
             self.load_neural_timestamps(neural_timestamps_filepath)
+        else:
+            self.neural_timestamps = (
+                neural_timestamps_filepath  # filepath not passed so use data passed
+            )
         self.neural_tstart = neural_tstart
         self.neural_tstop = neural_tend
-        if behav_data_timestamps_filepath != "":
+        if (
+            isinstance(behav_data_timestamps_filepath, str)
+            and behav_data_timestamps_filepath != ""
+        ):
             self.load_behavior_timestamps(behav_data_timestamps_filepath)
+        else:
+            self.behavior_timestamps = (
+                behav_data_timestamps_filepath  # filepath not passed so use data passed
+            )
         self.behavior_tstart = behav_tstart
         self.behavior_tstop = behav_tend
-        self.num_neurons = self.data.shape[0]
-        self.parent.plot_neural_data()
+        if self.data is not None:
+            self.num_neurons = self.data.shape[0]
+        if self.parent.neural_data_loaded:
+            self.parent.plot_neural_data()
 
     def load_neural_data(self, file_name):
         """
@@ -80,6 +91,7 @@ class NeuralActivity:
         """
         if file_name.endswith(".npy") or file_name.endswith(".npz"):
             self.data = np.load(file_name)
+            self.parent.neural_data_loaded = True
         else:
             raise ValueError("File type not recognized.")
         # Check if timestamps file is not loaded then create timestamp array

@@ -101,7 +101,7 @@ def rrr_prediction(X, Y, rank=None, lam=0, itrain=None, itest=None):
         Y_pred_test = X[itest] @ B[:, : r + 1] @ A[:, : r + 1].T
         Y_test_var = (Y[itest] ** 2).mean(axis=0)
         corrf[r] = (Y[itest] * Y_pred_test).mean(axis=0) / (
-            Y_test_var ** 0.5 * Y_pred_test.std(axis=0)
+            Y_test_var**0.5 * Y_pred_test.std(axis=0)
         )
         residual = ((Y[itest] - Y_pred_test) ** 2).mean(axis=0)
         varexpf[r] = 1 - residual / Y_test_var
@@ -129,7 +129,7 @@ def rrr_ridge_prediction(X, Y, B, lam=0):
         Y_pred_test = X[itest] @ B[:, : r + 1] @ A
         Y_test_var = (Y[itest] ** 2).mean(axis=0)
         corrf[r] = (Y[itest] * Y_pred_test).mean(axis=0) / (
-            Y_test_var ** 0.5 * Y_pred_test.std(axis=0)
+            Y_test_var**0.5 * Y_pred_test.std(axis=0)
         )
         residual = ((Y[itest] - Y_pred_test) ** 2).mean(axis=0)
         varexpf[r] = 1 - residual / Y_test_var
@@ -424,7 +424,7 @@ def video_placement(Ly, Lx):
         gridy = 1
         gridx = 2
     else:
-        gridy = int(np.round(Ly.size ** 0.5 * 0.75))
+        gridy = int(np.round(Ly.size**0.5 * 0.75))
         gridx = int(np.ceil(Ly.size / gridy))
     LY = 0
     LX = 0

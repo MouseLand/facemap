@@ -28,11 +28,11 @@ from PyQt5.QtWidgets import (
 )
 from scipy.stats import skew, zscore
 
-from facemap import cluster, process, roi, utils, neural_activity
+from facemap import cluster, neural_activity, process, roi, utils
 from facemap.pose import pose_gui, refine_pose
 from facemap.pose import pose
-from . import guiparts, io, menus
 
+from . import guiparts, io, menus
 
 istr = ["pupil", "motSVD", "blink", "running", "movSVD"]
 
@@ -212,8 +212,6 @@ class MainW(QtWidgets.QMainWindow):
         self.cframe = 0
         self.traces1 = None
         self.traces2 = None
-        self.neural_data = None
-        self.neural_data_file = None
         self.neural_data_loaded = False
 
         ## Pose plot
@@ -594,8 +592,6 @@ class MainW(QtWidgets.QMainWindow):
         self.bbox = []
         self.bbox_set = False
         # Update neural data variables
-        self.neural_data = None
-        self.neural_data_file = None
         self.neural_data_loaded = False
         # Clear plots
         self.keypoints_traces_plot.clear()
@@ -783,7 +779,8 @@ class MainW(QtWidgets.QMainWindow):
         self.pimg.setLevels([0, self.sat[0]])
         self.setFrame.setText(str(self.cframe))
         self.update_pose()
-        self.update_neural_data_vtick()
+        if self.neural_data_loaded:
+            self.update_neural_data_vtick()
         # self.frameNumber.setText(str(self.cframe))
         self.totalFrameNumber.setText("/ " + str(self.nframes) + " frames")
         self.win.show()
@@ -1885,10 +1882,6 @@ class MainW(QtWidgets.QMainWindow):
         dialog.accept()
 
     def plot_neural_data(self):
-        print("neural activity data:", self.neural_activity_data.data.shape)
-        print("num neurons:", self.neural_activity_data.num_neurons)
-        print("tcam:", self.neural_activity_data.behavior_timestamps)
-        print("tneural:", self.neural_activity_data.neural_timestamps)
 
         # Clear plot
         self.neural_activity_plot.clear()
