@@ -1,5 +1,7 @@
 import numpy as np
 
+from facemap import utils
+
 
 class NeuralActivity:
     """
@@ -50,40 +52,74 @@ class NeuralActivity:
         """
         Set the data.
         """
-        # Check if neural_data_filepath is not None and is string
+        self.set_neural_data(neural_data_filepath, neural_data_type, data_viz_type)
+        self.set_neural_timestamps(
+            neural_timestamps_filepath, neural_tstart, neural_tend
+        )
+        self.set_behavior_timestamps(
+            behav_data_timestamps_filepath, behav_tstart, behav_tend
+        )
+
+        if self.parent.neural_data_loaded:
+            self.parent.plot_neural_data()
+
+        if self.behavior_timestamps is not None and self.neural_timestamps is not None:
+            self.behavior_timestamps_resampled = self.resample_behavior_to_neural()
+            self.neural_timestamps_resampled = self.resample_neural_to_behavior()
+            print("behav_resampled shape: ", self.behavior_timestamps_resampled.shape)
+            print("behav resampled: ", self.behavior_timestamps_resampled)
+            print("neural_resampled shape: ", self.neural_timestamps_resampled.shape)
+            print("neural resampled: ", self.neural_timestamps_resampled)
+
+    def set_neural_data(self, neural_data_filepath, neural_data_type, data_viz_type):
+        """
+        Set the neural data.
+        """
         if isinstance(neural_data_filepath, str) and neural_data_filepath != "":
             self.load_neural_data(neural_data_filepath)
-        else:
+        elif isinstance(neural_data_filepath, np.ndarray):
             self.data = neural_data_filepath  # filepath not passed so use data passed
+        else:
+            self.data = None
         self.data_type = neural_data_type
         self.data_viz_method = data_viz_type
-        # Check if string is not empty
+        if self.data is not None:
+            self.num_neurons = self.data.shape[0]
+
+    def set_neural_timestamps(
+        self, neural_timestamps_filepath, neural_tstart, neural_tend
+    ):
+        """
+        Set the neural timestamps.
+        """
         if (
             isinstance(neural_timestamps_filepath, str)
             and neural_timestamps_filepath != ""
         ):
             self.load_neural_timestamps(neural_timestamps_filepath)
-        else:
+        elif isinstance(neural_timestamps_filepath, np.ndarray):
             self.neural_timestamps = (
                 neural_timestamps_filepath  # filepath not passed so use data passed
             )
+        else:
+            self.neural_timestamps = None
         self.neural_tstart = neural_tstart
         self.neural_tstop = neural_tend
-        if (
-            isinstance(behav_data_timestamps_filepath, str)
-            and behav_data_timestamps_filepath != ""
-        ):
-            self.load_behavior_timestamps(behav_data_timestamps_filepath)
-        else:
+
+    def set_behavior_timestamps(self, behavior_timestamps, behav_tstart, behav_tend):
+        """
+        Set the behavior timestamps.
+        """
+        if isinstance(behavior_timestamps, str) and behavior_timestamps != "":
+            self.load_behavior_timestamps(behavior_timestamps)
+        elif isinstance(behavior_timestamps, np.ndarray):
             self.behavior_timestamps = (
-                behav_data_timestamps_filepath  # filepath not passed so use data passed
+                behavior_timestamps  # filepath not passed so use data passed
             )
+        else:
+            self.behavior_timestamps = None
         self.behavior_tstart = behav_tstart
         self.behavior_tstop = behav_tend
-        if self.data is not None:
-            self.num_neurons = self.data.shape[0]
-        if self.parent.neural_data_loaded:
-            self.parent.plot_neural_data()
 
     def load_neural_data(self, file_name):
         """
@@ -113,3 +149,23 @@ class NeuralActivity:
             self.behavior_timestamps = np.load(file_name)
         else:
             raise ValueError("File type not recognized.")
+
+    def resample_behavior_to_neural(self):
+        """
+        Resample the behavior timestamps to the neural timestamps.
+        Returns
+        -------
+        resampled_behavior_timestamps : 1D-array
+            The resampled behavior timestamps that can be used to get indices of frames in behavioral data that correspond to neural data timestamps.
+        """
+        return utils.resample_timestamps(
+            self.behavior_timestamps, self.neural_timestamps
+        )
+
+    def resample_neural_to_behavior(self):
+        """
+        Resample the neural timestamps to the behavior timestamps.
+        """
+        return utils.resample_timestamps(
+            self.neural_timestamps, self.behavior_timestamps
+        )

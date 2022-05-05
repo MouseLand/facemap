@@ -219,13 +219,79 @@ def reduced_rank_regression(X, Y, rank=None, lam=0):
 
 
 def resample_frames(data, torig, tout):
-    """resample data at times torig at times tout"""
-    """ data is components x time """
+    """
+    Resample data at times torig at times tout.
+    data is components x time. The data is filtered using a gaussian filter before resampling.
+    Parameters
+    ----------
+    data : ND-array
+        Data to resample
+    torig : 1D-array
+        Original times
+    tout : 1D-array
+        Times to resample to
+    """
     fs = torig.size / tout.size  # relative sampling rate
     data = gaussian_filter1d(data, np.ceil(fs / 4), axis=1)
     f = interp1d(torig, data, kind="linear", axis=-1, fill_value="extrapolate")
     dout = f(tout)
     return dout
+
+
+def resample_data(data, data_timestamps, target_timestamps):
+    """
+    Resample data to a new time base.
+    Parameters
+    ----------
+    data : ND-array
+        Data to be resampled.
+    data_timestamps : 1D-array
+        Timestamps of the data.
+    target_timestamps : 1D-array
+        Target timestamps for resampling the data.
+    Returns
+    -------
+    data_resampled : ND-array
+        Resampled data.
+    """
+    # Estimate the interpolation function for the data
+    f = interp1d(
+        data_timestamps.squeeze(),
+        data,
+        kind="linear",
+        axis=-1,
+        fill_value="extrapolate",
+    )
+    # Resample the data
+    resampled_data = f(target_timestamps)
+    return resampled_data.squeeze()
+
+
+def resample_timestamps(init_timestamps, target_timestamps):
+    """
+    Resample timestamps to a new time base.
+    Parameters
+    ----------
+    init_timestamps : 1D-array
+        Timestamps of the data.
+    target_timestamps : 1D-array
+        Target timestamps for resampling the data.
+    Returns
+    -------
+    resampled_timestamps : 1D-array
+        Resampled timestamps.
+    """
+    # Estimate the interpolation function for the data
+    f = interp1d(
+        init_timestamps.squeeze(),
+        np.arange(init_timestamps.size),
+        kind="linear",
+        axis=-1,
+        fill_value="extrapolate",
+    )
+    # Resample the data
+    resampled_timestamps = f(target_timestamps)
+    return resampled_timestamps.squeeze()
 
 
 def get_frames(imall, containers, cframes, cumframes):

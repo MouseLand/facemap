@@ -174,7 +174,7 @@ class MainW(QtWidgets.QMainWindow):
 
         # Plots
         self.keypoints_traces_plot = self.win.addPlot(
-            name="keypoints_traces_plot", row=0, col=1, title="Keyoints traces"
+            name="keypoints_traces_plot", row=0, col=1, title="Keypoints traces"
         )
         self.keypoints_traces_plot.setMouseEnabled(x=True, y=False)
         self.keypoints_traces_plot.setMenuEnabled(False)
@@ -195,6 +195,9 @@ class MainW(QtWidgets.QMainWindow):
         # Add third plot
         self.neural_activity_plot = self.win.addPlot(
             name="neural_activity_plot", row=2, col=1, title="Neural activity"
+        )
+        self.neural_activity_plot.scene().sigMouseClicked.connect(
+            self.on_click_neural_activity_plot
         )
         self.neural_activity_plot.setMouseEnabled(x=True, y=False)
         self.neural_activity_plot.setMenuEnabled(False)
@@ -1910,19 +1913,27 @@ class MainW(QtWidgets.QMainWindow):
 
         # Add a vertical line to the plot to indicate the time of the current trial
         self.neural_vtick = pg.InfiniteLine(
-            pos=self.cframe, angle=90, pen=pg.mkPen(color=(255, 0, 0), width=2)
+            pos=self.cframe,
+            angle=90,
+            pen=pg.mkPen(color=(255, 0, 0), width=2, movable=True),
         )
         self.neural_activity_plot.addItem(self.neural_vtick)
+        self.neural_activity_plot.setXRange(0, self.neural_activity_data.data.shape[1])
 
         self.update_status_bar("Neural data loaded")
 
-    def update_neural_data_vtick(self):
-        # Add a vertical line to plot 1 to show the current frame
-        self.neural_activity_plot.removeItem(self.neural_vtick)
-        self.neural_vtick = pg.InfiniteLine(
-            pos=self.cframe, angle=90, pen=pg.mkPen(color=(255, 0, 0), width=2)
-        )
-        self.neural_activity_plot.addItem(self.neural_vtick)
+    def on_click_neural_activity_plot(self, event):
+        mousePoint = self.neural_activity_plot.vb.mapSceneToView(event._scenePos)
+        self.update_neural_data_vtick(mousePoint.x())
+
+    def update_neural_data_vtick(self, x_pos=None):
+        if x_pos is not None:
+            self.neural_vtick.setPos(x_pos)
+            frame = int(x_pos)
+        else:
+            self.neural_vtick.setPos(self.cframe)
+            frame = self.cframe
+        self.setFrame.setText(str(frame))
 
     ### ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Clustering and ROI ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     def vis_combobox_selection_changed(self):
