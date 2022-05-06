@@ -101,7 +101,7 @@ def rrr_prediction(X, Y, rank=None, lam=0, itrain=None, itest=None):
         Y_pred_test = X[itest] @ B[:, : r + 1] @ A[:, : r + 1].T
         Y_test_var = (Y[itest] ** 2).mean(axis=0)
         corrf[r] = (Y[itest] * Y_pred_test).mean(axis=0) / (
-            Y_test_var**0.5 * Y_pred_test.std(axis=0)
+            Y_test_var ** 0.5 * Y_pred_test.std(axis=0)
         )
         residual = ((Y[itest] - Y_pred_test) ** 2).mean(axis=0)
         varexpf[r] = 1 - residual / Y_test_var
@@ -129,7 +129,7 @@ def rrr_ridge_prediction(X, Y, B, lam=0):
         Y_pred_test = X[itest] @ B[:, : r + 1] @ A
         Y_test_var = (Y[itest] ** 2).mean(axis=0)
         corrf[r] = (Y[itest] * Y_pred_test).mean(axis=0) / (
-            Y_test_var**0.5 * Y_pred_test.std(axis=0)
+            Y_test_var ** 0.5 * Y_pred_test.std(axis=0)
         )
         residual = ((Y[itest] - Y_pred_test) ** 2).mean(axis=0)
         varexpf[r] = 1 - residual / Y_test_var
@@ -218,7 +218,7 @@ def reduced_rank_regression(X, Y, rank=None, lam=0):
     return A, B
 
 
-def resample_frames(data, torig, tout):
+def resample_data(data, torig, tout):
     """
     Resample data at times torig at times tout.
     data is components x time. The data is filtered using a gaussian filter before resampling.
@@ -238,33 +238,18 @@ def resample_frames(data, torig, tout):
     return dout
 
 
-def resample_data(data, data_timestamps, target_timestamps):
+def resample_frames(frames, target_timestamps):
     """
-    Resample data to a new time base.
+    Resample frames to target_timestamps.
     Parameters
     ----------
-    data : ND-array
-        Data to be resampled.
-    data_timestamps : 1D-array
-        Timestamps of the data.
+    frames : ND-array
+        Frames to resample
     target_timestamps : 1D-array
-        Target timestamps for resampling the data.
-    Returns
-    -------
-    data_resampled : ND-array
-        Resampled data.
+        Timestamps to resample to
     """
-    # Estimate the interpolation function for the data
-    f = interp1d(
-        data_timestamps.squeeze(),
-        data,
-        kind="linear",
-        axis=-1,
-        fill_value="extrapolate",
-    )
-    # Resample the data
-    resampled_data = f(target_timestamps)
-    return resampled_data.squeeze()
+    frames_resampled = frames[:, target_timestamps, ...]
+    return frames_resampled
 
 
 def resample_timestamps(init_timestamps, target_timestamps):
@@ -291,7 +276,7 @@ def resample_timestamps(init_timestamps, target_timestamps):
     )
     # Resample the data
     resampled_timestamps = f(target_timestamps)
-    return resampled_timestamps.squeeze()
+    return resampled_timestamps.squeeze().astype(int)
 
 
 def get_frames(imall, containers, cframes, cumframes):
@@ -490,7 +475,7 @@ def video_placement(Ly, Lx):
         gridy = 1
         gridx = 2
     else:
-        gridy = int(np.round(Ly.size**0.5 * 0.75))
+        gridy = int(np.round(Ly.size ** 0.5 * 0.75))
         gridx = int(np.ceil(Ly.size / gridy))
     LY = 0
     LX = 0

@@ -203,6 +203,7 @@ class MainW(QtWidgets.QMainWindow):
         self.neural_activity_plot.setMenuEnabled(False)
         self.neural_activity_plot.hideAxis("left")
         self.neural_activity_plot.setXLink("keypoints_traces_plot")
+        self.neural_activity_plot.disableAutoRange()
 
         # Add fourth plot
         self.p4 = self.win.addPlot(name="plot4", row=3, col=1, title="Plot 4")
@@ -281,7 +282,8 @@ class MainW(QtWidgets.QMainWindow):
         self.make_buttons()
 
         # Create neural activity data object
-        self.neural_activity_data = neural_activity.NeuralActivity(parent=self)
+        self.neural_activity = neural_activity.NeuralActivity(parent=self)
+        self.neural_predictions = neural_activity.NeuralActivity(parent=self)
 
     def make_buttons(self):
         # create frame slider
@@ -306,8 +308,8 @@ class MainW(QtWidgets.QMainWindow):
         self.setFrame.setMaxLength(10)
         self.setFrame.setFixedWidth(50)
         self.setFrame.textChanged[str].connect(self.set_frame_changed)
-        self.totalFrameNumber = QLabel("0")  #########
-        self.totalFrameNumber.setStyleSheet("color: white;")  #########
+        self.total_frames_label = QLabel("0")  #########
+        self.total_frames_label.setStyleSheet("color: white;")  #########
         self.frameSlider = QSlider(QtCore.Qt.Horizontal)
         self.frameSlider.setTickInterval(5)
         self.frameSlider.setTracking(False)
@@ -485,7 +487,7 @@ class MainW(QtWidgets.QMainWindow):
         self.scene_grid_layout.addWidget(QLabel(""), istretch, 0, 1, 3)
         self.scene_grid_layout.setRowStretch(istretch, 1)
         self.scene_grid_layout.addWidget(self.setFrame, istretch + 7, 0, 1, 1)
-        self.scene_grid_layout.addWidget(self.totalFrameNumber, istretch + 7, 1, 1, 1)
+        self.scene_grid_layout.addWidget(self.total_frames_label, istretch + 7, 1, 1, 1)
         self.scene_grid_layout.addWidget(self.frameSlider, istretch + 10, 2, 1, 15)
 
         # Plot 1 and 2 features
@@ -678,7 +680,7 @@ class MainW(QtWidgets.QMainWindow):
             ]
             if len(progressBar_value) > 0:
                 self.progressBar.setValue(progressBar_value[0])
-                total_frames = self.totalFrameNumber.text().split()[1]
+                total_frames = self.total_frames_label.text().split()[1]
                 frames_processed = np.floor(
                     (progressBar_value[0] / 100) * float(total_frames)
                 )
@@ -718,7 +720,6 @@ class MainW(QtWidgets.QMainWindow):
     def go_to_frame(self):
         self.cframe = int(self.frameSlider.value())
         self.setFrame.setText(str(self.cframe))
-        # self.jump_to_frame()
 
     def fitToWindow(self):
         self.movieLabel.setScaledContents(self.fitCheckBox.isChecked())
@@ -748,6 +749,13 @@ class MainW(QtWidgets.QMainWindow):
     def next_frame(self):
         if not self.online_mode:
             # loop after video finishes
+            """
+            if self.neural_data_loaded:
+                idx = bisect_left(self.neural_activity_data.behavior_timestamps_resampled, self.cframe)
+                self.cframe = self.neural_activity_data.behavior_timestamps_resampled[idx + 1]
+            else:
+                self.cframe += 1
+            """
             self.cframe += 1
             if self.cframe > self.nframes - 1:
                 self.cframe = 0
@@ -785,7 +793,7 @@ class MainW(QtWidgets.QMainWindow):
         if self.neural_data_loaded:
             self.update_neural_data_vtick()
         # self.frameNumber.setText(str(self.cframe))
-        self.totalFrameNumber.setText("/ " + str(self.nframes) + " frames")
+        self.total_frames_label.setText("/ " + str(self.nframes) + " frames")
         self.win.show()
         self.show()
 
@@ -1208,9 +1216,9 @@ class MainW(QtWidgets.QMainWindow):
             # If the user presses Cancel, the trace is not added
             dialog = QtWidgets.QDialog()
             dialog.setWindowTitle("Set data type")
-            dialog.setBaseSize(
-                np.floor(self.sizeObject.width() * 0.5).astype(int),
-                np.floor(self.sizeObject.height() * 0.3).astype(int),
+            dialog.setMinimumSize(
+                np.floor(self.sizeObject.width() * 0.25).astype(int),
+                np.floor(self.sizeObject.height() * 0.2).astype(int),
             )
             dialog.verticalLayout = QtWidgets.QVBoxLayout(dialog)
             dialog.verticalLayout.setContentsMargins(10, 10, 10, 10)
@@ -1440,7 +1448,6 @@ class MainW(QtWidgets.QMainWindow):
             self.keypoints_traces_plot.setRange(
                 xRange=(0, self.nframes), yRange=(-4, 4), padding=0.0
             )
-            self.keypoints_traces_plot.setLimits(xMin=0, xMax=self.nframes)
             self.keypoints_traces_plot.show()
         if self.trace2_data_loaded is not None:
             self.svd_traces_plot.addItem(self.trace2_plot)
@@ -1450,8 +1457,9 @@ class MainW(QtWidgets.QMainWindow):
             self.svd_traces_plot.setRange(
                 xRange=(0, self.nframes), yRange=(-4, 4), padding=0.0
             )
-            self.svd_traces_plot.setLimits(xMin=0, xMax=self.nframes)
             self.svd_traces_plot.show()
+        self.keypoints_traces_plot.setLimits(xMin=0, xMax=self.nframes)
+        self.svd_traces_plot.setLimits(xMin=0, xMax=self.nframes)
         self.plot_scatter()
         self.jump_to_frame()
 
@@ -1601,8 +1609,9 @@ class MainW(QtWidgets.QMainWindow):
                 ),
             )
             lg.setPos(wp.x(), wp.y())
-            wp.setRange(xRange=(0, self.nframes))
+            wp.setRange(xRange=(0, x_trace.shape[1]))
             tr = None
+        wp.setLimits(xMin=0, xMax=self.nframes)
         return tr
 
     def plot_clicked(self, event):
@@ -1650,13 +1659,18 @@ class MainW(QtWidgets.QMainWindow):
     ## ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Neural data plot ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ ##
 
     # Open a QDialog to select the neural data to plot
-    def load_neural_data(self):
+    def load_neural_data(self, prediction_mode=False):
         dialog = QtWidgets.QDialog()
         dialog.setWindowTitle("Neural activity")
         dialog.setContentsMargins(10, 10, 10, 10)
+        dialog.prediction_mode = prediction_mode
         # Set size of the dialog
-        dialog.setFixedWidth(np.floor(self.sizeObject.width() / 3).astype(int))
-        dialog.setFixedHeight(np.floor(self.sizeObject.height() / 2).astype(int))
+        if dialog.prediction_mode:
+            dialog.setFixedWidth(np.floor(self.sizeObject.width() / 3).astype(int))
+            dialog.setFixedHeight(np.floor(self.sizeObject.height() / 3).astype(int))
+        else:
+            dialog.setFixedWidth(np.floor(self.sizeObject.width() / 3).astype(int))
+            dialog.setFixedHeight(np.floor(self.sizeObject.height() / 2).astype(int))
 
         # Create a vertical layout for the dialog
         vbox = QtWidgets.QVBoxLayout()
@@ -1688,12 +1702,12 @@ class MainW(QtWidgets.QMainWindow):
         neural_activity_groupbox.layout().addWidget(neural_file_groupbox)
 
         # Create a hbox for neural data type selection
-        neural_data_type_groupbox = QtWidgets.QGroupBox()
-        neural_data_type_groupbox.setLayout(QtWidgets.QHBoxLayout())
-        neural_data_type_groupbox.setStyleSheet("QGroupBox { border: 0px solid gray; }")
+        neural_datatype_groupbox = QtWidgets.QGroupBox()
+        neural_datatype_groupbox.setLayout(QtWidgets.QHBoxLayout())
+        neural_datatype_groupbox.setStyleSheet("QGroupBox { border: 0px solid gray; }")
         # Add a label to the hbox
         neural_data_type_label = QtWidgets.QLabel("Data type:")
-        neural_data_type_groupbox.layout().addWidget(neural_data_type_label)
+        neural_datatype_groupbox.layout().addWidget(neural_data_type_label)
         dialog.neural_data_type_radiobuttons = QtWidgets.QButtonGroup()
         dialog.neural_data_type_radiobuttons.setExclusive(True)
         dialog.calcium_radiobutton = QtWidgets.QRadioButton("Calcium")
@@ -1702,9 +1716,9 @@ class MainW(QtWidgets.QMainWindow):
         dialog.neural_data_type_radiobuttons.addButton(dialog.calcium_radiobutton)
         dialog.neural_data_type_radiobuttons.addButton(dialog.ephys_radiobutton)
         # Add QRadiobuttons to the hbox
-        neural_data_type_groupbox.layout().addWidget(dialog.calcium_radiobutton)
-        neural_data_type_groupbox.layout().addWidget(dialog.ephys_radiobutton)
-        neural_activity_groupbox.layout().addWidget(neural_data_type_groupbox)
+        neural_datatype_groupbox.layout().addWidget(dialog.calcium_radiobutton)
+        neural_datatype_groupbox.layout().addWidget(dialog.ephys_radiobutton)
+        neural_activity_groupbox.layout().addWidget(neural_datatype_groupbox)
 
         # Add a hbox for data visualization
         neural_data_vis_groupbox = QtWidgets.QGroupBox()
@@ -1726,98 +1740,114 @@ class MainW(QtWidgets.QMainWindow):
 
         vbox.addWidget(neural_activity_groupbox)
 
-        # Add a timestamps groupbox
-        timestamps_groupbox = QtWidgets.QGroupBox("Timestamps (Optional)")
-        timestamps_groupbox.setLayout(QtWidgets.QVBoxLayout())
-        timestamps_groupbox.setStyleSheet(
-            "QGroupBox {border: 1px solid gray; border-radius: 9px; margin-top: 0.5em;} "
-        )
+        if not dialog.prediction_mode:
+            # Add a timestamps groupbox
+            timestamps_groupbox = QtWidgets.QGroupBox("Timestamps (Optional)")
+            timestamps_groupbox.setLayout(QtWidgets.QVBoxLayout())
+            timestamps_groupbox.setStyleSheet(
+                "QGroupBox {border: 1px solid gray; border-radius: 9px; margin-top: 0.5em;} "
+            )
 
-        # Add a groupbpx for neural timestamps selection
-        neural_data_timestamps_groupbox = QtWidgets.QGroupBox()
-        neural_data_timestamps_groupbox.setLayout(QtWidgets.QHBoxLayout())
-        neural_data_timestamps_groupbox.setStyleSheet(
-            "QGroupBox { border: 0px solid gray; }"
-        )
-        neural_timestamps_label = QtWidgets.QLabel("Neural timestamps:")
-        neural_data_timestamps_groupbox.layout().addWidget(neural_timestamps_label)
-        dialog.neural_data_timestamps_lineedit = QtWidgets.QLineEdit()
-        dialog.neural_data_timestamps_lineedit.setReadOnly(True)
-        neural_data_timestamps_groupbox.layout().addWidget(
-            dialog.neural_data_timestamps_lineedit
-        )
-        neural_timestamps_browse_button = QtWidgets.QPushButton("Browse...")
-        neural_timestamps_browse_button.clicked.connect(
-            lambda clicked: self.set_neural_timestamps_filepath(clicked, dialog)
-        )
-        neural_data_timestamps_groupbox.layout().addWidget(
-            neural_timestamps_browse_button
-        )
-        timestamps_groupbox.layout().addWidget(neural_data_timestamps_groupbox)
+            # Add a groupbpx for neural timestamps selection
+            neural_data_timestamps_groupbox = QtWidgets.QGroupBox()
+            neural_data_timestamps_groupbox.setLayout(QtWidgets.QHBoxLayout())
+            neural_data_timestamps_groupbox.setStyleSheet(
+                "QGroupBox { border: 0px solid gray; }"
+            )
+            neural_timestamps_label = QtWidgets.QLabel("Neural timestamps:")
+            neural_data_timestamps_groupbox.layout().addWidget(neural_timestamps_label)
+            dialog.neural_data_timestamps_lineedit = QtWidgets.QLineEdit()
+            dialog.neural_data_timestamps_lineedit.setReadOnly(True)
+            neural_data_timestamps_groupbox.layout().addWidget(
+                dialog.neural_data_timestamps_lineedit
+            )
+            neural_timestamps_browse_button = QtWidgets.QPushButton("Browse...")
+            neural_timestamps_browse_button.clicked.connect(
+                lambda clicked: self.set_neural_timestamps_filepath(clicked, dialog)
+            )
+            neural_data_timestamps_groupbox.layout().addWidget(
+                neural_timestamps_browse_button
+            )
+            timestamps_groupbox.layout().addWidget(neural_data_timestamps_groupbox)
 
-        neural_time_groupbox = QtWidgets.QGroupBox()
-        neural_time_groupbox.setLayout(QtWidgets.QHBoxLayout())
-        neural_time_groupbox.setStyleSheet("QGroupBox { border: 0px solid gray; }")
-        neural_tstart_label = QtWidgets.QLabel("Start time:")
-        neural_time_groupbox.layout().addWidget(neural_tstart_label)
-        dialog.neural_tstart_qlineedit = QtWidgets.QLineEdit()
-        neural_time_groupbox.layout().addWidget(dialog.neural_tstart_qlineedit)
-        neural_tend_label = QtWidgets.QLabel("End time:")
-        neural_time_groupbox.layout().addWidget(neural_tend_label)
-        dialog.neural_tend_qlineedit = QtWidgets.QLineEdit()
-        neural_time_groupbox.layout().addWidget(dialog.neural_tend_qlineedit)
-        timestamps_groupbox.layout().addWidget(neural_time_groupbox)
+            neural_time_groupbox = QtWidgets.QGroupBox()
+            neural_time_groupbox.setLayout(QtWidgets.QHBoxLayout())
+            neural_time_groupbox.setStyleSheet("QGroupBox { border: 0px solid gray; }")
+            neural_tstart_label = QtWidgets.QLabel("Start time:")
+            neural_time_groupbox.layout().addWidget(neural_tstart_label)
+            dialog.neural_tstart_qlineedit = QtWidgets.QLineEdit()
+            neural_time_groupbox.layout().addWidget(dialog.neural_tstart_qlineedit)
+            neural_tend_label = QtWidgets.QLabel("End time:")
+            neural_time_groupbox.layout().addWidget(neural_tend_label)
+            dialog.neural_tend_qlineedit = QtWidgets.QLineEdit()
+            neural_time_groupbox.layout().addWidget(dialog.neural_tend_qlineedit)
+            timestamps_groupbox.layout().addWidget(neural_time_groupbox)
 
-        # Add a groupbpx for behav timestamps selection
-        behav_data_timestamps_groupbox = QtWidgets.QGroupBox()
-        behav_data_timestamps_groupbox.setLayout(QtWidgets.QHBoxLayout())
-        behav_data_timestamps_groupbox.setStyleSheet(
-            "QGroupBox { border: 0px solid gray; }"
-        )
-        behav_timestamps_label = QtWidgets.QLabel("Behavior timestamps:")
-        behav_data_timestamps_groupbox.layout().addWidget(behav_timestamps_label)
-        dialog.behav_data_timestamps_qlineedit = QtWidgets.QLineEdit()
-        dialog.behav_data_timestamps_qlineedit.setReadOnly(True)
-        behav_data_timestamps_groupbox.layout().addWidget(
-            dialog.behav_data_timestamps_qlineedit
-        )
-        behav_timestamps_browse_button = QtWidgets.QPushButton("Browse...")
-        behav_timestamps_browse_button.clicked.connect(
-            lambda clicked: self.set_behav_timestamps_filepath(clicked, dialog)
-        )
-        behav_data_timestamps_groupbox.layout().addWidget(
-            behav_timestamps_browse_button
-        )
-        timestamps_groupbox.layout().addWidget(behav_data_timestamps_groupbox)
+            # Add a groupbpx for behav timestamps selection
+            behav_data_timestamps_groupbox = QtWidgets.QGroupBox()
+            behav_data_timestamps_groupbox.setLayout(QtWidgets.QHBoxLayout())
+            behav_data_timestamps_groupbox.setStyleSheet(
+                "QGroupBox { border: 0px solid gray; }"
+            )
+            behav_timestamps_label = QtWidgets.QLabel("Behavior timestamps:")
+            behav_data_timestamps_groupbox.layout().addWidget(behav_timestamps_label)
+            dialog.behav_data_timestamps_qlineedit = QtWidgets.QLineEdit()
+            dialog.behav_data_timestamps_qlineedit.setReadOnly(True)
+            behav_data_timestamps_groupbox.layout().addWidget(
+                dialog.behav_data_timestamps_qlineedit
+            )
+            behav_timestamps_browse_button = QtWidgets.QPushButton("Browse...")
+            behav_timestamps_browse_button.clicked.connect(
+                lambda clicked: self.set_behav_timestamps_filepath(clicked, dialog)
+            )
+            behav_data_timestamps_groupbox.layout().addWidget(
+                behav_timestamps_browse_button
+            )
+            timestamps_groupbox.layout().addWidget(behav_data_timestamps_groupbox)
 
-        behav_time_groupbox = QtWidgets.QGroupBox()
-        behav_time_groupbox.setLayout(QtWidgets.QHBoxLayout())
-        behav_time_groupbox.setStyleSheet("QGroupBox { border: 0px solid gray; }")
-        behav_tstart_label = QtWidgets.QLabel("Start time:")
-        behav_time_groupbox.layout().addWidget(behav_tstart_label)
-        dialog.behav_tstart_qlineedit = QtWidgets.QLineEdit()
-        behav_time_groupbox.layout().addWidget(dialog.behav_tstart_qlineedit)
-        behav_tend_label = QtWidgets.QLabel("End time:")
-        behav_time_groupbox.layout().addWidget(behav_tend_label)
-        dialog.behav_tend_qlineedit = QtWidgets.QLineEdit()
-        behav_time_groupbox.layout().addWidget(dialog.behav_tend_qlineedit)
-        timestamps_groupbox.layout().addWidget(behav_time_groupbox)
+            behav_time_groupbox = QtWidgets.QGroupBox()
+            behav_time_groupbox.setLayout(QtWidgets.QHBoxLayout())
+            behav_time_groupbox.setStyleSheet("QGroupBox { border: 0px solid gray; }")
+            behav_tstart_label = QtWidgets.QLabel("Start time:")
+            behav_time_groupbox.layout().addWidget(behav_tstart_label)
+            dialog.behav_tstart_qlineedit = QtWidgets.QLineEdit()
+            behav_time_groupbox.layout().addWidget(dialog.behav_tstart_qlineedit)
+            behav_tend_label = QtWidgets.QLabel("End time:")
+            behav_time_groupbox.layout().addWidget(behav_tend_label)
+            dialog.behav_tend_qlineedit = QtWidgets.QLineEdit()
+            behav_time_groupbox.layout().addWidget(dialog.behav_tend_qlineedit)
+            timestamps_groupbox.layout().addWidget(behav_time_groupbox)
 
-        vbox.addWidget(timestamps_groupbox)
+            vbox.addWidget(timestamps_groupbox)
 
-        # Add a hbox for cancel and done buttons
-        neural_data_buttons_hbox = QtWidgets.QHBoxLayout()
-        # Add a cancel button
-        neural_data_cancel_button = QtWidgets.QPushButton("Cancel")
-        neural_data_cancel_button.clicked.connect(dialog.reject)
-        neural_data_buttons_hbox.addWidget(neural_data_cancel_button)
-        # Add a done button
-        neural_data_done_button = QtWidgets.QPushButton("Done")
-        neural_data_done_button.clicked.connect(
-            lambda clicked: self.set_neural_data(clicked, dialog)
-        )
-        neural_data_buttons_hbox.addWidget(neural_data_done_button)
-        vbox.addLayout(neural_data_buttons_hbox)
+            # Add a hbox for cancel and done buttons
+            neural_data_buttons_hbox = QtWidgets.QHBoxLayout()
+            # Add a cancel button
+            neural_data_cancel_button = QtWidgets.QPushButton("Cancel")
+            neural_data_cancel_button.clicked.connect(dialog.reject)
+            neural_data_buttons_hbox.addWidget(neural_data_cancel_button)
+            # Add a done button
+            neural_data_done_button = QtWidgets.QPushButton("Done")
+            neural_data_done_button.clicked.connect(
+                lambda clicked: self.set_neural_data(clicked, dialog)
+            )
+            neural_data_buttons_hbox.addWidget(neural_data_done_button)
+            vbox.addLayout(neural_data_buttons_hbox)
+
+        else:
+            # Add a hbox for cancel and done buttons
+            buttons_hbox = QtWidgets.QHBoxLayout()
+            # Add a cancel button
+            cancel_button = QtWidgets.QPushButton("Cancel")
+            cancel_button.clicked.connect(dialog.reject)
+            buttons_hbox.addWidget(cancel_button)
+            # Add a done button
+            done_button = QtWidgets.QPushButton("Done")
+            done_button.clicked.connect(
+                lambda clicked: self.set_neural_prediction_data(clicked, dialog)
+            )
+            buttons_hbox.addWidget(done_button)
+            vbox.addLayout(buttons_hbox)
 
         dialog.exec_()
 
@@ -1844,7 +1874,7 @@ class MainW(QtWidgets.QMainWindow):
 
     def set_neural_data(self, clicked, dialog):
         """
-        Get user settings from the doalog box to set neural activity data
+        Get user settings from the dialog box to set neural activity data
         """
         neural_data_filepath = dialog.neural_data_lineedit.text()
         if dialog.calcium_radiobutton.isChecked():
@@ -1871,7 +1901,7 @@ class MainW(QtWidgets.QMainWindow):
         print("behav_tstart:", behav_tstart)
         print("behav_tend:", behav_tend)
         print("\n")
-        self.neural_activity_data.set_data(
+        self.neural_activity.set_data(
             neural_data_filepath,
             neural_data_type,
             data_viz_method,
@@ -1882,21 +1912,56 @@ class MainW(QtWidgets.QMainWindow):
             behav_tstart,
             behav_tend,
         )
+        if self.neural_data_loaded:
+            self.plot_neural_data()
+        dialog.accept()
+
+    def set_neural_prediction_data(self, clicked, dialog):
+        """
+        Get user settings from the dialog box to set neural prediction data
+        """
+        neural_data_filepath = dialog.neural_data_lineedit.text()
+        if dialog.calcium_radiobutton.isChecked():
+            neural_data_type = "calcium"
+        else:
+            neural_data_type = "ephys"
+        if dialog.heatmap_button.isChecked():
+            data_viz_method = "heatmap"
+        else:
+            data_viz_method = "lineplot"
+        neural_timestamps_filepath = dialog.neural_data_timestamps_lineedit.text()
+        neural_tstart = dialog.neural_tstart_qlineedit.text()
+        neural_tend = dialog.neural_tend_qlineedit.text()
+        behav_data_timestamps_filepath = dialog.behav_data_timestamps_qlineedit.text()
+        behav_tstart = dialog.behav_tstart_qlineedit.text()
+        behav_tend = dialog.behav_tend_qlineedit.text()
+        print("neural_data_filepath:", neural_data_filepath)
+        print("neural_datatype:", neural_data_type)
+        print("data_viz_type:", data_viz_method)
+        print("neural_timestamps_filepath:", neural_timestamps_filepath)
+        print("neural_tstart:", neural_tstart)
+        print("neural_tend:", neural_tend)
+        print("behav_data_timestamps_filepath:", behav_data_timestamps_filepath)
+        print("behav_tstart:", behav_tstart)
+        print("behav_tend:", behav_tend)
+        print("\n")
+        self.neural_prediction.set_data(
+            neural_data_filepath, neural_data_type, data_viz_method
+        )
         dialog.accept()
 
     def plot_neural_data(self):
-
         # Clear plot
         self.neural_activity_plot.clear()
 
         # Note: neural data is of shape (neurons, time)
         # Create a heatmap for the neural data and add it to plot 1
-        vmin = -np.percentile(self.neural_activity_data.data, 95)
-        vmax = np.percentile(self.neural_activity_data.data, 95)
+        vmin = -np.percentile(self.neural_activity.data, 95)
+        vmax = np.percentile(self.neural_activity.data, 95)
 
-        if self.neural_activity_data.data_viz_method == "heatmap":
+        if self.neural_activity.data_viz_method == "heatmap":
             self.neural_heatmap = pg.ImageItem(
-                self.neural_activity_data.data, autoDownsample=True, levels=(vmin, vmax)
+                self.neural_activity.data, autoDownsample=True, levels=(vmin, vmax)
             )
             self.neural_activity_plot.addItem(self.neural_heatmap)
             colormap = cm.get_cmap("gray_r")
@@ -1908,9 +1973,14 @@ class MainW(QtWidgets.QMainWindow):
             # apply the colormap
             self.neural_heatmap.setLookupTable(lut)
         else:
-            self.neural_lineplot = pg.PlotCurveItem(self.neural_activity_data.data)
-            self.neural_activity_plot.addItem(self.neural_lineplot)
-
+            x = np.empty(
+                (self.neural_activity.data.shape[0], self.neural_activity.data.shape[1])
+            )
+            x[:] = np.arange(self.neural_activity.data.shape[1])[np.newaxis, :]
+            y = self.neural_activity.data
+            neural_lineplot = guiparts.MultiLine(x, y)
+            self.neural_activity_plot.addItem(neural_lineplot)
+        self.neural_activity_plot.autoRange()
         # Add a vertical line to the plot to indicate the time of the current trial
         self.neural_vtick = pg.InfiniteLine(
             pos=self.cframe,
@@ -1918,22 +1988,73 @@ class MainW(QtWidgets.QMainWindow):
             pen=pg.mkPen(color=(255, 0, 0), width=2, movable=True),
         )
         self.neural_activity_plot.addItem(self.neural_vtick)
-        self.neural_activity_plot.setXRange(0, self.neural_activity_data.data.shape[1])
+        self.neural_activity_plot.setXRange(0, self.neural_activity.data.shape[1])
+        self.neural_activity_plot.setLimits(xMin=0, xMax=self.nframes)
 
         self.update_status_bar("Neural data loaded")
+
+    def plot_neural_predictions(self):
+        # Clear plot
+        self.neural_predictions_plot.clear()
+
+        # Create a heatmap for the neural data and add it to plot 1
+        vmin = -np.percentile(self.neural_predictions, 95)
+        vmax = np.percentile(self.neural_predictions, 95)
+
+        if self.neural_activity.data_viz_method == "heatmap":
+            self.neural_predictions_heatmap = pg.ImageItem(
+                self.neural_predictions, autoDownsample=True, levels=(vmin, vmax)
+            )
+            self.neural_predictions_plot.addItem(self.neural_predictions_heatmap)
+            colormap = cm.get_cmap("gray_r")
+            colormap._init()
+            lut = (colormap._lut * 255).view(np.ndarray)
+        self.neural_predictions_plot.setLimits(xMin=0, xMax=self.nframes)
 
     def on_click_neural_activity_plot(self, event):
         mousePoint = self.neural_activity_plot.vb.mapSceneToView(event._scenePos)
         self.update_neural_data_vtick(mousePoint.x())
 
     def update_neural_data_vtick(self, x_pos=None):
+        """
+        Update the vertical line indicating the current frame in the neural data plot by setting the x position (x_pos) of the line
+        """
         if x_pos is not None:
             self.neural_vtick.setPos(x_pos)
             frame = int(x_pos)
         else:
             self.neural_vtick.setPos(self.cframe)
             frame = self.cframe
+        # Check if x position is within the neural activity plot's current range of view
+        if (
+            not self.neural_activity_plot.getViewBox().viewRange()[0][0]
+            <= frame
+            <= self.neural_activity_plot.getViewBox().viewRange()[0][1]
+        ):
+            self.neural_activity_plot.getViewBox().setXRange(frame, frame, padding=0)
+            self.neural_activity_plot.getViewBox().updateAutoRange()
         self.setFrame.setText(str(frame))
+
+    def update_behavior_data(self):
+        """
+        Update the behavior data such that it is resampled to neural timescale
+        """
+        behav_resampled_idx = self.neural_activity.behavior_timestamps_resampled
+        # Resample video data
+
+        # Resample pose
+        if self.is_pose_loaded:
+            self.pose_x_coord[0] = self.pose_x_coord[0][:, behav_resampled_idx]
+            self.pose_y_coord[0] = self.pose_y_coord[0][:, behav_resampled_idx]
+            self.pose_likelihood[0] = self.pose_likelihood[0][:, behav_resampled_idx]
+            self.plot_trace(
+                wplot=1,
+                proctype=5,
+                wroi=None,
+                color=None,
+                keypoint_selected="eye(back)",
+            )
+            self.update_status_bar("Pose data resampled")
 
     ### ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Clustering and ROI ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     def vis_combobox_selection_changed(self):

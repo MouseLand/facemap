@@ -17,6 +17,30 @@ from PyQt5.QtWidgets import (
 )
 from pyqtgraph import Point
 
+## Following is adapted from https://stackoverflow.com/a/17108463 for a faster implementation of the multiline plot for neural activity
+class MultiLine(pg.QtGui.QGraphicsPathItem):
+    def __init__(self, x, y):
+        """
+        Multiline class for plotting 2D data as a series of lines.
+        Parameters
+        ----------
+        x : 2D-array
+            array of shape (Nplots, Nsamples)
+        y : 2D-array
+            array of shape (Nplots, Nsamples)
+        """
+        connect = np.ones(x.shape, dtype=bool)
+        connect[:, -1] = 0  # don't draw the segment between each trace
+        self.path = pg.arrayToQPath(x.flatten(), y.flatten(), connect.flatten())
+        pg.QtGui.QGraphicsPathItem.__init__(self, self.path)
+        self.setPen(pg.mkPen("w"))
+
+    def shape(self):  # override because QGraphicsPathItem.shape is too expensive.
+        return pg.QtGui.QGraphicsItem.shape(self)
+
+    def boundingRect(self):
+        return self.path.boundingRect()
+
 
 ### custom QDialog which makes a list of items you can include/exclude
 class ListChooser(QDialog):

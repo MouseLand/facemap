@@ -39,15 +39,15 @@ class NeuralActivity:
 
     def set_data(
         self,
-        neural_data_filepath,
-        neural_data_type,
-        data_viz_type,
-        neural_timestamps_filepath,
-        neural_tstart,
-        neural_tend,
-        behav_data_timestamps_filepath,
-        behav_tstart,
-        behav_tend,
+        neural_data_filepath=None,
+        neural_data_type=None,
+        data_viz_type=None,
+        neural_timestamps_filepath=None,
+        neural_tstart=None,
+        neural_tend=None,
+        behav_data_timestamps_filepath=None,
+        behav_tstart=None,
+        behav_tend=None,
     ):
         """
         Set the data.
@@ -60,16 +60,13 @@ class NeuralActivity:
             behav_data_timestamps_filepath, behav_tstart, behav_tend
         )
 
-        if self.parent.neural_data_loaded:
-            self.parent.plot_neural_data()
-
         if self.behavior_timestamps is not None and self.neural_timestamps is not None:
-            self.behavior_timestamps_resampled = self.resample_behavior_to_neural()
+            # self.behavior_timestamps_resampled = self.resample_behavior_to_neural()
             self.neural_timestamps_resampled = self.resample_neural_to_behavior()
-            print("behav_resampled shape: ", self.behavior_timestamps_resampled.shape)
-            print("behav resampled: ", self.behavior_timestamps_resampled)
-            print("neural_resampled shape: ", self.neural_timestamps_resampled.shape)
-            print("neural resampled: ", self.neural_timestamps_resampled)
+            print("Resampled neural data to behavioral timescale.")
+            self.data = self.data[:, self.neural_timestamps_resampled]
+            # Neural data is resampled to the behavioral timescale so the timestamps are the same
+            # The plotted data will be resampled to the neural timescale
 
     def set_neural_data(self, neural_data_filepath, neural_data_type, data_viz_type):
         """

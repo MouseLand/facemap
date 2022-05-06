@@ -26,14 +26,7 @@ def mainmenu(parent):
     setOutputFolder.triggered.connect(lambda: io.save_folder(parent))
     parent.addAction(setOutputFolder)
 
-    # Load neural data
-    loadNeural = QAction("Load neural data", parent)
-    loadNeural.setShortcut("Ctrl+N")
-    loadNeural.triggered.connect(lambda: parent.load_neural_data())
-    parent.addAction(loadNeural)
-
     loadPose = QAction("Load keypoints", parent)
-    # loadPose.setShortcut("Ctrl+P")
     loadPose.triggered.connect(lambda: io.get_pose_file(parent))
     parent.addAction(loadPose)
 
@@ -45,6 +38,18 @@ def mainmenu(parent):
     load_finetuned_model = QAction("Load finetuned model", parent)
     load_finetuned_model.triggered.connect(lambda: parent.load_finetuned_model())
     parent.addAction(load_finetuned_model)
+
+    # Load neural data
+    loadNeural = QAction("Load neural data", parent)
+    loadNeural.setShortcut("Ctrl+N")
+    loadNeural.triggered.connect(lambda: parent.load_neural_data())
+    parent.addAction(loadNeural)
+
+    # Load neural predictions
+    load_neural_predictions = QAction("Load neural predictions", parent)
+    load_neural_predictions.triggered.connect(
+        lambda: parent.load_neural_data(prediction_mode=True)
+    )
 
     user_manual = QAction("User manual", parent)
     user_manual.setShortcut("Ctrl+H")
@@ -64,12 +69,15 @@ def mainmenu(parent):
     file_menu.addAction(openFolder)
     file_menu.addAction(loadProc)
     file_menu.addAction(setOutputFolder)
-    file_menu.addAction(loadNeural)
 
     pose_menu = main_menu.addMenu("Pose")
     pose_menu.addAction(loadPose)
     pose_menu.addAction(load_finetuned_model)
     pose_menu.addAction(train_model)
+
+    neural_activity_menu = main_menu.addMenu("Neural activity")
+    neural_activity_menu.addAction(loadNeural)
+    neural_activity_menu.addAction(load_neural_predictions)
 
     help_menu = main_menu.addMenu("&Help")
     help_menu.addAction(user_manual)
