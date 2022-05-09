@@ -1,5 +1,5 @@
 import numpy as np
-
+import pandas as pd
 from facemap import utils
 
 
@@ -61,12 +61,17 @@ class NeuralActivity:
         )
 
         if self.behavior_timestamps is not None and self.neural_timestamps is not None:
-            # self.behavior_timestamps_resampled = self.resample_behavior_to_neural()
-            self.neural_timestamps_resampled = self.resample_neural_to_behavior()
-            print("Resampled neural data to behavioral timescale.")
-            self.data = self.data[:, self.neural_timestamps_resampled]
-            # Neural data is resampled to the behavioral timescale so the timestamps are the same
-            # The plotted data will be resampled to the neural timescale
+            self.neural_timestamps_resampled = self.resample_behavior_to_neural()
+            self.neural_timestamps_resampled = np.linspace(
+                self.neural_timestamps_resampled[0],
+                self.neural_timestamps_resampled[-1],
+                self.neural_timestamps_resampled.size,
+            ).astype(int)
+            neural_idx = utils.resample_timestamps(
+                self.neural_timestamps,
+                self.behavior_timestamps[self.neural_timestamps_resampled],
+            )
+            self.data = self.data[:, neural_idx]
 
     def set_neural_data(self, neural_data_filepath, neural_data_type, data_viz_type):
         """
@@ -135,6 +140,14 @@ class NeuralActivity:
         """
         if file_name.endswith(".npy") or file_name.endswith(".npz"):
             self.neural_timestamps = np.load(file_name)
+            # Check if size of neural timestamps is the same as the neural data
+            if self.data is not None:
+                if self.neural_timestamps.shape[0] != self.data.shape[1]:
+                    raise ValueError(
+                        "Neural timestamps and neural data are not the same size."
+                    )
+            else:
+                raise ValueError("Neural data not loaded.")
         else:
             raise ValueError("File type not recognized.")
 
@@ -144,6 +157,13 @@ class NeuralActivity:
         """
         if file_name.endswith(".npy") or file_name.endswith(".npz"):
             self.behavior_timestamps = np.load(file_name)
+            """
+            # Check if size of behavioral timestamps is the same as the number of frames
+            if self.behavior_timestamps.shape[0] != self.parent.nframes:
+                raise ValueError(
+                    "Behavioral timestamps and number of frames are not the same size."
+                )   
+            """
         else:
             raise ValueError("File type not recognized.")
 

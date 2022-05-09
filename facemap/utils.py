@@ -218,7 +218,7 @@ def reduced_rank_regression(X, Y, rank=None, lam=0):
     return A, B
 
 
-def resample_data(data, torig, tout):
+def resample_frames(data, torig, tout):
     """
     Resample data at times torig at times tout.
     data is components x time. The data is filtered using a gaussian filter before resampling.
@@ -236,20 +236,6 @@ def resample_data(data, torig, tout):
     f = interp1d(torig, data, kind="linear", axis=-1, fill_value="extrapolate")
     dout = f(tout)
     return dout
-
-
-def resample_frames(frames, target_timestamps):
-    """
-    Resample frames to target_timestamps.
-    Parameters
-    ----------
-    frames : ND-array
-        Frames to resample
-    target_timestamps : 1D-array
-        Timestamps to resample to
-    """
-    frames_resampled = frames[:, target_timestamps, ...]
-    return frames_resampled
 
 
 def resample_timestamps(init_timestamps, target_timestamps):
@@ -276,6 +262,11 @@ def resample_timestamps(init_timestamps, target_timestamps):
     )
     # Resample the data
     resampled_timestamps = f(target_timestamps)
+    # Set bounds of the resampled timestamps
+    resampled_timestamps[resampled_timestamps < 0] = 0
+    resampled_timestamps[resampled_timestamps > init_timestamps.size - 1] = (
+        init_timestamps.size - 1
+    )
     return resampled_timestamps.squeeze().astype(int)
 
 
