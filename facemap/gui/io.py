@@ -140,7 +140,7 @@ def open_proc(parent, file_name=None):
             if parent.processed:
                 parent.col = []
                 if parent.fullSVD:
-                    parent.plot1_checkboxes[k].setText("fullSVD")
+                    parent.plot2_checkboxes[k].setText("fullSVD")
                     parent.lbls[k].setText("fullSVD")
                     parent.lbls[k].setStyleSheet("color: white;")
                     parent.proctype[0] = 0
@@ -223,7 +223,7 @@ def open_proc(parent, file_name=None):
                     )
                     parent.ROIs[parent.iROI].plot(parent)
                     if parent.processed and k < 5:
-                        parent.plot1_checkboxes[k].setText(
+                        parent.plot2_checkboxes[k].setText(
                             "%s%d" % (parent.typestr[roi["rind"]], kt[roi["rind"]])
                         )
                         parent.lbls[k].setText(
@@ -248,12 +248,10 @@ def open_proc(parent, file_name=None):
             parent.cframe = 1
             if parent.processed:
                 for k in range(parent.kroi):
-                    parent.plot1_checkboxes[k].setEnabled(True)
                     parent.plot2_checkboxes[k].setEnabled(True)
                 if parent.fullSVD:
-                    parent.plot1_checkboxes[0].setEnabled(True)
-                    parent.plot1_checkboxes[0].setChecked(True)
                     parent.plot2_checkboxes[0].setEnabled(True)
+                    parent.plot2_checkboxes[0].setChecked(True)
                 parent.plot_processed()
             parent.next_frame()
 
@@ -326,7 +324,7 @@ def load_movies(parent, filelist=None):
         # parent.movieLabel.setText(os.path.dirname(parent.filenames[0][0]))
         parent.save_path = os.path.dirname(parent.filenames[0][0])
         parent.frameDelta = int(np.maximum(5, parent.nframes / 200))
-        parent.frameSlider.setSingleStep(parent.frameDelta)
+        parent.frame_slider.setSingleStep(parent.frameDelta)
         if parent.nframes > 0:
             parent.update_frame_slider()
             parent.update_buttons()

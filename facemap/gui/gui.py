@@ -184,16 +184,19 @@ class MainW(QtWidgets.QMainWindow):
         self.keypoints_traces_plot.hideAxis("left")
         self.scatter1 = pg.ScatterPlotItem()
         self.keypoints_traces_plot.addItem(self.scatter1)
+        self.keypoints_plot_vtick = None
 
         self.svd_traces_plot = self.win.addPlot(
             name="svd_traces_plot", row=1, col=1, title="SVD traces"
         )
+        self.svd_traces_plot.scene().sigMouseClicked.connect(self.on_click_svd_plot)
         self.svd_traces_plot.setMouseEnabled(x=True, y=False)
         self.svd_traces_plot.setMenuEnabled(False)
         self.svd_traces_plot.hideAxis("left")
         self.scatter2 = pg.ScatterPlotItem()
         self.svd_traces_plot.addItem(self.scatter1)
         self.svd_traces_plot.setXLink("keypoints_traces_plot")
+        self.svd_plot_vtick = None
 
         # Add third plot
         self.neural_activity_plot = self.win.addPlot(
@@ -207,6 +210,7 @@ class MainW(QtWidgets.QMainWindow):
         self.neural_activity_plot.hideAxis("left")
         self.neural_activity_plot.setXLink("keypoints_traces_plot")
         self.neural_activity_plot.disableAutoRange()
+        self.neural_plot_vtick = None
 
         # Add fourth plot
         self.neural_predictions_plot = self.win.addPlot(
@@ -308,21 +312,26 @@ class MainW(QtWidgets.QMainWindow):
         self.binSpinBox.setFixedWidth(50)
         binLabel = QLabel("Pupil sigma:")
         binLabel.setStyleSheet("color: gray;")
-        self.sigmaBox = QLineEdit()
-        self.sigmaBox.setText(str(self.ops["pupil_sigma"]))
-        self.sigmaBox.setFixedWidth(45)
-        self.pupil_sigma = float(self.sigmaBox.text())
-        self.sigmaBox.returnPressed.connect(self.pupil_sigma_change)
-        self.setFrame = QLineEdit()
-        self.setFrame.setMaxLength(10)
-        self.setFrame.setFixedWidth(50)
-        self.setFrame.textChanged[str].connect(self.set_frame_changed)
-        self.total_frames_label = QLabel("0")  #########
-        self.total_frames_label.setStyleSheet("color: white;")  #########
-        self.frameSlider = QSlider(QtCore.Qt.Horizontal)
-        self.frameSlider.setTickInterval(5)
-        self.frameSlider.setTracking(False)
-        self.frameSlider.valueChanged.connect(self.go_to_frame)
+        self.sigma_box = QLineEdit()
+        self.sigma_box.setText(str(self.ops["pupil_sigma"]))
+        self.sigma_box.setFixedWidth(45)
+        self.pupil_sigma = float(self.sigma_box.text())
+        self.sigma_box.returnPressed.connect(self.pupil_sigma_change)
+        self.current_frame_lineedit = QLineEdit()
+        self.current_frame_lineedit.setMaxLength(10)
+        self.current_frame_lineedit.setFixedSize(
+            QtCore.QSize(
+                np.floor(self.sizeObject.width() * 0.03).astype(int),
+                np.floor(self.sizeObject.width() * 0.01).astype(int),
+            )
+        )
+        self.current_frame_lineedit.textChanged[str].connect(self.set_frame_changed)
+        self.total_frames_label = QLabel("0")
+        self.total_frames_label.setStyleSheet("color: white;")
+        self.frame_slider = QSlider(QtCore.Qt.Horizontal)
+        self.frame_slider.setTickInterval(5)
+        self.frame_slider.setTracking(False)
+        self.frame_slider.valueChanged.connect(self.go_to_frame)
         self.frameDelta = 10
         istretch = 20
         iplay = istretch + 10
@@ -467,7 +476,7 @@ class MainW(QtWidgets.QMainWindow):
         self.scene_grid_layout.addWidget(SVDbinLabel, 2, 0, 1, 2)
         self.scene_grid_layout.addWidget(self.binSpinBox, 2, 1, 1, 2)
         self.scene_grid_layout.addWidget(binLabel, 3, 0, 1, 1)
-        self.scene_grid_layout.addWidget(self.sigmaBox, 3, 1, 1, 1)
+        self.scene_grid_layout.addWidget(self.sigma_box, 3, 1, 1, 1)
         self.scene_grid_layout.addWidget(self.motSVD_checkbox, 4, 0, 1, 1)
         self.scene_grid_layout.addWidget(self.movSVD_checkbox, 4, 1, 1, 1)
         self.scene_grid_layout.addWidget(self.checkBox, 5, 0, 1, 1)
@@ -495,9 +504,11 @@ class MainW(QtWidgets.QMainWindow):
         self.pauseButton.setChecked(True)
         self.scene_grid_layout.addWidget(QLabel(""), istretch, 0, 1, 3)
         self.scene_grid_layout.setRowStretch(istretch, 1)
-        self.scene_grid_layout.addWidget(self.setFrame, istretch + 7, 0, 1, 1)
+        self.scene_grid_layout.addWidget(
+            self.current_frame_lineedit, istretch + 7, 0, 1, 1
+        )
         self.scene_grid_layout.addWidget(self.total_frames_label, istretch + 7, 1, 1, 1)
-        self.scene_grid_layout.addWidget(self.frameSlider, istretch + 10, 2, 1, 15)
+        self.scene_grid_layout.addWidget(self.frame_slider, istretch + 10, 2, 1, 15)
 
         # Plot 1 and 2 features
         plot_label = QLabel("Keypoints traces")
@@ -524,20 +535,24 @@ class MainW(QtWidgets.QMainWindow):
         self.trace2_legend = pg.LegendItem(labelTextSize="12pt", horSpacing=30)
         self.scene_grid_layout.addWidget(self.load_trace1_button, istretch + 1, 0, 1, 1)
         self.scene_grid_layout.addWidget(self.load_trace2_button, istretch + 1, 1, 1, 1)
-        self.cbs1 = []
-        self.cbs2 = []
+        self.plot1_checkboxes = []
+        self.plot2_checkboxes = []
         self.lbls = []
         for k in range(4):
-            self.cbs1.append(QCheckBox(""))
-            self.scene_grid_layout.addWidget(self.cbs1[-1], istretch + 2 + k, 0, 1, 1)
-            self.cbs2.append(QCheckBox(""))
-            self.scene_grid_layout.addWidget(self.cbs2[-1], istretch + 2 + k, 1, 1, 1)
-            self.cbs1[-1].toggled.connect(self.plot_processed)
-            self.cbs2[-1].toggled.connect(self.plot_processed)
-            self.cbs1[-1].setEnabled(False)
-            self.cbs2[-1].setEnabled(False)
-            self.cbs1[k].setStyleSheet("color: gray;")
-            self.cbs2[k].setStyleSheet("color: gray;")
+            self.plot1_checkboxes.append(QCheckBox(""))
+            self.scene_grid_layout.addWidget(
+                self.plot1_checkboxes[-1], istretch + 2 + k, 0, 1, 1
+            )
+            self.plot2_checkboxes.append(QCheckBox(""))
+            self.scene_grid_layout.addWidget(
+                self.plot2_checkboxes[-1], istretch + 2 + k, 1, 1, 1
+            )
+            self.plot1_checkboxes[-1].toggled.connect(self.plot_processed)
+            self.plot2_checkboxes[-1].toggled.connect(self.plot_processed)
+            self.plot1_checkboxes[-1].setEnabled(False)
+            self.plot2_checkboxes[-1].setEnabled(False)
+            self.plot1_checkboxes[k].setStyleSheet("color: gray;")
+            self.plot2_checkboxes[k].setStyleSheet("color: gray;")
             self.lbls.append(QLabel(""))
             self.lbls[-1].setStyleSheet("color: white;")
         self.update_frame_slider()
@@ -552,7 +567,7 @@ class MainW(QtWidgets.QMainWindow):
             self.roi_saturation_label.setText(str(int(val)))
 
     def set_frame_changed(self, text):
-        self.cframe = int(float(self.setFrame.text()))
+        self.cframe = int(float(self.current_frame_lineedit.text()))
         self.jump_to_frame()
         if self.cluster_model.embedded_output is not None:
             self.highlight_embed_point(self.cframe)
@@ -587,14 +602,14 @@ class MainW(QtWidgets.QMainWindow):
         self.traces1 = None
         self.traces2 = None
         # clear checkboxes
-        for k in range(len(self.cbs1)):
-            self.cbs1[k].setText("")
-            self.cbs2[k].setText("")
+        for k in range(len(self.plot1_checkboxes)):
+            self.plot1_checkboxes[k].setText("")
+            self.plot2_checkboxes[k].setText("")
             self.lbls[k].setText("")
-            self.cbs1[k].setEnabled(False)
-            self.cbs2[k].setEnabled(False)
-            self.cbs1[k].setChecked(False)
-            self.cbs2[k].setChecked(False)
+            self.plot1_checkboxes[k].setEnabled(False)
+            self.plot2_checkboxes[k].setEnabled(False)
+            self.plot1_checkboxes[k].setChecked(False)
+            self.plot2_checkboxes[k].setChecked(False)
         # Clear pose variables
         self.pose_model = None
         self.poseFilepath = []
@@ -614,7 +629,7 @@ class MainW(QtWidgets.QMainWindow):
         self.neural_predictions_plot.clear()
 
     def pupil_sigma_change(self):
-        self.pupil_sigma = float(self.sigmaBox.text())
+        self.pupil_sigma = float(self.sigma_box.text())
         if len(self.ROIs) > 0:
             self.ROIs[self.iROI].plot(self)
 
@@ -695,7 +710,7 @@ class MainW(QtWidgets.QMainWindow):
                 frames_processed = np.floor(
                     (progressBar_value[0] / 100) * float(total_frames)
                 )
-                self.setFrame.setText(str(frames_processed))
+                self.current_frame_lineedit.setText(str(frames_processed))
                 self.statusBar.showMessage(message.split("|")[0])
             else:
                 self.statusBar.showMessage("Done!")
@@ -713,13 +728,13 @@ class MainW(QtWidgets.QMainWindow):
                     self.cframe = np.maximum(
                         0, np.minimum(self.nframes - 1, self.cframe)
                     )
-                    self.frameSlider.setValue(self.cframe)
+                    self.frame_slider.setValue(self.cframe)
                 elif event.key() == QtCore.Qt.Key_Right:
                     self.cframe += self.frameDelta
                     self.cframe = np.maximum(
                         0, np.minimum(self.nframes - 1, self.cframe)
                     )
-                    self.frameSlider.setValue(self.cframe)
+                    self.frame_slider.setValue(self.cframe)
         if event.modifiers() != QtCore.Qt.ShiftModifier:
             if event.key() == QtCore.Qt.Key_Space:
                 if self.playButton.isEnabled():
@@ -729,16 +744,16 @@ class MainW(QtWidgets.QMainWindow):
                     self.pause()
 
     def go_to_frame(self):
-        self.cframe = int(self.frameSlider.value())
-        self.setFrame.setText(str(self.cframe))
+        self.cframe = int(self.frame_slider.value())
+        self.current_frame_lineedit.setText(str(self.cframe))
 
     def fitToWindow(self):
         self.movieLabel.setScaledContents(self.fitCheckBox.isChecked())
 
     def update_frame_slider(self):
-        self.frameSlider.setMaximum(self.nframes - 1)
-        self.frameSlider.setMinimum(0)
-        self.frameSlider.setEnabled(True)
+        self.frame_slider.setMaximum(self.nframes - 1)
+        self.frame_slider.setMinimum(0)
+        self.frame_slider.setEnabled(True)
 
     def jump_to_frame(self):
         if self.playButton.isEnabled():
@@ -782,7 +797,8 @@ class MainW(QtWidgets.QMainWindow):
                     self.sy[i] : self.sy[i] + self.Ly[i],
                     self.sx[i] : self.sx[i] + self.Lx[i],
                 ] = self.img[i]
-            self.frameSlider.setValue(self.cframe)
+            self.frame_slider.setValue(self.cframe)
+            """
             if (
                 self.processed
                 or self.trace1_data_loaded is not None
@@ -790,6 +806,7 @@ class MainW(QtWidgets.QMainWindow):
                 or self.is_pose_loaded
             ):
                 self.plot_scatter()
+            """
         else:
             self.online_plotted = False
             # online.get_frame(self)
@@ -799,12 +816,14 @@ class MainW(QtWidgets.QMainWindow):
 
         self.pimg.setImage(self.fullimg)
         self.pimg.setLevels([0, self.sat[0]])
-        self.setFrame.setText(str(self.cframe))
+        self.current_frame_lineedit.setText(str(self.cframe))
         self.update_pose()
         if self.neural_data_loaded:
             self.update_neural_data_vtick()
         if self.is_pose_loaded:
             self.update_keypoints_vtick()
+        if self.processed:
+            self.update_svd_vtick()
         self.total_frames_label.setText("/ " + str(self.nframes) + " frames")
         self.win.show()
         self.show()
@@ -815,12 +834,12 @@ class MainW(QtWidgets.QMainWindow):
             self.keypoints_traces_plot.show()
             self.playButton.setEnabled(False)
             self.pauseButton.setEnabled(True)
-            self.frameSlider.setEnabled(False)
+            self.frame_slider.setEnabled(False)
             self.updateTimer.start(50)  # 25
         elif self.cframe < self.nframes - 1:
             self.playButton.setEnabled(False)
             self.pauseButton.setEnabled(True)
-            self.frameSlider.setEnabled(False)
+            self.frame_slider.setEnabled(False)
             self.updateTimer.start(50)  # 25
         self.update_pose()
 
@@ -828,7 +847,7 @@ class MainW(QtWidgets.QMainWindow):
         self.updateTimer.stop()
         self.playButton.setEnabled(True)
         self.pauseButton.setEnabled(False)
-        self.frameSlider.setEnabled(True)
+        self.frame_slider.setEnabled(True)
         if self.online_mode:
             self.online_traces = None
         self.update_pose()
@@ -836,7 +855,7 @@ class MainW(QtWidgets.QMainWindow):
     def save_ops(self):
         ops = {
             "sbin": self.sbin,
-            "pupil_sigma": float(self.sigmaBox.text()),
+            "pupil_sigma": float(self.sigma_box.text()),
             "save_path": self.save_path,
             "fullSVD": self.checkBox.isChecked(),
             "save_mat": self.save_mat.isChecked(),
@@ -865,7 +884,7 @@ class MainW(QtWidgets.QMainWindow):
     def button_status(self, status):
         self.playButton.setEnabled(status)
         self.pauseButton.setEnabled(status)
-        self.frameSlider.setEnabled(status)
+        self.frame_slider.setEnabled(status)
         self.process.setEnabled(status)
         self.saverois.setEnabled(status)
 
@@ -1112,7 +1131,7 @@ class MainW(QtWidgets.QMainWindow):
                 color=None,
                 keypoint_selected="eye(back)",
             )
-            self.plot_scatter()
+            # self.plot_scatter()
 
     def update_pose(self):
         if self.is_pose_loaded and self.keypoints_checkbox.isChecked():
@@ -1179,7 +1198,7 @@ class MainW(QtWidgets.QMainWindow):
                 color=None,
                 keypoint_selected=keypoint_name,
             )
-            self.plot_scatter()
+            # self.plot_scatter()
 
     def keypoints_hovered(self, obj, ev):
         point_hovered = np.where(self.pose_scatterplot.data["hovered"])[0]
@@ -1407,16 +1426,15 @@ class MainW(QtWidgets.QMainWindow):
         self.plot_processed()
 
     def plot_processed(self):
-        self.keypoints_traces_plot.clear()
         self.svd_traces_plot.clear()
         if self.traces1 is None:
             self.traces1 = np.zeros((0, self.nframes))
         if self.traces2 is None:
             self.traces2 = np.zeros((0, self.nframes))
-        for k in range(len(self.cbs1)):
-            if self.cbs1[k].isChecked():
-                self.cbs1[k].setText(self.lbls[k].text())
-                self.cbs1[k].setStyleSheet(self.lbls[k].styleSheet())
+        for k in range(len(self.plot1_checkboxes)):
+            if self.plot1_checkboxes[k].isChecked():
+                self.plot1_checkboxes[k].setText(self.lbls[k].text())
+                self.plot1_checkboxes[k].setStyleSheet(self.lbls[k].styleSheet())
                 tr = self.plot_trace(1, self.proctype[k], self.wroi[k], self.col[k])
                 if tr.ndim < 2:
                     self.traces1 = np.concatenate(
@@ -1425,12 +1443,12 @@ class MainW(QtWidgets.QMainWindow):
                 else:
                     self.traces1 = np.concatenate((self.traces1, tr), axis=0)
             else:
-                self.cbs1[k].setText(self.lbls[k].text())
-                self.cbs1[k].setStyleSheet("color: gray")
-        for k in range(len(self.cbs2)):
-            if self.cbs2[k].isChecked():
-                self.cbs2[k].setText(self.lbls[k].text())
-                self.cbs2[k].setStyleSheet(self.lbls[k].styleSheet())
+                self.plot1_checkboxes[k].setText(self.lbls[k].text())
+                self.plot1_checkboxes[k].setStyleSheet("color: gray")
+        for k in range(len(self.plot2_checkboxes)):
+            if self.plot2_checkboxes[k].isChecked():
+                self.plot2_checkboxes[k].setText(self.lbls[k].text())
+                self.plot2_checkboxes[k].setStyleSheet(self.lbls[k].styleSheet())
                 tr = self.plot_trace(2, self.proctype[k], self.wroi[k], self.col[k])
                 if tr.ndim < 2:
                     self.traces2 = np.concatenate(
@@ -1439,8 +1457,8 @@ class MainW(QtWidgets.QMainWindow):
                 else:
                     self.traces2 = np.concatenate((self.traces2, tr), axis=0)
             else:
-                self.cbs2[k].setText(self.lbls[k].text())
-                self.cbs2[k].setStyleSheet("color: gray")
+                self.plot2_checkboxes[k].setText(self.lbls[k].text())
+                self.plot2_checkboxes[k].setStyleSheet("color: gray")
         if self.trace1_data_loaded is not None:
             self.keypoints_traces_plot.addItem(self.trace1_plot)
             self.traces1 = np.concatenate(
@@ -1461,7 +1479,7 @@ class MainW(QtWidgets.QMainWindow):
             self.svd_traces_plot.show()
         self.keypoints_traces_plot.setLimits(xMin=0, xMax=self.nframes)
         self.svd_traces_plot.setLimits(xMin=0, xMax=self.nframes)
-        self.plot_scatter()
+        # self.plot_scatter()
         self.jump_to_frame()
 
     def plot_scatter(self):
@@ -1486,18 +1504,18 @@ class MainW(QtWidgets.QMainWindow):
                 brush=pg.mkBrush(255, 255, 255),
             )
             self.svd_traces_plot.addItem(self.scatter2)
+
+    def plot_trace(self, wplot, proctype, wroi, color, keypoint_selected=None):
+        if wplot == 1:
+            selected_plot = self.keypoints_traces_plot
+        elif wplot == 2:
+            selected_plot = self.svd_traces_plot
             self.svd_plot_vtick = pg.InfiniteLine(
                 pos=self.cframe,
                 angle=90,
                 pen=pg.mkPen(color=(255, 255, 255), width=2, movable=True),
             )
-            self.svd_traces_plot.addItem(self.svd_plot_vtick)
-
-    def plot_trace(self, wplot, proctype, wroi, color, keypoint_selected=None):
-        if wplot == 1:
-            wp = self.keypoints_traces_plot
-        elif wplot == 2:
-            wp = self.svd_traces_plot
+            selected_plot.addItem(self.svd_plot_vtick)
         else:
             print("Invalid plot window")
             return
@@ -1517,14 +1535,14 @@ class MainW(QtWidgets.QMainWindow):
                 )  # , style=QtCore.Qt.DashLine)
                 tr2 = self.motSVDs[ir][:, c] / norm
                 tr2 *= np.sign(skew(tr2))
-                wp.plot(tr2, pen=pen)
+                selected_plot.plot(tr2, pen=pen)
             pen = pg.mkPen(color)
-            wp.plot(tr, pen=pen)
-            wp.setRange(yRange=(-3, 3))
+            selected_plot.plot(tr, pen=pen)
+            selected_plot.setRange(yRange=(-3, 3))
         elif proctype == 1:  # Pupil
             pup = self.pupil[wroi]
             pen = pg.mkPen(color, width=2)
-            pp = wp.plot(zscore(pup["area_smooth"]) * 2, pen=pen)
+            pp = selected_plot.plot(zscore(pup["area_smooth"]) * 2, pen=pen)
             if "com_smooth" in pup:
                 pupcom = pup["com_smooth"].copy()
             else:
@@ -1532,9 +1550,9 @@ class MainW(QtWidgets.QMainWindow):
             pupcom -= pupcom.mean(axis=0)
             norm = pupcom.std()
             pen = pg.mkPen((155, 255, 155), width=1, style=QtCore.Qt.DashLine)
-            py = wp.plot(pupcom[:, 0] / norm * 2, pen=pen)
+            py = selected_plot.plot(pupcom[:, 0] / norm * 2, pen=pen)
             pen = pg.mkPen((0, 100, 0), width=1, style=QtCore.Qt.DashLine)
-            px = wp.plot(pupcom[:, 1] / norm * 2, pen=pen)
+            px = selected_plot.plot(pupcom[:, 1] / norm * 2, pen=pen)
             tr = np.concatenate(
                 (
                     zscore(pup["area_smooth"])[np.newaxis, :] * 2,
@@ -1543,14 +1561,14 @@ class MainW(QtWidgets.QMainWindow):
                 ),
                 axis=0,
             )
-            lg = wp.addLegend(offset=(0, 0))
+            lg = selected_plot.addLegend(offset=(0, 0))
             lg.addItem(pp, "<font color='white'><b>area</b></font>")
             lg.addItem(py, "<font color='white'><b>ypos</b></font>")
             lg.addItem(px, "<font color='white'><b>xpos</b></font>")
         elif proctype == 3:  # Blink
             tr = zscore(self.blink[wroi])
             pen = pg.mkPen(color, width=2)
-            wp.plot(tr, pen=pen)
+            selected_plot.plot(tr, pen=pen)
         elif proctype == 4:  # Running
             running = self.running[wroi]
             running *= np.sign(running.mean(axis=0))
@@ -1558,11 +1576,11 @@ class MainW(QtWidgets.QMainWindow):
             running /= running.max()
             running *= 16
             running -= 8
-            wp.plot(running[:, 0], pen=color)
-            wp.plot(running[:, 1], pen=color)
+            selected_plot.plot(running[:, 0], pen=color)
+            selected_plot.plot(running[:, 1], pen=color)
             tr = running.T
         elif proctype == 5 and keypoint_selected is not None:  # Keypoints traces
-            wp.clear()
+            selected_plot.clear()
             self.trace1_legend.clear()
             bodypart_groups = ["Eye", "Nose", "Whiskers", "Mouth", "Paw"]
             sub_groups = [
@@ -1592,8 +1610,8 @@ class MainW(QtWidgets.QMainWindow):
             x_trace = self.pose_x_coord[0][kp_selected_idx]
             for i in range(x_trace.shape[0]):
                 x_pen = pg.mkPen(subgroups_brushes[subgroup_idx].color(), width=1)
-                x_plot = wp.plot(x_trace[i], pen=x_pen)
-            lg = wp.addLegend(colCount=2, offset=(0, 0))
+                x_plot = selected_plot.plot(x_trace[i], pen=x_pen)
+            lg = selected_plot.addLegend(colCount=2, offset=(0, 0))
             lg.addItem(
                 x_plot,
                 name="<font color='white'><b>{} x-coord</b></font>".format(
@@ -1608,30 +1626,58 @@ class MainW(QtWidgets.QMainWindow):
                     width=1,
                     style=QtCore.Qt.DashLine,
                 )
-                y_plot = wp.plot(y_trace[i], pen=y_pen)
+                y_plot = selected_plot.plot(y_trace[i], pen=y_pen)
             lg.addItem(
                 y_plot,
                 name="<font color='white'><b>{} y-coord</b></font>".format(
                     bodypart_groups[subgroup_idx]
                 ),
             )
-            lg.setPos(wp.x(), wp.y())
-            wp.setRange(xRange=(0, x_trace.shape[1]))
+            lg.setPos(selected_plot.x(), selected_plot.y())
+            selected_plot.setRange(xRange=(0, x_trace.shape[1]))
             tr = None
             self.keypoints_plot_vtick = pg.InfiniteLine(
                 pos=self.cframe,
                 angle=90,
                 pen=pg.mkPen(color=(255, 255, 255), width=2, movable=True),
             )
-            wp.addItem(self.keypoints_plot_vtick)
-        wp.setLimits(xMin=0, xMax=self.nframes)
+            selected_plot.addItem(self.keypoints_plot_vtick)
+        selected_plot.setLimits(xMin=0, xMax=self.nframes)
         return tr
+
+    def on_click_svd_plot(self, event):
+        """
+        Update vtick position of svd plot when user clicks
+        """
+        if event.button() == QtCore.Qt.LeftButton and self.processed:
+            mouse_point = self.svd_traces_plot.vb.mapSceneToView(event._scenePos)
+            self.update_svd_vtick(mouse_point.x())
+
+    def update_svd_vtick(self, x_pos=None):
+        """
+        Update vtick position of svd plot
+        """
+        if x_pos is not None:
+            self.svd_plot_vtick.setPos(x_pos)
+            frame = int(x_pos)
+        else:
+            self.svd_plot_vtick.setPos(self.cframe)
+            frame = self.cframe
+        # Check if x position is within the plot's current range of view
+        if (
+            not self.svd_traces_plot.getViewBox().viewRange()[0][0]
+            <= frame
+            <= self.svd_traces_plot.getViewBox().viewRange()[0][1]
+        ):
+            self.svd_traces_plot.getViewBox().setXRange(frame, frame, padding=0)
+            self.svd_traces_plot.getViewBox().updateAutoRange()
+        self.current_frame_lineedit.setText(str(frame))
 
     def on_click_keypoints_plot(self, event):
         """
         Update keypoints vtick position when user clicks on keypoints plot
         """
-        if event.button() == QtCore.Qt.LeftButton:
+        if event.button() == QtCore.Qt.LeftButton and self.is_pose_loaded:
             mouse_point = self.keypoints_traces_plot.vb.mapSceneToView(event._scenePos)
             self.update_keypoints_vtick(mouse_point.x())
 
@@ -1653,7 +1699,7 @@ class MainW(QtWidgets.QMainWindow):
         ):
             self.keypoints_traces_plot.getViewBox().setXRange(frame, frame, padding=0)
             self.keypoints_traces_plot.getViewBox().updateAutoRange()
-        self.setFrame.setText(str(frame))
+        self.current_frame_lineedit.setText(str(frame))
 
     def plot_clicked(self, event):
         items = self.win.scene().items(event.scenePos())
@@ -1694,7 +1740,7 @@ class MainW(QtWidgets.QMainWindow):
                 self.cframe = np.maximum(
                     0, np.minimum(self.nframes - 1, int(np.round(posx)))
                 )
-                self.frameSlider.setValue(self.cframe)
+                self.frame_slider.setValue(self.cframe)
                 # self.jump_to_frame()
 
     ## ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Neural data plot ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ ##
@@ -2025,12 +2071,12 @@ class MainW(QtWidgets.QMainWindow):
             self.neural_activity_plot.addItem(neural_lineplot)
         self.neural_activity_plot.autoRange()
         # Add a vertical line to the plot to indicate the time of the current trial
-        self.neural_vtick = pg.InfiniteLine(
+        self.neural_plot_vtick = pg.InfiniteLine(
             pos=self.cframe,
             angle=90,
             pen=pg.mkPen(color=(255, 0, 0), width=2, movable=True),
         )
-        self.neural_activity_plot.addItem(self.neural_vtick)
+        self.neural_activity_plot.addItem(self.neural_plot_vtick)
         self.neural_activity_plot.setXRange(0, self.neural_activity.data.shape[1])
         self.neural_activity_plot.setLimits(xMin=0, xMax=self.nframes)
 
@@ -2073,17 +2119,17 @@ class MainW(QtWidgets.QMainWindow):
             self.neural_predictions_plot.addItem(neural_lineplot)
         self.neural_predictions_plot.autoRange()
         # Add a vertical line to the plot to indicate the time of the current trial
-        self.neural_vtick = pg.InfiniteLine(
+        self.neural_plot_vtick = pg.InfiniteLine(
             pos=self.cframe,
             angle=90,
             pen=pg.mkPen(color=(255, 0, 0), width=2, movable=True),
         )
-        self.neural_predictions_plot.addItem(self.neural_vtick)
+        self.neural_predictions_plot.addItem(self.neural_plot_vtick)
         self.neural_predictions_plot.setXRange(0, self.neural_predictions.data.shape[1])
         self.neural_predictions_plot.setLimits(xMin=0, xMax=self.nframes)
 
     def on_click_neural_activity_plot(self, event):
-        if self.neural_data_loaded:
+        if self.neural_data_loaded and event.button() == QtCore.Qt.LeftButton:
             mouse_point = self.neural_predictions_plot.vb.mapSceneToView(
                 event._scenePos
             )
@@ -2091,7 +2137,7 @@ class MainW(QtWidgets.QMainWindow):
 
     def on_click_neural_predictions_plot(self, event):
         mouse_point = self.neural_predictions.vb.mapSceneToView(event._scenePos)
-        print("here")
+        print("clicked predictions")
         # self.update_neural_data_vtick(mouse_point.x())
 
     def update_neural_data_vtick(self, x_pos=None):
@@ -2099,10 +2145,10 @@ class MainW(QtWidgets.QMainWindow):
         Update the vertical line indicating the current frame in the neural data plot by setting the x position (x_pos) of the line
         """
         if x_pos is not None:
-            self.neural_vtick.setPos(x_pos)
+            self.neural_plot_vtick.setPos(x_pos)
             frame = int(x_pos)
         else:
-            self.neural_vtick.setPos(self.cframe)
+            self.neural_plot_vtick.setPos(self.cframe)
             frame = self.cframe
         # Check if x position is within the neural activity plot's current range of view
         if (
@@ -2112,7 +2158,7 @@ class MainW(QtWidgets.QMainWindow):
         ):
             self.neural_predictions_plot.getViewBox().setXRange(frame, frame, padding=0)
             self.neural_predictions_plot.getViewBox().updateAutoRange()
-        self.setFrame.setText(str(frame))
+        self.current_frame_lineedit.setText(str(frame))
 
     def update_behavior_data(self):
         """
