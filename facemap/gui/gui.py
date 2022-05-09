@@ -176,6 +176,9 @@ class MainW(QtWidgets.QMainWindow):
         self.keypoints_traces_plot = self.win.addPlot(
             name="keypoints_traces_plot", row=0, col=1, title="Keypoints traces"
         )
+        self.keypoints_traces_plot.scene().sigMouseClicked.connect(
+            self.on_click_keypoints_plot
+        )
         self.keypoints_traces_plot.setMouseEnabled(x=True, y=False)
         self.keypoints_traces_plot.setMenuEnabled(False)
         self.keypoints_traces_plot.hideAxis("left")
@@ -800,7 +803,8 @@ class MainW(QtWidgets.QMainWindow):
         self.update_pose()
         if self.neural_data_loaded:
             self.update_neural_data_vtick()
-        # self.frameNumber.setText(str(self.cframe))
+        if self.is_pose_loaded:
+            self.update_keypoints_vtick()
         self.total_frames_label.setText("/ " + str(self.nframes) + " frames")
         self.win.show()
         self.show()
@@ -1108,6 +1112,7 @@ class MainW(QtWidgets.QMainWindow):
                 color=None,
                 keypoint_selected="eye(back)",
             )
+            self.plot_scatter()
 
     def update_pose(self):
         if self.is_pose_loaded and self.keypoints_checkbox.isChecked():
@@ -1166,18 +1171,6 @@ class MainW(QtWidgets.QMainWindow):
             and len(points) > 0
         ):
             keypoint_name = points[0].data()
-            keypoint_index = np.where(self.keypoints_labels[0] == keypoint_name)[0][0]
-            # Get x and y coordinates of keypoint clicked
-            x_coord = np.array(self.pose_x_coord[0][keypoint_index]).squeeze()
-            y_coord = np.array(self.pose_y_coord[0][keypoint_index]).squeeze()
-            # Mean center coordinates
-            x_coord -= np.mean(x_coord)
-            y_coord -= np.mean(y_coord)
-            # Update traces1
-            self.traces1 = []
-            self.traces1.append(x_coord)
-            self.traces1.append(y_coord)
-            self.traces1 = np.array(self.traces1)
             # Plot trace of keypoint clicked
             self.plot_trace(
                 wplot=1,
@@ -1493,6 +1486,12 @@ class MainW(QtWidgets.QMainWindow):
                 brush=pg.mkBrush(255, 255, 255),
             )
             self.svd_traces_plot.addItem(self.scatter2)
+            self.svd_plot_vtick = pg.InfiniteLine(
+                pos=self.cframe,
+                angle=90,
+                pen=pg.mkPen(color=(255, 255, 255), width=2, movable=True),
+            )
+            self.svd_traces_plot.addItem(self.svd_plot_vtick)
 
     def plot_trace(self, wplot, proctype, wroi, color, keypoint_selected=None):
         if wplot == 1:
@@ -1619,8 +1618,42 @@ class MainW(QtWidgets.QMainWindow):
             lg.setPos(wp.x(), wp.y())
             wp.setRange(xRange=(0, x_trace.shape[1]))
             tr = None
+            self.keypoints_plot_vtick = pg.InfiniteLine(
+                pos=self.cframe,
+                angle=90,
+                pen=pg.mkPen(color=(255, 255, 255), width=2, movable=True),
+            )
+            wp.addItem(self.keypoints_plot_vtick)
         wp.setLimits(xMin=0, xMax=self.nframes)
         return tr
+
+    def on_click_keypoints_plot(self, event):
+        """
+        Update keypoints vtick position when user clicks on keypoints plot
+        """
+        if event.button() == QtCore.Qt.LeftButton:
+            mouse_point = self.keypoints_traces_plot.vb.mapSceneToView(event._scenePos)
+            self.update_keypoints_vtick(mouse_point.x())
+
+    def update_keypoints_vtick(self, x_pos=None):
+        """
+        Update the vertical line indicating the current frame in the plot by setting the x position (x_pos) of the vertical line
+        """
+        if x_pos is not None:
+            self.keypoints_plot_vtick.setPos(x_pos)
+            frame = int(x_pos)
+        else:
+            self.keypoints_plot_vtick.setPos(self.cframe)
+            frame = self.cframe
+        # Check if x position is within the plot's current range of view
+        if (
+            not self.keypoints_traces_plot.getViewBox().viewRange()[0][0]
+            <= frame
+            <= self.keypoints_traces_plot.getViewBox().viewRange()[0][1]
+        ):
+            self.keypoints_traces_plot.getViewBox().setXRange(frame, frame, padding=0)
+            self.keypoints_traces_plot.getViewBox().updateAutoRange()
+        self.setFrame.setText(str(frame))
 
     def plot_clicked(self, event):
         items = self.win.scene().items(event.scenePos())
@@ -2050,8 +2083,11 @@ class MainW(QtWidgets.QMainWindow):
         self.neural_predictions_plot.setLimits(xMin=0, xMax=self.nframes)
 
     def on_click_neural_activity_plot(self, event):
-        mouse_point = self.neural_predictions_plot.vb.mapSceneToView(event._scenePos)
-        self.update_neural_data_vtick(mouse_point.x())
+        if self.neural_data_loaded:
+            mouse_point = self.neural_predictions_plot.vb.mapSceneToView(
+                event._scenePos
+            )
+            self.update_neural_data_vtick(mouse_point.x())
 
     def on_click_neural_predictions_plot(self, event):
         mouse_point = self.neural_predictions.vb.mapSceneToView(event._scenePos)

@@ -17,6 +17,7 @@ from PyQt5.QtWidgets import (
 )
 from pyqtgraph import Point
 
+
 ## Following is adapted from https://stackoverflow.com/a/17108463 for a faster implementation of the multiline plot for neural activity
 class MultiLine(pg.QtGui.QGraphicsPathItem):
     def __init__(self, x, y):
