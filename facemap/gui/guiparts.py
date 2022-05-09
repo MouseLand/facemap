@@ -96,7 +96,7 @@ class Slider(QSlider):
             parent.saturation[parent.iROI] = parent.sat[bid]
             if len(parent.ROIs) > 0:
                 parent.ROIs[parent.iROI].plot(parent)
-        parent.win.show()
+        parent.roi_embed_window.show()
 
 
 class TextChooser(QDialog):

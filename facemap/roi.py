@@ -79,7 +79,7 @@ class reflectROI:
             if i > self.wROI:
                 parent.rROI[self.iROI][i].wROI -= 1
         del parent.rROI[self.iROI][self.wROI]
-        parent.win.show()
+        parent.roi_embed_window.show()
         parent.show()
 
     def position(self, parent):
@@ -125,7 +125,7 @@ class reflectROI:
             parent.rROI[self.iROI],
         )
 
-        parent.sl[1].setValue(parent.saturation[self.iROI] * 100 / 255)
+        parent.sl[1].setValue(int(parent.saturation[self.iROI] * 100 / 255))
         parent.ROIs[self.iROI].plot(parent)
 
 
@@ -293,10 +293,10 @@ class sROI:
             )
         parent.sl[1].setValue(int(parent.saturation[self.iROI] * 100 / 255))
 
-        index = parent.clusteringVisComboBox.findText("ROI", QtCore.Qt.MatchFixedString)
+        index = parent.roi_embed_combobox.findText("ROI", QtCore.Qt.MatchFixedString)
         if index >= 0:
-            parent.clusteringVisComboBox.setCurrentIndex(index)
-        parent.roiVisComboBox.setCurrentIndex(self.iROI + 1)
+            parent.roi_embed_combobox.setCurrentIndex(index)
+        parent.roi_display_combobox.setCurrentIndex(self.iROI + 1)
         parent.display_ROI()  # self.plot(parent)
 
     def remove(self, parent):
@@ -314,7 +314,7 @@ class sROI:
         parent.nROIs -= 1
         parent.pROIimg.clear()
         parent.pROI.removeItem(parent.scatter)
-        parent.win.show()
+        parent.roi_embed_window.show()
         parent.show()
         parent.update_ROI_vis_comboBox()
 
@@ -413,7 +413,7 @@ class sROI:
                         )
                         parent.keypoints_traces_plot.setLimits(xMin=0, xMax=nframes)
                         parent.keypoints_traces_plot.show()
-                        parent.win.show()
+                        parent.roi_embed_window.show()
                         parent.show()
                         parent.online_plotted = True
                 # self.svd_traces_plot.setLimits(xMin=0,xMax=self.nframes)
@@ -434,10 +434,10 @@ class sROI:
             fr = np.maximum(0, fr - (255.0 - sat))
             parent.pROIimg.setImage(255 - fr)
             parent.pROIimg.setLevels([255 - sat, 255])
-        if parent.clusteringVisComboBox.currentText() != "ROI":
+        if parent.roi_embed_combobox.currentText() != "ROI":
             parent.pROIimg.clear()
         parent.pROI.setRange(
             xRange=(0, img.shape[1]), yRange=(0, img.shape[0]), padding=0.0
         )
-        parent.win.show()
+        parent.roi_embed_window.show()
         parent.show()

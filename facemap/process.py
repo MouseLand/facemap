@@ -698,7 +698,7 @@ def run(
         rois = utils.roi_to_dict(parent.ROIs, parent.rROI)
         Ly = parent.Ly
         Lx = parent.Lx
-        fullSVD = parent.checkBox.isChecked()
+        fullSVD = parent.multivideo_svd_checkbox.isChecked()
         save_mat = parent.save_mat.isChecked()
         sy = parent.sy
         sx = parent.sx

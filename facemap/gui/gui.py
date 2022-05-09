@@ -98,15 +98,23 @@ class MainW(QtWidgets.QMainWindow):
         self.scene_grid_layout = QGridLayout()
         self.central_widget.setLayout(self.scene_grid_layout)
         # --- cells image
-        self.win = pg.GraphicsLayoutWidget()
         self.sizeObject = QDesktopWidget().screenGeometry(-1)
         self.resize(self.sizeObject.width(), self.sizeObject.height())
-        self.win.move(self.sizeObject.height(), self.sizeObject.width())
-        self.win.resize(self.sizeObject.height(), self.sizeObject.width())
-        self.scene_grid_layout.addWidget(self.win, 1, 2, 25, 15)
-        layout = self.win.ci.layout
-        self.win.ci.layout.setRowStretchFactor(1, 1)
-        self.win.ci.layout.setColumnStretchFactor(1, 1)
+
+        self.video_window = pg.GraphicsLayoutWidget()
+        self.video_window.move(self.sizeObject.height(), self.sizeObject.width())
+        self.video_window.resize(self.sizeObject.height(), self.sizeObject.width())
+        self.scene_grid_layout.addWidget(self.video_window, 1, 2, 13, 7)
+
+        # Create a window for embedding and ROI plot
+        self.roi_embed_window = pg.GraphicsLayoutWidget()
+        self.roi_embed_window.move(self.sizeObject.height(), 0)
+        self.roi_embed_window.resize(self.sizeObject.height(), self.sizeObject.width())
+        self.scene_grid_layout.addWidget(self.roi_embed_window, 16, 2, 9, 7)
+
+        # Create a window for plots
+        self.plots_window = pg.GraphicsLayoutWidget()
+        self.scene_grid_layout.addWidget(self.plots_window, 1, 9, 24, 8)
 
         # Add logo
         # icon_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "mouse.png")
@@ -117,7 +125,7 @@ class MainW(QtWidgets.QMainWindow):
         # self.scene_grid_layout.addWidget(self.logoLabel,0,0,3,2)
 
         # A plot area (ViewBox + axes) for displaying the image
-        self.p0 = self.win.addViewBox(
+        self.p0 = self.video_window.addViewBox(
             lockAspect=True, row=0, col=0, rowspan=2, invertY=True
         )
         self.p0.setMenuEnabled(False)
@@ -125,7 +133,7 @@ class MainW(QtWidgets.QMainWindow):
         self.p0.addItem(self.pimg)
 
         # image ROI
-        self.pROI = self.win.addViewBox(
+        self.pROI = self.roi_embed_window.addViewBox(
             lockAspect=True, row=2, col=0, rowspan=2, invertY=True
         )
         # Set size of pROI to be the same as p0
@@ -147,13 +155,12 @@ class MainW(QtWidgets.QMainWindow):
         txt = ["Saturation:", "ROI Saturation:"]
         self.sat = [255, 255]
         for j in range(2):
+            row = j * 14
             self.sl.append(guiparts.Slider(j, self))
-            self.scene_grid_layout.addWidget(
-                self.sl[j], 1, 3 + 3 * j, 1, 2
-            )  # +5*j,1,2)
+            self.scene_grid_layout.addWidget(self.sl[j], row + 1, 3, 1, 2)  # +5*j,1,2)
             qlabel = QLabel(txt[j])
             qlabel.setStyleSheet("color: white;")
-            self.scene_grid_layout.addWidget(qlabel, 0, 3 + 3 * j, 1, 1)
+            self.scene_grid_layout.addWidget(qlabel, row, 3, 1, 1)
         self.sl[0].valueChanged.connect(self.set_saturation_label)
         self.sl[1].valueChanged.connect(self.set_ROI_saturation_label)
 
@@ -163,7 +170,7 @@ class MainW(QtWidgets.QMainWindow):
         self.scene_grid_layout.addWidget(self.saturation_level_label, 0, 5, 1, 1)
         self.roi_saturation_label = QLabel(str(self.sl[1].value()))
         self.roi_saturation_label.setStyleSheet("color: white;")
-        self.scene_grid_layout.addWidget(self.roi_saturation_label, 0, 8, 1, 1)
+        self.scene_grid_layout.addWidget(self.roi_saturation_label, 14, 5, 1, 1)
 
         # Reflector
         self.reflector = QPushButton("Add corneal reflection")
@@ -173,7 +180,7 @@ class MainW(QtWidgets.QMainWindow):
         self.reflectors = []
 
         # Plots
-        self.keypoints_traces_plot = self.win.addPlot(
+        self.keypoints_traces_plot = self.plots_window.addPlot(
             name="keypoints_traces_plot", row=0, col=1, title="Keypoints traces"
         )
         self.keypoints_traces_plot.scene().sigMouseClicked.connect(
@@ -194,7 +201,7 @@ class MainW(QtWidgets.QMainWindow):
             ["paw"],
         ]
 
-        self.svd_traces_plot = self.win.addPlot(
+        self.svd_traces_plot = self.plots_window.addPlot(
             name="svd_traces_plot", row=1, col=1, title="SVD traces"
         )
         self.svd_traces_plot.scene().sigMouseClicked.connect(self.on_click_svd_plot)
@@ -207,7 +214,7 @@ class MainW(QtWidgets.QMainWindow):
         self.svd_plot_vtick = None
 
         # Add third plot
-        self.neural_activity_plot = self.win.addPlot(
+        self.neural_activity_plot = self.plots_window.addPlot(
             name="neural_activity_plot", row=2, col=1, title="Neural activity"
         )
         self.neural_activity_plot.scene().sigMouseClicked.connect(
@@ -221,7 +228,7 @@ class MainW(QtWidgets.QMainWindow):
         self.neural_plot_vtick = None
 
         # Add fourth plot
-        self.neural_predictions_plot = self.win.addPlot(
+        self.neural_predictions_plot = self.plots_window.addPlot(
             name="neural_predictions_plot", row=3, col=1, title="Neural predictions"
         )
         self.neural_predictions_plot.scene().sigMouseClicked.connect(
@@ -250,7 +257,7 @@ class MainW(QtWidgets.QMainWindow):
         self.bbox_set = False
         self.resize_img, self.add_padding = False, False
 
-        self.clustering_plot = self.win.addPlot(
+        self.clustering_plot = self.roi_embed_window.addPlot(
             row=2, col=0, rowspan=2, lockAspect=True, enableMouse=False
         )
         self.clustering_plot.hideAxis("left")
@@ -282,8 +289,8 @@ class MainW(QtWidgets.QMainWindow):
         self.cframe = 0
         self.loaded = False
         self.wraw = False
-        self.win.scene().sigMouseClicked.connect(self.plot_clicked)
-        self.win.show()
+        self.video_window.scene().sigMouseClicked.connect(self.plot_clicked)
+        self.video_window.show()
         self.show()
         self.processed = False
         if moviefile is not None:
@@ -312,12 +319,12 @@ class MainW(QtWidgets.QMainWindow):
         facemap_label.setStyleSheet("color: white;")
         facemap_label.setAlignment(QtCore.Qt.AlignCenter)
         facemap_label.setFont(QFont("Arial", 16, QFont.Bold))
-        SVDbinLabel = QLabel("SVD spatial bin:")
-        SVDbinLabel.setStyleSheet("color: gray;")
-        self.binSpinBox = QSpinBox()
-        self.binSpinBox.setRange(1, 20)
-        self.binSpinBox.setValue(self.ops["sbin"])
-        self.binSpinBox.setFixedWidth(50)
+        svdbin_label = QLabel("SVD spatial bin:")
+        svdbin_label.setStyleSheet("color: gray;")
+        self.svdbin_spinbox = QSpinBox()
+        self.svdbin_spinbox.setRange(1, 20)
+        self.svdbin_spinbox.setValue(self.ops["sbin"])
+        self.svdbin_spinbox.setFixedWidth(50)
         binLabel = QLabel("Pupil sigma:")
         binLabel.setStyleSheet("color: gray;")
         self.sigma_box = QLineEdit()
@@ -341,7 +348,7 @@ class MainW(QtWidgets.QMainWindow):
         self.frame_slider.setTracking(False)
         self.frame_slider.valueChanged.connect(self.go_to_frame)
         self.frameDelta = 10
-        istretch = 20
+        istretch = 15
         iplay = istretch + 10
         iconSize = QtCore.QSize(20, 20)
 
@@ -389,6 +396,12 @@ class MainW(QtWidgets.QMainWindow):
         self.playButton.setToolTip("Play")
         self.playButton.setCheckable(True)
         self.playButton.clicked.connect(self.start)
+        self.playButton.setFixedSize(
+            QtCore.QSize(
+                np.floor(self.sizeObject.width() * 0.025).astype(int),
+                np.floor(self.sizeObject.width() * 0.025).astype(int),
+            )
+        )
         self.pauseButton = QToolButton()
         self.pauseButton.setCheckable(True)
         self.pauseButton.setIcon(
@@ -397,6 +410,12 @@ class MainW(QtWidgets.QMainWindow):
         self.pauseButton.setIconSize(iconSize)
         self.pauseButton.setToolTip("Pause")
         self.pauseButton.clicked.connect(self.pause)
+        self.pauseButton.setFixedSize(
+            QtCore.QSize(
+                np.floor(self.sizeObject.width() * 0.025).astype(int),
+                np.floor(self.sizeObject.width() * 0.025).astype(int),
+            )
+        )
         btns = QButtonGroup(self)
         btns.addButton(self.playButton, 0)
         btns.addButton(self.pauseButton, 1)
@@ -419,17 +438,17 @@ class MainW(QtWidgets.QMainWindow):
         self.addROI.setEnabled(False)
 
         # Add clustering analysis/visualization features
-        self.clusteringVisComboBox = QComboBox(self)
-        self.clusteringVisComboBox.addItem("--Select display--")
-        self.clusteringVisComboBox.addItem("ROI")
-        self.clusteringVisComboBox.addItem("UMAP")
-        self.clusteringVisComboBox.addItem("tSNE")
-        self.clusteringVisComboBox.currentIndexChanged.connect(
+        self.roi_embed_combobox = QComboBox(self)
+        self.roi_embed_combobox.addItem("--Select display--")
+        self.roi_embed_combobox.addItem("ROI")
+        self.roi_embed_combobox.addItem("UMAP")
+        self.roi_embed_combobox.addItem("tSNE")
+        self.roi_embed_combobox.currentIndexChanged.connect(
             self.vis_combobox_selection_changed
         )
-        self.roiVisComboBox = QComboBox(self)
-        self.roiVisComboBox.hide()
-        self.roiVisComboBox.activated.connect(self.display_ROI)
+        self.roi_display_combobox = QComboBox(self)
+        self.roi_display_combobox.hide()
+        self.roi_display_combobox.activated.connect(self.display_ROI)
         self.run_clustering_button = QPushButton("Run")
         self.run_clustering_button.setFont(QFont("Arial", 10, QFont.Bold))
         self.run_clustering_button.clicked.connect(
@@ -462,10 +481,10 @@ class MainW(QtWidgets.QMainWindow):
         self.zoom_out_button.hide()
 
         # Check boxes
-        self.checkBox = QCheckBox("multivideo SVD")
-        self.checkBox.setStyleSheet("color: gray;")
+        self.multivideo_svd_checkbox = QCheckBox("multivideo SVD")
+        self.multivideo_svd_checkbox.setStyleSheet("color: gray;")
         if self.ops["fullSVD"]:
-            self.checkBox.toggle()
+            self.multivideo_svd_checkbox.toggle()
         self.save_mat = QCheckBox("Save *.mat")
         self.save_mat.setStyleSheet("color: gray;")
         if self.ops["save_mat"]:
@@ -480,14 +499,14 @@ class MainW(QtWidgets.QMainWindow):
         self.scene_grid_layout.addWidget(facemap_label, 0, 0, 1, 2)
         self.scene_grid_layout.addWidget(self.comboBox, 1, 0, 1, 1)
         self.scene_grid_layout.addWidget(self.addROI, 1, 1, 1, 1)
-        self.scene_grid_layout.addWidget(self.reflector, 0, 14, 1, 2)
-        self.scene_grid_layout.addWidget(SVDbinLabel, 2, 0, 1, 2)
-        self.scene_grid_layout.addWidget(self.binSpinBox, 2, 1, 1, 2)
+        self.scene_grid_layout.addWidget(self.reflector, 0, 6, 1, 2)
+        self.scene_grid_layout.addWidget(svdbin_label, 2, 0, 1, 2)
+        self.scene_grid_layout.addWidget(self.svdbin_spinbox, 2, 1, 1, 2)
         self.scene_grid_layout.addWidget(binLabel, 3, 0, 1, 1)
         self.scene_grid_layout.addWidget(self.sigma_box, 3, 1, 1, 1)
         self.scene_grid_layout.addWidget(self.motSVD_checkbox, 4, 0, 1, 1)
         self.scene_grid_layout.addWidget(self.movSVD_checkbox, 4, 1, 1, 1)
-        self.scene_grid_layout.addWidget(self.checkBox, 5, 0, 1, 1)
+        self.scene_grid_layout.addWidget(self.multivideo_svd_checkbox, 5, 0, 1, 1)
         self.scene_grid_layout.addWidget(self.save_mat, 5, 1, 1, 1)
         self.scene_grid_layout.addWidget(self.saverois, 6, 1, 1, 1)
         self.scene_grid_layout.addWidget(self.process, 7, 0, 1, 1)
@@ -497,13 +516,13 @@ class MainW(QtWidgets.QMainWindow):
         # ~~~~~~~~~~ Pose features ~~~~~~~~~~
         self.scene_grid_layout.addWidget(self.keypoints_checkbox, 6, 0, 1, 1)
         # ~~~~~~~~~~ clustering & ROI visualization window features
-        self.scene_grid_layout.addWidget(self.clusteringVisComboBox, 0, 11, 1, 1)
-        self.scene_grid_layout.addWidget(self.data_clustering_combobox, 0, 12, 1, 2)
-        self.scene_grid_layout.addWidget(self.roiVisComboBox, 0, 12, 1, 2)
-        self.scene_grid_layout.addWidget(self.zoom_in_button, 0, 12, 1, 1)
-        self.scene_grid_layout.addWidget(self.zoom_out_button, 0, 13, 1, 1)
-        self.scene_grid_layout.addWidget(self.run_clustering_button, 0, 14, 1, 1)
-        self.scene_grid_layout.addWidget(self.save_clustering_button, 0, 15, 1, 1)
+        self.scene_grid_layout.addWidget(self.roi_embed_combobox, 14, 6, 1, 1)
+        self.scene_grid_layout.addWidget(self.roi_display_combobox, 15, 6, 1, 1)
+        self.scene_grid_layout.addWidget(self.data_clustering_combobox, 15, 6, 1, 1)
+        self.scene_grid_layout.addWidget(self.zoom_in_button, 14, 7, 1, 1)
+        self.scene_grid_layout.addWidget(self.zoom_out_button, 14, 8, 1, 1)
+        self.scene_grid_layout.addWidget(self.run_clustering_button, 15, 7, 1, 1)
+        self.scene_grid_layout.addWidget(self.save_clustering_button, 15, 8, 1, 1)
         #   ~~~~~~~~~~ Video playback ~~~~~~~~~~
         self.scene_grid_layout.addWidget(self.playButton, iplay, 0, 1, 1)
         self.scene_grid_layout.addWidget(self.pauseButton, iplay, 1, 1, 1)
@@ -542,7 +561,9 @@ class MainW(QtWidgets.QMainWindow):
             self.plot1_checkboxes.append(QCheckBox(self.keypoints_groups[i]))
             self.plot1_checkboxes[-1].setEnabled(False)
             self.plot1_checkboxes[-1].setStyleSheet("color: gray;")
-            self.plot1_checkboxes[-1].toggled.connect(self.keypoint_checkbox_toggled)
+            self.plot1_checkboxes[-1].toggled.connect(
+                self.keypoint_subgroup_checkbox_toggled
+            )
             self.scene_grid_layout.addWidget(
                 self.plot1_checkboxes[-1], istretch + 1 + i, 0, 1, 1
             )
@@ -593,7 +614,7 @@ class MainW(QtWidgets.QMainWindow):
         self.clear_visualization_window()
         # Clear clusters
         self.cluster_model.disable_data_clustering_features(self)
-        self.clusteringVisComboBox.setCurrentIndex(0)
+        self.roi_embed_combobox.setCurrentIndex(0)
         self.clustering_plot.clear()
         self.clustering_plot_legend.clear()
         # Clear keypoints when a new file is loaded
@@ -802,7 +823,7 @@ class MainW(QtWidgets.QMainWindow):
             self.online_plotted = False
             # online.get_frame(self)
 
-        if len(self.ROIs) > 0 and self.clusteringVisComboBox.currentText() == "ROI":
+        if len(self.ROIs) > 0 and self.roi_embed_combobox.currentText() == "ROI":
             self.ROIs[self.iROI].plot(self)
 
         self.pimg.setImage(self.fullimg)
@@ -816,7 +837,7 @@ class MainW(QtWidgets.QMainWindow):
         if self.processed or self.trace2_data_loaded is not None:
             self.update_svd_vtick()
         self.total_frames_label.setText("/ " + str(self.nframes) + " frames")
-        self.win.show()
+        self.video_window.show()
         self.show()
 
     def start(self):
@@ -848,7 +869,7 @@ class MainW(QtWidgets.QMainWindow):
             "sbin": self.sbin,
             "pupil_sigma": float(self.sigma_box.text()),
             "save_path": self.save_path,
-            "fullSVD": self.checkBox.isChecked(),
+            "fullSVD": self.multivideo_svd_checkbox.isChecked(),
             "save_mat": self.save_mat.isChecked(),
         }
         opsfile = os.path.join(
@@ -864,7 +885,7 @@ class MainW(QtWidgets.QMainWindow):
         self.pauseButton.setChecked(True)
         self.process.setEnabled(True)
         self.saverois.setEnabled(True)
-        self.checkBox.setChecked(True)
+        self.multivideo_svd_checkbox.setChecked(True)
         self.save_mat.setChecked(True)
         self.load_trace2_button.setEnabled(True)
 
@@ -881,7 +902,7 @@ class MainW(QtWidgets.QMainWindow):
     ### ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~  Process options ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
     def save_ROIs(self):
-        self.sbin = int(self.binSpinBox.value())
+        self.sbin = int(self.svdbin_spinbox.value())
         # save running parameters as defaults
         ops = self.save_ops()
         if len(self.save_path) > 0:
@@ -950,7 +971,7 @@ class MainW(QtWidgets.QMainWindow):
             io.open_proc(self, file_name=savename)
 
     def process_ROIs(self):
-        self.sbin = int(self.binSpinBox.value())
+        self.sbin = int(self.svdbin_spinbox.value())
         # save running parameters as defaults
         ops = self.save_ops()
         if len(self.save_path) > 0:
@@ -1198,23 +1219,25 @@ class MainW(QtWidgets.QMainWindow):
             )
             # self.plot_scatter()
 
-    def keypoint_checkbox_toggled(self, obj):
-        if not (self.is_pose_loaded and self.keypoints_checkbox.isChecked()):
-            return
-        # Get names of plot 1 checkboxes that are checked
-        checked_checkboxes = [
-            self.plot1_checkboxes[i].text()
-            for i in range(len(self.plot1_checkboxes))
-            if self.plot1_checkboxes[i].isChecked()
-        ]
-        # Plot traces of keypoints that are checked
-        self.plot_trace(
-            wplot=1,
-            proctype=5,
-            wroi=None,
-            color=None,
-            keypoints_group_selected=checked_checkboxes,
-        )
+    def keypoint_subgroup_checkbox_toggled(self, obj):
+        if self.is_pose_loaded and self.keypoints_checkbox.isChecked():
+            # Get names of plot 1 checkboxes that are checked
+            checked_checkboxes = [
+                self.plot1_checkboxes[i].text()
+                for i in range(len(self.plot1_checkboxes))
+                if self.plot1_checkboxes[i].isChecked()
+            ]
+            if len(checked_checkboxes) > 0:
+                # Plot traces of keypoints that are checked
+                self.plot_trace(
+                    wplot=1,
+                    proctype=5,
+                    wroi=None,
+                    color=None,
+                    keypoints_group_selected=checked_checkboxes,
+                )
+            else:
+                self.keypoints_traces_plot.clear()
 
     def keypoints_hovered(self, obj, ev):
         point_hovered = np.where(self.pose_scatterplot.data["hovered"])[0]
@@ -1594,6 +1617,7 @@ class MainW(QtWidgets.QMainWindow):
                     keypoints_group_selected
                 ),
             )
+            # Position legend at the top right corner
             lg.setPos(selected_plot.x(), selected_plot.y())
             selected_plot.setRange(xRange=(0, x_trace.shape[1]))
             tr = None
@@ -1663,7 +1687,7 @@ class MainW(QtWidgets.QMainWindow):
         self.current_frame_lineedit.setText(str(frame))
 
     def plot_clicked(self, event):
-        items = self.win.scene().items(event.scenePos())
+        items = self.video_window.scene().items(event.scenePos())
         posx = 0
         posy = 0
         iplot = 0
@@ -2148,7 +2172,7 @@ class MainW(QtWidgets.QMainWindow):
         Call clustering or ROI display functions upon user selection from combo box
         """
         self.clear_visualization_window()
-        visualization_request = int(self.clusteringVisComboBox.currentIndex())
+        visualization_request = int(self.roi_embed_combobox.currentIndex())
         self.reflector.show()
         if visualization_request == 1:  # ROI
             self.cluster_model.disable_data_clustering_features(self)
@@ -2165,7 +2189,7 @@ class MainW(QtWidgets.QMainWindow):
             self.cluster_model.disable_data_clustering_features(self)
 
     def clear_visualization_window(self):
-        self.roiVisComboBox.hide()
+        self.roi_display_combobox.hide()
         self.pROIimg.clear()
         self.pROI.removeItem(self.scatter)
         self.clustering_plot.clear()
@@ -2188,21 +2212,23 @@ class MainW(QtWidgets.QMainWindow):
         """
         Update ROI selection combo box
         """
-        self.roiVisComboBox.clear()
+        self.roi_display_combobox.clear()
         self.pROIimg.clear()
-        self.roiVisComboBox.addItem("--Type--")
+        self.roi_display_combobox.addItem("--Type--")
         for i in range(len(self.ROIs)):
             selected = self.ROIs[i]
-            self.roiVisComboBox.addItem(str(selected.iROI + 1) + ". " + selected.rtype)
-        if self.clusteringVisComboBox.currentText() == "ROI":
-            self.roiVisComboBox.show()
+            self.roi_display_combobox.addItem(
+                str(selected.iROI + 1) + ". " + selected.rtype
+            )
+        if self.roi_embed_combobox.currentText() == "ROI":
+            self.roi_display_combobox.show()
 
     def display_ROI(self):
         """
         Plot selected ROI on visualizaiton window
         """
-        self.roiVisComboBox.show()
-        roi_request = self.roiVisComboBox.currentText()
+        self.roi_display_combobox.show()
+        roi_request = self.roi_display_combobox.currentText()
         if roi_request != "--Type--":
             self.pROI.addItem(self.scatter)
             roi_request_ind = int(roi_request.split(".")[0]) - 1
