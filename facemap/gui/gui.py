@@ -185,6 +185,14 @@ class MainW(QtWidgets.QMainWindow):
         self.scatter1 = pg.ScatterPlotItem()
         self.keypoints_traces_plot.addItem(self.scatter1)
         self.keypoints_plot_vtick = None
+        self.keypoints_groups = ["Eye", "Nose", "Whiskers", "Mouth", "Paw"]
+        self.keypoints_subgroups = [
+            ["eye(back)", "eye(bottom)", "eye(front)", "eye(top)"],
+            ["nose(bottom)", "nose(r)", "nose(tip)", "nose(top)", "nosebridge"],
+            ["whisker(c1)", "whisker(c2)", "whisker(d1)"],
+            ["lowerlip", "mouth"],
+            ["paw"],
+        ]
 
         self.svd_traces_plot = self.win.addPlot(
             name="svd_traces_plot", row=1, col=1, title="SVD traces"
@@ -517,14 +525,6 @@ class MainW(QtWidgets.QMainWindow):
         plot_label = QLabel("SVD traces")
         plot_label.setStyleSheet("color: gray;")
         self.scene_grid_layout.addWidget(plot_label, istretch, 1, 1, 1)
-        self.load_trace1_button = QPushButton("Load 1D data")
-        self.load_trace1_button.setFont(QFont("Arial", 12))
-        self.load_trace1_button.clicked.connect(
-            lambda: self.load_1dtrace_button_clicked(1)
-        )
-        self.load_trace1_button.setEnabled(False)
-        self.trace1_data_loaded = None
-        self.trace1_legend = pg.LegendItem(labelTextSize="12pt", horSpacing=30)
         self.load_trace2_button = QPushButton("Load 1D data")
         self.load_trace2_button.setFont(QFont("Arial", 12))
         self.load_trace2_button.clicked.connect(
@@ -533,25 +533,27 @@ class MainW(QtWidgets.QMainWindow):
         self.load_trace2_button.setEnabled(False)
         self.trace2_data_loaded = None
         self.trace2_legend = pg.LegendItem(labelTextSize="12pt", horSpacing=30)
-        self.scene_grid_layout.addWidget(self.load_trace1_button, istretch + 1, 0, 1, 1)
         self.scene_grid_layout.addWidget(self.load_trace2_button, istretch + 1, 1, 1, 1)
         self.plot1_checkboxes = []
         self.plot2_checkboxes = []
         self.lbls = []
-        for k in range(4):
-            self.plot1_checkboxes.append(QCheckBox(""))
+        # Set plot 1 checkboxes
+        for i in range(len(self.keypoints_groups)):
+            self.plot1_checkboxes.append(QCheckBox(self.keypoints_groups[i]))
+            self.plot1_checkboxes[-1].setEnabled(False)
+            self.plot1_checkboxes[-1].setStyleSheet("color: gray;")
+            self.plot1_checkboxes[-1].toggled.connect(self.keypoint_checkbox_toggled)
             self.scene_grid_layout.addWidget(
-                self.plot1_checkboxes[-1], istretch + 2 + k, 0, 1, 1
+                self.plot1_checkboxes[-1], istretch + 1 + i, 0, 1, 1
             )
+        # Set plot 2 checkboxes
+        for k in range(4):
             self.plot2_checkboxes.append(QCheckBox(""))
             self.scene_grid_layout.addWidget(
                 self.plot2_checkboxes[-1], istretch + 2 + k, 1, 1, 1
             )
-            self.plot1_checkboxes[-1].toggled.connect(self.plot_processed)
             self.plot2_checkboxes[-1].toggled.connect(self.plot_processed)
-            self.plot1_checkboxes[-1].setEnabled(False)
             self.plot2_checkboxes[-1].setEnabled(False)
-            self.plot1_checkboxes[k].setStyleSheet("color: gray;")
             self.plot2_checkboxes[k].setStyleSheet("color: gray;")
             self.lbls.append(QLabel(""))
             self.lbls[-1].setStyleSheet("color: white;")
@@ -597,19 +599,17 @@ class MainW(QtWidgets.QMainWindow):
         # Clear keypoints when a new file is loaded
         self.pose_scatterplot.clear()
         self.is_pose_loaded = False
-        self.trace1_data_loaded = None
         self.trace2_data_loaded = None
-        self.traces1 = None
         self.traces2 = None
         # clear checkboxes
         for k in range(len(self.plot1_checkboxes)):
-            self.plot1_checkboxes[k].setText("")
-            self.plot2_checkboxes[k].setText("")
-            self.lbls[k].setText("")
             self.plot1_checkboxes[k].setEnabled(False)
-            self.plot2_checkboxes[k].setEnabled(False)
             self.plot1_checkboxes[k].setChecked(False)
+        for k in range(len(self.plot2_checkboxes)):
+            self.plot2_checkboxes[k].setText("")
+            self.plot2_checkboxes[k].setEnabled(False)
             self.plot2_checkboxes[k].setChecked(False)
+            self.lbls[k].setText("")
         # Clear pose variables
         self.pose_model = None
         self.poseFilepath = []
@@ -798,15 +798,6 @@ class MainW(QtWidgets.QMainWindow):
                     self.sx[i] : self.sx[i] + self.Lx[i],
                 ] = self.img[i]
             self.frame_slider.setValue(self.cframe)
-            """
-            if (
-                self.processed
-                or self.trace1_data_loaded is not None
-                or self.trace2_data_loaded is not None
-                or self.is_pose_loaded
-            ):
-                self.plot_scatter()
-            """
         else:
             self.online_plotted = False
             # online.get_frame(self)
@@ -822,7 +813,7 @@ class MainW(QtWidgets.QMainWindow):
             self.update_neural_data_vtick()
         if self.is_pose_loaded:
             self.update_keypoints_vtick()
-        if self.processed:
+        if self.processed or self.trace2_data_loaded is not None:
             self.update_svd_vtick()
         self.total_frames_label.setText("/ " + str(self.nframes) + " frames")
         self.win.show()
@@ -875,7 +866,6 @@ class MainW(QtWidgets.QMainWindow):
         self.saverois.setEnabled(True)
         self.checkBox.setChecked(True)
         self.save_mat.setChecked(True)
-        self.load_trace1_button.setEnabled(True)
         self.load_trace2_button.setEnabled(True)
 
         # Enable pose features for single video only
@@ -1129,9 +1119,12 @@ class MainW(QtWidgets.QMainWindow):
                 proctype=5,
                 wroi=None,
                 color=None,
-                keypoint_selected="eye(back)",
+                keypoints_group_selected=["Eye"],
             )
-            # self.plot_scatter()
+        for k in range(len(self.plot1_checkboxes)):
+            self.plot1_checkboxes[k].setEnabled(True)
+        self.plot1_checkboxes[0].setChecked(True)
+        self.update_status_bar("Keypoints loaded", hide_progress=True)
 
     def update_pose(self):
         if self.is_pose_loaded and self.keypoints_checkbox.isChecked():
@@ -1190,15 +1183,38 @@ class MainW(QtWidgets.QMainWindow):
             and len(points) > 0
         ):
             keypoint_name = points[0].data()
+            # Get name of subgroup of keypoint clicked
+            for idx, subgroup in enumerate(self.keypoints_subgroups):
+                if keypoint_name in subgroup:
+                    keypoint_group_index = idx
+                    break
             # Plot trace of keypoint clicked
             self.plot_trace(
                 wplot=1,
                 proctype=5,
                 wroi=None,
                 color=None,
-                keypoint_selected=keypoint_name,
+                keypoints_group_selected=[self.keypoints_groups[keypoint_group_index]],
             )
             # self.plot_scatter()
+
+    def keypoint_checkbox_toggled(self, obj):
+        if not (self.is_pose_loaded and self.keypoints_checkbox.isChecked()):
+            return
+        # Get names of plot 1 checkboxes that are checked
+        checked_checkboxes = [
+            self.plot1_checkboxes[i].text()
+            for i in range(len(self.plot1_checkboxes))
+            if self.plot1_checkboxes[i].isChecked()
+        ]
+        # Plot traces of keypoints that are checked
+        self.plot_trace(
+            wplot=1,
+            proctype=5,
+            wroi=None,
+            color=None,
+            keypoints_group_selected=checked_checkboxes,
+        )
 
     def keypoints_hovered(self, obj, ev):
         point_hovered = np.where(self.pose_scatterplot.data["hovered"])[0]
@@ -1312,39 +1328,7 @@ class MainW(QtWidgets.QMainWindow):
                 vtick.moveTo(0, -1)
                 vtick.lineTo(0, 1)
 
-            if plot_id == 1:
-                self.trace1_data_loaded = data
-                self.trace1_data_type = data_type
-                self.trace1_name = data_name
-                if data_type == "discrete":
-                    x = np.arange(len(data))
-                    y = np.ones((len(x)))
-                    self.trace1_plot = pg.ScatterPlotItem()
-                    self.trace1_plot.setData(
-                        x,
-                        y,
-                        pen=pen_list,
-                        brush="g",
-                        pxMode=False,
-                        symbol=vtick,
-                        size=1,
-                        symbol_pen=pen_list,
-                    )
-                else:
-                    self.trace1_plot = pg.PlotDataItem()
-                    self.trace1_plot.setData(data, pen=pg.mkPen("g", width=1))
-                self.trace1_legend.clear()
-                self.trace1_legend.addItem(self.trace1_plot, name=data_name)
-                self.trace1_legend.setPos(self.trace1_plot.x(), self.trace1_plot.y())
-                self.trace1_legend.setParentItem(self.keypoints_traces_plot)
-                self.trace1_legend.setVisible(True)
-                self.trace1_plot.setVisible(True)
-                self.update_status_bar("Trace 1 data updated")
-                try:
-                    self.trace1_legend.sigClicked.connect(self.mouseClickEvent)
-                except Exception as e:
-                    pass
-            elif plot_id == 2:
+            if plot_id == 2:
                 self.trace2_data_loaded = data
                 self.trace2_data_type = data_type
                 self.trace2_name = data_name
@@ -1371,6 +1355,13 @@ class MainW(QtWidgets.QMainWindow):
                 self.trace2_legend.setParentItem(self.svd_traces_plot)
                 self.trace2_legend.setVisible(True)
                 self.trace2_plot.setVisible(True)
+                if self.svd_plot_vtick is None:
+                    self.svd_plot_vtick = pg.InfiniteLine(
+                        pos=self.cframe,
+                        angle=90,
+                        pen=pg.mkPen(color=(255, 255, 255), width=2, movable=True),
+                    )
+                    self.svd_traces_plot.addItem(self.svd_plot_vtick)
                 self.update_status_bar("Trace 2 data updated")
                 try:
                     self.trace2_legend.sigClicked.connect(self.mouseClickEvent)
@@ -1385,12 +1376,12 @@ class MainW(QtWidgets.QMainWindow):
             self.update_status_bar("Error: data not recognized")
 
     # Plot trace on keypoints_traces_plot showing cluster labels as discrete data
-    def plot_cluster_labels_p1(self, labels, color_palette):
+    def plot_cluster_labels(self, labels, color_palette):
         x = np.arange(len(labels))
         y = np.ones((len(x)))
-        self.trace1_data_loaded = y
-        self.trace1_data_type = "discrete"
-        self.trace1_name = "Cluster Labels"
+        self.trace2_data_loaded = y
+        self.trace2_data_type = "discrete"
+        self.trace2_name = "Cluster Labels"
         # Create a list of pens for each unique value in data
         # The pen is used to color the points in the scatter plot
         pen_list = np.empty(len(labels), dtype=object)
@@ -1401,8 +1392,8 @@ class MainW(QtWidgets.QMainWindow):
         vtick.moveTo(0, -1)
         vtick.lineTo(0, 1)
         # Plot trace 1 data points
-        self.trace1_plot = pg.ScatterPlotItem()
-        self.trace1_plot.setData(
+        self.trace2_plot = pg.ScatterPlotItem()
+        self.trace2_plot.setData(
             x,
             y,
             pen=pen_list,
@@ -1412,39 +1403,23 @@ class MainW(QtWidgets.QMainWindow):
             size=1,
             symbol_pen=pen_list,
         )
-        self.trace1_legend.clear()
-        self.trace1_legend.addItem(self.trace1_plot, name=self.trace1_name)
-        self.trace1_legend.setPos(self.trace1_plot.x(), self.trace1_plot.y())
-        self.trace1_legend.setParentItem(self.keypoints_traces_plot)
-        self.trace1_legend.setVisible(True)
-        self.trace1_plot.setVisible(True)
-        self.update_status_bar("Trace 1 data updated")
+        self.trace2_legend.clear()
+        self.trace2_legend.addItem(self.trace2_plot, name=self.trace2_name)
+        self.trace2_legend.setPos(self.trace2_plot.x(), self.trace2_plot.y())
+        self.trace2_legend.setParentItem(self.svd_traces_plot)
+        self.trace2_legend.setVisible(True)
+        self.trace2_plot.setVisible(True)
+        self.update_status_bar("Trace 2 data updated")
         try:
-            self.trace1_legend.sigClicked.connect(self.mouseClickEvent)
+            self.trace2_legend.sigClicked.connect(self.mouseClickEvent)
         except Exception as e:
             pass
         self.plot_processed()
 
     def plot_processed(self):
         self.svd_traces_plot.clear()
-        if self.traces1 is None:
-            self.traces1 = np.zeros((0, self.nframes))
         if self.traces2 is None:
             self.traces2 = np.zeros((0, self.nframes))
-        for k in range(len(self.plot1_checkboxes)):
-            if self.plot1_checkboxes[k].isChecked():
-                self.plot1_checkboxes[k].setText(self.lbls[k].text())
-                self.plot1_checkboxes[k].setStyleSheet(self.lbls[k].styleSheet())
-                tr = self.plot_trace(1, self.proctype[k], self.wroi[k], self.col[k])
-                if tr.ndim < 2:
-                    self.traces1 = np.concatenate(
-                        (self.traces1, tr[np.newaxis, :]), axis=0
-                    )
-                else:
-                    self.traces1 = np.concatenate((self.traces1, tr), axis=0)
-            else:
-                self.plot1_checkboxes[k].setText(self.lbls[k].text())
-                self.plot1_checkboxes[k].setStyleSheet("color: gray")
         for k in range(len(self.plot2_checkboxes)):
             if self.plot2_checkboxes[k].isChecked():
                 self.plot2_checkboxes[k].setText(self.lbls[k].text())
@@ -1459,15 +1434,6 @@ class MainW(QtWidgets.QMainWindow):
             else:
                 self.plot2_checkboxes[k].setText(self.lbls[k].text())
                 self.plot2_checkboxes[k].setStyleSheet("color: gray")
-        if self.trace1_data_loaded is not None:
-            self.keypoints_traces_plot.addItem(self.trace1_plot)
-            self.traces1 = np.concatenate(
-                (self.traces1, self.trace1_data_loaded[np.newaxis, :]), axis=0
-            )
-            self.keypoints_traces_plot.setRange(
-                xRange=(0, self.nframes), yRange=(-4, 4), padding=0.0
-            )
-            self.keypoints_traces_plot.show()
         if self.trace2_data_loaded is not None:
             self.svd_traces_plot.addItem(self.trace2_plot)
             self.traces2 = np.concatenate(
@@ -1476,9 +1442,16 @@ class MainW(QtWidgets.QMainWindow):
             self.svd_traces_plot.setRange(
                 xRange=(0, self.nframes), yRange=(-4, 4), padding=0.0
             )
+            if self.svd_plot_vtick is None:
+                self.svd_plot_vtick = pg.InfiniteLine(
+                    pos=self.cframe,
+                    angle=90,
+                    pen=pg.mkPen(color=(255, 255, 255), width=2, movable=True),
+                )
+                self.svd_traces_plot.addItem(self.svd_plot_vtick)
             self.svd_traces_plot.show()
-        self.keypoints_traces_plot.setLimits(xMin=0, xMax=self.nframes)
         self.svd_traces_plot.setLimits(xMin=0, xMax=self.nframes)
+
         # self.plot_scatter()
         self.jump_to_frame()
 
@@ -1505,17 +1478,18 @@ class MainW(QtWidgets.QMainWindow):
             )
             self.svd_traces_plot.addItem(self.scatter2)
 
-    def plot_trace(self, wplot, proctype, wroi, color, keypoint_selected=None):
+    def plot_trace(self, wplot, proctype, wroi, color, keypoints_group_selected=None):
         if wplot == 1:
             selected_plot = self.keypoints_traces_plot
         elif wplot == 2:
             selected_plot = self.svd_traces_plot
-            self.svd_plot_vtick = pg.InfiniteLine(
-                pos=self.cframe,
-                angle=90,
-                pen=pg.mkPen(color=(255, 255, 255), width=2, movable=True),
-            )
-            selected_plot.addItem(self.svd_plot_vtick)
+            if self.svd_plot_vtick is None:
+                self.svd_plot_vtick = pg.InfiniteLine(
+                    pos=self.cframe,
+                    angle=90,
+                    pen=pg.mkPen(color=(255, 255, 255), width=2, movable=True),
+                )
+                selected_plot.addItem(self.svd_plot_vtick)
         else:
             print("Invalid plot window")
             return
@@ -1579,50 +1553,37 @@ class MainW(QtWidgets.QMainWindow):
             selected_plot.plot(running[:, 0], pen=color)
             selected_plot.plot(running[:, 1], pen=color)
             tr = running.T
-        elif proctype == 5 and keypoint_selected is not None:  # Keypoints traces
+        elif proctype == 5 and keypoints_group_selected is not None:  # Keypoints traces
             selected_plot.clear()
-            self.trace1_legend.clear()
-            bodypart_groups = ["Eye", "Nose", "Whiskers", "Mouth", "Paw"]
-            sub_groups = [
-                ["eye(back)", "eye(bottom)", "eye(front)", "eye(top)"],
-                ["nose(bottom)", "nose(r)", "nose(tip)", "nose(top)", "nosebridge"],
-                ["whisker(c1)", "whisker(c2)", "whisker(d1)"],
-                ["lowerlip", "mouth"],
-                ["paw"],
-            ]
-            # Create qbrush for sub_groups
-            subgroups_colors = ["blue", "yellow", "red", "cyan", "orange"]
-            subgroups_colors = np.array(
-                [mpl_colors.to_rgb(c) for c in subgroups_colors]
-            )
-            subgroups_colors *= 255
-            subgroups_colors = subgroups_colors.astype(int)
-            subgroups_brushes = [pg.mkBrush(color=c) for c in subgroups_colors]
-            # Get index of keypoints group selected
-            for subgroup_idx, kp_group in enumerate(sub_groups):
-                if keypoint_selected in kp_group:
-                    break
+            # Get index of keypoints selected
             kp_selected_idx = []
-            for _, bp in enumerate(kp_group):
-                kp_selected_idx.append(self.keypoints_labels[0].tolist().index(bp))
-            kp_selected_idx = np.array(kp_selected_idx)
+            for i, keypoint_group in enumerate(keypoints_group_selected):
+                # Get index of keypoint group selected
+                keypoint_group_idx = self.keypoints_groups.index(keypoint_group)
+                # Get keypoints of keypoint group selected
+                keypoints = self.keypoints_subgroups[keypoint_group_idx]
+                for _, bp in enumerate(keypoints):
+                    kp_selected_idx.append(self.keypoints_labels[0].tolist().index(bp))
+            kp_selected_idx = np.array(sorted(kp_selected_idx))
             # x-coordinates
             x_trace = self.pose_x_coord[0][kp_selected_idx]
             for i in range(x_trace.shape[0]):
-                x_pen = pg.mkPen(subgroups_brushes[subgroup_idx].color(), width=1)
+                x_pen = pg.mkPen(
+                    self.keypoints_brushes[0][kp_selected_idx[i]].color(), width=1
+                )
                 x_plot = selected_plot.plot(x_trace[i], pen=x_pen)
             lg = selected_plot.addLegend(colCount=2, offset=(0, 0))
             lg.addItem(
                 x_plot,
                 name="<font color='white'><b>{} x-coord</b></font>".format(
-                    bodypart_groups[subgroup_idx]
+                    keypoints_group_selected
                 ),
             )
             # y-coordinates
             y_trace = self.pose_y_coord[0][kp_selected_idx]
             for i in range(y_trace.shape[0]):
                 y_pen = pg.mkPen(
-                    subgroups_brushes[subgroup_idx].color(),
+                    self.keypoints_brushes[0][kp_selected_idx[i]].color(),
                     width=1,
                     style=QtCore.Qt.DashLine,
                 )
@@ -1630,7 +1591,7 @@ class MainW(QtWidgets.QMainWindow):
             lg.addItem(
                 y_plot,
                 name="<font color='white'><b>{} y-coord</b></font>".format(
-                    bodypart_groups[subgroup_idx]
+                    keypoints_group_selected
                 ),
             )
             lg.setPos(selected_plot.x(), selected_plot.y())
@@ -2177,7 +2138,7 @@ class MainW(QtWidgets.QMainWindow):
                 proctype=5,
                 wroi=None,
                 color=None,
-                keypoint_selected="eye(back)",
+                keypoints_group_selected="eye(back)",
             )
             self.update_status_bar("Pose data resampled")
 

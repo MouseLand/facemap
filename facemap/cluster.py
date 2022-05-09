@@ -516,7 +516,7 @@ class Cluster:
                     parent.clustering_scatterplot.y(),
                 )
                 parent.clustering_plot_legend.setParentItem(parent.clustering_plot)
-                parent.plot_cluster_labels_p1(self.cluster_labels, colors)
+                parent.plot_cluster_labels(self.cluster_labels, colors)
             else:
                 parent.clustering_scatterplot.setData(
                     self.embedded_output[:, 0],

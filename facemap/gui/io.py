@@ -252,6 +252,8 @@ def open_proc(parent, file_name=None):
                 if parent.fullSVD:
                     parent.plot2_checkboxes[0].setEnabled(True)
                     parent.plot2_checkboxes[0].setChecked(True)
+                parent.trace2_legend.clear()
+                parent.svd_traces_plot.clear()
                 parent.plot_processed()
             parent.next_frame()
 
