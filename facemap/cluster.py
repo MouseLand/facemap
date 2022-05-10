@@ -202,7 +202,7 @@ class Cluster:
                 if len(data[i]) > 0:
                     parent.data_clustering_combobox.addItem(data_types[i])
             parent.data_clustering_combobox.setCurrentIndex(0)
-            parent.data_clustering_combobox.show()
+            # parent.data_clustering_combobox.show()
 
             parent.run_clustering_button.show()
 

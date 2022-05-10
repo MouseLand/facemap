@@ -15,6 +15,7 @@ from PyQt5.QtWidgets import (
     QComboBox,
     QDesktopWidget,
     QGridLayout,
+    QGroupBox,
     QLabel,
     QLineEdit,
     QMessageBox,
@@ -104,13 +105,13 @@ class MainW(QtWidgets.QMainWindow):
         self.video_window = pg.GraphicsLayoutWidget()
         self.video_window.move(self.sizeObject.height(), self.sizeObject.width())
         self.video_window.resize(self.sizeObject.height(), self.sizeObject.width())
-        self.scene_grid_layout.addWidget(self.video_window, 1, 2, 13, 7)
+        self.scene_grid_layout.addWidget(self.video_window, 0, 2, 11, 7)
 
         # Create a window for embedding and ROI plot
         self.roi_embed_window = pg.GraphicsLayoutWidget()
         self.roi_embed_window.move(self.sizeObject.height(), 0)
         self.roi_embed_window.resize(self.sizeObject.height(), self.sizeObject.width())
-        self.scene_grid_layout.addWidget(self.roi_embed_window, 16, 2, 9, 7)
+        self.scene_grid_layout.addWidget(self.roi_embed_window, 13, 2, 12, 7)
 
         # Create a window for plots
         self.plots_window = pg.GraphicsLayoutWidget()
@@ -150,27 +151,28 @@ class MainW(QtWidgets.QMainWindow):
         self.saturation = []
         self.ROIs = []
 
+        # Saturation groupbox
+        self.saturation_groupbox = QGroupBox()
+        self.saturation_groupbox.setStyleSheet(
+            "QGroupBox { border: 0px solid white; border-style: outset;}"
+        )
+        self.saturation_groupbox.setLayout(QGridLayout())
+
         # saturation sliders
-        self.sl = []
-        txt = ["Saturation:", "ROI Saturation:"]
+        self.saturation_sliders = []
         self.sat = [255, 255]
-        for j in range(2):
-            row = j * 14
-            self.sl.append(guiparts.Slider(j, self))
-            self.scene_grid_layout.addWidget(self.sl[j], row + 1, 3, 1, 2)  # +5*j,1,2)
-            qlabel = QLabel(txt[j])
-            qlabel.setStyleSheet("color: white;")
-            self.scene_grid_layout.addWidget(qlabel, row, 3, 1, 1)
-        self.sl[0].valueChanged.connect(self.set_saturation_label)
-        self.sl[1].valueChanged.connect(self.set_ROI_saturation_label)
+
+        qlabel = QLabel("Saturation:")
+        qlabel.setStyleSheet("color: white;")
+        self.saturation_groupbox.layout().addWidget(qlabel, 0, 0)
+        video_saturation_slider = guiparts.Slider(0, self)
+        self.saturation_sliders.append(video_saturation_slider)
+        self.saturation_groupbox.layout().addWidget(self.saturation_sliders[0], 1, 0)
 
         # Add label to indicate saturation level
-        self.saturation_level_label = QLabel(str(self.sl[0].value()))
+        self.saturation_level_label = QLabel(str(self.saturation_sliders[0].value()))
         self.saturation_level_label.setStyleSheet("color: white;")
-        self.scene_grid_layout.addWidget(self.saturation_level_label, 0, 5, 1, 1)
-        self.roi_saturation_label = QLabel(str(self.sl[1].value()))
-        self.roi_saturation_label.setStyleSheet("color: white;")
-        self.scene_grid_layout.addWidget(self.roi_saturation_label, 14, 5, 1, 1)
+        # self.scene_grid_layout.addWidget(self.saturation_level_label, 0, 5, 1, 1)
 
         # Reflector
         self.reflector = QPushButton("Add corneal reflection")
@@ -178,6 +180,29 @@ class MainW(QtWidgets.QMainWindow):
         self.reflector.clicked.connect(self.add_reflectROI)
         self.rROI = []
         self.reflectors = []
+        self.scene_grid_layout.addWidget(self.reflector, 0, 6, 1, 1)
+
+        # roi Saturation groupbox
+        self.roi_saturation_groupbox = QGroupBox()
+        self.roi_saturation_groupbox.setStyleSheet(
+            "QGroupBox { border: 0px solid white; border-style: outset;}"
+        )
+        self.roi_saturation_groupbox.setLayout(QGridLayout())
+
+        qlabel = QLabel("ROI Saturation:")
+        qlabel.setStyleSheet("color: white;")
+        self.roi_saturation_groupbox.layout().addWidget(qlabel, 0, 0)
+        roi_saturation_slider = guiparts.Slider(1, self)
+        self.saturation_sliders.append(roi_saturation_slider)
+        self.roi_saturation_groupbox.layout().addWidget(
+            self.saturation_sliders[1], 1, 0
+        )
+
+        self.roi_saturation_label = QLabel(str(self.saturation_sliders[1].value()))
+        self.roi_saturation_label.setStyleSheet("color: white;")
+
+        self.saturation_sliders[0].valueChanged.connect(self.set_saturation_label)
+        self.saturation_sliders[1].valueChanged.connect(self.set_ROI_saturation_label)
 
         # Plots
         self.keypoints_traces_plot = self.plots_window.addPlot(
@@ -191,7 +216,7 @@ class MainW(QtWidgets.QMainWindow):
         self.keypoints_traces_plot.hideAxis("left")
         self.scatter1 = pg.ScatterPlotItem()
         self.keypoints_traces_plot.addItem(self.scatter1)
-        self.keypoints_plot_vtick = None
+        self.keypoints_vtick = None
         self.keypoints_groups = ["Eye", "Nose", "Whiskers", "Mouth", "Paw"]
         self.keypoints_subgroups = [
             ["eye(back)", "eye(bottom)", "eye(front)", "eye(top)"],
@@ -225,7 +250,7 @@ class MainW(QtWidgets.QMainWindow):
         self.neural_activity_plot.hideAxis("left")
         self.neural_activity_plot.setXLink("keypoints_traces_plot")
         self.neural_activity_plot.disableAutoRange()
-        self.neural_plot_vtick = None
+        self.neural_activity_vtick = None
 
         # Add fourth plot
         self.neural_predictions_plot = self.plots_window.addPlot(
@@ -239,12 +264,14 @@ class MainW(QtWidgets.QMainWindow):
         self.neural_predictions_plot.hideAxis("left")
         self.neural_predictions_plot.setXLink("keypoints_traces_plot")
         self.neural_predictions_plot.disableAutoRange()
+        self.neural_predictions_vtick = None
 
         self.nframes = 0
         self.cframe = 0
         self.traces1 = None
         self.traces2 = None
         self.neural_data_loaded = False
+        self.neural_predictions_loaded = False
 
         ## Pose plot
         self.pose_scatterplot = pg.ScatterPlotItem(hover=True)
@@ -314,24 +341,153 @@ class MainW(QtWidgets.QMainWindow):
         self.neural_predictions = neural_activity.NeuralActivity(parent=self)
 
     def make_buttons(self):
-        # create frame slider
         facemap_label = QLabel("Facemap - SVDs & Tracker")
         facemap_label.setStyleSheet("color: white;")
         facemap_label.setAlignment(QtCore.Qt.AlignCenter)
         facemap_label.setFont(QFont("Arial", 16, QFont.Bold))
+
+        # ~~~~~~~~~~~~~~~~~~~~~~~~ SVD variables ~~~~~~~~~~~~~~~~~~~~~~~~
+        self.svd_groupbox = QGroupBox("SVD settings:")
+        self.svd_groupbox.setStyleSheet(
+            "QGroupBox { border: 1px solid white; border-style: outset; border-radius: 10px; color:white; padding: 20px 0px;}"
+        )  # padding: 5px -10px;
+        self.svd_groupbox.setLayout(QGridLayout())
+
+        # Create ROI features
+        self.comboBox = QComboBox(self)
+        self.comboBox.addItem("Select ROI")
+        self.comboBox.addItem("Pupil")
+        self.comboBox.addItem("motion SVD")
+        self.comboBox.addItem("Blink")
+        self.comboBox.addItem("Running")
+        self.comboBox.addItem("Face (pose)")
+        self.newROI = 0
+        self.comboBox.setCurrentIndex(0)
+        self.svd_groupbox.layout().addWidget(self.comboBox, 0, 0)
+        # self.comboBox.currentIndexChanged.connect(self.mode_change)
+        self.addROI = QPushButton("Add ROI")
+        self.addROI.setFont(QFont("Arial", 10, QFont.Bold))
+        self.addROI.clicked.connect(lambda clicked: self.add_ROI())
+        self.addROI.setEnabled(False)
+        self.svd_groupbox.layout().addWidget(self.addROI, 0, 1)
+
         svdbin_label = QLabel("SVD spatial bin:")
         svdbin_label.setStyleSheet("color: gray;")
+        self.svd_groupbox.layout().addWidget(svdbin_label, 1, 0)
         self.svdbin_spinbox = QSpinBox()
         self.svdbin_spinbox.setRange(1, 20)
         self.svdbin_spinbox.setValue(self.ops["sbin"])
-        self.svdbin_spinbox.setFixedWidth(50)
+        self.svd_groupbox.layout().addWidget(self.svdbin_spinbox, 1, 1)
         binLabel = QLabel("Pupil sigma:")
         binLabel.setStyleSheet("color: gray;")
+        self.svd_groupbox.layout().addWidget(binLabel, 2, 0)
         self.sigma_box = QLineEdit()
         self.sigma_box.setText(str(self.ops["pupil_sigma"]))
-        self.sigma_box.setFixedWidth(45)
+        self.sigma_box.setFixedWidth(50)
         self.pupil_sigma = float(self.sigma_box.text())
         self.sigma_box.returnPressed.connect(self.pupil_sigma_change)
+        self.svd_groupbox.layout().addWidget(self.sigma_box, 2, 1)
+
+        # ~~~~~~~~~~~~~~~~~~~~~~~~ Pose/keypoints variables ~~~~~~~~~~~~~~~~~~~~~~~~
+        self.pose_groupbox = QGroupBox("Pose settings:")
+        self.pose_groupbox.setStyleSheet(
+            "QGroupBox { border: 1px solid white; border-style: outset; border-radius: 10px; color:white; padding: 25px 5px;}"
+        )
+        self.pose_groupbox.setLayout(QGridLayout())
+
+        self.is_pose_loaded = False
+        keypoints_threshold_label = QLabel("Keypoints threshold:")
+        keypoints_threshold_label.setStyleSheet("color: gray;")
+        self.pose_groupbox.layout().addWidget(keypoints_threshold_label, 1, 0)
+        self.keypoints_threshold_spinbox = QSpinBox()
+        self.keypoints_threshold_spinbox.setRange(0, 100)
+        self.keypoints_threshold_spinbox.setValue(5)
+        self.keypoints_threshold_spinbox.valueChanged.connect(
+            self.update_keypoints_threshold
+        )
+        self.keypoints_threshold = self.keypoints_threshold_spinbox.value()
+        self.pose_groupbox.layout().addWidget(self.keypoints_threshold_spinbox, 1, 1)
+
+        # ~~~~~~~~~~~~~~~~~~~~~~~~ Process features ~~~~~~~~~~~~~~~~~~~~~~~~
+        self.process_groupbox = QGroupBox("Process settings:")
+        self.process_groupbox.setStyleSheet(
+            "QGroupBox { border: 1px solid white; border-style: outset; border-radius: 10px; color:white; padding: 25px 5px;}"
+        )
+        self.process_groupbox.setLayout(QGridLayout())
+
+        # Check boxes
+        self.motSVD_checkbox = QCheckBox("motSVD")
+        self.motSVD_checkbox.setStyleSheet("color: gray;")
+        self.process_groupbox.layout().addWidget(self.motSVD_checkbox, 0, 0)
+        self.movSVD_checkbox = QCheckBox("movSVD")
+        self.movSVD_checkbox.setStyleSheet("color: gray;")
+        self.process_groupbox.layout().addWidget(self.movSVD_checkbox, 0, 1)
+        self.keypoints_checkbox = QCheckBox("Keypoints")
+        self.keypoints_checkbox.setStyleSheet("color: gray;")
+        self.keypoints_checkbox.stateChanged.connect(self.update_pose)
+        self.keypoints_checkbox.setEnabled(False)
+        self.process_groupbox.layout().addWidget(self.keypoints_checkbox, 0, 2)
+        self.multivideo_svd_checkbox = QCheckBox("multivideo SVD")
+        self.multivideo_svd_checkbox.setStyleSheet("color: gray;")
+        self.process_groupbox.layout().addWidget(self.multivideo_svd_checkbox, 1, 0)
+        if self.ops["fullSVD"]:
+            self.multivideo_svd_checkbox.toggle()
+        self.save_mat = QCheckBox("Save *.mat")
+        self.save_mat.setStyleSheet("color: gray;")
+        if self.ops["save_mat"]:
+            self.save_mat.toggle()
+        self.process_groupbox.layout().addWidget(self.save_mat, 1, 1)
+
+        # ~~~~~~~~~~~~~~~~~~~~~~~~ Process buttons ~~~~~~~~~~~~~~~~~~~~~~~~
+        self.process_buttons_groupbox = QGroupBox("Process buttons:")
+        self.process_buttons_groupbox.setStyleSheet(
+            "QGroupBox { border: 0px solid white; border-style: outset;}"
+        )
+        self.process_buttons_groupbox.setLayout(QGridLayout())
+
+        self.saverois = QPushButton("save ROIs")
+        self.saverois.setFont(QFont("Arial", 10, QFont.Bold))
+        self.saverois.clicked.connect(self.save_ROIs)
+        self.saverois.setEnabled(False)
+        self.process_buttons_groupbox.layout().addWidget(self.saverois, 0, 0)
+
+        self.process = QPushButton("process")
+        self.process.setFont(QFont("Arial", 10, QFont.Bold))
+        self.process.clicked.connect(self.process_ROIs)
+        self.process.setEnabled(False)
+        self.process_buttons_groupbox.layout().addWidget(self.process, 0, 1)
+
+        self.processbatch = QPushButton("process batch \u2b07")
+        self.processbatch.setFont(QFont("Arial", 10, QFont.Bold))
+        self.processbatch.clicked.connect(self.process_batch)
+        self.processbatch.setEnabled(False)
+        self.process_buttons_groupbox.layout().addWidget(self.processbatch, 0, 2)
+
+        # ~~~~~~~~~~~~~~~~~~~~~~~~ Labels ~~~~~~~~~~~~~~~~~~~~~~~~
+        self.labels_groupbox = QGroupBox()
+        self.labels_groupbox.setStyleSheet(
+            "QGroupBox { border: 0px solid white; border-style: outset;}"
+        )
+        self.labels_groupbox.setLayout(QGridLayout())
+
+        video_path_label = QLabel("Video path:")
+        video_path_label.setStyleSheet("color: gray;")
+        self.labels_groupbox.layout().addWidget(video_path_label, 0, 0)
+        self.savelabel = QLabel("same as video")
+        self.savelabel.setStyleSheet("color: white;")
+        self.savelabel.setAlignment(QtCore.Qt.AlignCenter)
+        self.labels_groupbox.layout().addWidget(self.savelabel, 0, 1)
+
+        self.batchlist = []
+        self.batchname = []
+        for k in range(5):
+            self.batchname.append(QLabel(""))
+            self.batchname[-1].setStyleSheet("color: white;")
+            self.batchname[-1].setAlignment(QtCore.Qt.AlignCenter)
+            self.labels_groupbox.layout().addWidget(self.batchname[-1], k + 1, 0)
+            # self.scene_grid_layout.addWidget(self.batchname[-1], 6 + k, 0, 1, 4)
+
+        # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Video playback options ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         self.current_frame_lineedit = QLineEdit()
         self.current_frame_lineedit.setMaxLength(10)
         self.current_frame_lineedit.setFixedSize(
@@ -352,41 +508,6 @@ class MainW(QtWidgets.QMainWindow):
         iplay = istretch + 10
         iconSize = QtCore.QSize(20, 20)
 
-        self.process = QPushButton("process")
-        self.process.setFont(QFont("Arial", 10, QFont.Bold))
-        self.process.clicked.connect(self.process_ROIs)
-        self.process.setEnabled(False)
-
-        self.savelabel = QLabel("same as video")
-        self.savelabel.setStyleSheet("color: white;")
-        self.savelabel.setAlignment(QtCore.Qt.AlignCenter)
-
-        self.saverois = QPushButton("save ROIs")
-        self.saverois.setFont(QFont("Arial", 10, QFont.Bold))
-        self.saverois.clicked.connect(self.save_ROIs)
-        self.saverois.setEnabled(False)
-
-        # Pose/labels variables
-        self.is_pose_loaded = False
-        self.keypoints_checkbox = QCheckBox("Keypoints")
-        self.keypoints_checkbox.setStyleSheet("color: gray;")
-        self.keypoints_checkbox.stateChanged.connect(self.update_pose)
-        self.keypoints_checkbox.setEnabled(False)
-
-        # Process features
-        self.batchlist = []
-        self.batchname = []
-        for k in range(5):
-            self.batchname.append(QLabel(""))
-            self.batchname[-1].setStyleSheet("color: white;")
-            self.scene_grid_layout.addWidget(self.batchname[-1], 9 + k, 0, 1, 4)
-
-        self.processbatch = QPushButton("process batch \u2b07")
-        self.processbatch.setFont(QFont("Arial", 10, QFont.Bold))
-        self.processbatch.clicked.connect(self.process_batch)
-        self.processbatch.setEnabled(False)
-
-        # Play/pause features
         iconSize = QtCore.QSize(30, 30)
         self.playButton = QToolButton()
         self.playButton.setIcon(
@@ -420,22 +541,6 @@ class MainW(QtWidgets.QMainWindow):
         btns.addButton(self.playButton, 0)
         btns.addButton(self.pauseButton, 1)
         btns.setExclusive(True)
-
-        # Create ROI features
-        self.comboBox = QComboBox(self)
-        self.comboBox.addItem("Select ROI")
-        self.comboBox.addItem("Pupil")
-        self.comboBox.addItem("motion SVD")
-        self.comboBox.addItem("Blink")
-        self.comboBox.addItem("Running")
-        self.comboBox.addItem("Face (pose)")
-        self.newROI = 0
-        self.comboBox.setCurrentIndex(0)
-        # self.comboBox.currentIndexChanged.connect(self.mode_change)
-        self.addROI = QPushButton("Add ROI")
-        self.addROI.setFont(QFont("Arial", 10, QFont.Bold))
-        self.addROI.clicked.connect(lambda clicked: self.add_ROI())
-        self.addROI.setEnabled(False)
 
         # Add clustering analysis/visualization features
         self.roi_embed_combobox = QComboBox(self)
@@ -480,49 +585,30 @@ class MainW(QtWidgets.QMainWindow):
         )
         self.zoom_out_button.hide()
 
-        # Check boxes
-        self.multivideo_svd_checkbox = QCheckBox("multivideo SVD")
-        self.multivideo_svd_checkbox.setStyleSheet("color: gray;")
-        if self.ops["fullSVD"]:
-            self.multivideo_svd_checkbox.toggle()
-        self.save_mat = QCheckBox("Save *.mat")
-        self.save_mat.setStyleSheet("color: gray;")
-        if self.ops["save_mat"]:
-            self.save_mat.toggle()
-        self.motSVD_checkbox = QCheckBox("motSVD")
-        self.motSVD_checkbox.setStyleSheet("color: gray;")
-        self.movSVD_checkbox = QCheckBox("movSVD")
-        self.movSVD_checkbox.setStyleSheet("color: gray;")
-
         # Add features to window
         # ~~~~~~~~~~ motsvd/movsvd options ~~~~~~~~~~
         self.scene_grid_layout.addWidget(facemap_label, 0, 0, 1, 2)
-        self.scene_grid_layout.addWidget(self.comboBox, 1, 0, 1, 1)
-        self.scene_grid_layout.addWidget(self.addROI, 1, 1, 1, 1)
-        self.scene_grid_layout.addWidget(self.reflector, 0, 6, 1, 2)
-        self.scene_grid_layout.addWidget(svdbin_label, 2, 0, 1, 2)
-        self.scene_grid_layout.addWidget(self.svdbin_spinbox, 2, 1, 1, 2)
-        self.scene_grid_layout.addWidget(binLabel, 3, 0, 1, 1)
-        self.scene_grid_layout.addWidget(self.sigma_box, 3, 1, 1, 1)
-        self.scene_grid_layout.addWidget(self.motSVD_checkbox, 4, 0, 1, 1)
-        self.scene_grid_layout.addWidget(self.movSVD_checkbox, 4, 1, 1, 1)
-        self.scene_grid_layout.addWidget(self.multivideo_svd_checkbox, 5, 0, 1, 1)
-        self.scene_grid_layout.addWidget(self.save_mat, 5, 1, 1, 1)
-        self.scene_grid_layout.addWidget(self.saverois, 6, 1, 1, 1)
-        self.scene_grid_layout.addWidget(self.process, 7, 0, 1, 1)
-        self.scene_grid_layout.addWidget(self.processbatch, 7, 1, 1, 1)
-        # ~~~~~~~~~~ Save/file IO ~~~~~~~~~~
-        self.scene_grid_layout.addWidget(self.savelabel, 8, 0, 1, 2)
+        self.scene_grid_layout.addWidget(self.svd_groupbox, 1, 0, 1, 2)
         # ~~~~~~~~~~ Pose features ~~~~~~~~~~
-        self.scene_grid_layout.addWidget(self.keypoints_checkbox, 6, 0, 1, 1)
-        # ~~~~~~~~~~ clustering & ROI visualization window features
-        self.scene_grid_layout.addWidget(self.roi_embed_combobox, 14, 6, 1, 1)
-        self.scene_grid_layout.addWidget(self.roi_display_combobox, 15, 6, 1, 1)
-        self.scene_grid_layout.addWidget(self.data_clustering_combobox, 15, 6, 1, 1)
-        self.scene_grid_layout.addWidget(self.zoom_in_button, 14, 7, 1, 1)
-        self.scene_grid_layout.addWidget(self.zoom_out_button, 14, 8, 1, 1)
-        self.scene_grid_layout.addWidget(self.run_clustering_button, 15, 7, 1, 1)
-        self.scene_grid_layout.addWidget(self.save_clustering_button, 15, 8, 1, 1)
+        self.scene_grid_layout.addWidget(self.pose_groupbox, 2, 0, 1, 2)
+        # ~~~~~~~~~~ Process features ~~~~~~~~~~
+        self.scene_grid_layout.addWidget(self.process_groupbox, 3, 0, 1, 2)
+        # ~~~~~~~~~~ Process buttons features ~~~~~~~~~~
+        self.scene_grid_layout.addWidget(self.process_buttons_groupbox, 4, 0, 1, 2)
+        # ~~~~~~~~~~ Save/file IO ~~~~~~~~~~
+        # self.scene_grid_layout.addWidget(self.savelabel, 5, 0, 1, 2)
+        self.scene_grid_layout.addWidget(self.labels_groupbox, 5, 0, 1, 2)
+        # ~~~~~~~~~~ Saturation ~~~~~~~~~~
+        self.scene_grid_layout.addWidget(self.saturation_groupbox, 0, 3, 1, 2)
+        # ~~~~~~~~~~ embedding & ROI visualization window features
+        self.scene_grid_layout.addWidget(self.roi_saturation_groupbox, 8, 3, 1, 2)
+        self.scene_grid_layout.addWidget(self.roi_embed_combobox, 8, 5, 1, 1)
+        self.scene_grid_layout.addWidget(self.zoom_in_button, 8, 6, 1, 1)
+        self.scene_grid_layout.addWidget(self.zoom_out_button, 8, 7, 1, 1)
+        self.scene_grid_layout.addWidget(self.roi_display_combobox, 8, 6, 1, 1)
+        # self.scene_grid_layout.addWidget(self.data_clustering_combobox, 15, 6, 1, 1)
+        # self.scene_grid_layout.addWidget(self.run_clustering_button, 9, 6, 1, 1)
+        self.scene_grid_layout.addWidget(self.save_clustering_button, 9, 6, 1, 1)
         #   ~~~~~~~~~~ Video playback ~~~~~~~~~~
         self.scene_grid_layout.addWidget(self.playButton, iplay, 0, 1, 1)
         self.scene_grid_layout.addWidget(self.pauseButton, iplay, 1, 1, 1)
@@ -581,11 +667,11 @@ class MainW(QtWidgets.QMainWindow):
         self.update_frame_slider()
 
     def set_saturation_label(self):
-        self.saturation_level_label.setText(str(self.sl[0].value()))
+        self.saturation_level_label.setText(str(self.saturation_sliders[0].value()))
 
     def set_ROI_saturation_label(self, val=None):
         if val is None:
-            self.roi_saturation_label.setText(str(self.sl[1].value()))
+            self.roi_saturation_label.setText(str(self.saturation_sliders[1].value()))
         else:
             self.roi_saturation_label.setText(str(int(val)))
 
@@ -596,6 +682,7 @@ class MainW(QtWidgets.QMainWindow):
             self.highlight_embed_point(self.cframe)
 
     def reset(self):
+        self.update_window_title()
         if len(self.rROI) > 0:
             for r in self.rROI:
                 if len(r) > 0:
@@ -643,11 +730,17 @@ class MainW(QtWidgets.QMainWindow):
         self.bbox_set = False
         # Update neural data variables
         self.neural_data_loaded = False
+        self.neural_predictions_loaded = False
         # Clear plots
         self.keypoints_traces_plot.clear()
         self.svd_traces_plot.clear()
         self.neural_activity_plot.clear()
         self.neural_predictions_plot.clear()
+        # Clear vticks
+        self.keypoints_vtick = None
+        self.svd_vtick = None
+        self.neural_activity_vtick = None
+        self.neural_predictions_vtick = None
 
     def pupil_sigma_change(self):
         self.pupil_sigma = float(self.sigma_box.text())
@@ -832,6 +925,8 @@ class MainW(QtWidgets.QMainWindow):
         self.update_pose()
         if self.neural_data_loaded:
             self.update_neural_data_vtick()
+        if self.neural_predictions_loaded:
+            self.update_neural_predictions_vtick()
         if self.is_pose_loaded:
             self.update_keypoints_vtick()
         if self.processed or self.trace2_data_loaded is not None:
@@ -1096,6 +1191,12 @@ class MainW(QtWidgets.QMainWindow):
         self.update_status_bar("Model loaded from:", model_path, hide_progress=True)
         self.model_loaded_popup(model_path)
 
+    def update_keypoints_threshold(self, value):
+        if self.is_pose_loaded:
+            self.keypoints_threshold = np.nanpercentile(
+                self.pose_likelihood, value
+            )  # TODO - use threshold to update keypoints traces as well
+
     def load_keypoints(self):
         # Read Pose file
         self.keypoints_labels = []
@@ -1152,9 +1253,6 @@ class MainW(QtWidgets.QMainWindow):
             self.statusBar.clearMessage()
             self.p0.addItem(self.pose_scatterplot)
             self.p0.setRange(xRange=(0, self.LX), yRange=(0, self.LY), padding=0.0)
-            threshold = np.nanpercentile(
-                self.pose_likelihood, 10
-            )  # Determine threshold
             x, y, labels, brushes = (
                 np.array([]),
                 np.array([]),
@@ -1163,7 +1261,8 @@ class MainW(QtWidgets.QMainWindow):
             )
             for video_id in range(len(self.poseFilepath)):
                 filtered_keypoints = np.where(
-                    self.pose_likelihood[video_id][:, self.cframe] > threshold
+                    self.pose_likelihood[video_id][:, self.cframe]
+                    > self.keypoints_threshold
                 )[0]
                 x_coord = (
                     self.pose_x_coord[video_id] + self.sx[video_id]
@@ -1217,7 +1316,6 @@ class MainW(QtWidgets.QMainWindow):
                 color=None,
                 keypoints_group_selected=[self.keypoints_groups[keypoint_group_index]],
             )
-            # self.plot_scatter()
 
     def keypoint_subgroup_checkbox_toggled(self, obj):
         if self.is_pose_loaded and self.keypoints_checkbox.isChecked():
@@ -1465,54 +1563,24 @@ class MainW(QtWidgets.QMainWindow):
             self.svd_traces_plot.setRange(
                 xRange=(0, self.nframes), yRange=(-4, 4), padding=0.0
             )
-            if self.svd_plot_vtick is None:
-                self.svd_plot_vtick = pg.InfiniteLine(
-                    pos=self.cframe,
-                    angle=90,
-                    pen=pg.mkPen(color=(255, 255, 255), width=2, movable=True),
-                )
-                self.svd_traces_plot.addItem(self.svd_plot_vtick)
-            self.svd_traces_plot.show()
+        if self.svd_plot_vtick is None:
+            self.svd_plot_vtick = pg.InfiniteLine(
+                pos=self.cframe,
+                angle=90,
+                pen=pg.mkPen(color=(255, 255, 255), width=2, movable=True),
+            )
+            self.svd_traces_plot.addItem(self.svd_plot_vtick)
+            print("Added vtick")
+        self.svd_traces_plot.setRange(xRange=(0, self.nframes))
         self.svd_traces_plot.setLimits(xMin=0, xMax=self.nframes)
-
-        # self.plot_scatter()
+        self.svd_traces_plot.show()
         self.jump_to_frame()
-
-    def plot_scatter(self):
-        if self.traces1 is not None and self.traces1.shape[0] > 0:
-            ntr = self.traces1.shape[0]
-            self.keypoints_traces_plot.removeItem(self.scatter1)
-            self.scatter1.setData(
-                self.cframe * np.ones((ntr,)),
-                self.traces1[:, self.cframe],
-                size=8,
-                brush=pg.mkBrush(255, 255, 255),
-            )
-            self.keypoints_traces_plot.addItem(self.scatter1)
-
-        if self.traces2 is not None and self.traces2.shape[0] > 0:
-            ntr = self.traces2.shape[0]
-            self.svd_traces_plot.removeItem(self.scatter2)
-            self.scatter2.setData(
-                self.cframe * np.ones((ntr,)),
-                self.traces2[:, self.cframe],
-                size=8,
-                brush=pg.mkBrush(255, 255, 255),
-            )
-            self.svd_traces_plot.addItem(self.scatter2)
 
     def plot_trace(self, wplot, proctype, wroi, color, keypoints_group_selected=None):
         if wplot == 1:
             selected_plot = self.keypoints_traces_plot
         elif wplot == 2:
             selected_plot = self.svd_traces_plot
-            if self.svd_plot_vtick is None:
-                self.svd_plot_vtick = pg.InfiniteLine(
-                    pos=self.cframe,
-                    angle=90,
-                    pen=pg.mkPen(color=(255, 255, 255), width=2, movable=True),
-                )
-                selected_plot.addItem(self.svd_plot_vtick)
         else:
             print("Invalid plot window")
             return
@@ -1536,6 +1604,15 @@ class MainW(QtWidgets.QMainWindow):
             pen = pg.mkPen(color)
             selected_plot.plot(tr, pen=pen)
             selected_plot.setRange(yRange=(-3, 3))
+            if self.svd_plot_vtick is None:
+                self.svd_plot_vtick = pg.InfiniteLine(
+                    pos=self.cframe,
+                    angle=90,
+                    pen=pg.mkPen(color=(255, 255, 255), width=2, movable=True),
+                )
+                selected_plot.addItem(self.svd_plot_vtick)
+                print("selected plot: ", selected_plot)
+                print("self.svd_plot_vtick", self.svd_plot_vtick)
         elif proctype == 1:  # Pupil
             pup = self.pupil[wroi]
             pen = pg.mkPen(color, width=2)
@@ -1621,12 +1698,12 @@ class MainW(QtWidgets.QMainWindow):
             lg.setPos(selected_plot.x(), selected_plot.y())
             selected_plot.setRange(xRange=(0, x_trace.shape[1]))
             tr = None
-            self.keypoints_plot_vtick = pg.InfiniteLine(
+            self.keypoints_vtick = pg.InfiniteLine(
                 pos=self.cframe,
                 angle=90,
                 pen=pg.mkPen(color=(255, 255, 255), width=2, movable=True),
             )
-            selected_plot.addItem(self.keypoints_plot_vtick)
+            selected_plot.addItem(self.keypoints_vtick)
         selected_plot.setLimits(xMin=0, xMax=self.nframes)
         return tr
 
@@ -1634,7 +1711,7 @@ class MainW(QtWidgets.QMainWindow):
         """
         Update vtick position of svd plot when user clicks
         """
-        if event.button() == QtCore.Qt.LeftButton and self.processed:
+        if event.button() == QtCore.Qt.LeftButton:
             mouse_point = self.svd_traces_plot.vb.mapSceneToView(event._scenePos)
             self.update_svd_vtick(mouse_point.x())
 
@@ -1642,6 +1719,8 @@ class MainW(QtWidgets.QMainWindow):
         """
         Update vtick position of svd plot
         """
+        if not self.processed:
+            return
         if x_pos is not None:
             self.svd_plot_vtick.setPos(x_pos)
             frame = int(x_pos)
@@ -1662,7 +1741,7 @@ class MainW(QtWidgets.QMainWindow):
         """
         Update keypoints vtick position when user clicks on keypoints plot
         """
-        if event.button() == QtCore.Qt.LeftButton and self.is_pose_loaded:
+        if event.button() == QtCore.Qt.LeftButton:
             mouse_point = self.keypoints_traces_plot.vb.mapSceneToView(event._scenePos)
             self.update_keypoints_vtick(mouse_point.x())
 
@@ -1670,11 +1749,13 @@ class MainW(QtWidgets.QMainWindow):
         """
         Update the vertical line indicating the current frame in the plot by setting the x position (x_pos) of the vertical line
         """
+        if not self.is_pose_loaded:
+            return
         if x_pos is not None:
-            self.keypoints_plot_vtick.setPos(x_pos)
+            self.keypoints_vtick.setPos(x_pos)
             frame = int(x_pos)
         else:
-            self.keypoints_plot_vtick.setPos(self.cframe)
+            self.keypoints_vtick.setPos(self.cframe)
             frame = self.cframe
         # Check if x position is within the plot's current range of view
         if (
@@ -1987,8 +2068,8 @@ class MainW(QtWidgets.QMainWindow):
             None,
             None,
         )
-        if self.neural_data_loaded:
-            self.plot_neural_data()
+        self.neural_data_loaded = True
+        self.plot_neural_data()
         dialog.accept()
 
     def set_neural_prediction_data(self, clicked, dialog):
@@ -2010,6 +2091,7 @@ class MainW(QtWidgets.QMainWindow):
         print("data_viz_type:", data_viz_method)
         print("\n")
         self.neural_predictions.set_data(neural_data_filepath, None, data_viz_method)
+        self.neural_predictions_loaded = True
         self.plot_neural_predictions()
         dialog.accept()
 
@@ -2056,12 +2138,12 @@ class MainW(QtWidgets.QMainWindow):
             self.neural_activity_plot.addItem(neural_lineplot)
         self.neural_activity_plot.autoRange()
         # Add a vertical line to the plot to indicate the time of the current trial
-        self.neural_plot_vtick = pg.InfiniteLine(
+        self.neural_activity_vtick = pg.InfiniteLine(
             pos=self.cframe,
             angle=90,
             pen=pg.mkPen(color=(255, 0, 0), width=2, movable=True),
         )
-        self.neural_activity_plot.addItem(self.neural_plot_vtick)
+        self.neural_activity_plot.addItem(self.neural_activity_vtick)
         self.neural_activity_plot.setXRange(0, self.neural_activity.data.shape[1])
         self.neural_activity_plot.setLimits(xMin=0, xMax=self.nframes)
 
@@ -2079,6 +2161,7 @@ class MainW(QtWidgets.QMainWindow):
             self.neural_heatmap = pg.ImageItem(
                 self.neural_predictions.data, autoDownsample=True, levels=(vmin, vmax)
             )
+            # TODO - Use same resampling as neural data
             # if self.neural_activity.behavior_timestamps is not None and self.neural_activity.neural_timestamps is not None:
             #    extent = QtCore.QRect(0, 0, self.neural_activity.behavior_timestamps.shape[0], self.neural_activity.data.shape[0])
             #    self.neural_heatmap.setRect(extent)
@@ -2104,36 +2187,39 @@ class MainW(QtWidgets.QMainWindow):
             self.neural_predictions_plot.addItem(neural_lineplot)
         self.neural_predictions_plot.autoRange()
         # Add a vertical line to the plot to indicate the time of the current trial
-        self.neural_plot_vtick = pg.InfiniteLine(
-            pos=self.cframe,
-            angle=90,
-            pen=pg.mkPen(color=(255, 0, 0), width=2, movable=True),
-        )
-        self.neural_predictions_plot.addItem(self.neural_plot_vtick)
+        if self.neural_predictions_vtick is None:
+            self.neural_predictions_vtick = pg.InfiniteLine(
+                pos=self.cframe,
+                angle=90,
+                pen=pg.mkPen(color=(255, 0, 0), width=2, movable=True),
+            )
+        self.neural_predictions_plot.addItem(self.neural_predictions_vtick)
         self.neural_predictions_plot.setXRange(0, self.neural_predictions.data.shape[1])
         self.neural_predictions_plot.setLimits(xMin=0, xMax=self.nframes)
 
     def on_click_neural_activity_plot(self, event):
-        if self.neural_data_loaded and event.button() == QtCore.Qt.LeftButton:
-            mouse_point = self.neural_predictions_plot.vb.mapSceneToView(
-                event._scenePos
-            )
+        if event.button() == QtCore.Qt.LeftButton:
+            mouse_point = self.neural_activity_plot.vb.mapSceneToView(event._scenePos)
             self.update_neural_data_vtick(mouse_point.x())
 
     def on_click_neural_predictions_plot(self, event):
-        mouse_point = self.neural_predictions.vb.mapSceneToView(event._scenePos)
-        print("clicked predictions")
-        # self.update_neural_data_vtick(mouse_point.x())
+        if event.button() == QtCore.Qt.LeftButton:
+            mouse_point = self.neural_predictions_plot.vb.mapSceneToView(
+                event._scenePos
+            )
+            self.update_neural_predictions_vtick(mouse_point.x())
 
-    def update_neural_data_vtick(self, x_pos=None):
+    def update_neural_predictions_vtick(self, x_pos=None):
         """
-        Update the vertical line indicating the current frame in the neural data plot by setting the x position (x_pos) of the line
+        Update the vertical line indicating the current frame in the neural predictions plot by setting the x position (x_pos) of the line
         """
+        if not self.neural_predictions_loaded:
+            return
         if x_pos is not None:
-            self.neural_plot_vtick.setPos(x_pos)
+            self.neural_predictions_vtick.setPos(x_pos)
             frame = int(x_pos)
         else:
-            self.neural_plot_vtick.setPos(self.cframe)
+            self.neural_predictions_vtick.setPos(self.cframe)
             frame = self.cframe
         # Check if x position is within the neural activity plot's current range of view
         if (
@@ -2143,6 +2229,28 @@ class MainW(QtWidgets.QMainWindow):
         ):
             self.neural_predictions_plot.getViewBox().setXRange(frame, frame, padding=0)
             self.neural_predictions_plot.getViewBox().updateAutoRange()
+        self.current_frame_lineedit.setText(str(frame))
+
+    def update_neural_data_vtick(self, x_pos=None):
+        """
+        Update the vertical line indicating the current frame in the neural data plot by setting the x position (x_pos) of the line
+        """
+        if not self.neural_data_loaded:
+            return
+        if x_pos is not None:
+            self.neural_activity_vtick.setPos(x_pos)
+            frame = int(x_pos)
+        else:
+            self.neural_activity_vtick.setPos(self.cframe)
+            frame = self.cframe
+        # Check if x position is within the neural activity plot's current range of view
+        if (
+            not self.neural_activity_plot.getViewBox().viewRange()[0][0]
+            <= frame
+            <= self.neural_activity_plot.getViewBox().viewRange()[0][1]
+        ):
+            self.neural_activity_plot.getViewBox().setXRange(frame, frame, padding=0)
+            self.neural_activity_plot.getViewBox().updateAutoRange()
         self.current_frame_lineedit.setText(str(frame))
 
     def update_behavior_data(self):
@@ -2309,6 +2417,12 @@ class MainW(QtWidgets.QMainWindow):
         msgBox.setText("Model loaded from: " + model_path)
         msgBox.setWindowTitle("Model loaded")
         msgBox.exec_()
+
+    def update_window_title(self, title=None):
+        if title is None:
+            self.setWindowTitle("Facemap")
+        else:
+            self.setWindowTitle("Facemap: " + title)
 
 
 ### ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Main ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

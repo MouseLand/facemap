@@ -218,7 +218,7 @@ def open_proc(parent, file_name=None):
                     else:
                         parent.iROI = k
                     parent.ROIs[-1].ellipse = roi["ellipse"]
-                    parent.sl[1].setValue(
+                    parent.saturation_sliders[1].setValue(
                         int(parent.saturation[parent.iROI] * 100 / 255)
                     )
                     parent.ROIs[parent.iROI].plot(parent)
@@ -334,6 +334,7 @@ def load_movies(parent, filelist=None):
         parent.loaded = True
         parent.processed = False
         parent.jump_to_frame()
+        parent.update_window_title(parent.filenames[0][0])
     return good
 
 

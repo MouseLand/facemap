@@ -130,7 +130,6 @@ class NeuralActivity:
         """
         if file_name.endswith(".npy") or file_name.endswith(".npz"):
             self.data = np.load(file_name)
-            self.parent.neural_data_loaded = True
         else:
             raise ValueError("File type not recognized.")
         # Check if timestamps file is not loaded then create timestamp array

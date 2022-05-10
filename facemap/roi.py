@@ -125,7 +125,9 @@ class reflectROI:
             parent.rROI[self.iROI],
         )
 
-        parent.sl[1].setValue(int(parent.saturation[self.iROI] * 100 / 255))
+        parent.saturation_sliders[1].setValue(
+            int(parent.saturation[self.iROI] * 100 / 255)
+        )
         parent.ROIs[self.iROI].plot(parent)
 
 
@@ -291,7 +293,9 @@ class sROI:
                 parent.ROIs[self.iROI].xrange,
                 rROI=parent.rROI[self.iROI],
             )
-        parent.sl[1].setValue(int(parent.saturation[self.iROI] * 100 / 255))
+        parent.saturation_sliders[1].setValue(
+            int(parent.saturation[self.iROI] * 100 / 255)
+        )
 
         index = parent.roi_embed_combobox.findText("ROI", QtCore.Qt.MatchFixedString)
         if index >= 0:
