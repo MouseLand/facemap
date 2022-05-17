@@ -105,7 +105,7 @@ class MainW(QtWidgets.QMainWindow):
         self.video_window = pg.GraphicsLayoutWidget()
         self.video_window.move(self.sizeObject.height(), self.sizeObject.width())
         self.video_window.resize(self.sizeObject.height(), self.sizeObject.width())
-        self.scene_grid_layout.addWidget(self.video_window, 0, 2, 11, 7)
+        self.scene_grid_layout.addWidget(self.video_window, 0, 2, 10, 7)
 
         # Create a window for embedding and ROI plot
         self.roi_embed_window = pg.GraphicsLayoutWidget()
@@ -347,7 +347,7 @@ class MainW(QtWidgets.QMainWindow):
         facemap_label.setFont(QFont("Arial", 16, QFont.Bold))
 
         # ~~~~~~~~~~~~~~~~~~~~~~~~ SVD variables ~~~~~~~~~~~~~~~~~~~~~~~~
-        self.svd_groupbox = QGroupBox("SVD settings:")
+        self.svd_groupbox = QGroupBox("ROI settings:")
         self.svd_groupbox.setStyleSheet(
             "QGroupBox { border: 1px solid white; border-style: outset; border-radius: 10px; color:white; padding: 20px 0px;}"
         )  # padding: 5px -10px;
@@ -383,7 +383,7 @@ class MainW(QtWidgets.QMainWindow):
         self.svd_groupbox.layout().addWidget(binLabel, 2, 0)
         self.sigma_box = QLineEdit()
         self.sigma_box.setText(str(self.ops["pupil_sigma"]))
-        self.sigma_box.setFixedWidth(50)
+        self.sigma_box.setFixedWidth(int(0.03 * self.sizeObject.width()))
         self.pupil_sigma = float(self.sigma_box.text())
         self.sigma_box.returnPressed.connect(self.pupil_sigma_change)
         self.svd_groupbox.layout().addWidget(self.sigma_box, 2, 1)
@@ -396,16 +396,16 @@ class MainW(QtWidgets.QMainWindow):
         self.pose_groupbox.setLayout(QGridLayout())
 
         self.is_pose_loaded = False
-        keypoints_threshold_label = QLabel("Keypoints threshold:")
+        keypoints_threshold_label = QLabel("Threshold:")
         keypoints_threshold_label.setStyleSheet("color: gray;")
         self.pose_groupbox.layout().addWidget(keypoints_threshold_label, 1, 0)
         self.keypoints_threshold_spinbox = QSpinBox()
         self.keypoints_threshold_spinbox.setRange(0, 100)
-        self.keypoints_threshold_spinbox.setValue(5)
+        self.keypoints_threshold_spinbox.setValue(0)
+        self.keypoints_threshold = self.keypoints_threshold_spinbox.value()
         self.keypoints_threshold_spinbox.valueChanged.connect(
             self.update_keypoints_threshold
         )
-        self.keypoints_threshold = self.keypoints_threshold_spinbox.value()
         self.pose_groupbox.layout().addWidget(self.keypoints_threshold_spinbox, 1, 1)
 
         # ~~~~~~~~~~~~~~~~~~~~~~~~ Process features ~~~~~~~~~~~~~~~~~~~~~~~~
@@ -427,16 +427,17 @@ class MainW(QtWidgets.QMainWindow):
         self.keypoints_checkbox.stateChanged.connect(self.update_pose)
         self.keypoints_checkbox.setEnabled(False)
         self.process_groupbox.layout().addWidget(self.keypoints_checkbox, 0, 2)
-        self.multivideo_svd_checkbox = QCheckBox("multivideo SVD")
-        self.multivideo_svd_checkbox.setStyleSheet("color: gray;")
-        self.process_groupbox.layout().addWidget(self.multivideo_svd_checkbox, 1, 0)
-        if self.ops["fullSVD"]:
-            self.multivideo_svd_checkbox.toggle()
+
         self.save_mat = QCheckBox("Save *.mat")
         self.save_mat.setStyleSheet("color: gray;")
         if self.ops["save_mat"]:
             self.save_mat.toggle()
-        self.process_groupbox.layout().addWidget(self.save_mat, 1, 1)
+        self.process_groupbox.layout().addWidget(self.save_mat, 1, 0)
+        self.multivideo_svd_checkbox = QCheckBox("multivideo")
+        self.multivideo_svd_checkbox.setStyleSheet("color: gray;")
+        if self.ops["fullSVD"]:
+            self.multivideo_svd_checkbox.toggle()
+        self.process_groupbox.layout().addWidget(self.multivideo_svd_checkbox, 1, 1)
 
         # ~~~~~~~~~~~~~~~~~~~~~~~~ Process buttons ~~~~~~~~~~~~~~~~~~~~~~~~
         self.process_buttons_groupbox = QGroupBox("Process buttons:")
@@ -470,7 +471,7 @@ class MainW(QtWidgets.QMainWindow):
         )
         self.labels_groupbox.setLayout(QGridLayout())
 
-        video_path_label = QLabel("Video path:")
+        video_path_label = QLabel("Save path:")
         video_path_label.setStyleSheet("color: gray;")
         self.labels_groupbox.layout().addWidget(video_path_label, 0, 0)
         self.savelabel = QLabel("same as video")
@@ -492,7 +493,7 @@ class MainW(QtWidgets.QMainWindow):
         self.current_frame_lineedit.setMaxLength(10)
         self.current_frame_lineedit.setFixedSize(
             QtCore.QSize(
-                np.floor(self.sizeObject.width() * 0.03).astype(int),
+                np.floor(self.sizeObject.width() * 0.05).astype(int),
                 np.floor(self.sizeObject.width() * 0.01).astype(int),
             )
         )
@@ -507,6 +508,13 @@ class MainW(QtWidgets.QMainWindow):
         istretch = 15
         iplay = istretch + 10
         iconSize = QtCore.QSize(20, 20)
+
+        # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Video playback options ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        self.video_playback_groupbox = QGroupBox()
+        self.video_playback_groupbox.setStyleSheet(
+            "QGroupBox { border: 0px solid white; border-style: outset;}"
+        )
+        self.video_playback_groupbox.setLayout(QGridLayout())
 
         iconSize = QtCore.QSize(30, 30)
         self.playButton = QToolButton()
@@ -523,6 +531,8 @@ class MainW(QtWidgets.QMainWindow):
                 np.floor(self.sizeObject.width() * 0.025).astype(int),
             )
         )
+        self.video_playback_groupbox.layout().addWidget(self.playButton, 0, 0)
+
         self.pauseButton = QToolButton()
         self.pauseButton.setCheckable(True)
         self.pauseButton.setIcon(
@@ -537,6 +547,8 @@ class MainW(QtWidgets.QMainWindow):
                 np.floor(self.sizeObject.width() * 0.025).astype(int),
             )
         )
+        self.video_playback_groupbox.layout().addWidget(self.pauseButton, 0, 1)
+
         btns = QButtonGroup(self)
         btns.addButton(self.playButton, 0)
         btns.addButton(self.pauseButton, 1)
@@ -596,7 +608,6 @@ class MainW(QtWidgets.QMainWindow):
         # ~~~~~~~~~~ Process buttons features ~~~~~~~~~~
         self.scene_grid_layout.addWidget(self.process_buttons_groupbox, 4, 0, 1, 2)
         # ~~~~~~~~~~ Save/file IO ~~~~~~~~~~
-        # self.scene_grid_layout.addWidget(self.savelabel, 5, 0, 1, 2)
         self.scene_grid_layout.addWidget(self.labels_groupbox, 5, 0, 1, 2)
         # ~~~~~~~~~~ Saturation ~~~~~~~~~~
         self.scene_grid_layout.addWidget(self.saturation_groupbox, 0, 3, 1, 2)
@@ -606,12 +617,9 @@ class MainW(QtWidgets.QMainWindow):
         self.scene_grid_layout.addWidget(self.zoom_in_button, 8, 6, 1, 1)
         self.scene_grid_layout.addWidget(self.zoom_out_button, 8, 7, 1, 1)
         self.scene_grid_layout.addWidget(self.roi_display_combobox, 8, 6, 1, 1)
-        # self.scene_grid_layout.addWidget(self.data_clustering_combobox, 15, 6, 1, 1)
-        # self.scene_grid_layout.addWidget(self.run_clustering_button, 9, 6, 1, 1)
         self.scene_grid_layout.addWidget(self.save_clustering_button, 9, 6, 1, 1)
         #   ~~~~~~~~~~ Video playback ~~~~~~~~~~
-        self.scene_grid_layout.addWidget(self.playButton, iplay, 0, 1, 1)
-        self.scene_grid_layout.addWidget(self.pauseButton, iplay, 1, 1, 1)
+        self.scene_grid_layout.addWidget(self.video_playback_groupbox, iplay, 0, 1, 1)
         self.playButton.setEnabled(False)
         self.pauseButton.setEnabled(False)
         self.pauseButton.setChecked(True)
@@ -621,7 +629,7 @@ class MainW(QtWidgets.QMainWindow):
             self.current_frame_lineedit, istretch + 7, 0, 1, 1
         )
         self.scene_grid_layout.addWidget(self.total_frames_label, istretch + 7, 1, 1, 1)
-        self.scene_grid_layout.addWidget(self.frame_slider, istretch + 10, 2, 1, 15)
+        self.scene_grid_layout.addWidget(self.frame_slider, istretch + 10, 1, 1, 16)
 
         # Plot 1 and 2 features
         plot_label = QLabel("Keypoints traces")
@@ -636,6 +644,7 @@ class MainW(QtWidgets.QMainWindow):
             lambda: self.load_1dtrace_button_clicked(2)
         )
         self.load_trace2_button.setEnabled(False)
+        self.load_trace2_button.setFixedWidth(int(0.07 * self.sizeObject.width()))
         self.trace2_data_loaded = None
         self.trace2_legend = pg.LegendItem(labelTextSize="12pt", horSpacing=30)
         self.scene_grid_layout.addWidget(self.load_trace2_button, istretch + 1, 1, 1, 1)
@@ -1246,6 +1255,7 @@ class MainW(QtWidgets.QMainWindow):
         for k in range(len(self.plot1_checkboxes)):
             self.plot1_checkboxes[k].setEnabled(True)
         self.plot1_checkboxes[0].setChecked(True)
+        self.update_pose()
         self.update_status_bar("Keypoints loaded", hide_progress=True)
 
     def update_pose(self):

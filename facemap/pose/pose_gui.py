@@ -32,7 +32,10 @@ class PoseGUI(pose.Pose):
         Function for user to draw a bbox
         """
         # Get sample frame from each video in case of multiple videos
-        sample_frame = utils.get_frame(0, self.nframes, self.cumframes, self.containers)
+        frame_index = self.gui.cframe  # use current frame for drawing bbox
+        sample_frame = utils.get_frame(
+            frame_index, self.nframes, self.cumframes, self.containers
+        )
         last_video = False
         for video_id, frame in enumerate(sample_frame):
             # Trigger new window for ROI selection of each frame
@@ -97,7 +100,7 @@ class ROI_popup(QDialog):
         super().__init__()
         window_max_size = QDesktopWidget().screenGeometry(-1)
         fraction = 0.3
-        aspect_ratio = 1.2
+        aspect_ratio = 1.5
         self.resize(
             int(np.floor(window_max_size.width() * fraction)),
             int(np.floor(window_max_size.height() * fraction * aspect_ratio)),
