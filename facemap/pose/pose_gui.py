@@ -136,7 +136,7 @@ class ROI_popup(QDialog):
         self.next_button.setDefault(True)
         self.next_button.clicked.connect(self.next_exec)
         # Add a skip button to the dialog box horizontally centered with cancel button and done button
-        self.skip_button = QPushButton("Skip")
+        self.skip_button = QPushButton("Skip (no ROI)")
         self.skip_button.setDefault(True)
         self.skip_button.clicked.connect(self.skip_exec)
 

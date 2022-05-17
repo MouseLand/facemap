@@ -35,6 +35,9 @@ Single workflow for re-training the model or fine-tuning the model with new data
 Keypoints correction feature for new mouse videos
 """
 
+# TODO: Refine frames from old data files saved (*.npy)
+# TODO: Select outlier frames for correction feature i.e. likelihood threshold
+
 BODYPARTS = [
     "eye(back)",
     "eye(bottom)",
@@ -68,6 +71,8 @@ class ModelTrainingPopup(QDialog):
         self.random_frames_ind = []
         self.pose_data = None
         self.all_frames = None
+        self.current_video_idx = 0
+        self.video_names = None
         # Training parameters
         self.batch_size = 1
         self.epochs = 36
@@ -227,7 +232,7 @@ class ModelTrainingPopup(QDialog):
 
         self.model_name_box = QLineEdit(self)
         self.model_name_box.setStyleSheet("QLineEdit {color: 'black';}")
-        self.model_name_box.setText("facemap_model_state")
+        self.model_name_box.setText("facemap_model_state_refined")
         self.model_name_box.setFixedWidth(
             int(np.floor(self.window_max_size.width() * 0.25 * 0.5))
         )
@@ -237,29 +242,9 @@ class ModelTrainingPopup(QDialog):
 
         self.verticalLayout.addWidget(self.model_name_groupbox)
 
-        # Add a QGroupbox widget to hold checkboxes for selecting videos using the list of data files
-        self.npy_files_groupbox = QGroupBox(self)
-        self.npy_files_groupbox.setLayout(QVBoxLayout())
-
-        self.npy_files_label = QLabel(self)
-        self.npy_files_label.setText("Data files:")
-        self.npy_files_label.setStyleSheet(
-            "QLabel {color: 'white'; font-weight: bold; font-size: 16}"
-        )
-        self.npy_files_groupbox.layout().addWidget(self.npy_files_label)
-
-        self.npy_files_checkboxes = []
-        for i, file in enumerate(self.data_files):
-            checkbox = QCheckBox(file, self)
-            checkbox.setStyleSheet("QCheckBox {color: 'white';}")
-            self.npy_files_groupbox.layout().addWidget(checkbox)
-            self.npy_files_checkboxes.append(checkbox)
-
-        self.verticalLayout.addWidget(self.npy_files_groupbox)
-
         # Add a QCheckBox widget for user to select whether to use the current video
         self.use_current_video_checkbox_groupbox = QGroupBox(self)
-        self.use_current_video_checkbox_groupbox.setLayout(QHBoxLayout())
+        self.use_current_video_checkbox_groupbox.setLayout(QVBoxLayout())
         self.use_current_video_checkbox = QCheckBox(self)
         self.use_current_video_checkbox.setText("Refine current video")
         self.use_current_video_checkbox.setStyleSheet("QCheckBox {color: 'white'; }")
@@ -269,7 +254,6 @@ class ModelTrainingPopup(QDialog):
         self.use_current_video_checkbox_groupbox.layout().addWidget(
             self.use_current_video_checkbox
         )
-        self.verticalLayout.addWidget(self.use_current_video_checkbox_groupbox)
 
         # Add a QLabel and QSpinBox widget for user to select the number of frames to use in the current video group
         self.current_video_groupbox = QGroupBox(self)
@@ -285,9 +269,34 @@ class ModelTrainingPopup(QDialog):
         self.spinbox_nframes.setValue(25)
         self.spinbox_nframes.setStyleSheet("QSpinBox {color: 'black';}")
         self.current_video_groupbox.layout().addWidget(self.spinbox_nframes)
-
-        self.verticalLayout.addWidget(self.current_video_groupbox)
         self.current_video_groupbox.hide()
+
+        self.use_current_video_checkbox_groupbox.layout().addWidget(
+            self.current_video_groupbox
+        )
+        self.verticalLayout.addWidget(self.use_current_video_checkbox_groupbox)
+
+        # Add a QGroupbox widget to hold checkboxes for selecting videos using the list of data files
+        self.npy_files_groupbox = QGroupBox(self)
+        self.npy_files_groupbox.setLayout(QVBoxLayout())
+
+        self.use_old_data_checkbox = QCheckBox(self)
+        self.use_old_data_checkbox.setText("Refine old data")
+        self.use_old_data_checkbox.setStyleSheet("QCheckBox {color: 'white'; }")
+        self.use_old_data_checkbox.stateChanged.connect(
+            lambda state: self.show_data_files(state)
+        )
+        self.npy_files_groupbox.layout().addWidget(self.use_old_data_checkbox)
+
+        self.npy_files_checkboxes = []
+        for i, file in enumerate(self.data_files):
+            checkbox = QCheckBox(file, self)
+            checkbox.setStyleSheet("QCheckBox {color: 'white';}")
+            self.npy_files_groupbox.layout().addWidget(checkbox)
+            self.npy_files_checkboxes.append(checkbox)
+            checkbox.hide()
+
+        self.verticalLayout.addWidget(self.npy_files_groupbox)
 
         # Add a + button to show additional options
         self.additional_options_groupbox = QGroupBox(self)
@@ -341,6 +350,17 @@ class ModelTrainingPopup(QDialog):
         )
 
         self.verticalLayout.addWidget(self.buttons_groupbox)
+
+    def show_data_files(self, state):
+        """
+        Show or hide the checkboxes for selecting data files
+        """
+        if state == QtCore.Qt.Checked:
+            for checkbox in self.npy_files_checkboxes:
+                checkbox.show()
+        else:
+            for checkbox in self.npy_files_checkboxes:
+                checkbox.hide()
 
     def show_step2_help(self):
         """
@@ -542,8 +562,8 @@ class ModelTrainingPopup(QDialog):
             return
 
         pose_pred, _, self.bbox = output
-        # pose_pred = pose_pred[:, :, :2]  # Remove the confidence score/likelihood
         frames_input = self.get_frames_from_indices(frames_indices)
+
         # Update the predictions
         if self.pose_data is None:
             self.pose_data = pose_pred
@@ -551,6 +571,25 @@ class ModelTrainingPopup(QDialog):
         else:
             self.pose_data = np.concatenate((self.pose_data, pose_pred), axis=0)
             self.all_frames = np.concatenate((self.all_frames, frames_input), axis=0)
+        """ For refining keypoints from old data
+        if self.pose_data is None:
+            self.pose_data = [pose_pred]
+            self.all_frames = [frames_input]
+        else:
+            self.pose_data.append(pose_pred)
+            self.all_frames.append(frames_input)
+        print("self.pose_data.shape:", np.array(self.pose_data).shape)
+        print("self.all_frames.shape:", np.array(self.all_frames).shape)
+        for video in self.selected_videos:
+            self.all_frames.append(np.load(video, allow_pickle=True).item()["imgs"])
+            self.pose_data.append(np.load(video, allow_pickle=True).item()["keypoints"])
+            self.bbox.append(np.load(video, allow_pickle=True).item()["bbox"])
+            self.video_names.append(video)
+        for i in range(len(self.pose_data)):
+            print("i:", i)
+            print("self.pose_data.shape:", self.pose_data[i].shape)
+            print("self.all_frames.shape:", self.all_frames[i].shape)
+        """
         self.show()
 
         # Plot the predictions
