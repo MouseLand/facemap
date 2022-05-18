@@ -60,6 +60,7 @@ def preprocess_img(im, bbox, add_padding, resize, device=None):
 
     # 4. Resize image to 256x256 for model input
     postpad_shape = im.shape[-2:]
+
     if resize:
         im = F.interpolate(im, size=(256, 256), mode="bilinear")
 

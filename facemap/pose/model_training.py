@@ -185,7 +185,10 @@ def train(
         train_mean /= n_batches
 
         if epoch % 10 == 0:
-            print("Epoch %d: loss %f, mean %f" % (epoch, train_loss, train_mean))
+            print(
+                "Epoch %d: loss %f, mean %f, gnorm %f"
+                % (epoch, train_loss, train_mean, gnorm_max)
+            )
 
         if gui is not None and gui_obj is not None:
             progress_bar.update_progress_bar(progress_output, gui_obj)

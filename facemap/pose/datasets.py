@@ -107,7 +107,7 @@ class FacemapDataset(torch.utils.data.Dataset):
         if not isinstance(keypoints, torch.Tensor):
             keypoints = torch.from_numpy(keypoints)
 
-        data = {"image": image, "keypoints": keypoints}
+        data = {"image": image, "keypoints": keypoints, "item": item}
         return data
 
     def preprocess_imgs(self, image_data):

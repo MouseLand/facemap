@@ -168,6 +168,8 @@ class ModelTrainingPopup(QDialog):
 
     def show_choose_training_files(self):
 
+        self.update_window_size(0.4, aspect_ratio=0.5)
+
         self.output_folder_path = self.output_folder_path_box.text()
         # Check if path exists
         if not os.path.exists(self.output_folder_path):
@@ -243,50 +245,92 @@ class ModelTrainingPopup(QDialog):
         self.verticalLayout.addWidget(self.model_name_groupbox)
 
         # Add a QCheckBox widget for user to select whether to use the current video
-        self.use_current_video_checkbox_groupbox = QGroupBox(self)
-        self.use_current_video_checkbox_groupbox.setLayout(QVBoxLayout())
-        self.use_current_video_checkbox = QCheckBox(self)
-        self.use_current_video_checkbox.setText("Refine current video")
-        self.use_current_video_checkbox.setStyleSheet("QCheckBox {color: 'white'; }")
-        self.use_current_video_checkbox.stateChanged.connect(
-            lambda state: self.toggle_num_frames(state)
+        self.use_current_video_groupbox = QGroupBox(self)
+        self.use_current_video_groupbox.setLayout(QHBoxLayout())
+
+        use_current_video_label = QLabel(self)
+        use_current_video_label.setText("Refine current video?")
+        use_current_video_label.setStyleSheet(
+            "QLabel {color: 'white'; font-weight: bold; font-size: 16}"
         )
-        self.use_current_video_checkbox_groupbox.layout().addWidget(
-            self.use_current_video_checkbox
+        self.use_current_video_groupbox.layout().addWidget(use_current_video_label)
+
+        # Create a radio button group asking whether to use the current video
+        self.use_current_video_radio_group = QButtonGroup(self)
+        self.use_current_video_radio_group.setExclusive(True)
+        self.use_current_video_radio_group.buttonClicked.connect(
+            lambda: self.toggle_num_frames(self.use_current_video_yes_radio.isChecked())
+        )
+        # Add yes and no radio buttons to the group
+        self.use_current_video_yes_radio = QRadioButton("Yes", self)
+        self.use_current_video_yes_radio.setStyleSheet(
+            "QRadioButton {color: 'white'; font-weight: bold; font-size: 16}"
+        )
+        self.use_current_video_radio_group.addButton(self.use_current_video_yes_radio)
+        self.use_current_video_yes_radio.setChecked(True)
+        self.use_current_video_groupbox.layout().addWidget(
+            self.use_current_video_yes_radio
+        )
+        self.use_current_video_no_radio = QRadioButton("No", self)
+        self.use_current_video_no_radio.setStyleSheet(
+            "QRadioButton {color: 'white'; font-weight: bold; font-size: 16}"
+        )
+        self.use_current_video_radio_group.addButton(self.use_current_video_no_radio)
+        self.use_current_video_groupbox.layout().addWidget(
+            self.use_current_video_no_radio
         )
 
         # Add a QLabel and QSpinBox widget for user to select the number of frames to use in the current video group
-        self.current_video_groupbox = QGroupBox(self)
-        self.current_video_groupbox.setLayout(QHBoxLayout())
+        self.get_num_frames_groupbox = QGroupBox(self)
+        self.get_num_frames_groupbox.setLayout(QHBoxLayout())
 
         self.current_video_label = QLabel(self)
-        self.current_video_label.setText("# Frames to refine:")
+        self.current_video_label.setText("# Frames:")
         self.current_video_label.setStyleSheet("QLabel {color: 'white';}")
-        self.current_video_groupbox.layout().addWidget(self.current_video_label)
+        self.get_num_frames_groupbox.layout().addWidget(self.current_video_label)
 
         self.spinbox_nframes = QSpinBox(self)
         self.spinbox_nframes.setRange(1, self.gui.cumframes[-1])
         self.spinbox_nframes.setValue(25)
         self.spinbox_nframes.setStyleSheet("QSpinBox {color: 'black';}")
-        self.current_video_groupbox.layout().addWidget(self.spinbox_nframes)
-        self.current_video_groupbox.hide()
+        self.get_num_frames_groupbox.layout().addWidget(self.spinbox_nframes)
 
-        self.use_current_video_checkbox_groupbox.layout().addWidget(
-            self.current_video_groupbox
-        )
-        self.verticalLayout.addWidget(self.use_current_video_checkbox_groupbox)
+        self.use_current_video_groupbox.layout().addWidget(self.get_num_frames_groupbox)
+        self.verticalLayout.addWidget(self.use_current_video_groupbox)
 
         # Add a QGroupbox widget to hold checkboxes for selecting videos using the list of data files
         self.npy_files_groupbox = QGroupBox(self)
         self.npy_files_groupbox.setLayout(QVBoxLayout())
 
-        self.use_old_data_checkbox = QCheckBox(self)
-        self.use_old_data_checkbox.setText("Refine old data")
-        self.use_old_data_checkbox.setStyleSheet("QCheckBox {color: 'white'; }")
-        self.use_old_data_checkbox.stateChanged.connect(
-            lambda state: self.show_data_files(state)
+        self.use_old_data_radio_groupbox = QGroupBox(self)
+        self.use_old_data_radio_groupbox.setLayout(QHBoxLayout())
+        use_old_data_label = QLabel(self)
+        use_old_data_label.setText("Refine saved data?")
+        use_old_data_label.setStyleSheet(
+            "QLabel {color: 'white'; font-weight: bold; font-size: 16}"
         )
-        self.npy_files_groupbox.layout().addWidget(self.use_old_data_checkbox)
+        self.use_old_data_radio_groupbox.layout().addWidget(use_old_data_label)
+        # Add a radio button group asking whether to use old data
+        self.use_old_data_radio_group = QButtonGroup(self)
+        self.use_old_data_radio_group.setExclusive(True)
+        self.use_old_data_radio_group.buttonClicked.connect(
+            lambda: self.show_data_files(self.use_old_data_yes_radio.isChecked())
+        )
+        # Add yes and no radio buttons to the group
+        self.use_old_data_yes_radio = QRadioButton("Yes", self)
+        self.use_old_data_yes_radio.setStyleSheet(
+            "QRadioButton {color: 'white'; font-weight: bold; font-size: 16}"
+        )
+        self.use_old_data_radio_group.addButton(self.use_old_data_yes_radio)
+        self.use_old_data_radio_groupbox.layout().addWidget(self.use_old_data_yes_radio)
+        self.use_old_data_no_radio = QRadioButton("No", self)
+        self.use_old_data_no_radio.setStyleSheet(
+            "QRadioButton {color: 'white'; font-weight: bold; font-size: 16}"
+        )
+        self.use_old_data_no_radio.setChecked(True)
+        self.use_old_data_radio_group.addButton(self.use_old_data_no_radio)
+        self.use_old_data_radio_groupbox.layout().addWidget(self.use_old_data_no_radio)
+        self.npy_files_groupbox.layout().addWidget(self.use_old_data_radio_groupbox)
 
         self.npy_files_checkboxes = []
         for i, file in enumerate(self.data_files):
@@ -295,6 +339,13 @@ class ModelTrainingPopup(QDialog):
             self.npy_files_groupbox.layout().addWidget(checkbox)
             self.npy_files_checkboxes.append(checkbox)
             checkbox.hide()
+        self.old_data_found_label = QLabel(self)
+        self.old_data_found_label.setText("No old data found.")
+        self.old_data_found_label.setStyleSheet(
+            "QLabel {color: 'white'; font-size: 16;}"
+        )
+        self.old_data_found_label.hide()
+        self.npy_files_groupbox.layout().addWidget(self.old_data_found_label, alignment=QtCore.Qt.AlignCenter)
 
         self.verticalLayout.addWidget(self.npy_files_groupbox)
 
@@ -351,16 +402,21 @@ class ModelTrainingPopup(QDialog):
 
         self.verticalLayout.addWidget(self.buttons_groupbox)
 
-    def show_data_files(self, state):
+    def show_data_files(self, yes_selected):
         """
         Show or hide the checkboxes for selecting data files
         """
-        if state == QtCore.Qt.Checked:
+        if yes_selected:
+            if len(self.npy_files_checkboxes) == 0:
+                self.old_data_found_label.show()
+            else:
+                self.old_data_found_label.hide()
             for checkbox in self.npy_files_checkboxes:
                 checkbox.show()
         else:
             for checkbox in self.npy_files_checkboxes:
                 checkbox.hide()
+            self.old_data_found_label.hide()
 
     def show_step2_help(self):
         """
@@ -496,11 +552,11 @@ class ModelTrainingPopup(QDialog):
         self.weight_decay = float(text)
         return
 
-    def toggle_num_frames(self, state):
-        if state == QtCore.Qt.Checked:
-            self.current_video_groupbox.show()
+    def toggle_num_frames(self, yes_selected):
+        if yes_selected:
+            self.get_num_frames_groupbox.show()
         else:
-            self.current_video_groupbox.hide()
+            self.get_num_frames_groupbox.hide()
 
     def update_user_training_options(self):
         # Get the selected model
@@ -569,8 +625,8 @@ class ModelTrainingPopup(QDialog):
             self.pose_data = pose_pred
             self.all_frames = frames_input
         else:
-            self.pose_data = np.concatenate((self.pose_data, pose_pred), axis=0)
-            self.all_frames = np.concatenate((self.all_frames, frames_input), axis=0)
+            self.pose_data = np.concatenate((pose_pred, self.pose_data), axis=0)
+            self.all_frames = np.concatenate((frames_input, self.all_frames), axis=0)
         """ For refining keypoints from old data
         if self.pose_data is None:
             self.pose_data = [pose_pred]
@@ -1056,14 +1112,14 @@ class ModelTrainingPopup(QDialog):
                     new_random_frames, self.random_frames_ind
                 )
                 self.random_frames_ind = np.concatenate(
-                    (self.random_frames_ind, new_random_frames)
+                    (new_random_frames, self.random_frames_ind)
                 )
                 self.num_random_frames += len(new_random_frames)
                 # Check how many more random frames are needed
             else:
                 # If not, update the self.random_frames list
                 self.random_frames_ind = np.concatenate(
-                    (self.random_frames_ind, new_random_frames), axis=0
+                    (new_random_frames, self.random_frames_ind), axis=0
                 )
                 self.num_random_frames += len(new_random_frames)
         # Compare the new random frames with the old random frames to find the indices of the new random frames
@@ -1076,13 +1132,6 @@ class ModelTrainingPopup(QDialog):
             np.arange(total_frames), size=size, replace=False
         )
         return random_frames_ind
-
-    def add_to_pose_data(self, pose_data, frame_index):
-        # Get the frame index of the current frame
-        frame_index = np.where(self.random_frames_ind == frame_index)[0][0]
-        # Get the pose data for the current frame
-        pose_data = np.concatenate((pose_data, self.pose_data[frame_index]), axis=0)
-        return pose_data
 
 
 ### ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Keypoints graph features ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ ###

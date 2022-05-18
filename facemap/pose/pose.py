@@ -149,7 +149,7 @@ class Pose:
             # Select a random subset of frames
             subset_size = int(self.nframes / 10)
             subset_ind = np.random.choice(self.nframes, subset_size, replace=False)
-            subset_ind = np.sort(subset_ind)
+            # subset_ind = np.sort(subset_ind)
 
         utils.update_mainwindow_message(
             MainWindow=self.gui,
