@@ -52,7 +52,7 @@ class Pose:
         self.resize = resize
         self.add_padding = add_padding
         self.net = net
-        self.finetuned_model = False
+        self.model_name = None
 
     def pose_prediction_setup(self):
         # Setup the model
@@ -83,8 +83,7 @@ class Pose:
             self.bbox_set = True
 
     def run_all(self, plot=True):
-        if self.finetuned_model:
-            print("Using finetuned model for pose estimation")
+        print("Using {} for pose estimation".format(self.model_name))
         start_time = time.time()
         self.pose_prediction_setup()
         for video_id in range(len(self.filenames[0])):
@@ -105,12 +104,7 @@ class Pose:
             )
             print("Saved pose prediction outputs to:", savepath)
             # Save metadata to a pickle file
-            if self.finetuned_model:
-                metadata_file = (
-                    os.path.splitext(savepath)[0] + "_FacemapFinetuned_metadata.pkl"
-                )
-            else:
-                metadata_file = os.path.splitext(savepath)[0] + "_Facemap_metadata.pkl"
+            metadata_file = os.path.splitext(savepath)[0] + "_Facemap_metadata.pkl"
             with open(metadata_file, "wb") as f:
                 pickle.dump(metadata, f, pickle.HIGHEST_PROTOCOL)
             if self.gui is not None:
@@ -142,8 +136,7 @@ class Pose:
         """
         Run pose estimation on a random subset of frames
         """
-        if self.finetuned_model:
-            print("Using finetuned model for pose estimation")
+        print("Using {} for pose estimation".format(self.model_name))
         self.pose_prediction_setup()
         if subset_ind is None:
             # Select a random subset of frames
@@ -217,7 +210,6 @@ class Pose:
             self.gui,
             self.GUIobject,
         )
-        self.finetuned_model = True
         print("Model training complete!")
         return self.net
 
@@ -343,7 +335,8 @@ class Pose:
                 end += batch_size
                 end = min(end, total_frames)
                 # Update progress bar for every 5% of the total frames
-                if (end) % np.floor(total_frames * 0.05) == 0:
+                percent_frames = int(np.floor(total_frames * 0.05))
+                if percent_frames != 0 and (end) % percent_frames == 0:
                     utils.update_mainwindow_progressbar(
                         MainWindow=self.gui,
                         GUIobject=self.GUIobject,
@@ -374,12 +367,7 @@ class Pose:
         else:
             basename, filename = os.path.split(self.filenames[0][video_id])
             videoname, _ = os.path.splitext(filename)
-        if self.finetuned_model:
-            poseFilepath = os.path.join(
-                basename, videoname + "_FacemapPoseFinetuned.h5"
-            )
-        else:
-            poseFilepath = os.path.join(basename, videoname + "_FacemapPose.h5")
+        poseFilepath = os.path.join(basename, videoname + "_FacemapPose.h5")
         dataFrame.to_hdf(poseFilepath, "df_with_missing", mode="w")
         return poseFilepath
 
@@ -389,20 +377,32 @@ class Pose:
         self.gui.load_keypoints()
         self.gui.keypoints_checkbox.setChecked(True)
 
-    def load_model(self, model_state_file=None):
+    def set_model_name(self):
+        if self.model_name is None:
+            model_selected = self.gui.pose_model_combobox.currentText()
+            model_paths = model_loader.get_model_states_paths()
+            if len(model_paths) == 0:
+                self.model_name = model_loader.get_basemodel_state_path()
+            model_names = [m.split("/")[-1].split(".")[0] for m in model_paths]
+            for model in model_names:
+                if (model == model_selected) or (
+                    model_selected == "Base model" and "facemap_model_state" in model
+                ):
+                    print("Setting model name to:", model)
+                    self.model_name = model_paths[model_names.index(model)]
+                    break
+
+    def load_model(self):
         """
         Load pre-trained model for keypoints prediction
         """
-        if model_state_file is None:
-            model_state_file = model_loader.get_model_state_path()
-        else:
-            self.finetuned_model = True
+        self.set_model_name()
         model_params_file = model_loader.get_model_params_path()
         if torch.cuda.is_available():
             print("Using cuda as device")
         else:
             print("Using cpu as device")
-        print("LOADING MODEL....", model_params_file)
+        print("Using model parameters from:", model_params_file)
         utils.update_mainwindow_message(
             MainWindow=self.gui,
             GUIobject=self.GUIobject,
@@ -421,6 +421,7 @@ class Pose:
             kernel=kernel_size,
             device=self.device,
         )
-        net.load_state_dict(torch.load(model_state_file, map_location=self.device))
+        print("Loading model from:", self.model_name)
+        net.load_state_dict(torch.load(self.model_name, map_location=self.device))
         net.to(self.device)
         self.net = net

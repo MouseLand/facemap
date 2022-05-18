@@ -35,10 +35,6 @@ def mainmenu(parent):
     train_model.triggered.connect(lambda: parent.show_model_training_popup())
     parent.addAction(train_model)
 
-    load_finetuned_model = QAction("Load finetuned model", parent)
-    load_finetuned_model.triggered.connect(lambda: parent.load_finetuned_model())
-    parent.addAction(load_finetuned_model)
-
     # Load neural data
     loadNeural = QAction("Load neural data", parent)
     loadNeural.setShortcut("Ctrl+N")
@@ -72,7 +68,6 @@ def mainmenu(parent):
 
     pose_menu = main_menu.addMenu("Pose")
     pose_menu.addAction(loadPose)
-    pose_menu.addAction(load_finetuned_model)
     pose_menu.addAction(train_model)
 
     neural_activity_menu = main_menu.addMenu("Neural activity")

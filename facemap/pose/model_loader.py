@@ -64,7 +64,20 @@ def get_model_params_path():
     return cached_params_file
 
 
-def get_model_state_path():
+def get_model_states_paths():
+    """
+    Get the paths to the model state files.
+    """
+    # Get the path to the models directory
+    model_dir = get_models_dir()
+    # Get all .pt files in the models directory
+    model_files = [
+        str(model_dir.joinpath(f)) for f in os.listdir(model_dir) if f.endswith(".pt")
+    ]
+    return model_files
+
+
+def get_basemodel_state_path():
     """
     Get the path to the model state file.
     """

@@ -31,7 +31,7 @@ from scipy.stats import skew, zscore
 
 from facemap import cluster, neural_activity, process, roi, utils
 from facemap.pose import pose_gui, refine_pose
-from facemap.pose import pose
+from facemap.pose import model_loader, pose
 
 from . import guiparts, io, menus
 
@@ -395,6 +395,15 @@ class MainW(QtWidgets.QMainWindow):
         )
         self.pose_groupbox.setLayout(QGridLayout())
 
+        # Add a dropdown menu for selecting the pose model to use
+        select_model_label = QLabel("Pose model:")
+        select_model_label.setStyleSheet("color: gray;")
+        self.pose_groupbox.layout().addWidget(select_model_label, 0, 0)
+
+        self.pose_model_combobox = QComboBox(self)
+        self.update_pose_model_combo_box()
+        self.pose_groupbox.layout().addWidget(self.pose_model_combobox, 0, 1)
+
         self.is_pose_loaded = False
         keypoints_threshold_label = QLabel("Threshold:")
         keypoints_threshold_label.setStyleSheet("color: gray;")
@@ -602,13 +611,13 @@ class MainW(QtWidgets.QMainWindow):
         self.scene_grid_layout.addWidget(facemap_label, 0, 0, 1, 2)
         self.scene_grid_layout.addWidget(self.svd_groupbox, 1, 0, 1, 2)
         # ~~~~~~~~~~ Pose features ~~~~~~~~~~
-        self.scene_grid_layout.addWidget(self.pose_groupbox, 2, 0, 1, 2)
+        self.scene_grid_layout.addWidget(self.pose_groupbox, 2, 0, 2, 2)
         # ~~~~~~~~~~ Process features ~~~~~~~~~~
-        self.scene_grid_layout.addWidget(self.process_groupbox, 3, 0, 1, 2)
+        self.scene_grid_layout.addWidget(self.process_groupbox, 4, 0, 1, 2)
         # ~~~~~~~~~~ Process buttons features ~~~~~~~~~~
-        self.scene_grid_layout.addWidget(self.process_buttons_groupbox, 4, 0, 1, 2)
+        self.scene_grid_layout.addWidget(self.process_buttons_groupbox, 5, 0, 1, 2)
         # ~~~~~~~~~~ Save/file IO ~~~~~~~~~~
-        self.scene_grid_layout.addWidget(self.labels_groupbox, 5, 0, 1, 2)
+        self.scene_grid_layout.addWidget(self.labels_groupbox, 6, 0, 1, 2)
         # ~~~~~~~~~~ Saturation ~~~~~~~~~~
         self.scene_grid_layout.addWidget(self.saturation_groupbox, 0, 3, 1, 2)
         # ~~~~~~~~~~ embedding & ROI visualization window features
@@ -674,6 +683,18 @@ class MainW(QtWidgets.QMainWindow):
             self.lbls.append(QLabel(""))
             self.lbls[-1].setStyleSheet("color: white;")
         self.update_frame_slider()
+
+    def update_pose_model_combo_box(self):
+        self.pose_model_combobox.clear()
+        models = model_loader.get_model_states_paths()
+        if len(models) == 0:
+            models = [model_loader.get_basemodel_state_path()]
+        for m in models:
+            model_name = m.split("/")[-1].split(".")[0]
+            if model_name == "facemap_model_state":
+                self.pose_model_combobox.addItem("Base model")
+            else:
+                self.pose_model_combobox.addItem(model_name)
 
     def set_saturation_label(self):
         self.saturation_level_label.setText(str(self.saturation_sliders[0].value()))
@@ -1188,23 +1209,11 @@ class MainW(QtWidgets.QMainWindow):
         self.update_status_bar("Model saved to {}".format(savepath), hide_progress=True)
         print("Model saved to {}".format(savepath))
 
-    def load_finetuned_model(self):
-        if not self.process.isEnabled():
-            self.load_video_popup()
-        model_path = io.get_pose_model_filepath(self)
-        if model_path is None:
-            return
-        if self.pose_model is None:
-            self.setup_pose_model()
-        self.pose_model.load_model(model_path)
-        self.update_status_bar("Model loaded from:", model_path, hide_progress=True)
-        self.model_loaded_popup(model_path)
-
     def update_keypoints_threshold(self, value):
         if self.is_pose_loaded:
             self.keypoints_threshold = np.nanpercentile(
                 self.pose_likelihood, value
-            )  # TODO - use threshold to update keypoints traces as well
+            )  # percentile value
 
     def load_keypoints(self):
         # Read Pose file

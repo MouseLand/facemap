@@ -192,7 +192,7 @@ class ModelTrainingPopup(QDialog):
             # If no model file exists then copy the default model file from the package to the output folder
             print("No model file found in the selected output folder")
             print("Copying default model file to the selected output folder")
-            model_state_path = model_loader.get_model_state_path()
+            model_state_path = model_loader.get_basemodel_state_path()
             shutil.copy(model_state_path, self.output_folder_path)
             self.model_files = glob(os.path.join(self.output_folder_path, "*.pt"))
 
@@ -210,7 +210,10 @@ class ModelTrainingPopup(QDialog):
         self.model_dropdown = QComboBox(self)
         # Add the model files to the dropdown menu
         for model_file in self.model_files:
-            self.model_dropdown.addItem(os.path.basename(model_file))
+            if os.path.basename(model_file) == "facemap_model_state.pt":
+                self.model_dropdown.addItem("Base model")
+            else:
+                self.model_dropdown.addItem(os.path.basename(model_file))
         self.model_dropdown.setStyleSheet("QComboBox {color: 'black';}")
         self.model_dropdown.setFixedWidth(
             int(np.floor(self.window_max_size.width() * 0.25 * 0.5))
@@ -234,7 +237,7 @@ class ModelTrainingPopup(QDialog):
 
         self.model_name_box = QLineEdit(self)
         self.model_name_box.setStyleSheet("QLineEdit {color: 'black';}")
-        self.model_name_box.setText("facemap_model_state_refined")
+        self.model_name_box.setText("facemap_model_refined")
         self.model_name_box.setFixedWidth(
             int(np.floor(self.window_max_size.width() * 0.25 * 0.5))
         )
@@ -345,7 +348,9 @@ class ModelTrainingPopup(QDialog):
             "QLabel {color: 'white'; font-size: 16;}"
         )
         self.old_data_found_label.hide()
-        self.npy_files_groupbox.layout().addWidget(self.old_data_found_label, alignment=QtCore.Qt.AlignCenter)
+        self.npy_files_groupbox.layout().addWidget(
+            self.old_data_found_label, alignment=QtCore.Qt.AlignCenter
+        )
 
         self.verticalLayout.addWidget(self.npy_files_groupbox)
 
@@ -562,13 +567,23 @@ class ModelTrainingPopup(QDialog):
         # Get the selected model
         self.model_files = self.model_files[self.model_dropdown.currentIndex()]
         self.output_model_name = self.model_name_box.text()
+        if self.output_model_name == "facemap_model_state":
+            # Open a QMessageBox to warn the user that the model name is not allowed
+            msg = QMessageBox(self)
+            msg.setIcon(QMessageBox.Warning)
+            msg.setText("Output model name cannot be 'facemap_model_state'")
+            msg.setStyleSheet("QLabel{ color: white}")
+            msg.setWindowTitle("Warning")
+            msg.setStandardButtons(QMessageBox.Ok)
+            msg.exec_()
+            return
         # Get the selected videos
         self.selected_videos = []
         for i, checkbox in enumerate(self.npy_files_checkboxes):
             if checkbox.isChecked():
                 self.selected_videos.append(self.data_files[i])
         # Get list of all files
-        if self.use_current_video_checkbox.isChecked():
+        if self.use_current_video_yes_radio.isChecked():
             self.use_current_video = True
             self.num_random_frames = self.spinbox_nframes.value()
         else:
@@ -921,7 +936,7 @@ class ModelTrainingPopup(QDialog):
             keypoints_data.append(np.load(video, allow_pickle=True).item()["keypoints"])
             image_data.append(np.load(video, allow_pickle=True).item()["imgs"])
             bbox_data.append(np.load(video, allow_pickle=True).item()["bbox"])
-        if self.use_current_video_checkbox.isChecked():
+        if self.use_current_video_yes_radio.isChecked():
             image_data.append(self.all_frames)
             keypoints_data.append(self.pose_data)
             bbox_data.append(self.bbox)
@@ -959,6 +974,7 @@ class ModelTrainingPopup(QDialog):
             self.output_folder_path, self.output_model_name + ".pt"
         )
         self.gui.save_pose_model(output_filepath)
+        self.gui.update_pose_model_combo_box()
         self.close()
 
     ### ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Model Evaluation ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ ###
