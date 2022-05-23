@@ -140,24 +140,24 @@ def get_cropped_imgs(imgs, bbox):
     return cropped_imgs
 
 
-def pad_keypoints(keypoints, pad_x, pad_y):
+def pad_keypoints(keypoints, pad_h, pad_w):
     """
     Pad keypoints using padding values for width and height.
     Parameters
     ----------
     keypoints : ND-array
         keypoints of size [N x 2]
-    pad_w : int
-        width padding
     pad_h : int
         height padding
+    pad_w : int
+        width padding
     Returns
     -------
     keypoints : ND-array
         padded keypoints of size [N x 2]
     """
-    keypoints[:, 0] += pad_x
-    keypoints[:, 1] += pad_y
+    keypoints[:, 0] += pad_h
+    keypoints[:, 1] += pad_w
     return keypoints
 
 
@@ -390,8 +390,8 @@ def adjust_keypoints(xlabels, ylabels, crop_xy, padding, current_size, desired_s
     xlabels, ylabels = adjust_keypoints_for_padding(xlabels, ylabels, padding)
     # Adjust for cropping
     x1, y1 = crop_xy[0], crop_xy[1]
-    xlabels += y1
-    ylabels += x1
+    xlabels += x1
+    ylabels += y1
     return xlabels, ylabels
 
 

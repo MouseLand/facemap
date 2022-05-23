@@ -195,7 +195,7 @@ class FacemapDataset(torch.utils.data.Dataset):
         # 1. Crop image
         bbox = transforms.randomize_bbox_coordinates(bbox, image.shape[-2:])
         image = transforms.crop_image(image, bbox)
-        x1, _, y1, _ = bbox
+        y1, _, x1, _ = bbox
         keypoints[:, 0] = keypoints[:, 0] - x1
         keypoints[:, 1] = keypoints[:, 1] - y1
 
@@ -208,7 +208,11 @@ class FacemapDataset(torch.utils.data.Dataset):
             keypoints, desired_shape=self.img_size, original_shape=image.shape[-2:]
         )
         image = transforms.resize_image(image, self.img_size)
-
+        """
+        print("bbox: ", bbox)
+        print("crop x1, y1: ", x1, y1)
+        print("pad_y_top, pad_x_left", pad_y_top, pad_x_left)
+        """
         return image, keypoints
 
     def load_keypoints_h5(self):

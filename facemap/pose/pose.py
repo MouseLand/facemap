@@ -274,7 +274,7 @@ class Pose:
         start = 0
         end = batch_size
         # Get bounding box for the video
-        x1, _, y1, _ = self.bbox[video_id]
+        y1, _, x1, _ = self.bbox[video_id]
         inference_time = 0
 
         print("Using params:")
