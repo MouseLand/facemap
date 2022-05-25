@@ -6,6 +6,8 @@ import random
 from platform import python_version
 
 import cv2  # opencv
+import matplotlib
+import matplotlib.pyplot as plt
 import pyqtgraph as pg
 import torch  # pytorch
 from PyQt5 import QtWidgets
@@ -142,6 +144,53 @@ def add_motion_blur(img, kernel_size=None, vertical=True, horizontal=True):
         img = cv2.filter2D(img, -1, kernel_h)
 
     return img
+
+
+def plot_imgs_landmarks(
+    imgs, keypoints, pred_keypoints=None, cmap="jet", s=10, figsize=(10, 10)
+):
+    """
+    Plot images and keypoints in a grid.
+    Parameters
+    ----------
+    imgs : LIST of ND-arrays, float
+            list of image arrays of size [nchan x Ly x Lx] or [Ly x Lx]
+    landmarks : ND-array of shape (N, bodyparts, 2)
+            Array of landmarks.
+    Returns
+    -------
+    fig : matplotlib figure
+        Figure containing the images and landmarks.
+    """
+    n_imgs = len(imgs)
+    n_cols = int(np.ceil(np.sqrt(n_imgs)))
+    n_rows = int(np.ceil(n_imgs / n_cols))
+
+    cmap = matplotlib.cm.get_cmap(cmap)
+    colornorm = matplotlib.colors.Normalize(vmin=0, vmax=keypoints[0].shape[0])
+    colors = cmap(colornorm(np.arange(keypoints[0].shape[0])))
+
+    fig, axes = plt.subplots(n_rows, n_cols, figsize=figsize)
+    if n_imgs == 1:
+        axes = np.array([axes])
+    for i, ax in enumerate(axes.flat):
+        if i < n_imgs:
+            if imgs[i].ndim == 2:
+                ax.imshow(imgs[i], cmap="gray")
+            else:
+                ax.imshow(imgs[i].squeeze(), cmap="gray")
+            ax.scatter(keypoints[i][:, 0], keypoints[i][:, 1], s=s, color=colors)
+            if pred_keypoints is not None:
+                ax.scatter(
+                    pred_keypoints[i][:, 0],
+                    pred_keypoints[i][:, 1],
+                    marker="+",
+                    s=s * 2,
+                    color=colors,
+                )
+        if i == n_imgs:
+            ax.axis("off")
+    return fig
 
 
 # Following used to check cropped sections of frames

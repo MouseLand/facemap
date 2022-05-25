@@ -353,13 +353,13 @@ def crop_image(im, bbox=None):
     """
     if bbox is None:
         return im
-    x1, x2, y1, y2 = bbox
+    y1, y2, x1, x2 = bbox
     if im.ndim == 2:
-        im = im[x1:x2, y1:y2]
+        im = im[y1:y2, x1:x2]
     elif im.ndim == 3:
-        im = im[:, x1:x2, y1:y2]
+        im = im[:, y1:y2, x1:x2]
     elif im.ndim == 4:
-        im = im[:, :, x1:x2, y1:y2]
+        im = im[:, :, y1:y2, x1:x2]
     else:
         raise ValueError("Cannot handle image with ndim=" + str(im.ndim))
     return im

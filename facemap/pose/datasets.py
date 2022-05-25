@@ -130,47 +130,6 @@ class FacemapDataset(torch.utils.data.Dataset):
             imgs.append(im)
         return imgs
 
-    def load_images(self):
-        """
-        Load images from the directory or subdirectories provided containing .png files and convert to float32 and normalize99
-        Returns
-        -------
-        images : List ND-arrays of shape (C, W, H)
-            List of images.
-        """
-        # Check if the directory contains .png files
-        img_files = sorted(glob(os.path.join(self.datadir, "*.png")))
-        if len(img_files) == 0:  # If not, check if it contains subdirectories
-            img_files = sorted(glob(os.path.join(self.datadir, "*/*.png")))
-        if len(img_files) == 0:
-            raise ValueError("No .png files found in the directory")
-
-        imgs = []
-        for file in img_files:
-            # Normalize images
-            im = cv2.imread(file, cv2.IMREAD_GRAYSCALE)
-            # Add channel dimension
-            im = im[np.newaxis, ...]
-            # Convert numpy array to tensor
-            im = torch.from_numpy(im)
-
-            # Convert to float32 in the range 0 to 1
-            if im.dtype == float:
-                pass
-            elif im.dtype == torch.uint8:
-                im = im.float() / 255.0
-            elif im.dtype == torch.uint16:
-                im = im.float() / 65535.0
-            else:
-                print("Cannot handle im type " + str(im.dtype))
-                raise TypeError
-
-            # Normalize
-            im = pose_utils.normalize99(im)
-            imgs.append(im)
-
-        return imgs
-
     def preprocess_data(self, image, keypoints, bbox):
         """
         Preproccesing of image involves:
@@ -215,6 +174,47 @@ class FacemapDataset(torch.utils.data.Dataset):
         """
         return image, keypoints
 
+    def load_images(self):
+        """
+        Load images from the directory or subdirectories provided containing .png files and convert to float32 and normalize99
+        Returns
+        -------
+        images : List ND-arrays of shape (C, W, H)
+            List of images.
+        """
+        # Check if the directory contains .png files
+        img_files = sorted(glob(os.path.join(self.datadir, "*.png")))
+        if len(img_files) == 0:  # If not, check if it contains subdirectories
+            img_files = sorted(glob(os.path.join(self.datadir, "*/*.png")))
+        if len(img_files) == 0:
+            raise ValueError("No .png files found in the directory")
+
+        imgs = []
+        for file in img_files:
+            # Normalize images
+            im = cv2.imread(file, cv2.IMREAD_GRAYSCALE)
+            # Add channel dimension
+            im = im[np.newaxis, ...]
+            # Convert numpy array to tensor
+            im = torch.from_numpy(im)
+
+            # Convert to float32 in the range 0 to 1
+            if im.dtype == float:
+                pass
+            elif im.dtype == torch.uint8:
+                im = im.float() / 255.0
+            elif im.dtype == torch.uint16:
+                im = im.float() / 65535.0
+            else:
+                print("Cannot handle im type " + str(im.dtype))
+                raise TypeError
+
+            # Normalize
+            im = pose_utils.normalize99(im)
+            imgs.append(im)
+
+        return imgs
+
     def load_keypoints_h5(self):
         """
         Load landmarks/keypoints from the directory provided containing .h5 files.
@@ -232,10 +232,16 @@ class FacemapDataset(torch.utils.data.Dataset):
                     y-coordinate of the landmark.
         """
         # Landmarks/key points info
-        annotation_files = sorted(glob(os.path.join(self.datadir, "CollectedData*.h5")))
+        annotation_files = sorted(
+            glob(os.path.join(self.datadir, "CollectedData_{}.h5".format(self.scorer)))
+        )
         if len(annotation_files) == 0:
             annotation_files = sorted(
-                glob(os.path.join(self.datadir, "*/CollectedData*.h5"))
+                glob(
+                    os.path.join(
+                        self.datadir, "*/CollectedData_{}.h5".format(self.scorer)
+                    )
+                )
             )
         if len(annotation_files) == 0:
             raise ValueError("No .h5 files found in the directory")
@@ -266,7 +272,7 @@ class FacemapDataset(torch.utils.data.Dataset):
             x_max = np.nanmax(self.keypoints[i, :, 0])
             y_min = np.nanmin(self.keypoints[i, :, 1])
             y_max = np.nanmax(self.keypoints[i, :, 1])
-            bbox.append([x_min, x_max, y_min, y_max])
+            bbox.append([y_min, y_max, x_min, x_max])
         # Convert to tensor
         bbox = torch.from_numpy(np.array(bbox))
         return bbox
