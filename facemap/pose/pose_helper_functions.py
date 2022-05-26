@@ -59,44 +59,53 @@ def normalize99(X, device=None):
     return X
 
 
-def predict(net, im_input, smooth=True):
-
-    xmesh, ymesh = np.meshgrid(
-        torch.arange(net.image_shape[0] / N_FACTOR),
-        torch.arange(net.image_shape[1] / N_FACTOR),
-    )
-    ymesh = torch.from_numpy(ymesh).to(net.device)
-    xmesh = torch.from_numpy(xmesh).to(net.device)
+def predict(net, im_input, smooth=False):
+    lx = int(net.image_shape[0] / N_FACTOR)
+    ly = int(net.image_shape[1] / N_FACTOR)
+    xmesh, ymesh = torch.meshgrid(torch.arange(lx), torch.arange(ly), indexing="ij")
+    ymesh = ymesh.to(net.device)
+    xmesh = xmesh.to(net.device)
+    x_pred = []
+    y_pred = []
+    likelihood = []
 
     # Predict
     with torch.no_grad():
-        if im_input.ndim == 3:
-            im_input = im_input[np.newaxis, ...]
         hm_pred, locx_pred, locy_pred = net(im_input)
 
-        hm_pred = hm_pred.squeeze()
-        locx_pred = locx_pred.squeeze()
-        locy_pred = locy_pred.squeeze()
+        batch_size = hm_pred.shape[0]
+        num_keypoints = hm_pred.shape[1]
 
         if smooth:
             hm_smo = gaussian_filter(hm_pred.cpu().numpy(), [0, 1, 1])
-            hm_smo = hm_smo.reshape(hm_smo.shape[0], hm_smo.shape[1], Lx * Lx)
+            hm_smo = hm_smo.reshape(hm_smo.shape[0], hm_smo.shape[1], lx * ly)
             imax = torch.argmax(hm_smo, -1)
             likelihood = torch.diag(hm_smo[:, :, imax])
         else:
-            hm_pred = hm_pred.reshape(hm_pred.shape[0], Lx * Lx)
-            imax = torch.argmax(hm_pred, 1)
-            likelihood = torch.diag(hm_pred[:, imax])
+            hm_pred = hm_pred.reshape(batch_size, num_keypoints, lx * ly)
+            locx_pred = locx_pred.reshape(batch_size, num_keypoints, lx * ly)
+            locy_pred = locy_pred.reshape(batch_size, num_keypoints, lx * ly)
 
-        # this part computes the position error on the training set
-        locx_pred = locx_pred.reshape(locx_pred.shape[0], Lx * Lx)
-        locy_pred = locy_pred.reshape(locy_pred.shape[0], Lx * Lx)
+            for i in range(batch_size):
+                imax = torch.argmax(hm_pred[i], -1)
+                likelihood.append(torch.diag(hm_pred[i, :, imax]))
+                x_pred.append(
+                    xmesh.flatten()[imax]
+                    - (2 * SIGMA) * locx_pred[i, torch.arange(num_keypoints), imax]
+                )
+                y_pred.append(
+                    ymesh.flatten()[imax]
+                    - (2 * SIGMA) * locy_pred[i, torch.arange(num_keypoints), imax]
+                )
 
-        nn = hm_pred.shape[0]
-        x_pred = ymesh.flatten()[imax] - (2 * SIGMA) * locx_pred[torch.arange(nn), imax]
-        y_pred = xmesh.flatten()[imax] - (2 * SIGMA) * locy_pred[torch.arange(nn), imax]
+    x_pred = torch.stack(x_pred)
+    y_pred = torch.stack(y_pred)
+    likelihood = torch.stack(likelihood)
 
-    return y_pred * N_FACTOR, x_pred * N_FACTOR, likelihood
+    x_pred *= N_FACTOR
+    y_pred *= N_FACTOR
+
+    return y_pred, x_pred, likelihood
 
 
 def randomly_adjust_contrast(img):

@@ -38,8 +38,10 @@ class Pose:
         self.GUIobject = GUIobject
         if self.gui is not None:
             self.filenames = self.gui.filenames
+            self.batch_size = self.gui.batch_size_spinbox.value()
         else:
             self.filenames = filenames
+            self.batch_size = 1
         self.cumframes, self.Ly, self.Lx, self.containers = utils.get_frame_details(
             self.filenames
         )
@@ -253,13 +255,6 @@ class Pose:
         """
         nchannels = 1
 
-        if (
-            torch.cuda.is_available()
-        ):  # TODO - Support other batch sizes depending on GPU memory and CPU
-            batch_size = 1
-        else:  # TODO - Optimize for CPU usage
-            batch_size = 1
-
         if frame_ind is None:
             total_frames = self.cumframes[-1]
             frame_ind = np.arange(total_frames)
@@ -272,7 +267,7 @@ class Pose:
         # Store predictions in dataframe
         self.net.eval()
         start = 0
-        end = batch_size
+        end = self.batch_size
         # Get bounding box for the video
         y1, _, x1, _ = self.bbox[video_id]
         inference_time = 0
@@ -281,6 +276,7 @@ class Pose:
         print("BBOX:", self.bbox[video_id])
         print("resize:", self.resize)
         print("padding:", self.add_padding)
+        print("Batch size:", self.batch_size)
 
         progress_output = StringIO()
         with tqdm(
@@ -290,10 +286,17 @@ class Pose:
 
                 # Pre-pocess images
                 imall = np.zeros(
-                    (batch_size, nchannels, self.Ly[video_id], self.Lx[video_id])
+                    (self.batch_size, nchannels, self.Ly[video_id], self.Lx[video_id])
                 )
                 cframes = np.array(frame_ind[start:end])
-                utils.get_frames(imall, self.containers, cframes, self.cumframes)
+                # utils.get_frames(imall, self.containers, cframes, self.cumframes)
+                imall = utils.get_batch_frames(
+                    cframes,
+                    total_frames,
+                    self.cumframes,
+                    self.containers,
+                    grayscale=True,
+                )
 
                 # Inference time includes: pre-processing, inference, post-processing
                 t0 = time.time()
@@ -306,8 +309,6 @@ class Pose:
                     self.resize,
                     device=self.net.device,
                 )
-
-                # obj = pose_utils.test_popup(imall[0].squeeze().detach().cpu().numpy(), self.gui, title="Post-processing {}".format(start))
 
                 # Run inference
                 xlabels, ylabels, likelihood = pose_utils.predict(
@@ -330,9 +331,9 @@ class Pose:
 
                 # Update progress bar and inference time
                 inference_time += time.time() - t0
-                pbar.update(batch_size)
+                pbar.update(self.batch_size)
                 start = end
-                end += batch_size
+                end += self.batch_size
                 end = min(end, total_frames)
                 # Update progress bar for every 5% of the total frames
                 percent_frames = int(np.floor(total_frames * 0.05))
@@ -344,12 +345,11 @@ class Pose:
                         prompt="Pose prediction progress:",
                     )
 
-        if batch_size == 1:
-            inference_speed = total_frames / inference_time
-            print("Inference speed:", inference_speed, "fps")
+        inference_speed = total_frames / inference_time
+        print("Inference speed:", inference_speed, "fps")
 
         metadata = {
-            "batch_size": batch_size,
+            "batch_size": self.batch_size,
             "image_size": (self.Ly, self.Lx),
             "bbox": self.bbox[video_id],
             "total_frames": total_frames,

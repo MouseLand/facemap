@@ -404,10 +404,19 @@ class MainW(QtWidgets.QMainWindow):
         self.update_pose_model_combo_box()
         self.pose_groupbox.layout().addWidget(self.pose_model_combobox, 0, 1)
 
+        # Add a QLabel and spinbox for selecting batch size
+        batch_size_label = QLabel("Batch size:")
+        batch_size_label.setStyleSheet("color: gray;")
+        self.pose_groupbox.layout().addWidget(batch_size_label, 1, 0)
+        self.batch_size_spinbox = QSpinBox()
+        self.batch_size_spinbox.setRange(1, 100)
+        self.batch_size_spinbox.setValue(1)
+        self.pose_groupbox.layout().addWidget(self.batch_size_spinbox, 1, 1)
+
         self.is_pose_loaded = False
         keypoints_threshold_label = QLabel("Threshold:")
         keypoints_threshold_label.setStyleSheet("color: gray;")
-        self.pose_groupbox.layout().addWidget(keypoints_threshold_label, 1, 0)
+        self.pose_groupbox.layout().addWidget(keypoints_threshold_label, 2, 0)
         self.keypoints_threshold_spinbox = QSpinBox()
         self.keypoints_threshold_spinbox.setRange(0, 100)
         self.keypoints_threshold_spinbox.setValue(0)
@@ -415,7 +424,7 @@ class MainW(QtWidgets.QMainWindow):
         self.keypoints_threshold_spinbox.valueChanged.connect(
             self.update_keypoints_threshold
         )
-        self.pose_groupbox.layout().addWidget(self.keypoints_threshold_spinbox, 1, 1)
+        self.pose_groupbox.layout().addWidget(self.keypoints_threshold_spinbox, 2, 1)
 
         # ~~~~~~~~~~~~~~~~~~~~~~~~ Process features ~~~~~~~~~~~~~~~~~~~~~~~~
         self.process_groupbox = QGroupBox("Process settings:")
@@ -611,13 +620,13 @@ class MainW(QtWidgets.QMainWindow):
         self.scene_grid_layout.addWidget(facemap_label, 0, 0, 1, 2)
         self.scene_grid_layout.addWidget(self.svd_groupbox, 1, 0, 1, 2)
         # ~~~~~~~~~~ Pose features ~~~~~~~~~~
-        self.scene_grid_layout.addWidget(self.pose_groupbox, 2, 0, 2, 2)
+        self.scene_grid_layout.addWidget(self.pose_groupbox, 2, 0, 3, 2)
         # ~~~~~~~~~~ Process features ~~~~~~~~~~
-        self.scene_grid_layout.addWidget(self.process_groupbox, 4, 0, 1, 2)
+        self.scene_grid_layout.addWidget(self.process_groupbox, 6, 0, 1, 2)
         # ~~~~~~~~~~ Process buttons features ~~~~~~~~~~
-        self.scene_grid_layout.addWidget(self.process_buttons_groupbox, 5, 0, 1, 2)
+        self.scene_grid_layout.addWidget(self.process_buttons_groupbox, 7, 0, 1, 2)
         # ~~~~~~~~~~ Save/file IO ~~~~~~~~~~
-        self.scene_grid_layout.addWidget(self.labels_groupbox, 6, 0, 1, 2)
+        self.scene_grid_layout.addWidget(self.labels_groupbox, 8, 0, 1, 2)
         # ~~~~~~~~~~ Saturation ~~~~~~~~~~
         self.scene_grid_layout.addWidget(self.saturation_groupbox, 0, 3, 1, 2)
         # ~~~~~~~~~~ embedding & ROI visualization window features
