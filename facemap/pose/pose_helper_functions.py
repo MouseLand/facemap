@@ -62,7 +62,14 @@ def normalize99(X, device=None):
 def predict(net, im_input, smooth=False):
     lx = int(net.image_shape[0] / N_FACTOR)
     ly = int(net.image_shape[1] / N_FACTOR)
+    batch_size = im_input.shape[0]
+    num_keypoints = len(net.bodyparts)
     xmesh, ymesh = torch.meshgrid(torch.arange(lx), torch.arange(ly), indexing="ij")
+    locx_mesh, locy_mesh = torch.meshgrid(
+        torch.arange(batch_size), torch.arange(num_keypoints), indexing="ij"
+    )
+    locx_mesh = locx_mesh.to(net.device)
+    locy_mesh = locy_mesh.to(net.device)
     ymesh = ymesh.to(net.device)
     xmesh = xmesh.to(net.device)
     x_pred = []
@@ -72,9 +79,6 @@ def predict(net, im_input, smooth=False):
     # Predict
     with torch.no_grad():
         hm_pred, locx_pred, locy_pred = net(im_input)
-
-        batch_size = hm_pred.shape[0]
-        num_keypoints = hm_pred.shape[1]
 
         if smooth:
             hm_smo = gaussian_filter(hm_pred.cpu().numpy(), [0, 1, 1])
@@ -86,26 +90,26 @@ def predict(net, im_input, smooth=False):
             locx_pred = locx_pred.reshape(batch_size, num_keypoints, lx * ly)
             locy_pred = locy_pred.reshape(batch_size, num_keypoints, lx * ly)
 
-            for i in range(batch_size):
-                imax = torch.argmax(hm_pred[i], -1)
-                likelihood.append(torch.diag(hm_pred[i, :, imax]))
-                x_pred.append(
-                    xmesh.flatten()[imax]
-                    - (2 * SIGMA) * locx_pred[i, torch.arange(num_keypoints), imax]
-                )
-                y_pred.append(
-                    ymesh.flatten()[imax]
-                    - (2 * SIGMA) * locy_pred[i, torch.arange(num_keypoints), imax]
-                )
-
-    x_pred = torch.stack(x_pred)
-    y_pred = torch.stack(y_pred)
-    likelihood = torch.stack(likelihood)
+            likelihood, imax = torch.max(hm_pred, -1)
+            i_y = imax % lx
+            i_x = imax // lx
+            x_pred = (locx_pred[locx_mesh, locy_mesh, imax] * (-2 * SIGMA)) + i_x
+            y_pred = (locy_pred[locx_mesh, locy_mesh, imax] * (-2 * SIGMA)) + i_y
 
     x_pred *= N_FACTOR
     y_pred *= N_FACTOR
 
     return y_pred, x_pred, likelihood
+
+    """
+    likelihood, imax = hm_pred.reshape(batch_size * num_keypoints, -1).max(dim=-1)
+    likelihood = likelihood.reshape(batch_size, num_keypoints)
+    x_pred = (torch.div(imax, lx, rounding_mode='trunc') - ((2 * SIGMA) * locx_pred.reshape(batch_size * num_keypoints, -1).gather(dim=1, index=imax.unsqueeze(-1).             repeat(1, lx * ly)))[:, 
+                0]).reshape(batch_size, num_keypoints)
+    y_pred = (imax % lx - ((2 * SIGMA) * locy_pred.reshape(batch_size * num_keypoints, -1).gather(dim=1, index=imax.unsqueeze(-1).repeat(1, lx * ly)))[:, 0]).reshape(batch_size, num_keypoints)
+    return y_pred, x_pred, likelihood
+
+    """
 
 
 def randomly_adjust_contrast(img):
