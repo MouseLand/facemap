@@ -349,12 +349,14 @@ class MainW(QtWidgets.QMainWindow):
         # ~~~~~~~~~~~~~~~~~~~~~~~~ SVD variables ~~~~~~~~~~~~~~~~~~~~~~~~
         self.svd_groupbox = QGroupBox("ROI settings:")
         self.svd_groupbox.setStyleSheet(
-            "QGroupBox { border: 1px solid white; border-style: outset; border-radius: 10px; color:white; padding: 20px 0px;}"
+            "QGroupBox { border: 1px solid white; border-style: outset; border-radius: 5px; color:white; padding: 20px 0px;}"
         )  # padding: 5px -10px;
         self.svd_groupbox.setLayout(QGridLayout())
 
         # Create ROI features
         self.comboBox = QComboBox(self)
+        # Set size of combobox
+        self.comboBox.setFixedWidth(int(0.05 * self.sizeObject.width()))
         self.comboBox.addItem("Select ROI")
         self.comboBox.addItem("Pupil")
         self.comboBox.addItem("motion SVD")
@@ -383,7 +385,7 @@ class MainW(QtWidgets.QMainWindow):
         self.svd_groupbox.layout().addWidget(binLabel, 2, 0)
         self.sigma_box = QLineEdit()
         self.sigma_box.setText(str(self.ops["pupil_sigma"]))
-        self.sigma_box.setFixedWidth(int(0.03 * self.sizeObject.width()))
+        self.sigma_box.setFixedWidth(int(0.05 * self.sizeObject.width()))
         self.pupil_sigma = float(self.sigma_box.text())
         self.sigma_box.returnPressed.connect(self.pupil_sigma_change)
         self.svd_groupbox.layout().addWidget(self.sigma_box, 2, 1)
@@ -401,6 +403,8 @@ class MainW(QtWidgets.QMainWindow):
         self.pose_groupbox.layout().addWidget(select_model_label, 0, 0)
 
         self.pose_model_combobox = QComboBox(self)
+        # Set size of combobox
+        self.pose_model_combobox.setFixedWidth(int(0.03 * self.sizeObject.width()))
         self.update_pose_model_combo_box()
         self.pose_groupbox.layout().addWidget(self.pose_model_combobox, 0, 1)
 

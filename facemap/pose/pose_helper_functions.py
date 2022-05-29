@@ -53,8 +53,8 @@ def normalize99(X, device=None):
         x99 = torch.quantile(X, 0.99)
         X = (X - x01) / (x99 - x01)
     else:
-        x01 = np.percentile(X, 1)
-        x99 = np.percentile(X, 99)
+        x01 = np.nanpercentile(X, 1)
+        x99 = np.nanpercentile(X, 99)
         X = (X - x01) / (x99 - x01)
     return X
 
@@ -64,53 +64,66 @@ def predict(net, im_input, smooth=False):
     ly = int(net.image_shape[1] / N_FACTOR)
     batch_size = im_input.shape[0]
     num_keypoints = len(net.bodyparts)
-    xmesh, ymesh = torch.meshgrid(torch.arange(lx), torch.arange(ly), indexing="ij")
     locx_mesh, locy_mesh = torch.meshgrid(
         torch.arange(batch_size), torch.arange(num_keypoints), indexing="ij"
     )
     locx_mesh = locx_mesh.to(net.device)
     locy_mesh = locy_mesh.to(net.device)
-    ymesh = ymesh.to(net.device)
-    xmesh = xmesh.to(net.device)
-    x_pred = []
-    y_pred = []
-    likelihood = []
 
     # Predict
     with torch.no_grad():
         hm_pred, locx_pred, locy_pred = net(im_input)
 
         if smooth:
-            hm_smo = gaussian_filter(hm_pred.cpu().numpy(), [0, 1, 1])
-            hm_smo = hm_smo.reshape(hm_smo.shape[0], hm_smo.shape[1], lx * ly)
-            imax = torch.argmax(hm_smo, -1)
-            likelihood = torch.diag(hm_smo[:, :, imax])
-        else:
-            hm_pred = hm_pred.reshape(batch_size, num_keypoints, lx * ly)
-            locx_pred = locx_pred.reshape(batch_size, num_keypoints, lx * ly)
-            locy_pred = locy_pred.reshape(batch_size, num_keypoints, lx * ly)
+            hm_pred = gaussian_filter(hm_pred.cpu().numpy(), [0, 1, 1])
 
-            likelihood, imax = torch.max(hm_pred, -1)
-            i_y = imax % lx
-            i_x = imax // lx
-            x_pred = (locx_pred[locx_mesh, locy_mesh, imax] * (-2 * SIGMA)) + i_x
-            y_pred = (locy_pred[locx_mesh, locy_mesh, imax] * (-2 * SIGMA)) + i_y
+        hm_pred = hm_pred.reshape(batch_size, num_keypoints, lx * ly)
+        locx_pred = locx_pred.reshape(batch_size, num_keypoints, lx * ly)
+        locy_pred = locy_pred.reshape(batch_size, num_keypoints, lx * ly)
+
+        likelihood, imax = torch.max(hm_pred, -1)
+        i_y = imax % lx
+        i_x = torch.div(imax, lx, rounding_mode='trunc') 
+        x_pred = (locx_pred[locx_mesh, locy_mesh, imax] * (-2 * SIGMA)) + i_x
+        y_pred = (locy_pred[locx_mesh, locy_mesh, imax] * (-2 * SIGMA)) + i_y
 
     x_pred *= N_FACTOR
     y_pred *= N_FACTOR
 
     return y_pred, x_pred, likelihood
 
-    """
-    likelihood, imax = hm_pred.reshape(batch_size * num_keypoints, -1).max(dim=-1)
-    likelihood = likelihood.reshape(batch_size, num_keypoints)
-    x_pred = (torch.div(imax, lx, rounding_mode='trunc') - ((2 * SIGMA) * locx_pred.reshape(batch_size * num_keypoints, -1).gather(dim=1, index=imax.unsqueeze(-1).             repeat(1, lx * ly)))[:, 
-                0]).reshape(batch_size, num_keypoints)
-    y_pred = (imax % lx - ((2 * SIGMA) * locy_pred.reshape(batch_size * num_keypoints, -1).gather(dim=1, index=imax.unsqueeze(-1).repeat(1, lx * ly)))[:, 0]).reshape(batch_size, num_keypoints)
+
+def numpy_predict(net, im_input, smooth=False):
+    lx = int(net.image_shape[0] / N_FACTOR)
+    ly = int(net.image_shape[1] / N_FACTOR)
+    batch_size = im_input.shape[0]
+    num_keypoints = len(net.bodyparts)
+    locx_mesh, locy_mesh = np.meshgrid(
+        np.arange(batch_size), np.arange(num_keypoints), indexing="ij"
+    )
+
+    # Predict
+    with torch.no_grad():
+        hm_pred, locx_pred, locy_pred = net(im_input)
+
+        if smooth:
+            hm_pred = gaussian_filter(hm_pred.cpu().numpy(), [0, 1, 1])
+
+        hm_pred = hm_pred.reshape(batch_size, num_keypoints, lx * ly).cpu().numpy()
+        locx_pred = locx_pred.reshape(batch_size, num_keypoints, lx * ly).cpu().numpy()
+        locy_pred = locy_pred.reshape(batch_size, num_keypoints, lx * ly).cpu().numpy()
+
+        likelihood = np.maximum(hm_pred, -1)
+        imax = np.argmax(hm_pred, -1)
+        i_y = imax % lx
+        i_x = imax // lx
+        x_pred = (locx_pred[locx_mesh, locy_mesh, imax] * (-2 * SIGMA)) + i_x
+        y_pred = (locy_pred[locx_mesh, locy_mesh, imax] * (-2 * SIGMA)) + i_y
+
+    x_pred *= N_FACTOR
+    y_pred *= N_FACTOR
+
     return y_pred, x_pred, likelihood
-
-    """
-
 
 def randomly_adjust_contrast(img):
     """

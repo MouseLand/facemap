@@ -8,7 +8,6 @@ import numpy as np
 import torch
 from scipy import ndimage
 from torch.nn import functional as F
-
 from . import pose_helper_functions as pose_utils
 
 
@@ -44,13 +43,13 @@ def preprocess_img(im, bbox, add_padding, resize, device=None):
 
     # Convert numpy array to tensor
     if device is not None:
-        im = torch.from_numpy(im).to(device, dtype=torch.float32)
+        im = torch.from_numpy(im).to(device)#, dtype=torch.float32)
 
     # Normalize
     im = pose_utils.normalize99(im, device=device)
 
     # 2. Crop image
-    im = crop_image(im, bbox).clone().detach()
+    im = crop_image(im, bbox)
 
     # 3. Pad image to square
     if add_padding:
@@ -60,7 +59,6 @@ def preprocess_img(im, bbox, add_padding, resize, device=None):
 
     # 4. Resize image to 256x256 for model input
     postpad_shape = im.shape[-2:]
-
     if resize:
         im = F.interpolate(im, size=(256, 256), mode="bilinear")
 
@@ -177,9 +175,6 @@ def pad_img_to_square(img, bbox=None):
     (pad_w, pad_h) : tuple of int
         padding values for width and height
     """
-    if not isinstance(img, torch.Tensor):
-        img = torch.from_numpy(img)
-
     if bbox is not None:  # Check if bbox is square
         x1, x2, y1, y2 = bbox
         dx, dy = x2 - x1, y2 - y1
@@ -224,8 +219,7 @@ def pad_img_to_square(img, bbox=None):
         mode="constant",
         value=0,
     )
-    if not isinstance(img, torch.Tensor):
-        img = img.clone().detach()
+
     return img, (pad_y_top, pad_y_bottom, pad_x_left, pad_x_right)
 
 
