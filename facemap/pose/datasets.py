@@ -107,7 +107,12 @@ class FacemapDataset(torch.utils.data.Dataset):
         if not isinstance(keypoints, torch.Tensor):
             keypoints = torch.from_numpy(keypoints)
 
-        data = {"image": image, "keypoints": keypoints, "item": item}
+        data = {
+            "image": image,
+            "keypoints": keypoints,
+            "bbox": self.bbox[item],
+            "item": item,
+        }
         return data
 
     def preprocess_imgs(self, image_data):
@@ -167,11 +172,7 @@ class FacemapDataset(torch.utils.data.Dataset):
             keypoints, desired_shape=self.img_size, original_shape=image.shape[-2:]
         )
         image = transforms.resize_image(image, self.img_size)
-        """
-        print("bbox: ", bbox)
-        print("crop x1, y1: ", x1, y1)
-        print("pad_y_top, pad_x_left", pad_y_top, pad_x_left)
-        """
+
         return image, keypoints
 
     def load_images(self):
@@ -250,8 +251,10 @@ class FacemapDataset(torch.utils.data.Dataset):
         landmarks = pd.DataFrame()
         for f in annotation_files:
             df = pd.read_hdf(f)
+            # Remove likelihood column
+            df = df.T[df.columns.get_level_values("coords") != "likelihood"].T
             df = self.fix_labels(df, scorer=self.scorer)
-            landmarks = landmarks.append(df)
+            landmarks = pd.concat([landmarks, df])
 
         landmarks = landmarks.to_numpy().reshape(-1, 15, 2)
         # Convert to tensor

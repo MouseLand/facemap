@@ -105,7 +105,7 @@ class MainW(QtWidgets.QMainWindow):
         self.video_window = pg.GraphicsLayoutWidget()
         self.video_window.move(self.sizeObject.height(), self.sizeObject.width())
         self.video_window.resize(self.sizeObject.height(), self.sizeObject.width())
-        self.scene_grid_layout.addWidget(self.video_window, 0, 2, 10, 7)
+        self.scene_grid_layout.addWidget(self.video_window, 0, 2, 8, 7)
 
         # Create a window for embedding and ROI plot
         self.roi_embed_window = pg.GraphicsLayoutWidget()
@@ -1237,6 +1237,9 @@ class MainW(QtWidgets.QMainWindow):
         for video_id in range(len(self.poseFilepath)):
             print("Loading keypoints:", self.poseFilepath[video_id])
             pose_data = pd.read_hdf(self.poseFilepath[video_id], "df_with_missing")
+            # remove nose(r) and paw keypoints
+            # pose_data = pose_data.T[pose_data.columns.get_level_values("bodyparts") != "nose(r)"].T
+            # pose_data = pose_data.T[pose_data.columns.get_level_values("bodyparts") != "paw"].T
             # Append pose data to list for each video_id
             self.keypoints_labels.append(
                 pd.unique(pose_data.columns.get_level_values("bodyparts"))

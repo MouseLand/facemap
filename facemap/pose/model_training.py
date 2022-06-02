@@ -1,15 +1,17 @@
 ## Import packages
+import os
+from io import StringIO
+
 import numpy as np
 import torch
 from torch import optim
-
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-from io import StringIO
-
 from tqdm import tqdm
 
 from . import pose_gui
 from . import pose_helper_functions as pose_utils
+from . import transforms
+
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 """
 Fine-tuning the model using the pre-trained weights and refined training data
@@ -18,12 +20,15 @@ provided by the user.
 
 
 def train(
-    train_dataset,
-    train_loader,
+    train_dataloader,
     net,
     n_epochs,
     learning_rate,
     weight_decay,
+    ggmax,
+    test_dataloader=None,
+    save_checkpoint=False,
+    checkpoint_path=None,
     gui=None,
     gui_obj=None,
 ):
@@ -31,9 +36,7 @@ def train(
     Fine-tuning the model using the pre-trained weights and refined training data provided by the user.
     Parameters
     ----------
-    train_dataset : torch.utils.data.Dataset
-        Dataset containing the training data i.e. the images and the corresponding keypoints.
-    train_loader : torch.utils.data.DataLoader
+    train_dataloader : torch.utils.data.DataLoader
         The dataloader object containing the training data.
     net : torch.nn.Module
         The model to be trained.
@@ -43,6 +46,14 @@ def train(
         The learning rate for the optimizer.
     weight_decay : float
         The weight decay for the optimizer.
+    ggmax : float
+        The maximum gradient norm for the optimizer.
+    test_dataloader : torch.utils.data.DataLoader, optional
+        The dataloader object containing the testing data.
+    save_checkpoint : bool, optional
+        Whether to save the best model. The default is False.
+    checkpoint_path : str, optional
+        The path to save the best model. The default is None.
     gui : PyQt5.QMainWindow
         The main window of the application.
     gui_obj : QtWidgets
@@ -51,16 +62,16 @@ def train(
 
     n_factor = 2**4 // (2**net.n_upsample)
     xmesh, ymesh = np.meshgrid(
-        np.arange(train_dataset.img_size[0] / n_factor),
-        np.arange(train_dataset.img_size[1] / n_factor),
+        np.arange(train_dataloader.dataset.img_size[1] / n_factor),
+        np.arange(train_dataloader.dataset.img_size[0] / n_factor),
     )
+    print("img size: ", train_dataloader.dataset.img_size)
     ymesh = torch.from_numpy(ymesh).to(device)
     xmesh = torch.from_numpy(xmesh).to(device)
 
     sigma = 3 * 4 / n_factor
     Lx = 64
 
-    ggmax = 50
     LR = learning_rate * np.ones(
         n_epochs,
     )
@@ -71,6 +82,9 @@ def train(
     optimizer = optim.Adam(
         net.parameters(), lr=learning_rate, weight_decay=weight_decay
     )
+
+    min_test_loss = np.inf
+    test_loss = np.inf
 
     if gui is not None and gui_obj is not None:
         progress_bar = pose_gui.ProgressBarPopup(gui)
@@ -85,10 +99,10 @@ def train(
         n_batches = 0
         gnorm_max = 0
 
-        net.train()
-        for batch in train_loader:
-            images = batch["image"].to(device, dtype=torch.float32)
-            lbl = batch["keypoints"].to(device, dtype=torch.float32)
+        for train_batch in train_dataloader:
+            net.train()
+            images = train_batch["image"].to(device, dtype=torch.float32)
+            lbl = train_batch["keypoints"].to(device, dtype=torch.float32)
 
             hm_pred, locx_pred, locy_pred = net(images)
             ######################################################################
@@ -184,10 +198,37 @@ def train(
         train_loss /= n_batches
         train_mean /= n_batches
 
-        if epoch % 10 == 0:
+        if save_checkpoint:
+            pred_keypoints, keypoints, net = get_test_predictions(net, test_dataloader)
+            test_loss = np.nanmean(
+                pose_utils.get_rmse(
+                    pred_keypoints.cpu().numpy(), keypoints.cpu().numpy()
+                )
+            )
+            if test_loss < min_test_loss:
+                min_test_loss = test_loss
+                torch.save(
+                    {
+                        "model_state_dict": net.state_dict(),
+                        "optimizer_state_dict": optimizer.state_dict(),
+                        "params": {
+                            "learning_rate": learning_rate,
+                            "weight_decay": weight_decay,
+                            "ggmax": ggmax,
+                            "epoch": epoch,
+                        },
+                    },
+                    os.path.join(checkpoint_path, "checkpoint.pth"),
+                )
+                print(
+                    "~~~Saved checkpoint at epoch: %d w/ min test loss: %f ~~~"
+                    % (epoch, min_test_loss)
+                )
+
+        if epoch % 5 == 0:
             print(
-                "Epoch %d: loss %f, mean %f, gnorm %f"
-                % (epoch, train_loss, train_mean, gnorm_max)
+                "Epoch %d: train loss %f, train mean %f, gnorm_max %f test loss %f"
+                % (epoch, train_loss, train_mean, gnorm_max, test_loss)
             )
 
         if gui is not None and gui_obj is not None:
@@ -197,3 +238,64 @@ def train(
         progress_bar.close()
 
     return net
+
+
+def get_test_predictions(net, test_dataloader):
+
+    net.eval()
+
+    pred_keypoints = torch.zeros(
+        (test_dataloader.dataset.num_images, test_dataloader.dataset.num_keypoints, 2),
+        dtype=torch.float32,
+    )
+    start_idx = 0
+
+    for test_batch in test_dataloader:
+
+        images = test_batch["image"].cpu().numpy()
+        bbox = test_batch["bbox"]
+        keypoints = test_batch["keypoints"]
+
+        y1 = np.nanmin(np.array(bbox)[:, 0])  # y1, _, x1, _ = bbox
+        y2 = np.nanmax(np.array(bbox)[:, 1])
+        x1 = np.nanmin(np.array(bbox)[:, 2])
+        x2 = np.nanmax(np.array(bbox)[:, 3])
+
+        if abs(y2 - y1) != abs(x2 - x1):
+            add_padding = True
+        else:
+            add_padding = False
+        if (abs(y2 - y1) != 256) or (abs(x2 - x1) != 256):
+            resize_imgs = True
+        else:
+            resize_imgs = False
+
+        imall, postpad_shape, pads = transforms.preprocess_img(
+            images,
+            [y1, y2, x1, x2],
+            add_padding,
+            resize_imgs,
+            device=net.device,
+        )
+
+        # Keypoints prediction
+        xlabels_pred, ylabels_pred, _ = pose_utils.predict(net, imall, smooth=False)
+
+        # Get error for 256,256 image
+        xlabels_pred, ylabels_pred = transforms.adjust_keypoints(
+            xlabels_pred,
+            ylabels_pred,
+            crop_xy=(x1, y1),
+            padding=pads,
+            current_size=(256, 256),
+            desired_size=postpad_shape,
+        )
+
+        pred_keypoints[
+            start_idx : start_idx + test_dataloader.batch_size, :, 0
+        ] = xlabels_pred
+        pred_keypoints[
+            start_idx : start_idx + test_dataloader.batch_size, :, 1
+        ] = ylabels_pred
+
+    return pred_keypoints, keypoints, net

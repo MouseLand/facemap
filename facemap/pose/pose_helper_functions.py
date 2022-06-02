@@ -59,6 +59,21 @@ def normalize99(X, device=None):
     return X
 
 
+def get_rmse(predictions, gt):
+    """
+    Compute RMSE between predictions and ground truth
+    Parameters
+    ----------
+    predictions : ND-array of shape (n_samples, n_joints, 2)
+        Predictions from network
+    gt : ND-array of shape (n_samples, n_joints, 2)
+        Ground truth
+    """
+    x1, y1 = predictions[:, :, 0], predictions[:, :, 1]
+    x2, y2 = gt[:, :, 0], gt[:, :, 1]
+    return np.sqrt((x1 - x2) ** 2 + (y1 - y2) ** 2)
+
+
 def predict(net, im_input, smooth=False):
     lx = int(net.image_shape[0] / N_FACTOR)
     ly = int(net.image_shape[1] / N_FACTOR)
@@ -83,7 +98,7 @@ def predict(net, im_input, smooth=False):
 
         likelihood, imax = torch.max(hm_pred, -1)
         i_y = imax % lx
-        i_x = torch.div(imax, lx, rounding_mode='trunc') 
+        i_x = torch.div(imax, lx, rounding_mode="trunc")
         x_pred = (locx_pred[locx_mesh, locy_mesh, imax] * (-2 * SIGMA)) + i_x
         y_pred = (locy_pred[locx_mesh, locy_mesh, imax] * (-2 * SIGMA)) + i_y
 
@@ -124,6 +139,7 @@ def numpy_predict(net, im_input, smooth=False):
     y_pred *= N_FACTOR
 
     return y_pred, x_pred, likelihood
+
 
 def randomly_adjust_contrast(img):
     """

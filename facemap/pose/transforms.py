@@ -8,6 +8,7 @@ import numpy as np
 import torch
 from scipy import ndimage
 from torch.nn import functional as F
+
 from . import pose_helper_functions as pose_utils
 
 
@@ -43,7 +44,7 @@ def preprocess_img(im, bbox, add_padding, resize, device=None):
 
     # Convert numpy array to tensor
     if device is not None:
-        im = torch.from_numpy(im).to(device)#, dtype=torch.float32)
+        im = torch.from_numpy(im).to(device, dtype=torch.float32)
 
     # Normalize
     im = pose_utils.normalize99(im, device=device)

@@ -639,6 +639,8 @@ class ModelTrainingPopup(QDialog):
         if self.pose_data is None:
             self.pose_data = pose_pred
             self.all_frames = frames_input
+            if self.all_frames.ndim == 2:
+                self.all_frames = [self.all_frames]
         else:
             self.pose_data = np.concatenate((pose_pred, self.pose_data), axis=0)
             self.all_frames = np.concatenate((frames_input, self.all_frames), axis=0)
@@ -879,6 +881,8 @@ class ModelTrainingPopup(QDialog):
         self.update_frame_counter("next")
         # Display the next frame in list of random frames with keypoints
         if self.current_frame < self.num_random_frames:
+            print("self.current_frame: ", self.current_frame)
+            print("self.num_random_frames: ", self.num_random_frames)
             self.frame_win.clear()
             selected_frame = self.all_frames[self.current_frame]
             self.img = pg.ImageItem(selected_frame)
