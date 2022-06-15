@@ -25,10 +25,11 @@ def train(
     n_epochs,
     learning_rate,
     weight_decay,
-    ggmax,
+    ggmax=50,
     test_dataloader=None,
     save_checkpoint=False,
     checkpoint_path=None,
+    checkpoint_filename=None,
     gui=None,
     gui_obj=None,
 ):
@@ -65,7 +66,6 @@ def train(
         np.arange(train_dataloader.dataset.img_size[1] / n_factor),
         np.arange(train_dataloader.dataset.img_size[0] / n_factor),
     )
-    print("img size: ", train_dataloader.dataset.img_size)
     ymesh = torch.from_numpy(ymesh).to(device)
     xmesh = torch.from_numpy(xmesh).to(device)
 
@@ -84,7 +84,7 @@ def train(
     )
 
     min_test_loss = np.inf
-    test_loss = np.inf
+    avg_test_rmse = np.inf
 
     if gui is not None and gui_obj is not None:
         progress_bar = pose_gui.ProgressBarPopup(gui)
@@ -199,36 +199,38 @@ def train(
         train_mean /= n_batches
 
         if save_checkpoint:
-            pred_keypoints, keypoints, net = get_test_predictions(net, test_dataloader)
-            test_loss = np.nanmean(
-                pose_utils.get_rmse(
-                    pred_keypoints.cpu().numpy(), keypoints.cpu().numpy()
-                )
+            pred_keypoints, keypoints = get_test_predictions(net, test_dataloader)
+            # Rescale error to be in image of shape (256, 256)
+            bbox = test_dataloader.dataset.bbox
+            rescale_factor = 256 / torch.max(bbox)
+            keypoints[:, :, 0], keypoints[:, :, 1] = (
+                keypoints[:, :, 0] * rescale_factor,
+                keypoints[:, :, 1] * rescale_factor,
             )
-            if test_loss < min_test_loss:
-                min_test_loss = test_loss
-                torch.save(
-                    {
-                        "model_state_dict": net.state_dict(),
-                        "optimizer_state_dict": optimizer.state_dict(),
-                        "params": {
-                            "learning_rate": learning_rate,
-                            "weight_decay": weight_decay,
-                            "ggmax": ggmax,
-                            "epoch": epoch,
-                        },
-                    },
-                    os.path.join(checkpoint_path, "checkpoint.pth"),
-                )
+            pred_keypoints[:, :, 0], pred_keypoints[:, :, 1] = (
+                pred_keypoints[:, :, 0] * rescale_factor,
+                pred_keypoints[:, :, 1] * rescale_factor,
+            )
+            test_rmse = pose_utils.get_rmse(
+                pred_keypoints.cpu().numpy(), keypoints.cpu().numpy()
+            )
+            avg_test_rmse = np.nanmean(test_rmse)
+            if avg_test_rmse < min_test_loss:
+                min_test_loss = avg_test_rmse
+                if checkpoint_filename is not None:
+                    savepath = os.path.join(checkpoint_path, checkpoint_filename)
+                else:
+                    savepath = os.path.join(checkpoint_path, "checkpoint.pth")
+                torch.save(net.state_dict(), savepath)
                 print(
-                    "~~~Saved checkpoint at epoch: %d w/ min test loss: %f ~~~"
-                    % (epoch, min_test_loss)
+                    "~~~Saved checkpoint in %s: at epoch %d w/ min test loss: %f ~~~"
+                    % (checkpoint_path, epoch, min_test_loss)
                 )
 
         if epoch % 5 == 0:
             print(
-                "Epoch %d: train loss %f, train mean %f, gnorm_max %f test loss %f"
-                % (epoch, train_loss, train_mean, gnorm_max, test_loss)
+                "Epoch %d: train loss %f, train mean %f, gnorm_max %f avg. test rmse %f"
+                % (epoch, train_loss, train_mean, gnorm_max, avg_test_rmse)
             )
 
         if gui is not None and gui_obj is not None:
@@ -248,48 +250,22 @@ def get_test_predictions(net, test_dataloader):
         (test_dataloader.dataset.num_images, test_dataloader.dataset.num_keypoints, 2),
         dtype=torch.float32,
     )
+    keypoints_original = torch.zeros(
+        (test_dataloader.dataset.num_images, test_dataloader.dataset.num_keypoints, 2),
+        dtype=torch.float32,
+    )
     start_idx = 0
 
     for test_batch in test_dataloader:
 
-        images = test_batch["image"].cpu().numpy()
+        images = test_batch["image"].to(
+            net.device, dtype=torch.float32
+        )  # .cpu().numpy()
         bbox = test_batch["bbox"]
-        keypoints = test_batch["keypoints"]
-
-        y1 = np.nanmin(np.array(bbox)[:, 0])  # y1, _, x1, _ = bbox
-        y2 = np.nanmax(np.array(bbox)[:, 1])
-        x1 = np.nanmin(np.array(bbox)[:, 2])
-        x2 = np.nanmax(np.array(bbox)[:, 3])
-
-        if abs(y2 - y1) != abs(x2 - x1):
-            add_padding = True
-        else:
-            add_padding = False
-        if (abs(y2 - y1) != 256) or (abs(x2 - x1) != 256):
-            resize_imgs = True
-        else:
-            resize_imgs = False
-
-        imall, postpad_shape, pads = transforms.preprocess_img(
-            images,
-            [y1, y2, x1, x2],
-            add_padding,
-            resize_imgs,
-            device=net.device,
-        )
+        keypoints = test_batch["keypoints"].to(net.device, dtype=torch.float32)
 
         # Keypoints prediction
-        xlabels_pred, ylabels_pred, _ = pose_utils.predict(net, imall, smooth=False)
-
-        # Get error for 256,256 image
-        xlabels_pred, ylabels_pred = transforms.adjust_keypoints(
-            xlabels_pred,
-            ylabels_pred,
-            crop_xy=(x1, y1),
-            padding=pads,
-            current_size=(256, 256),
-            desired_size=postpad_shape,
-        )
+        xlabels_pred, ylabels_pred, _ = pose_utils.predict(net, images, smooth=False)
 
         pred_keypoints[
             start_idx : start_idx + test_dataloader.batch_size, :, 0
@@ -297,5 +273,11 @@ def get_test_predictions(net, test_dataloader):
         pred_keypoints[
             start_idx : start_idx + test_dataloader.batch_size, :, 1
         ] = ylabels_pred
+        keypoints_original[
+            start_idx : start_idx + test_dataloader.batch_size, :, 0
+        ] = keypoints[:, :, 0]
+        keypoints_original[
+            start_idx : start_idx + test_dataloader.batch_size, :, 1
+        ] = keypoints[:, :, 1]
 
-    return pred_keypoints, keypoints, net
+    return pred_keypoints, keypoints

@@ -91,9 +91,9 @@ def randomize_bbox_coordinates(bbox, im_shape, random_factor_range=(0.1, 0.3)):
     y_min = int(y1 - y_range * get_random_factor(random_factor_range))
     y_max = int(y2 + y_range * get_random_factor(random_factor_range))
     x_min = max(0, x_min)
-    x_max = min(im_shape[1], x_max)
+    x_max = min(im_shape[0], x_max)
     y_min = max(0, y_min)
-    y_max = min(im_shape[0], y_max)
+    y_max = min(im_shape[1], y_max)
     bbox = np.array([x_min, x_max, y_min, y_max])
     return bbox
 

@@ -203,14 +203,13 @@ class Pose:
         )
         # Use preprocessed data to train the model
         self.net = model_training.train(
-            dataset,
             dataloader,
             self.net,
             num_epochs,
             learning_rate,
             weight_decay,
-            self.gui,
-            self.GUIobject,
+            gui=self.gui,
+            gui_obj=self.GUIobject,
         )
         print("Model training complete!")
         return self.net
