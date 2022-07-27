@@ -901,11 +901,11 @@ class ModelTrainingPopup(QDialog):
         # Add a keyPressEvent for deleting the selected keypoint using the delete key and set the value to NaN
 
     def keyPressEvent(self, ev):
-        #print("key pressed:", ev.key())
-        if ev.key() in (
+        # If shift and 'D' are pressed, delete the selected keypoint
+        if (ev.key() == QtCore.Qt.Key_D and ev.modifiers() == QtCore.Qt.ShiftModifier) or ev.key() in (
             QtCore.Qt.Key_Backspace,
             QtCore.Qt.Key_Delete,
-        ):  # FIXME - make this work for mac. Change key or use modifiers
+        ):  
             self.delete_keypoint()
         else:
             return
@@ -1318,10 +1318,10 @@ class KeypointsGraph(pg.GraphItem):
                 bp_selected = bp
                 selected_bp_ind = i
                 break
-        print("bodypart selected", bp_selected)
-        print("bodypart index", selected_bp_ind)
+        #print("bodypart selected", bp_selected)
+        #print("bodypart index", selected_bp_ind)
         # Check if position of bodypart is nan
-        print("bodypart coords", self.data["pos"][selected_bp_ind])
+        #print("bodypart coords", self.data["pos"][selected_bp_ind])
         selected_bp_pos = self.data["pos"][selected_bp_ind]
         x, y = selected_bp_pos[0], selected_bp_pos[1]
         # If keypoint is deleted, then add it back using the user selected position
@@ -1339,13 +1339,13 @@ class KeypointsGraph(pg.GraphItem):
                 symbol="o",
                 brush=self.parent.brushes,
                 hoverable=True,
-                hoverSize=self.gui.sizeObject.height() * 0.006,
+                hoverSize=self.parent.gui.sizeObject.height() * 0.006,
                 hoverSymbol="x",
                 pxMode=True,
                 hoverBrush="r",
                 name=self.parent.bodyparts,
                 data=self.parent.bodyparts,
-                size=self.gui.sizeObject.height() * 0.006,
+                size=self.parent.gui.sizeObject.height() * 0.006,
             )
             # Update the data
             self.updateGraph()
