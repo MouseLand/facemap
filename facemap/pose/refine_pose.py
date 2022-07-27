@@ -4,6 +4,7 @@ from glob import glob
 
 import cv2
 import numpy as np
+from setuptools import PEP420PackageFinder
 import pyqtgraph as pg
 from matplotlib import cm
 from PyQt5 import QtCore
@@ -627,6 +628,7 @@ class ModelTrainingPopup(QDialog):
             frames_indices = predict_frame_index
 
         # Get the predictions for the selected frames
+        print("Frame indices:", frames_indices)
         output = self.generate_predictions(frames_indices)
         if output is None:  # User cancelled the refinement
             self.close()
@@ -814,6 +816,7 @@ class ModelTrainingPopup(QDialog):
     def plot_keypoints(self, frame_ind):
         # Plot the keypoints of the selected frames
         plot_pose_data = self.pose_data[frame_ind]
+        print("frame_ind: ", frame_ind)
         # Append pose data to list for each video_id
         x = plot_pose_data[:, 0]
         y = plot_pose_data[:, 1]
@@ -881,8 +884,6 @@ class ModelTrainingPopup(QDialog):
         self.update_frame_counter("next")
         # Display the next frame in list of random frames with keypoints
         if self.current_frame < self.num_random_frames:
-            print("self.current_frame: ", self.current_frame)
-            print("self.num_random_frames: ", self.num_random_frames)
             self.frame_win.clear()
             selected_frame = self.all_frames[self.current_frame]
             self.img = pg.ImageItem(selected_frame)
@@ -900,6 +901,7 @@ class ModelTrainingPopup(QDialog):
         # Add a keyPressEvent for deleting the selected keypoint using the delete key and set the value to NaN
 
     def keyPressEvent(self, ev):
+        #print("key pressed:", ev.key())
         if ev.key() in (
             QtCore.Qt.Key_Backspace,
             QtCore.Qt.Key_Delete,

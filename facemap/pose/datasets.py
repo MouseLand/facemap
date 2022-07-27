@@ -57,11 +57,15 @@ class FacemapDataset(torch.utils.data.Dataset):
         # Set image and keypoints data
         if datadir is None:
             self.images = self.preprocess_imgs(image_data)
-            self.keypoints = torch.from_numpy(keypoints_data)
+            if keypoints_data is None:
+                self.keypoints = None
+            else:
+                self.keypoints = torch.from_numpy(keypoints_data)
         else:
             self.images = self.load_images()
             self.keypoints = self.load_keypoints_h5()
-        self.num_keypoints = self.keypoints.shape[1]
+        if self.keypoints is not None:
+            self.num_keypoints = self.keypoints.shape[1]
         self.num_images = self.__len__()
         # Set bounding box
         if bbox is not None:

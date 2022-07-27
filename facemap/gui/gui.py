@@ -1287,7 +1287,7 @@ class MainW(QtWidgets.QMainWindow):
         if self.is_pose_loaded and self.keypoints_checkbox.isChecked():
             self.statusBar.clearMessage()
             self.p0.addItem(self.pose_scatterplot)
-            #self.p0.setRange(xRange=(0, self.LX), yRange=(0, self.LY), padding=0.0)
+            # self.p0.setRange(xRange=(0, self.LX), yRange=(0, self.LY), padding=0.0)
             x, y, labels, brushes = (
                 np.array([]),
                 np.array([]),
