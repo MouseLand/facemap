@@ -259,7 +259,6 @@ class Pose:
             frame_ind = np.arange(total_frames)
         else:
             total_frames = len(frame_ind)
-        print("frame_ind is:", frame_ind)
 
         # Create array for storing predictions
         pred_data = torch.zeros(total_frames, len(self.net.bodyparts), 3)
