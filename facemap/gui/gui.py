@@ -37,6 +37,7 @@ from . import guiparts, io, menus
 
 istr = ["pupil", "motSVD", "blink", "running", "movSVD"]
 
+# TODO: make the savepath editable. use lineedit instead 
 
 class MainW(QtWidgets.QMainWindow):
     def __init__(self, moviefile=None, savedir=None):
