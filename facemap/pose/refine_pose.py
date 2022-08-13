@@ -26,10 +26,10 @@ from PyQt5.QtWidgets import (
     QSpinBox,
     QVBoxLayout,
 )
-
+import torch
 from .. import utils
 from ..gui import help_windows, io
-from . import model_loader
+from . import model_loader, transforms
 
 """
 Single workflow for re-training the model or fine-tuning the model with new data.
@@ -72,6 +72,7 @@ class ModelTrainingPopup(QDialog):
         self.random_frames_ind = []
         self.pose_data = []
         self.all_frames = []
+        self.bbox = []
         self.current_video_idx = 0
         # Training parameters
         self.batch_size = 1
@@ -183,7 +184,6 @@ class ModelTrainingPopup(QDialog):
 
         self.clear_window()
         self.update_window_title("Step 2: Select training data")
-        print("Path set to {}".format(self.output_folder_path))
 
         # Check if the selected output folder path contains a model file (*.pt) and data files (*.npy)
         self.model_files = glob(os.path.join(model_loader.get_models_dir(), "*.pt"))
@@ -209,11 +209,11 @@ class ModelTrainingPopup(QDialog):
 
         self.model_dropdown = QComboBox(self)
         # Add the model files to the dropdown menu
+        self.model_dropdown.addItem("Base model")
         for model_file in self.model_files:
             if os.path.basename(model_file) == "facemap_model_state.pt":
-                self.model_dropdown.addItem("Base model")
-            else:
-                self.model_dropdown.addItem(os.path.basename(model_file))
+                continue
+            self.model_dropdown.addItem(os.path.basename(model_file))
         self.model_dropdown.setStyleSheet("QComboBox {color: 'black';}")
         self.model_dropdown.setFixedWidth(
             int(np.floor(self.window_max_size.width() * 0.25 * 0.5))
@@ -237,7 +237,7 @@ class ModelTrainingPopup(QDialog):
 
         self.model_name_box = QLineEdit(self)
         self.model_name_box.setStyleSheet("QLineEdit {color: 'black';}")
-        self.model_name_box.setText("facemap_model_refined")
+        self.model_name_box.setText("refined_model")
         self.model_name_box.setFixedWidth(
             int(np.floor(self.window_max_size.width() * 0.25 * 0.5))
         )
@@ -588,7 +588,7 @@ class ModelTrainingPopup(QDialog):
             self.num_video_frames = [self.spinbox_nframes.value()]
         else:
             self.use_current_video = False
-            self.num_video_frames = [0]
+            self.num_video_frames = []
 
         self.show_step_3()
 
@@ -611,56 +611,95 @@ class ModelTrainingPopup(QDialog):
         self.update_window_title("Step 3: Refine keypoints")
         self.update_window_size(0.6, aspect_ratio=1.3)
 
-        if len(self.random_frames_ind) == 0:
-            self.random_frames_ind = self.get_random_frames(
-                total_frames=self.gui.cumframes[-1], size=self.num_video_frames[self.current_video_idx]
-            )
-
         self.hide()
 
         # Select frames for prediction
-        if len(self.pose_data) == 0:  # Generate predictions for random frames
-            frames_indices = self.random_frames_ind
-        else:  # Use the predictions from the previous step and add new predictions
-            frames_indices = predict_frame_index
+        if self.use_current_video:  # Generate predictions for random frames
+            if len(self.random_frames_ind) == 0:
+                self.random_frames_ind = self.get_random_frames(
+                    total_frames=self.gui.cumframes[-1],
+                    size=self.num_video_frames[self.current_video_idx],
+                )
+                frames_indices = self.random_frames_ind
+            else:  # Use the predictions from the previous step and add new predictions
+                frames_indices = predict_frame_index
 
-        # Get the predictions for the selected frames
-        output = self.generate_predictions(frames_indices)
-        if output is None:  # User cancelled the refinement
-            self.close()
-            return
+            # Get the predictions for the selected frames
+            output = self.generate_predictions(frames_indices)
+            if output is None:  # User cancelled the refinement
+                self.close()
+                return
 
-        pose_pred, _, self.bbox = output
-        frames_input = self.get_frames_from_indices(frames_indices)
+            pose_pred, _, bbox = output
+            frames_input = self.get_frames_from_indices(frames_indices)
 
-        # Update the predictions
-        if len(self.pose_data) == 0:
-            self.pose_data = [pose_pred]
-            self.all_frames = [frames_input]
-            #if self.all_frames.ndim == 2:
-            #    self.all_frames = [self.all_frames]
-        else:
-            self.pose_data.append(pose_pred)
-            self.all_frames.append(frames_input)
-        
-        # For refining keypoints from old data
-        for video in self.selected_videos:
-            dat = np.load(video, allow_pickle=True).item()
-            images = dat["imgs"]
-            keypoints = dat["keypoints"]
-            bbox = dat["bbox"]
-            for i in range(len(images)):
-                self.all_frames.append(images[i])
-                self.pose_data.append(keypoints[i])
-                self.bbox.append(bbox[i])
-                self.num_video_frames.append(len(images[i]))
-        print("self.pose_data after :", len(self.pose_data))
-        print("self.all_frames after:", len(self.all_frames))
+            # Update the predictions
+            if len(self.pose_data) == 0:
+                self.pose_data = [pose_pred]
+                self.all_frames = [frames_input]
+                self.bbox = bbox
+            else:
+                self.pose_data.append(pose_pred)
+                self.all_frames.append(frames_input)
+                self.bbox.append(bbox)
 
-        print("pose data 0 shape", self.pose_data[0].shape)
-        print("all frames 0 shape", self.all_frames[0].shape)
-        print("num video frames", self.num_video_frames)
-        
+            # Adjust images and keypoints using the bounding box
+            for i in range(len(self.all_frames)):
+                y1, y2, x1, x2 = self.bbox[i]
+                if x2 - x1 != y2 - y1:
+                    add_padding = True
+                else:
+                    add_padding = False
+                if x2 - x1 != 256 or y2 - y1 != 256:
+                    resize = True
+                else:
+                    resize = False
+                self.all_frames[i], postpad_shape, pads = transforms.preprocess_img(
+                    torch.tensor(self.all_frames[i][np.newaxis, ...]),
+                    self.bbox[i],
+                    add_padding,
+                    resize,
+                )
+                self.all_frames[i] = self.all_frames[i].numpy().squeeze(0)
+                # Adjust keypoints accordingly
+                self.pose_data[i][:, :, 0] -= x1
+                self.pose_data[i][:, :, 1] -= y1
+                if add_padding:
+                    (
+                        self.pose_data[i][:, :, 0],
+                        self.pose_data[i][:, :, 1],
+                    ) = transforms.adjust_keypoints_for_padding(
+                        self.pose_data[i][:, :, 0],
+                        self.pose_data[i][:, :, 1],
+                        [-1 * val for val in pads],
+                    )
+                if resize:
+                    (
+                        self.pose_data[i][:, :, 0],
+                        self.pose_data[i][:, :, 1],
+                    ) = transforms.rescale_keypoints(
+                        self.pose_data[i][:, :, 0],
+                        self.pose_data[i][:, :, 1],
+                        postpad_shape,
+                        (256, 256),
+                    )
+
+        if len(self.selected_videos) > 0:  # Concatenate data from all selected videos
+            # For refining keypoints from old data
+            for video in self.selected_videos:
+                dat = np.load(video, allow_pickle=True).item()
+                images = dat["imgs"]
+                keypoints = dat["keypoints"]
+                bbox = dat["bbox"]
+                for i in range(len(images)):
+                    self.all_frames.append(images[i])
+                    self.pose_data.append(keypoints[i])
+                    self.bbox.append(bbox[i])
+                    self.num_video_frames.append(len(images[i]))
+
+        print("NUM VIDEO FRAMES", self.num_video_frames)
+        print("BBOX", self.bbox)
+
         self.show()
 
         # Plot the predictions
@@ -845,7 +884,10 @@ class ModelTrainingPopup(QDialog):
     def previous_frame(self):
         # Go to previous frame
         self.update_frame_counter("prev")
-        if self.current_frame >= 0 and self.current_frame <= self.num_video_frames[self.current_video_idx]:
+        if (
+            self.current_frame >= 0
+            and self.current_frame <= self.num_video_frames[self.current_video_idx]
+        ):
             self.frame_win.clear()
             self.next_button.setEnabled(True)
             selected_frame = self.all_frames[self.current_video_idx][self.current_frame]
@@ -855,7 +897,7 @@ class ModelTrainingPopup(QDialog):
             self.update_window_title()
         elif self.current_video_idx > 0:
             self.current_video_idx -= 1
-            self.current_frame = self.num_video_frames[self.current_video_idx] 
+            self.current_frame = self.num_video_frames[self.current_video_idx]
             self.previous_frame()
         else:
             self.previous_button.setEnabled(False)
@@ -871,14 +913,27 @@ class ModelTrainingPopup(QDialog):
         # Update the frame number label
         if self.current_video_idx == 0:
             self.frame_number_label.setText(
-                "Frame: " + str(self.current_frame + 1) + "/" + str(sum(self.num_video_frames))
+                "Frame: "
+                + str(self.current_frame + 1)
+                + "/"
+                + str(sum(self.num_video_frames))
             )
         else:
             self.frame_number_label.setText(
-                "Frame: " + str(sum(self.num_video_frames[:self.current_video_idx]) + self.current_frame + 1) + "/" + str(sum(self.num_video_frames))
+                "Frame: "
+                + str(
+                    sum(self.num_video_frames[: self.current_video_idx])
+                    + self.current_frame
+                    + 1
+                )
+                + "/"
+                + str(sum(self.num_video_frames))
             )
         self.keypoints_scatterplot.save_refined_data()
-        if self.current_video_idx == len(self.num_video_frames) -1 and self.current_frame == self.num_video_frames[self.current_video_idx]-1:
+        if (
+            self.current_video_idx == len(self.num_video_frames) - 1
+            and self.current_frame == self.num_video_frames[self.current_video_idx] - 1
+        ):
             self.next_button.setEnabled(False)
         if self.current_video_idx == 0 and self.current_frame == 0:
             self.previous_button.setEnabled(False)
@@ -894,7 +949,9 @@ class ModelTrainingPopup(QDialog):
             self.update_window_title()
             self.plot_keypoints(self.current_frame)
             self.next_button.setText("Next")
-        elif self.current_frame >= self.num_video_frames[self.current_video_idx] and self.current_video_idx < len(self.num_video_frames):
+        elif self.current_frame >= self.num_video_frames[
+            self.current_video_idx
+        ] and self.current_video_idx < len(self.num_video_frames):
             self.current_video_idx += 1
             self.current_frame = -1
             self.next_frame()
@@ -905,14 +962,16 @@ class ModelTrainingPopup(QDialog):
         self.frame_win.setMenuEnabled(False)
         self.win.show()
 
-
         # Add a keyPressEvent for deleting the selected keypoint using the delete key and set the value to NaN
+
     def keyPressEvent(self, ev):
         # If shift and 'D' are pressed, delete the selected keypoint
-        if (ev.key() == QtCore.Qt.Key_D and ev.modifiers() == QtCore.Qt.ShiftModifier) or ev.key() in (
+        if (
+            ev.key() == QtCore.Qt.Key_D and ev.modifiers() == QtCore.Qt.ShiftModifier
+        ) or ev.key() in (
             QtCore.Qt.Key_Backspace,
             QtCore.Qt.Key_Delete,
-        ):  
+        ):
             self.delete_keypoint()
         else:
             return
@@ -942,9 +1001,9 @@ class ModelTrainingPopup(QDialog):
             self.keypoints_scatterplot.save_refined_data()
         # Get the selected videos
         # Combine all keypoints and image data from selected videos into one list
+        """
         keypoints_data = []
         image_data = []
-        bbox_data = []
         for video in self.selected_videos:
             keypoints_data.append(np.load(video, allow_pickle=True).item()["keypoints"])
             image_data.append(np.load(video, allow_pickle=True).item()["imgs"])
@@ -953,13 +1012,14 @@ class ModelTrainingPopup(QDialog):
             image_data.append(self.all_frames)
             keypoints_data.append(self.pose_data)
             bbox_data.append(self.bbox)
+        """
         # Convert lists to numpy arrays
-        keypoints_data = np.concatenate(keypoints_data, axis=0)
-        image_data = np.concatenate(image_data, axis=0)
-        bbox_data = np.concatenate(bbox_data, axis=0)
+        keypoints_data = np.concatenate(self.pose_data, axis=0)
+        image_data = np.concatenate(self.all_frames, axis=0)
         keypoints_data = np.array(keypoints_data)
         image_data = np.array(image_data)
-        bbox_data = np.array(bbox_data)
+        print("Keypoints data shape: ", keypoints_data.shape)
+        print("Image data shape: ", image_data.shape)
 
         # Get training parameters
         num_epochs = int(self.epochs)
@@ -973,12 +1033,14 @@ class ModelTrainingPopup(QDialog):
         print("Weight decay:", weight_decay)
         print("")
         self.gui.train_model(
-            image_data,
-            keypoints_data,
-            num_epochs,
-            batch_size,
-            learning_rate,
-            weight_decay,
+            image_data=image_data,
+            keypoints_data=keypoints_data,
+            num_epochs=num_epochs,
+            batch_size=batch_size,
+            learning_rate=learning_rate,
+            weight_decay=weight_decay,
+            model_name=self.model_dropdown.currentText(),
+            bbox=[[0, 256, 0, 256]],
         )
         self.show_finetuned_model_predictions()
 
@@ -1128,11 +1190,14 @@ class ModelTrainingPopup(QDialog):
         self.verticalLayout.addWidget(self.buttons_groupbox)
 
     def add_additional_training_frames(self):
-        total_frames_to_train = self.add_frames_spinbox.value() + sum(self.num_video_frames)
+        total_frames_to_train = self.add_frames_spinbox.value() + sum(
+            self.num_video_frames
+        )
         old_random_frames = self.random_frames_ind
         while not sum(self.num_video_frames) == total_frames_to_train:
             new_random_frames = self.get_random_frames(
-                self.gui.cumframes[-1], total_frames_to_train - sum(self.num_video_frames)
+                self.gui.cumframes[-1],
+                total_frames_to_train - sum(self.num_video_frames),
             )
             # Check if any of the new random frames are already in the self.random_frames list
             if np.any(np.isin(new_random_frames, self.random_frames_ind)):
@@ -1212,10 +1277,12 @@ class KeypointsGraph(pg.GraphItem):
         # Get values for the keypoints from the GUI and save them in a file
         x_coord = keypoints_refined[:, 0]
         y_coord = keypoints_refined[:, 1]
-        likelihood = self.parent.pose_data[self.parent.current_video_idx][self.parent.current_frame][:, 2]
-        self.parent.pose_data[self.parent.current_video_idx][self.parent.current_frame] = np.column_stack(
-            (x_coord, y_coord, likelihood)
-        )
+        likelihood = self.parent.pose_data[self.parent.current_video_idx][
+            self.parent.current_frame
+        ][:, 2]
+        self.parent.pose_data[self.parent.current_video_idx][
+            self.parent.current_frame
+        ] = np.column_stack((x_coord, y_coord, likelihood))
         self.save_refined_data()
 
     def save_refined_data(self):
@@ -1224,7 +1291,7 @@ class KeypointsGraph(pg.GraphItem):
         video_name = os.path.basename(video_path).split(".")[0]
         savepath = os.path.join(
             self.parent.output_folder_path,
-            video_name + "_Facemap_refined_images_landmarks.npy",
+            self.parent.output_model_name + "_Facemap_refined_data.npy",
         )
         model_loader.update_models_data_txtfile([savepath])
         # Save the data
@@ -1324,10 +1391,10 @@ class KeypointsGraph(pg.GraphItem):
                 bp_selected = bp
                 selected_bp_ind = i
                 break
-        #print("bodypart selected", bp_selected)
-        #print("bodypart index", selected_bp_ind)
+        # print("bodypart selected", bp_selected)
+        # print("bodypart index", selected_bp_ind)
         # Check if position of bodypart is nan
-        #print("bodypart coords", self.data["pos"][selected_bp_ind])
+        # print("bodypart coords", self.data["pos"][selected_bp_ind])
         selected_bp_pos = self.data["pos"][selected_bp_ind]
         x, y = selected_bp_pos[0], selected_bp_pos[1]
         # If keypoint is deleted, then add it back using the user selected position

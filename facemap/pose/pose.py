@@ -58,6 +58,7 @@ class Pose:
 
     def pose_prediction_setup(self):
         # Setup the model
+        self.set_model_name()
         if self.net is None:
             self.load_model()
         # Setup the bounding box
@@ -169,6 +170,7 @@ class Pose:
         batch_size,
         learning_rate,
         weight_decay,
+        bbox,
     ):
         """
         Train the model
@@ -195,7 +197,7 @@ class Pose:
         dataset = datasets.FacemapDataset(
             image_data=image_data,
             keypoints_data=keypoints_data,
-            bbox=self.bbox[0],
+            bbox=bbox,
         )
         # Create a dataloader object for training
         dataloader = torch.utils.data.DataLoader(
@@ -376,26 +378,27 @@ class Pose:
         self.gui.load_keypoints()
         self.gui.keypoints_checkbox.setChecked(True)
 
-    def set_model_name(self):
-        if self.model_name is None:
+    def set_model_name(self, model_selected=None):
+        if model_selected is None:
             model_selected = self.gui.pose_model_combobox.currentText()
-            model_paths = model_loader.get_model_states_paths()
-            if len(model_paths) == 0:
-                self.model_name = model_loader.get_basemodel_state_path()
-            model_names = [m.split("/")[-1].split(".")[0] for m in model_paths]
-            for model in model_names:
-                if (model == model_selected) or (
-                    model_selected == "Base model" and "facemap_model_state" in model
-                ):
-                    print("Setting model name to:", model)
-                    self.model_name = model_paths[model_names.index(model)]
-                    break
+        # Get all model names
+        model_paths = model_loader.get_model_states_paths()
+        if len(model_paths) == 0:  # No models found, set default model
+            self.model_name = model_loader.get_basemodel_state_path()
+        model_names = [m.split("/")[-1].split(".")[0] for m in model_paths]
+        for model in model_names:  # Find selected model and update model name
+            if (model == model_selected) or (
+                model_selected == "Base model" and "facemap_model_state" in model
+            ):
+                print("Setting model name to:", model)
+                self.model_name = model_paths[model_names.index(model)]
+                break
+        self.load_model()
 
     def load_model(self):
         """
         Load pre-trained model for keypoints prediction
         """
-        self.set_model_name()
         model_params_file = model_loader.get_model_params_path()
         if torch.cuda.is_available():
             print("Using cuda as device")
@@ -420,7 +423,7 @@ class Pose:
             kernel=kernel_size,
             device=self.device,
         )
-        print("Loading model from:", self.model_name)
+        print("Loading model state from:", self.model_name)
         net.load_state_dict(torch.load(self.model_name, map_location=self.device))
         net.to(self.device)
         self.net = net

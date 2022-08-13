@@ -37,7 +37,8 @@ from . import guiparts, io, menus
 
 istr = ["pupil", "motSVD", "blink", "running", "movSVD"]
 
-# TODO: make the savepath editable. use lineedit instead 
+# TODO: make the savepath editable. use lineedit instead
+
 
 class MainW(QtWidgets.QMainWindow):
     def __init__(self, moviefile=None, savedir=None):
@@ -700,15 +701,14 @@ class MainW(QtWidgets.QMainWindow):
 
     def update_pose_model_combo_box(self):
         self.pose_model_combobox.clear()
+        self.pose_model_combobox.addItem("Base model")
         models = model_loader.get_model_states_paths()
-        if len(models) == 0:
-            models = [model_loader.get_basemodel_state_path()]
+        models.append(model_loader.get_basemodel_state_path())
         for m in models:
             model_name = m.split("/")[-1].split(".")[0]
             if model_name == "facemap_model_state":
-                self.pose_model_combobox.addItem("Base model")
-            else:
-                self.pose_model_combobox.addItem(model_name)
+                continue
+            self.pose_model_combobox.addItem(model_name)
 
     def set_saturation_label(self):
         self.saturation_level_label.setText(str(self.saturation_sliders[0].value()))
@@ -1158,9 +1158,12 @@ class MainW(QtWidgets.QMainWindow):
         batch_size,
         learning_rate,
         weight_decay,
+        model_name,
+        bbox,
     ):
         if self.pose_model is None:
             self.setup_pose_model()
+        self.pose_model.set_model_name(model_name)
         if not self.pose_gui.cancel_bbox_selection:
             self.pose_model.train(
                 image_data,
@@ -1169,6 +1172,7 @@ class MainW(QtWidgets.QMainWindow):
                 batch_size,
                 learning_rate,
                 weight_decay,
+                bbox,
             )
             self.update_status_bar("Model training completed!")
         return
