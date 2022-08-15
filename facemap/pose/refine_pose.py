@@ -36,7 +36,6 @@ Single workflow for re-training the model or fine-tuning the model with new data
 Keypoints correction feature for new mouse videos
 """
 
-# TODO: Refine frames from old data files saved (*.npy)
 # TODO: Select outlier frames for correction feature i.e. likelihood threshold
 
 BODYPARTS = [
@@ -605,7 +604,7 @@ class ModelTrainingPopup(QDialog):
             self.error_message.exec_()
         return
 
-    def show_refinement_options(self, predict_frame_index=None):
+    def show_refinement_options(self, predict_frame_index=None, additional_frames=False):
 
         self.clear_window()
         self.update_window_title("Step 3: Refine keypoints")
@@ -625,6 +624,7 @@ class ModelTrainingPopup(QDialog):
                 frames_indices = predict_frame_index
 
             # Get the predictions for the selected frames
+            print("frames_indices:", frames_indices)
             output = self.generate_predictions(frames_indices)
             if output is None:  # User cancelled the refinement
                 self.close()
@@ -639,52 +639,18 @@ class ModelTrainingPopup(QDialog):
                 self.all_frames = [frames_input]
                 self.bbox = bbox
             else:
-                self.pose_data.append(pose_pred)
-                self.all_frames.append(frames_input)
-                self.bbox.append(bbox)
-
-            # Adjust images and keypoints using the bounding box
-            for i in range(len(self.all_frames)):
-                y1, y2, x1, x2 = self.bbox[i]
-                if x2 - x1 != y2 - y1:
-                    add_padding = True
+                self.pose_data.insert(0, pose_pred)
+                self.all_frames.insert(0, frames_input)
+                if additional_frames:
+                    self.bbox.insert(0, self.gui.bbox[0])
                 else:
-                    add_padding = False
-                if x2 - x1 != 256 or y2 - y1 != 256:
-                    resize = True
-                else:
-                    resize = False
-                self.all_frames[i], postpad_shape, pads = transforms.preprocess_img(
-                    torch.tensor(self.all_frames[i][np.newaxis, ...]),
-                    self.bbox[i],
-                    add_padding,
-                    resize,
-                )
-                self.all_frames[i] = self.all_frames[i].numpy().squeeze(0)
-                # Adjust keypoints accordingly
-                self.pose_data[i][:, :, 0] -= x1
-                self.pose_data[i][:, :, 1] -= y1
-                if add_padding:
-                    (
-                        self.pose_data[i][:, :, 0],
-                        self.pose_data[i][:, :, 1],
-                    ) = transforms.adjust_keypoints_for_padding(
-                        self.pose_data[i][:, :, 0],
-                        self.pose_data[i][:, :, 1],
-                        [-1 * val for val in pads],
-                    )
-                if resize:
-                    (
-                        self.pose_data[i][:, :, 0],
-                        self.pose_data[i][:, :, 1],
-                    ) = transforms.rescale_keypoints(
-                        self.pose_data[i][:, :, 0],
-                        self.pose_data[i][:, :, 1],
-                        postpad_shape,
-                        (256, 256),
-                    )
+                    self.bbox.insert(0, bbox)
 
-        if len(self.selected_videos) > 0:  # Concatenate data from all selected videos
+            self.all_frames[0], self.pose_data[0] = self.get_bbox_adjusted_img_and_keypoints(self.all_frames[0], 
+                                                                                            self.pose_data[0], 
+                                                                                            self.bbox[0])
+
+        if len(self.selected_videos) > 0 and not additional_frames:  # Concatenate data from all selected videos
             # For refining keypoints from old data
             for video in self.selected_videos:
                 dat = np.load(video, allow_pickle=True).item()
@@ -801,6 +767,59 @@ class ModelTrainingPopup(QDialog):
         self.verticalLayout.addWidget(self.overall_horizontal_group)
 
         self.next_frame()
+
+    def get_bbox_adjusted_img_and_keypoints(self, imgs, keypoints, bbox):
+        """
+        Adjusts the images and keypoints to the bounding box
+        Parameters
+        ----------
+        imgs : ND-array
+            Images to be adjusted
+        bbox : list
+            Bounding box of the image
+        keypoints : ND-array
+            Keypoints to be adjusted
+        """
+        y1, y2, x1, x2 = bbox
+        if x2 - x1 != y2 - y1:
+            add_padding = True
+        else:
+            add_padding = False
+        if x2 - x1 != 256 or y2 - y1 != 256:
+            resize = True
+        else:
+            resize = False
+        imgs, postpad_shape, pads = transforms.preprocess_img(
+            torch.tensor(imgs[np.newaxis, ...]),
+            bbox,
+            add_padding,
+            resize,
+        )
+        imgs = imgs.numpy().squeeze(0)
+        # Adjust keypoints accordingly
+        keypoints[:, :, 0] -= x1
+        keypoints[:, :, 1] -= y1
+        if add_padding:
+            (
+                keypoints[:, :, 0],
+                keypoints[:, :, 1],
+            ) = transforms.adjust_keypoints_for_padding(
+                keypoints[:, :, 0],
+                keypoints[:, :, 1],
+                [-1 * val for val in pads],
+            )
+        if resize:
+            (
+                keypoints[:, :, 0],
+                keypoints[:, :, 1],
+            ) = transforms.rescale_keypoints(
+                keypoints[:, :, 0],
+                keypoints[:, :, 1],
+                postpad_shape,
+                (256, 256),
+            )
+        return imgs, keypoints
+
 
     def get_frames_from_indices(self, indices):
         # Pre-pocess images
@@ -999,20 +1018,7 @@ class ModelTrainingPopup(QDialog):
     def train_model(self):
         if self.use_current_video:
             self.keypoints_scatterplot.save_refined_data()
-        # Get the selected videos
         # Combine all keypoints and image data from selected videos into one list
-        """
-        keypoints_data = []
-        image_data = []
-        for video in self.selected_videos:
-            keypoints_data.append(np.load(video, allow_pickle=True).item()["keypoints"])
-            image_data.append(np.load(video, allow_pickle=True).item()["imgs"])
-            bbox_data.append(np.load(video, allow_pickle=True).item()["bbox"])
-        if self.use_current_video_yes_radio.isChecked():
-            image_data.append(self.all_frames)
-            keypoints_data.append(self.pose_data)
-            bbox_data.append(self.bbox)
-        """
         # Convert lists to numpy arrays
         keypoints_data = np.concatenate(self.pose_data, axis=0)
         image_data = np.concatenate(self.all_frames, axis=0)
@@ -1194,7 +1200,8 @@ class ModelTrainingPopup(QDialog):
             self.num_video_frames
         )
         old_random_frames = self.random_frames_ind
-        while not sum(self.num_video_frames) == total_frames_to_train:
+        frames_added = 0
+        while sum(self.num_video_frames)+frames_added != total_frames_to_train:
             new_random_frames = self.get_random_frames(
                 self.gui.cumframes[-1],
                 total_frames_to_train - sum(self.num_video_frames),
@@ -1208,17 +1215,18 @@ class ModelTrainingPopup(QDialog):
                 self.random_frames_ind = np.concatenate(
                     (new_random_frames, self.random_frames_ind)
                 )
-                self.num_video_frames.append(len(new_random_frames))
-                # Check how many more random frames are needed
+                frames_added += len(new_random_frames)
+            # Check how many more random frames are needed
             else:
                 # If not, update the self.random_frames list
                 self.random_frames_ind = np.concatenate(
                     (new_random_frames, self.random_frames_ind), axis=0
                 )
-                self.num_video_frames.append(len(new_random_frames))
+                frames_added += len(new_random_frames)
+        self.num_video_frames.insert(0, frames_added)
         # Compare the new random frames with the old random frames to find the indices of the new random frames
         new_random_frames_ind = np.setdiff1d(self.random_frames_ind, old_random_frames)
-        self.show_refinement_options(new_random_frames_ind)
+        self.show_refinement_options(new_random_frames_ind, additional_frames=True)
 
     def get_random_frames(self, total_frames, size):
         # Get random frames indices
