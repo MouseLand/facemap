@@ -236,6 +236,14 @@ class RefinementHelpWindow(QDialog):
         layout.addWidget(img_groupbox, alignment=QtCore.Qt.AlignCenter)
 
         text = """
+            <h2>Refinement keys</h2>
+            <p>
+            <ul>
+                <li><b>Left click:</b> To drag keypoints</li>
+                <li><b>Shift + A:</b> To add keypoint selected in the radio buttons</li>
+                <li><b>Shift + D:</b> To delete keypoint selected in the radio buttons</li>
+            </ul>
+            </p>
             <h2>Labelling instructions</h2>
             <p>
             Keypoints for different facial regions are labelled as shown above in the side view and top view. Detailed instructions for each region are given below for different views:

@@ -36,8 +36,6 @@ Single workflow for re-training the model or fine-tuning the model with new data
 Keypoints correction feature for new mouse videos
 """
 
-# TODO: Select outlier frames for correction feature i.e. likelihood threshold
-
 BODYPARTS = [
     "eye(back)",
     "eye(bottom)",
@@ -69,6 +67,8 @@ class ModelTrainingPopup(QDialog):
         self.use_current_video = False
         self.num_video_frames = []
         self.random_frames_ind = []
+        self.difficult_frames_idx = None
+        self.easy_frames_idx = None
         self.pose_data = []
         self.all_frames = []
         self.bbox = []
@@ -617,20 +617,35 @@ class ModelTrainingPopup(QDialog):
             if len(self.random_frames_ind) == 0:
                 self.random_frames_ind = self.get_random_frames(
                     total_frames=self.gui.cumframes[-1],
-                    size=self.num_video_frames[self.current_video_idx],
+                    size=min(250, self.gui.cumframes[-1]) #self.num_video_frames[self.current_video_idx],
                 )
-                frames_indices = self.random_frames_ind
+                frames_indices = self.random_frames_ind                
             else:  # Use the predictions from the previous step and add new predictions
                 frames_indices = predict_frame_index
 
             # Get the predictions for the selected frames
-            print("frames_indices:", frames_indices)
             output = self.generate_predictions(frames_indices)
             if output is None:  # User cancelled the refinement
                 self.close()
                 return
 
             pose_pred, _, bbox = output
+            if self.difficult_frames_idx is None or self.easy_frames_idx is None:
+                difficult_frames_idx, easy_frames_idx = self.split_frames_idx_by_category(pose_pred) 
+                self.difficult_frames_idx = frames_indices[difficult_frames_idx]
+                self.easy_frames_idx = frames_indices[easy_frames_idx]
+                num_easy_frames = self.num_video_frames[self.current_video_idx]//2
+                num_difficult_frames = self.num_video_frames[self.current_video_idx] - num_easy_frames
+                if num_difficult_frames > len(self.difficult_frames_idx):
+                    num_difficult_frames = len(self.difficult_frames_idx)
+                    num_easy_frames = self.num_video_frames[self.current_video_idx] - num_difficult_frames
+                easy_frames_idx = easy_frames_idx[:num_easy_frames]
+                difficult_frames_idx = difficult_frames_idx[:num_difficult_frames]
+                self.easy_frames_idx = self.easy_frames_idx[num_easy_frames:]
+                self.difficult_frames_idx = self.difficult_frames_idx[num_difficult_frames:]
+                pose_pred = pose_pred[[*easy_frames_idx, *difficult_frames_idx]]
+                self.random_frames_ind = self.random_frames_ind[[*easy_frames_idx, *difficult_frames_idx]]
+                frames_indices = self.random_frames_ind                
             frames_input = self.get_frames_from_indices(frames_indices)
 
             # Update the predictions
@@ -662,9 +677,6 @@ class ModelTrainingPopup(QDialog):
                     self.pose_data.append(keypoints[i])
                     self.bbox.append(bbox[i])
                     self.num_video_frames.append(len(images[i]))
-
-        print("NUM VIDEO FRAMES", self.num_video_frames)
-        print("BBOX", self.bbox)
 
         self.show()
 
@@ -767,6 +779,30 @@ class ModelTrainingPopup(QDialog):
         self.verticalLayout.addWidget(self.overall_horizontal_group)
 
         self.next_frame()
+
+    def split_frames_idx_by_category(self, pose_pred_data, likelihood_threshold_percentile=95):
+        """
+        Split the frames into difficult or easy frames category based on the likelihood threshold percentile and return
+        the indices of the frames in each category.
+        Parameters
+        ----------
+        pose_pred_data : ND-array
+            Array containing the x,y keypoints position and likelihood values for each frame.
+        likelihood_threshold_percentile : float
+            Percentile value used to determine the likelihood threshold.
+        Returns
+        -------
+        difficult_frames_idx : list
+            List of indices of the frames that are difficult.
+        easy_frames_idx : list
+            List of indices of the frames that are not difficult.
+        """
+        likelihood = pose_pred_data[:, :, -1].mean(axis=1)
+        likelihood_threshold = np.nanpercentile(likelihood, likelihood_threshold_percentile)
+        difficult_frames_idx = np.where(likelihood >= likelihood_threshold)[0]
+        easy_frames_idx = np.where(likelihood < likelihood_threshold)[0]
+        return difficult_frames_idx, easy_frames_idx
+        
 
     def get_bbox_adjusted_img_and_keypoints(self, imgs, keypoints, bbox):
         """
@@ -1092,11 +1128,11 @@ class ModelTrainingPopup(QDialog):
         self.sample_predictions_groupbox.setLayout(QGridLayout())
         self.sample_predictions_groupbox.setTitle("Sample predictions")
 
-        if self.gui.cumframes[-1] >= 16:
-            num_frames_to_show = 16
+        if self.gui.cumframes[-1] >= 9:
+            num_frames_to_show = 9
         else:
             num_frames_to_show = self.gui.cumframes[-1]
-        # Create a grid plot 4x4 of images
+        # Create a grid plot 3x3 of images
         # Get random frame indices that are not in the self.random_frames list
         random_frame_indices = []
         while len(random_frame_indices) < num_frames_to_show:
@@ -1128,12 +1164,12 @@ class ModelTrainingPopup(QDialog):
                 self.win = pg.GraphicsLayoutWidget()
                 frame_win = self.win.addViewBox(invertY=True)
                 frame_win.addItem(
-                    pg.LabelItem("Frame {}".format(random_frame_indices[i * 4 + j] + 1))
+                    pg.LabelItem("Frame {}".format(random_frame_indices[i * 3 + j] + 1))
                 )
                 frame_win.addItem(pg.ImageItem(frame))
                 # Add a keypoints scatterplot to the window
                 pose_scatter = pg.ScatterPlotItem(size=10, pen=pg.mkPen("r", width=2))
-                x, y = pose_data[i * 4 + j][:, 0], pose_data[i * rows + j][:, 1]
+                x, y = pose_data[i * 3 + j][:, 0], pose_data[i * rows + j][:, 1]
                 pose_scatter.setData(
                     x=x,
                     y=y,
@@ -1196,34 +1232,18 @@ class ModelTrainingPopup(QDialog):
         self.verticalLayout.addWidget(self.buttons_groupbox)
 
     def add_additional_training_frames(self):
-        total_frames_to_train = self.add_frames_spinbox.value() + sum(
-            self.num_video_frames
-        )
         old_random_frames = self.random_frames_ind
-        frames_added = 0
-        while sum(self.num_video_frames)+frames_added != total_frames_to_train:
-            new_random_frames = self.get_random_frames(
-                self.gui.cumframes[-1],
-                total_frames_to_train - sum(self.num_video_frames),
-            )
-            # Check if any of the new random frames are already in the self.random_frames list
-            if np.any(np.isin(new_random_frames, self.random_frames_ind)):
-                # If so, get more random frames
-                new_random_frames = np.setdiff1d(
-                    new_random_frames, self.random_frames_ind
-                )
-                self.random_frames_ind = np.concatenate(
-                    (new_random_frames, self.random_frames_ind)
-                )
-                frames_added += len(new_random_frames)
-            # Check how many more random frames are needed
-            else:
-                # If not, update the self.random_frames list
-                self.random_frames_ind = np.concatenate(
-                    (new_random_frames, self.random_frames_ind), axis=0
-                )
-                frames_added += len(new_random_frames)
-        self.num_video_frames.insert(0, frames_added)
+        num_easy_frames = self.add_frames_spinbox.value()//2
+        num_difficult_frames = self.add_frames_spinbox.value() - num_easy_frames
+        if num_difficult_frames > len(self.difficult_frames_idx):
+            num_difficult_frames = len(self.difficult_frames_idx)
+            num_easy_frames = self.add_frames_spinbox.value() - num_difficult_frames
+        new_random_frames = [*self.easy_frames_idx[:num_easy_frames],
+                                *self.difficult_frames_idx[:num_difficult_frames]]
+        self.easy_frames_idx = self.easy_frames_idx[num_easy_frames:]
+        self.difficult_frames_idx = self.difficult_frames_idx[num_difficult_frames:]
+        self.random_frames_ind = np.concatenate((new_random_frames, old_random_frames))
+        self.num_video_frames.insert(0, self.add_frames_spinbox.value())
         # Compare the new random frames with the old random frames to find the indices of the new random frames
         new_random_frames_ind = np.setdiff1d(self.random_frames_ind, old_random_frames)
         self.show_refinement_options(new_random_frames_ind, additional_frames=True)
@@ -1321,11 +1341,13 @@ class KeypointsGraph(pg.GraphItem):
     def mousePressEvent(self, QMouseEvent):
         if (
             QMouseEvent.button() == QtCore.Qt.LeftButton
-            and QMouseEvent.modifiers() == QtCore.Qt.ControlModifier
+            and QMouseEvent.modifiers() == QtCore.Qt.ShiftModifier
         ):
+            print("Shift + Left click")
             QMouseEvent.accept()
             self.right_click_add_keypoint(QMouseEvent)
         elif QMouseEvent.button() == QtCore.Qt.RightButton:
+            print("Right click")
             QMouseEvent.accept()
             self.right_click_add_keypoint(QMouseEvent)
         elif QMouseEvent.button() == QtCore.Qt.LeftButton:
