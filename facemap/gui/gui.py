@@ -1132,9 +1132,11 @@ class MainW(QtWidgets.QMainWindow):
             else:
                 self.update_status_bar("Pose estimation cancelled")
 
-    def process_subset_keypoints(self, subset_frame_indices):
+    def process_subset_keypoints(self, subset_frame_indices, model_name=None):
         if self.pose_model is None:
             self.setup_pose_model()
+        if model_name is not None:
+            self.pose_model.set_model(model_name)
         if not self.pose_gui.cancel_bbox_selection:
             if subset_frame_indices is not None:
                 pred_data, subset_ind, bbox = self.pose_model.run_subset(
@@ -1163,7 +1165,7 @@ class MainW(QtWidgets.QMainWindow):
     ):
         if self.pose_model is None:
             self.setup_pose_model()
-        self.pose_model.set_model_name(model_name)
+        self.pose_model.set_model(model_name)
         if not self.pose_gui.cancel_bbox_selection:
             self.pose_model.train(
                 image_data,

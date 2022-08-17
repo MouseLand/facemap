@@ -4,8 +4,8 @@ from glob import glob
 
 import cv2
 import numpy as np
-from setuptools import PEP420PackageFinder
 import pyqtgraph as pg
+import torch
 from matplotlib import cm
 from PyQt5 import QtCore
 from PyQt5.QtGui import QColor
@@ -26,7 +26,8 @@ from PyQt5.QtWidgets import (
     QSpinBox,
     QVBoxLayout,
 )
-import torch
+from setuptools import PEP420PackageFinder
+
 from .. import utils
 from ..gui import help_windows, io
 from . import model_loader, transforms
@@ -212,7 +213,7 @@ class ModelTrainingPopup(QDialog):
         for model_file in self.model_files:
             if os.path.basename(model_file) == "facemap_model_state.pt":
                 continue
-            self.model_dropdown.addItem(os.path.basename(model_file))
+            self.model_dropdown.addItem(os.path.basename(model_file.split(".pt")[0]))
         self.model_dropdown.setStyleSheet("QComboBox {color: 'black';}")
         self.model_dropdown.setFixedWidth(
             int(np.floor(self.window_max_size.width() * 0.25 * 0.5))
@@ -604,7 +605,9 @@ class ModelTrainingPopup(QDialog):
             self.error_message.exec_()
         return
 
-    def show_refinement_options(self, predict_frame_index=None, additional_frames=False):
+    def show_refinement_options(
+        self, predict_frame_index=None, additional_frames=False
+    ):
 
         self.clear_window()
         self.update_window_title("Step 3: Refine keypoints")
@@ -617,9 +620,11 @@ class ModelTrainingPopup(QDialog):
             if len(self.random_frames_ind) == 0:
                 self.random_frames_ind = self.get_random_frames(
                     total_frames=self.gui.cumframes[-1],
-                    size=min(250, self.gui.cumframes[-1]) #self.num_video_frames[self.current_video_idx],
+                    size=min(
+                        250, self.gui.cumframes[-1]
+                    ),  # self.num_video_frames[self.current_video_idx],
                 )
-                frames_indices = self.random_frames_ind                
+                frames_indices = self.random_frames_ind
             else:  # Use the predictions from the previous step and add new predictions
                 frames_indices = predict_frame_index
 
@@ -631,21 +636,33 @@ class ModelTrainingPopup(QDialog):
 
             pose_pred, _, bbox = output
             if self.difficult_frames_idx is None or self.easy_frames_idx is None:
-                difficult_frames_idx, easy_frames_idx = self.split_frames_idx_by_category(pose_pred) 
+                (
+                    difficult_frames_idx,
+                    easy_frames_idx,
+                ) = self.split_frames_idx_by_category(pose_pred)
                 self.difficult_frames_idx = frames_indices[difficult_frames_idx]
                 self.easy_frames_idx = frames_indices[easy_frames_idx]
-                num_easy_frames = self.num_video_frames[self.current_video_idx]//2
-                num_difficult_frames = self.num_video_frames[self.current_video_idx] - num_easy_frames
+                num_easy_frames = self.num_video_frames[self.current_video_idx] // 2
+                num_difficult_frames = (
+                    self.num_video_frames[self.current_video_idx] - num_easy_frames
+                )
                 if num_difficult_frames > len(self.difficult_frames_idx):
                     num_difficult_frames = len(self.difficult_frames_idx)
-                    num_easy_frames = self.num_video_frames[self.current_video_idx] - num_difficult_frames
+                    num_easy_frames = (
+                        self.num_video_frames[self.current_video_idx]
+                        - num_difficult_frames
+                    )
                 easy_frames_idx = easy_frames_idx[:num_easy_frames]
                 difficult_frames_idx = difficult_frames_idx[:num_difficult_frames]
                 self.easy_frames_idx = self.easy_frames_idx[num_easy_frames:]
-                self.difficult_frames_idx = self.difficult_frames_idx[num_difficult_frames:]
+                self.difficult_frames_idx = self.difficult_frames_idx[
+                    num_difficult_frames:
+                ]
                 pose_pred = pose_pred[[*easy_frames_idx, *difficult_frames_idx]]
-                self.random_frames_ind = self.random_frames_ind[[*easy_frames_idx, *difficult_frames_idx]]
-                frames_indices = self.random_frames_ind                
+                self.random_frames_ind = self.random_frames_ind[
+                    [*easy_frames_idx, *difficult_frames_idx]
+                ]
+                frames_indices = self.random_frames_ind
             frames_input = self.get_frames_from_indices(frames_indices)
 
             # Update the predictions
@@ -661,11 +678,16 @@ class ModelTrainingPopup(QDialog):
                 else:
                     self.bbox.insert(0, bbox)
 
-            self.all_frames[0], self.pose_data[0] = self.get_bbox_adjusted_img_and_keypoints(self.all_frames[0], 
-                                                                                            self.pose_data[0], 
-                                                                                            self.bbox[0])
+            (
+                self.all_frames[0],
+                self.pose_data[0],
+            ) = self.get_bbox_adjusted_img_and_keypoints(
+                self.all_frames[0], self.pose_data[0], self.bbox[0]
+            )
 
-        if len(self.selected_videos) > 0 and not additional_frames:  # Concatenate data from all selected videos
+        if (
+            len(self.selected_videos) > 0 and not additional_frames
+        ):  # Concatenate data from all selected videos
             # For refining keypoints from old data
             for video in self.selected_videos:
                 dat = np.load(video, allow_pickle=True).item()
@@ -780,7 +802,9 @@ class ModelTrainingPopup(QDialog):
 
         self.next_frame()
 
-    def split_frames_idx_by_category(self, pose_pred_data, likelihood_threshold_percentile=95):
+    def split_frames_idx_by_category(
+        self, pose_pred_data, likelihood_threshold_percentile=95
+    ):
         """
         Split the frames into difficult or easy frames category based on the likelihood threshold percentile and return
         the indices of the frames in each category.
@@ -798,11 +822,12 @@ class ModelTrainingPopup(QDialog):
             List of indices of the frames that are not difficult.
         """
         likelihood = pose_pred_data[:, :, -1].mean(axis=1)
-        likelihood_threshold = np.nanpercentile(likelihood, likelihood_threshold_percentile)
+        likelihood_threshold = np.nanpercentile(
+            likelihood, likelihood_threshold_percentile
+        )
         difficult_frames_idx = np.where(likelihood >= likelihood_threshold)[0]
         easy_frames_idx = np.where(likelihood < likelihood_threshold)[0]
         return difficult_frames_idx, easy_frames_idx
-        
 
     def get_bbox_adjusted_img_and_keypoints(self, imgs, keypoints, bbox):
         """
@@ -845,17 +870,13 @@ class ModelTrainingPopup(QDialog):
                 [-1 * val for val in pads],
             )
         if resize:
-            (
-                keypoints[:, :, 0],
-                keypoints[:, :, 1],
-            ) = transforms.rescale_keypoints(
+            (keypoints[:, :, 0], keypoints[:, :, 1],) = transforms.rescale_keypoints(
                 keypoints[:, :, 0],
                 keypoints[:, :, 1],
                 postpad_shape,
                 (256, 256),
             )
         return imgs, keypoints
-
 
     def get_frames_from_indices(self, indices):
         # Pre-pocess images
@@ -874,7 +895,9 @@ class ModelTrainingPopup(QDialog):
         help_windows.RefinementHelpWindow(self, self.window_max_size)
 
     def generate_predictions(self, frame_indices):
-        output = self.gui.process_subset_keypoints(frame_indices)
+        output = self.gui.process_subset_keypoints(
+            frame_indices, model_name=self.model_dropdown.currentText()
+        )
         return output
 
     def radio_button_clicked(self):
@@ -1233,13 +1256,15 @@ class ModelTrainingPopup(QDialog):
 
     def add_additional_training_frames(self):
         old_random_frames = self.random_frames_ind
-        num_easy_frames = self.add_frames_spinbox.value()//2
+        num_easy_frames = self.add_frames_spinbox.value() // 2
         num_difficult_frames = self.add_frames_spinbox.value() - num_easy_frames
         if num_difficult_frames > len(self.difficult_frames_idx):
             num_difficult_frames = len(self.difficult_frames_idx)
             num_easy_frames = self.add_frames_spinbox.value() - num_difficult_frames
-        new_random_frames = [*self.easy_frames_idx[:num_easy_frames],
-                                *self.difficult_frames_idx[:num_difficult_frames]]
+        new_random_frames = [
+            *self.easy_frames_idx[:num_easy_frames],
+            *self.difficult_frames_idx[:num_difficult_frames],
+        ]
         self.easy_frames_idx = self.easy_frames_idx[num_easy_frames:]
         self.difficult_frames_idx = self.difficult_frames_idx[num_difficult_frames:]
         self.random_frames_ind = np.concatenate((new_random_frames, old_random_frames))

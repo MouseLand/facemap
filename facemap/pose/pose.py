@@ -58,9 +58,7 @@ class Pose:
 
     def pose_prediction_setup(self):
         # Setup the model
-        self.set_model_name()
-        if self.net is None:
-            self.load_model()
+        self.load_model()
         # Setup the bounding box
         if not self.bbox_set:
             for i in range(len(self.Ly)):
@@ -378,7 +376,7 @@ class Pose:
         self.gui.load_keypoints()
         self.gui.keypoints_checkbox.setChecked(True)
 
-    def set_model_name(self, model_selected=None):
+    def set_model(self, model_selected=None):
         if model_selected is None:
             model_selected = self.gui.pose_model_combobox.currentText()
         # Get all model names
@@ -393,7 +391,9 @@ class Pose:
                 print("Setting model name to:", model)
                 self.model_name = model_paths[model_names.index(model)]
                 break
-        self.load_model()
+        print("Loading model state from:", self.model_name)
+        self.net.load_state_dict(torch.load(self.model_name, map_location=self.device))
+        self.net.to(self.device)
 
     def load_model(self):
         """
@@ -415,7 +415,7 @@ class Pose:
         channels = model_params["params"]["channels"]
         kernel_size = 3
         nout = len(self.bodyparts)  # number of outputs from the model
-        net = facemap_network.FMnet(
+        self.net = facemap_network.FMnet(
             img_ch=1,
             output_ch=nout,
             labels_id=self.bodyparts,
@@ -423,7 +423,7 @@ class Pose:
             kernel=kernel_size,
             device=self.device,
         )
-        print("Loading model state from:", self.model_name)
-        net.load_state_dict(torch.load(self.model_name, map_location=self.device))
-        net.to(self.device)
-        self.net = net
+        if self.model_name is None:
+            self.set_model()
+        else:
+            self.set_model(self.model_name)
