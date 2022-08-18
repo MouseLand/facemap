@@ -239,9 +239,9 @@ class RefinementHelpWindow(QDialog):
             <h2>Refinement keys</h2>
             <p>
             <ul>
-                <li><b>Left click:</b> To drag keypoints</li>
-                <li><b>Shift + A:</b> To add keypoint selected in the radio buttons</li>
-                <li><b>Shift + D:</b> To delete keypoint selected in the radio buttons</li>
+                <li><b>Left click:</b> Press left button and drag mouse to move a keypoint</li>
+                <li><b>Right click:</b> To add a deleted keypoint currently selected in the radio buttons at current mouse position</li>
+                <li><b>Shift + D:</b> To delete a keypoint selected in the radio buttons</li>
             </ul>
             </p>
             <h2>Labelling instructions</h2>

@@ -26,8 +26,6 @@ from PyQt5.QtWidgets import (
     QSpinBox,
     QVBoxLayout,
 )
-from setuptools import PEP420PackageFinder
-
 from .. import utils
 from ..gui import help_windows, io
 from . import model_loader, transforms
@@ -713,11 +711,12 @@ class ModelTrainingPopup(QDialog):
         self.frame_group.setLayout(QHBoxLayout())
         self.win = pg.GraphicsLayoutWidget()
         self.win.setObjectName("Keypoints refinement")
-        self.frame_win = self.win.addViewBox(invertY=True)
         self.keypoints_scatterplot = KeypointsGraph(parent=self)
+        self.frame_win = KeypointsViewBox(scatter_item=self.keypoints_scatterplot, invertY=True, lockAspect=True) #self.win.addViewBox(invertY=True)
         self.frame_win.setAspectLocked(True, QtCore.Qt.IgnoreAspectRatio)
         self.frame_win.setMouseEnabled(False, False)
         self.frame_win.setMenuEnabled(False)
+        self.win.addItem(self.frame_win)
         self.frame_group.layout().addWidget(self.win)
 
         self.current_frame = -1
@@ -1280,6 +1279,23 @@ class ModelTrainingPopup(QDialog):
         )
         return random_frames_ind
 
+### Keypoints viewbox containing the keypoints scatterplot ###
+class KeypointsViewBox(pg.ViewBox):
+    def __init__(self, parent=None, scatter_item=None, **kwds):
+        pg.ViewBox.__init__(self, parent, **kwds)
+        #self.setMouseMode(self.RectMode)
+        self.parent = parent
+        self.scatter_item = scatter_item
+        if self.scatter_item is not None:
+            self.addItem(scatter_item)
+
+    # Override mouseclick event to enable clicking on the image
+    def mousePressEvent(self, event):
+        if event.button() == QtCore.Qt.RightButton:
+            self.scatter_item.right_click_add_keypoint(self.mapSceneToView(event.scenePos())) 
+        else:
+            event.ignore()
+
 
 ### ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Keypoints graph features ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ ###
 
@@ -1363,24 +1379,6 @@ class KeypointsGraph(pg.GraphItem):
     def getData(self):
         return self.data["pos"]
 
-    def mousePressEvent(self, QMouseEvent):
-        if (
-            QMouseEvent.button() == QtCore.Qt.LeftButton
-            and QMouseEvent.modifiers() == QtCore.Qt.ShiftModifier
-        ):
-            print("Shift + Left click")
-            QMouseEvent.accept()
-            self.right_click_add_keypoint(QMouseEvent)
-        elif QMouseEvent.button() == QtCore.Qt.RightButton:
-            print("Right click")
-            QMouseEvent.accept()
-            self.right_click_add_keypoint(QMouseEvent)
-        elif QMouseEvent.button() == QtCore.Qt.LeftButton:
-            QMouseEvent.accept()
-            super().mousePressEvent(QMouseEvent)
-        else:
-            QMouseEvent.ignore()
-
     def mouseDragEvent(self, ev):
         if ev.button() == QtCore.Qt.LeftButton:
             if ev.isStart():
@@ -1433,8 +1431,8 @@ class KeypointsGraph(pg.GraphItem):
 
     # Add feature for adding a keypoint to the scatterplot
     def right_click_add_keypoint(
-        self, mouseEvent=None
-    ):  # FIXME: This does not always work after clicking radio button
+        self, add_point_pos
+    ): 
         """
         Use right click to add a keypoint to the scatter plot (if the keypoint is not already present)
         """
@@ -1446,16 +1444,12 @@ class KeypointsGraph(pg.GraphItem):
                 bp_selected = bp
                 selected_bp_ind = i
                 break
-        # print("bodypart selected", bp_selected)
-        # print("bodypart index", selected_bp_ind)
         # Check if position of bodypart is nan
-        # print("bodypart coords", self.data["pos"][selected_bp_ind])
         selected_bp_pos = self.data["pos"][selected_bp_ind]
         x, y = selected_bp_pos[0], selected_bp_pos[1]
         # If keypoint is deleted, then add it back using the user selected position
         if np.isnan(x) and np.isnan(y):
             # Get position of mouse from the mouse event
-            add_point_pos = mouseEvent.pos()
             add_x, add_y = add_point_pos.x(), add_point_pos.y()
             keypoints_refined = self.getData()
             keypoints_refined[selected_bp_ind] = [add_x, add_y]
