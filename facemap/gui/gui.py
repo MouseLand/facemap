@@ -1326,6 +1326,7 @@ class MainW(QtWidgets.QMainWindow):
                 size=0.009 * self.sizeObject.height(),
                 symbol="o",
                 brush=brushes,
+                symbolPen=pg.mkPen(color=(255, 255, 255)), #self.colors,
                 hoverable=True,
                 hoverSize=10,
                 data=labels,

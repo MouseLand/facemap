@@ -962,17 +962,17 @@ class ModelTrainingPopup(QDialog):
         self.keypoints_scatterplot.setData(
             pos=np.array([x, y]).T,
             symbolBrush=self.brushes,
-            symbolPen=self.colors,
+            symbolPen=pg.mkPen(color=(255, 255, 255)), #self.colors,
             symbol="o",
             brush=self.brushes,
             hoverable=True,
-            hoverSize=self.gui.sizeObject.height() * 0.006,
+            hoverSize=self.gui.sizeObject.height() * 0.01,
             hoverSymbol="x",
             pxMode=True,
             hoverBrush="r",
             name=self.bodyparts,
             data=self.bodyparts,
-            size=self.gui.sizeObject.height() * 0.006,
+            size=self.gui.sizeObject.height() * 0.008,   
         )
         self.frame_win.addItem(self.keypoints_scatterplot)
 
