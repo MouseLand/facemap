@@ -25,6 +25,7 @@ from PyQt5.QtWidgets import (
     QRadioButton,
     QSpinBox,
     QVBoxLayout,
+    QSlider,
 )
 from .. import utils
 from ..gui import help_windows, io
@@ -627,7 +628,7 @@ class ModelTrainingPopup(QDialog):
                 frames_indices = predict_frame_index
 
             # Get the predictions for the selected frames
-            output = self.generate_predictions(frames_indices)
+            output = self.generate_predictions(frames_indices, model_name=self.model_dropdown.currentText())
             if output is None:  # User cancelled the refinement
                 self.close()
                 return
@@ -730,6 +731,25 @@ class ModelTrainingPopup(QDialog):
         self.frame_number_label.setAlignment(QtCore.Qt.AlignCenter)
         self.left_vertical_group.layout().addWidget(self.frame_number_label)
 
+        # Add a saturation slider
+        self.saturation_group = QGroupBox()
+        self.saturation_group.setLayout(QHBoxLayout())
+        self.saturation_label = QLabel(self)
+        self.saturation_label.setText("Image saturation:")
+        self.saturation_label.setStyleSheet("QLabel {color: 'white'; font-size: 16}")
+        self.saturation_label.setAlignment(QtCore.Qt.AlignRight)
+        self.saturation_group.layout().addWidget(self.saturation_label)
+        self.saturation_slider = QSlider(QtCore.Qt.Horizontal, self)
+        self.saturation_slider.setMinimum(0)
+        self.saturation_slider.setMaximum(100)
+        self.saturation_slider.setValue(100)
+        self.saturation_slider.valueChanged.connect(self.update_saturation)
+        self.saturation_slider.setTracking(False)
+        # Set width of slider
+        self.saturation_slider.setFixedWidth(int(np.floor(self.window_max_size.width()*0.6*0.2)))
+        self.saturation_group.layout().addWidget(self.saturation_slider)
+        self.left_vertical_group.layout().addWidget(self.saturation_group)
+
         # Define buttons for main window
         self.toggle_button_group = QGroupBox()
         self.toggle_button_group.setLayout(QHBoxLayout())
@@ -800,6 +820,13 @@ class ModelTrainingPopup(QDialog):
         self.verticalLayout.addWidget(self.overall_horizontal_group)
 
         self.next_frame()
+
+    def update_saturation(self):
+        """
+        Update the saturation of the image
+        """
+        saturation = float(self.saturation_slider.value()) / 100 * (self.all_frames[self.current_video_idx][self.current_frame].max())
+        self.img.setLevels([0, saturation])
 
     def split_frames_idx_by_category(
         self, pose_pred_data, likelihood_threshold_percentile=95
@@ -893,9 +920,9 @@ class ModelTrainingPopup(QDialog):
     def show_refinement_help(self):
         help_windows.RefinementHelpWindow(self, self.window_max_size)
 
-    def generate_predictions(self, frame_indices):
+    def generate_predictions(self, frame_indices, model_name):
         output = self.gui.process_subset_keypoints(
-            frame_indices, model_name=self.model_dropdown.currentText()
+            frame_indices, model_name
         )
         return output
 
@@ -978,6 +1005,7 @@ class ModelTrainingPopup(QDialog):
             self.previous_frame()
         else:
             self.previous_button.setEnabled(False)
+        self.update_saturation()
 
     def update_frame_counter(self, button):
         self.next_button.setEnabled(True)
@@ -1037,11 +1065,11 @@ class ModelTrainingPopup(QDialog):
         self.frame_win.setAspectLocked(True, QtCore.Qt.IgnoreAspectRatio)
         self.frame_win.setMouseEnabled(False, False)
         self.frame_win.setMenuEnabled(False)
+        self.update_saturation()
         self.win.show()
 
-        # Add a keyPressEvent for deleting the selected keypoint using the delete key and set the value to NaN
-
     def keyPressEvent(self, ev):
+        # Add a keyPressEvent for deleting the selected keypoint using the delete key and set the value to NaN
         # If shift and 'D' are pressed, delete the selected keypoint
         if (
             ev.key() == QtCore.Qt.Key_D and ev.modifiers() == QtCore.Qt.ShiftModifier
@@ -1162,19 +1190,17 @@ class ModelTrainingPopup(QDialog):
                 self.gui.cumframes[-1],
                 size=num_frames_to_show - len(random_frame_indices),
             )
-            # Check if any of the new random frames are already in the self.random_frames list
+            # Check if any of the random frames are from the training set, if so, remove them
             if np.any(np.isin(random_frame_indices, self.random_frames_ind)):
-                # If so, get more random frames
                 random_frame_indices = np.setdiff1d(
                     random_frame_indices, self.random_frames_ind
                 )
 
-        output = self.generate_predictions(random_frame_indices)
+        output = self.generate_predictions(random_frame_indices, model_name=None) # Use the finetuned model
         if output is None:
             self.close()
             return
         pose_data, _, _ = output
-        # pose_data = pose_data[:, :, :2]  # Remove confidence scores/likelihoods
         imgs = self.get_frames_from_indices(random_frame_indices)
 
         rows = int(np.floor(np.sqrt(len(imgs))))

@@ -138,7 +138,6 @@ class Pose:
         Run pose estimation on a random subset of frames
         """
         print("Using {} for pose estimation".format(self.model_name))
-        self.pose_prediction_setup()
         if subset_ind is None:
             # Select a random subset of frames
             subset_size = int(self.nframes / 10)
