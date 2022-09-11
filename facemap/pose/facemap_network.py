@@ -71,7 +71,8 @@ class FMnet(nn.Module):
         locy = self.Conv2_1x1[2](x)
         hm = self.Conv2_1x1[0](x)
         hm = F.relu(hm)
-        hm = 10 * hm / (1e-4 + hm.sum(axis=(-2, -1)).unsqueeze(-1).unsqueeze(-1))
+        if self.training:
+            hm = 10 * hm / (1e-4 + hm.sum(axis=(-2, -1)).unsqueeze(-1).unsqueeze(-1)) # Normalize
 
         return hm, locx, locy
 
