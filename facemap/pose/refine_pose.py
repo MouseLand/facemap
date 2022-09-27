@@ -50,7 +50,7 @@ BODYPARTS = [
     "nosebridge",
     "paw",
     "whisker(c1)",
-    "whisker(c2)",
+    "whisker(d2)",
     "whisker(d1)",
 ]
 

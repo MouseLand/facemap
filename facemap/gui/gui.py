@@ -223,7 +223,7 @@ class MainW(QtWidgets.QMainWindow):
         self.keypoints_subgroups = [
             ["eye(back)", "eye(bottom)", "eye(front)", "eye(top)"],
             ["nose(bottom)", "nose(r)", "nose(tip)", "nose(top)", "nosebridge"],
-            ["whisker(c1)", "whisker(c2)", "whisker(d1)"],
+            ["whisker(c1)", "whisker(d1)", "whisker(d2)"],
             ["lowerlip", "mouth"],
             ["paw"],
         ]
@@ -420,7 +420,7 @@ class MainW(QtWidgets.QMainWindow):
         self.pose_groupbox.layout().addWidget(self.batch_size_spinbox, 1, 1)
 
         self.is_pose_loaded = False
-        keypoints_threshold_label = QLabel("Threshold:")
+        keypoints_threshold_label = QLabel("Threshold (%):")
         keypoints_threshold_label.setStyleSheet("color: gray;")
         self.pose_groupbox.layout().addWidget(keypoints_threshold_label, 2, 0)
         self.keypoints_threshold_spinbox = QSpinBox()
@@ -1244,9 +1244,6 @@ class MainW(QtWidgets.QMainWindow):
         for video_id in range(len(self.poseFilepath)):
             print("Loading keypoints:", self.poseFilepath[video_id])
             pose_data = pd.read_hdf(self.poseFilepath[video_id], "df_with_missing")
-            # remove nose(r) and paw keypoints
-            # pose_data = pose_data.T[pose_data.columns.get_level_values("bodyparts") != "nose(r)"].T
-            # pose_data = pose_data.T[pose_data.columns.get_level_values("bodyparts") != "paw"].T
             # Append pose data to list for each video_id
             self.keypoints_labels.append(
                 pd.unique(pose_data.columns.get_level_values("bodyparts"))

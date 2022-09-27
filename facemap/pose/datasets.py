@@ -51,7 +51,7 @@ class FacemapDataset(torch.utils.data.Dataset):
             "nosebridge",
             "paw",
             "whisker(c1)",
-            "whisker(c2)",
+            "whisker(d2)",
             "whisker(d1)",
         ]
         # Set image and keypoints data

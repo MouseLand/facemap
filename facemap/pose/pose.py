@@ -25,7 +25,6 @@ class Pose:
     def __init__(
         self,
         filenames=None,
-        bodyparts=None,
         bbox=[],
         bbox_set=False,
         resize=False,
@@ -47,7 +46,6 @@ class Pose:
         )
         self.nframes = self.cumframes[-1]
         self.pose_labels = None
-        self.bodyparts = bodyparts
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.bbox = bbox
         self.bbox_set = bbox_set
@@ -55,6 +53,23 @@ class Pose:
         self.add_padding = add_padding
         self.net = net
         self.model_name = None
+        self.bodyparts = [
+            "eye(back)",
+            "eye(bottom)",
+            "eye(front)",
+            "eye(top)",
+            "lowerlip",
+            "mouth",
+            "nose(bottom)",
+            "nose(r)",
+            "nose(tip)",
+            "nose(top)",
+            "nosebridge",
+            "paw",
+            "whisker(c1)",
+            "whisker(d2)",
+            "whisker(d1)",
+        ]
 
     def pose_prediction_setup(self):
         # Setup the model
@@ -260,7 +275,7 @@ class Pose:
             total_frames = len(frame_ind)
 
         # Create array for storing predictions
-        pred_data = torch.zeros(total_frames, len(self.net.bodyparts), 3)
+        pred_data = torch.zeros(total_frames, len(self.bodyparts), 3)
 
         # Store predictions in dataframe
         self.net.eval()
@@ -351,7 +366,7 @@ class Pose:
             "image_size": (self.Ly, self.Lx),
             "bbox": self.bbox[video_id],
             "total_frames": total_frames,
-            "bodyparts": self.net.bodyparts,
+            "bodyparts": self.bodyparts,
             "inference_speed": inference_speed,
         }
         return pred_data, metadata
@@ -410,7 +425,7 @@ class Pose:
             prompt="Loading model... {}".format(model_params_file),
         )
         model_params = torch.load(model_params_file, map_location=self.device)
-        self.bodyparts = model_params["params"]["bodyparts"]
+        #self.bodyparts = model_params["params"]["bodyparts"]
         channels = model_params["params"]["channels"]
         kernel_size = 3
         nout = len(self.bodyparts)  # number of outputs from the model
