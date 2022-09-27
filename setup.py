@@ -15,6 +15,15 @@ install_deps = [
     "scikit-image",
 ]
 
+try:
+    import torch
+    a = torch.ones(2, 3)
+    version = int(torch.__version__[2])
+    if version >= 9:
+        install_deps.remove('torch>=1.9')
+except:
+    pass
+
 with open("README.md", "r") as fh:
     long_description = fh.read()
 
