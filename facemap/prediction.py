@@ -10,7 +10,7 @@ from torch.nn import functional as F
 from torch.nn.functional import conv1d
 
 from facemap.utils import bin1d
-import keypoints
+from facemap import keypoints
 
 def split_traintest(n_t, frac=0.25, pad=3, split_time=False):
     """this returns deterministic split of train and test in time chunks
