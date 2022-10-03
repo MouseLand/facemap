@@ -174,6 +174,7 @@ def compute_SVD(
 
     ns = 0
     w = StringIO()
+    tic = time.time()
     for n in tqdm(range(nsegs), file=w):
         img = imall_init(nt0, Ly, Lx)
         t = tf[n]
@@ -210,50 +211,29 @@ def compute_SVD(
                     wmot = np.array(wmot).astype(int)
                     wroi = motind[wmot]
                     for i in range(wroi.size):
+                        ymin = rois[wroi[i]]["yrange_bin"][0]
+                        ymax = rois[wroi[i]]["yrange_bin"][-1] + 1
+                        xmin = rois[wroi[i]]["xrange_bin"][0]
+                        xmax = rois[wroi[i]]["xrange_bin"][-1] + 1
                         if motSVD:
-                            lilbin = imbin_mot[
-                                :,
-                                rois[wroi[i]]["yrange_bin"][0] : rois[wroi[i]][
-                                    "yrange_bin"
-                                ][-1]
-                                + 1,
-                                rois[wroi[i]]["xrange_bin"][0] : rois[wroi[i]][
-                                    "xrange_bin"
-                                ][-1]
-                                + 1,
-                            ]
+                            lilbin = imbin_mot[:, ymin:ymax, xmin:xmax]
                             lilbin = np.reshape(lilbin, (lilbin.shape[0], -1))
                             ncb = min(nc, lilbin.shape[-1])
                             usv = utils.svdecon(lilbin.T, k=ncb)
                             ncb = usv[0].shape[-1]
-                            U_mot[wmot[i] + 1][
-                                :, ni_mot[wmot[i] + 1] : ni_mot[wmot[i] + 1] + ncb
-                            ] = (
-                                usv[0] * usv[1]
-                            )  # U[wmot[i]+1][:, ni[wmot[i]+1]:ni[wmot[i]+1]+ncb] = usv[0]
+                            u0, uend = ni_mot[wmot[i]+1], ni_mot[wmot[i]+1]+ncb
+                            U_mot[wmot[i] + 1][:, u0:uend] = usv[0] * usv[1]  
                             ni_mot[wmot[i] + 1] += ncb
                         if movSVD:
-                            lilbin = imbin_mov[
-                                :,
-                                rois[wroi[i]]["yrange_bin"][0] : rois[wroi[i]][
-                                    "yrange_bin"
-                                ][-1]
-                                + 1,
-                                rois[wroi[i]]["xrange_bin"][0] : rois[wroi[i]][
-                                    "xrange_bin"
-                                ][-1]
-                                + 1,
-                            ]
+                            lilbin = imbin_mov[:, ymin:ymax, xmin:xmax]
                             lilbin = np.reshape(lilbin, (lilbin.shape[0], -1))
                             ncb = min(nc, lilbin.shape[-1])
                             usv = utils.svdecon(lilbin.T, k=ncb)
                             ncb = usv[0].shape[-1]
-                            U_mov[wmot[i] + 1][
-                                :, ni_mov[wmot[i] + 1] : ni_mov[wmot[i] + 1] + ncb
-                            ] = (
-                                usv[0] * usv[1]
-                            )  # U[wmot[i]+1][:, ni[wmot[i]+1]:ni[wmot[i]+1]+ncb] = usv[0]
+                            u0, uend = ni_mov[wmot[i]+1], ni_mov[wmot[i]+1]+ncb
+                            U_mov[wmot[i] + 1][:, u0:uend] = usv[0] * usv[1]
                             ni_mov[wmot[i] + 1] += ncb
+            print(f'computed svd chunk {n} / {nsegs}, time {time.time()-tic: .2f}sec')
         utils.update_mainwindow_progressbar(MainWindow, GUIobject, w, "Computing SVD ")
 
         if fullSVD:
@@ -478,31 +458,16 @@ def process_ROIs(
                         avgframe[ii] = np.reshape(avgframe[ii], (Lyb[ii], Lxb[ii]))
                     wroi = motind[wmot]
                     for i in range(wroi.size):
+                        ymin = rois[wroi[i]]["yrange_bin"][0]
+                        ymax = rois[wroi[i]]["yrange_bin"][-1] + 1
+                        xmin = rois[wroi[i]]["xrange_bin"][0]
+                        xmax = rois[wroi[i]]["xrange_bin"][-1] + 1
                         if motSVD:
-                            lilbin = imbin_mot[
-                                :,
-                                rois[wroi[i]]["yrange_bin"][0] : rois[wroi[i]][
-                                    "yrange_bin"
-                                ][-1]
-                                + 1,
-                                rois[wroi[i]]["xrange_bin"][0] : rois[wroi[i]][
-                                    "xrange_bin"
-                                ][-1]
-                                + 1,
-                            ]
+                            lilbin = imbin_mot[:, ymin:ymax, xmin:xmax]
                             M[wmot[i] + 1][t : t + lilbin.shape[0]] = lilbin.sum(
                                 axis=(-2, -1)
                             )
-                            lilbin -= avgmotion[ii][
-                                rois[wroi[i]]["yrange_bin"][0] : rois[wroi[i]][
-                                    "yrange_bin"
-                                ][-1]
-                                + 1,
-                                rois[wroi[i]]["xrange_bin"][0] : rois[wroi[i]][
-                                    "xrange_bin"
-                                ][-1]
-                                + 1,
-                            ]
+                            lilbin -= avgmotion[ii][ymin:ymax, xmin:xmax]
                             lilbin = np.reshape(lilbin, (lilbin.shape[0], -1))
                             vproj = lilbin @ U_mot[wmot[i] + 1]
                             if n == 0:
@@ -511,27 +476,8 @@ def process_ROIs(
                                 )
                             V_mot[wmot[i] + 1][t : t + vproj.shape[0], :] = vproj
                         if movSVD:
-                            lilbin = imbin_mov[
-                                :,
-                                rois[wroi[i]]["yrange_bin"][0] : rois[wroi[i]][
-                                    "yrange_bin"
-                                ][-1]
-                                + 1,
-                                rois[wroi[i]]["xrange_bin"][0] : rois[wroi[i]][
-                                    "xrange_bin"
-                                ][-1]
-                                + 1,
-                            ]
-                            lilbin -= avgframe[ii][
-                                rois[wroi[i]]["yrange_bin"][0] : rois[wroi[i]][
-                                    "yrange_bin"
-                                ][-1]
-                                + 1,
-                                rois[wroi[i]]["xrange_bin"][0] : rois[wroi[i]][
-                                    "xrange_bin"
-                                ][-1]
-                                + 1,
-                            ]
+                            lilbin = imbin_mov[:, ymin:ymax, xmin:xmax]
+                            lilbin -= avgframe[ii][ymin:ymax, xmin:xmax]
                             lilbin = np.reshape(lilbin, (lilbin.shape[0], -1))
                             vproj = lilbin @ U_mov[wmot[i] + 1]
                             if n == 0:
@@ -554,9 +500,14 @@ def process_ROIs(
                             (vproj[0, :][np.newaxis, :], vproj), axis=0
                         )
                     V_mov[0][t : t + vproj.shape[0], :] = vproj
+            
+            if n%10==0:
+                print(f'computed projection chunk {n} / {nsegs}, time {time.time()-tic: .2f}sec')
+
             utils.update_mainwindow_progressbar(
                 MainWindow, GUIobject, s, "Computing projection "
             )
+            
     utils.update_mainwindow_message(
         MainWindow, GUIobject, "Finished computing projection "
     )
