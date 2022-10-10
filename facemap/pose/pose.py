@@ -397,7 +397,7 @@ class Pose:
         model_paths = model_loader.get_model_states_paths()
         if len(model_paths) == 0:  # No models found, set default model
             self.model_name = model_loader.get_basemodel_state_path()
-        model_names = [m.split("/")[-1].split(".")[0] for m in model_paths]
+        model_names = [os.path.splitext(os.path.basename(m))[0] for m in model_paths]
         for model in model_names:  # Find selected model and update model name
             if (model == model_selected) or (
                 model_selected == "Base model" and "facemap_model_state" in model

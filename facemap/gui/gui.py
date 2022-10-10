@@ -407,6 +407,14 @@ class MainW(QtWidgets.QMainWindow):
         self.pose_model_combobox = QComboBox(self)
         # Set size of combobox
         self.pose_model_combobox.setFixedWidth(int(0.03 * self.sizeObject.width()))
+        # make combobox scrollable
+        self.pose_model_combobox.view().setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOn)
+        # Set minimum contents length to 5
+        self.pose_model_combobox.setMinimumContentsLength(5)
+        
+        # Adjust size of dropdown menu to show some items at once (max 5)
+        self.pose_model_combobox.setSizeAdjustPolicy(QComboBox.AdjustToMinimumContentsLength)
+
         self.update_pose_model_combo_box()
         self.pose_groupbox.layout().addWidget(self.pose_model_combobox, 0, 1)
 
