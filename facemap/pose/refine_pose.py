@@ -319,7 +319,7 @@ class ModelTrainingPopup(QDialog):
 
         # Add a QLabel and QLineedit for difficult frames threshold
         self.difficult_frames_threshold_label = QLabel(self)
-        self.difficult_frames_threshold_label.setText("Difficult frames threshold (percentile):")
+        self.difficult_frames_threshold_label.setText("Difficulty threshold (percentile):")
         self.difficult_frames_threshold_label.setStyleSheet("QLabel {color: 'white';}")
         self.random_frames_groupbox.layout().addWidget(self.difficult_frames_threshold_label)
 
@@ -693,18 +693,21 @@ class ModelTrainingPopup(QDialog):
                 ) = self.split_frames_idx_by_category(pose_pred)
                 self.difficult_frames_idx = frames_indices[difficult_frames_idx]
                 self.easy_frames_idx = frames_indices[easy_frames_idx]
+                print("len frame indices", len(frames_indices))
                 num_easy_frames = int(np.floor(self.num_video_frames[self.current_video_idx] * (float(self.percent_random_frames_box.text())/100))) #self.num_video_frames[self.current_video_idx] // 2
                 num_difficult_frames = (
                     self.num_video_frames[self.current_video_idx] - num_easy_frames
                 )
-                #print("Total training frames: {}, Total easy frames: {}, Total difficult frames: {}".format(self.num_video_frames[self.current_video_idx], 
-                #        num_easy_frames, num_difficult_frames))
                 if num_difficult_frames > len(self.difficult_frames_idx):
                     num_difficult_frames = len(self.difficult_frames_idx)
                     num_easy_frames = (
                         self.num_video_frames[self.current_video_idx]
                         - num_difficult_frames
                     )
+                print("Total training frames: {}, Total easy frames: {}, Total difficult frames: {}".format(self.num_video_frames[self.current_video_idx], 
+                        num_easy_frames, num_difficult_frames))
+                print("len easy frames", len(easy_frames_idx))
+                print("len difficult frames", len(difficult_frames_idx))
                 easy_frames_idx = easy_frames_idx[:num_easy_frames]
                 difficult_frames_idx = difficult_frames_idx[:num_difficult_frames]
                 self.easy_frames_idx = self.easy_frames_idx[num_easy_frames:]
@@ -897,8 +900,7 @@ class ModelTrainingPopup(QDialog):
         easy_frames_idx : list
             List of indices of the frames that are not difficult.
         """
-        likelihood_threshold_percentile = float(self.difficult_frames_threshold_box.text())/100
-        #print("Using likelihood threshold percentile: {}".format(likelihood_threshold_percentile))
+        likelihood_threshold_percentile = float(self.difficult_frames_threshold_box.text())
         likelihood = pose_pred_data[:, :, -1].mean(axis=1)
         likelihood_threshold = np.nanpercentile(
             likelihood, likelihood_threshold_percentile
