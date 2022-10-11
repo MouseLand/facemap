@@ -26,6 +26,8 @@ from PyQt5.QtWidgets import (
     QSpinBox,
     QVBoxLayout,
     QSlider,
+    QScrollArea,
+    QFormLayout,
 )
 from .. import utils
 from ..gui import help_windows, io
@@ -300,6 +302,35 @@ class ModelTrainingPopup(QDialog):
         self.use_current_video_groupbox.layout().addWidget(self.get_num_frames_groupbox)
         self.verticalLayout.addWidget(self.use_current_video_groupbox)
 
+        # Add a QLineedit to determine the percentage of random frames to use
+        self.random_frames_groupbox = QGroupBox(self)
+        self.random_frames_groupbox.setLayout(QHBoxLayout())
+
+        self.percent_random_frames_label = QLabel(self)
+        self.percent_random_frames_label.setText("Random frames (%):")
+        self.percent_random_frames_label.setStyleSheet("QLabel {color: 'white';}")
+        self.random_frames_groupbox.layout().addWidget(self.percent_random_frames_label)
+
+        self.percent_random_frames_box = QSpinBox(self)
+        self.percent_random_frames_box.setRange(0, 100)
+        self.percent_random_frames_box.setValue(50)
+        self.percent_random_frames_box.setStyleSheet("QSpinBox {color: 'black';}")
+        self.random_frames_groupbox.layout().addWidget(self.percent_random_frames_box)
+
+        # Add a QLabel and QLineedit for difficult frames threshold
+        self.difficult_frames_threshold_label = QLabel(self)
+        self.difficult_frames_threshold_label.setText("Difficulty threshold (percentile):")
+        self.difficult_frames_threshold_label.setStyleSheet("QLabel {color: 'white';}")
+        self.random_frames_groupbox.layout().addWidget(self.difficult_frames_threshold_label)
+
+        self.difficult_frames_threshold_box = QSpinBox(self)
+        self.difficult_frames_threshold_box.setRange(0, 100)
+        self.difficult_frames_threshold_box.setValue(95)
+        self.difficult_frames_threshold_box.setStyleSheet("QSpinBox {color: 'black';}")
+        self.random_frames_groupbox.layout().addWidget(self.difficult_frames_threshold_box)
+
+        self.verticalLayout.addWidget(self.random_frames_groupbox)
+
         # Add a QGroupbox widget to hold checkboxes for selecting videos using the list of data files
         self.npy_files_groupbox = QGroupBox(self)
         self.npy_files_groupbox.setLayout(QVBoxLayout())
@@ -334,13 +365,30 @@ class ModelTrainingPopup(QDialog):
         self.use_old_data_radio_groupbox.layout().addWidget(self.use_old_data_no_radio)
         self.npy_files_groupbox.layout().addWidget(self.use_old_data_radio_groupbox)
 
+        # Add checkboxes to scroll area for selecting data files 
+        form_layout = QFormLayout()
+        checkbox_groupbox = QGroupBox(self)
         self.npy_files_checkboxes = []
         for i, file in enumerate(self.data_files):
             checkbox = QCheckBox(file, self)
-            checkbox.setStyleSheet("QCheckBox {color: 'white';}")
-            self.npy_files_groupbox.layout().addWidget(checkbox)
+            checkbox.setStyleSheet("QCheckBox {color: 'black';}") #'white';}")
+            form_layout.addRow(checkbox)
             self.npy_files_checkboxes.append(checkbox)
             checkbox.hide()
+        checkbox_groupbox.setLayout(form_layout)
+        self.checkbox_scroll_area = QScrollArea(self)
+        self.checkbox_scroll_area.setStyleSheet("QScrollArea {background: 'black'; color: 'black';}")
+        self.checkbox_scroll_area.setWidget(checkbox_groupbox)
+        self.checkbox_scroll_area.setWidgetResizable(True)
+        self.checkbox_scroll_area.setFixedHeight(200)
+        self.checkbox_scroll_area.hide()
+        # Set background color of scroll area
+        p = self.checkbox_scroll_area.palette()
+        p.setColor(self.checkbox_scroll_area.backgroundRole(), QColor("black"))
+        self.checkbox_scroll_area.setPalette(p)
+
+        self.npy_files_groupbox.layout().addWidget(self.checkbox_scroll_area)
+
         self.old_data_found_label = QLabel(self)
         self.old_data_found_label.setText("No old data found.")
         self.old_data_found_label.setStyleSheet(
@@ -417,9 +465,11 @@ class ModelTrainingPopup(QDialog):
                 self.old_data_found_label.hide()
             for checkbox in self.npy_files_checkboxes:
                 checkbox.show()
+            self.checkbox_scroll_area.show()
         else:
             for checkbox in self.npy_files_checkboxes:
                 checkbox.hide()
+            self.checkbox_scroll_area.hide()
             self.old_data_found_label.hide()
 
     def show_step2_help(self):
@@ -559,8 +609,10 @@ class ModelTrainingPopup(QDialog):
     def toggle_num_frames(self, yes_selected):
         if yes_selected:
             self.get_num_frames_groupbox.show()
+            self.random_frames_groupbox.show()
         else:
             self.get_num_frames_groupbox.hide()
+            self.random_frames_groupbox.hide()
 
     def update_user_training_options(self):
         # Get the selected model
@@ -641,7 +693,8 @@ class ModelTrainingPopup(QDialog):
                 ) = self.split_frames_idx_by_category(pose_pred)
                 self.difficult_frames_idx = frames_indices[difficult_frames_idx]
                 self.easy_frames_idx = frames_indices[easy_frames_idx]
-                num_easy_frames = self.num_video_frames[self.current_video_idx] // 2
+                print("len frame indices", len(frames_indices))
+                num_easy_frames = int(np.floor(self.num_video_frames[self.current_video_idx] * (float(self.percent_random_frames_box.text())/100))) #self.num_video_frames[self.current_video_idx] // 2
                 num_difficult_frames = (
                     self.num_video_frames[self.current_video_idx] - num_easy_frames
                 )
@@ -651,6 +704,10 @@ class ModelTrainingPopup(QDialog):
                         self.num_video_frames[self.current_video_idx]
                         - num_difficult_frames
                     )
+                print("Total training frames: {}, Total easy frames: {}, Total difficult frames: {}".format(self.num_video_frames[self.current_video_idx], 
+                        num_easy_frames, num_difficult_frames))
+                print("len easy frames", len(easy_frames_idx))
+                print("len difficult frames", len(difficult_frames_idx))
                 easy_frames_idx = easy_frames_idx[:num_easy_frames]
                 difficult_frames_idx = difficult_frames_idx[:num_difficult_frames]
                 self.easy_frames_idx = self.easy_frames_idx[num_easy_frames:]
@@ -828,18 +885,14 @@ class ModelTrainingPopup(QDialog):
         saturation = float(self.saturation_slider.value()) / 100 * (self.all_frames[self.current_video_idx][self.current_frame].max())
         self.img.setLevels([0, saturation])
 
-    def split_frames_idx_by_category(
-        self, pose_pred_data, likelihood_threshold_percentile=95
-    ):
+    def split_frames_idx_by_category(self, pose_pred_data):
         """
-        Split the frames into difficult or easy frames category based on the likelihood threshold percentile and return
-        the indices of the frames in each category.
+        Split the frames into difficult or easy frames category based on the likelihood threshold percentile 
+        and return the indices of the frames in each category.
         Parameters
         ----------
         pose_pred_data : ND-array
             Array containing the x,y keypoints position and likelihood values for each frame.
-        likelihood_threshold_percentile : float
-            Percentile value used to determine the likelihood threshold.
         Returns
         -------
         difficult_frames_idx : list
@@ -847,6 +900,7 @@ class ModelTrainingPopup(QDialog):
         easy_frames_idx : list
             List of indices of the frames that are not difficult.
         """
+        likelihood_threshold_percentile = float(self.difficult_frames_threshold_box.text())
         likelihood = pose_pred_data[:, :, -1].mean(axis=1)
         likelihood_threshold = np.nanpercentile(
             likelihood, likelihood_threshold_percentile
