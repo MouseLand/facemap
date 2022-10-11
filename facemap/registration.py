@@ -217,7 +217,7 @@ def get_warped_Us(reference_files, other_vidnames, plot=0, use_rep=0):
         vid0_U_crop = np.reshape(vid0_U, (Ly0, Lx0, 500))
         vid0_U_crop = vid0_U_crop[yl : yr + 1, xl : xr + 1, :]
         vid0_U_crop = z_score_U(vid0_U_crop, Ly_crop, Lx_crop, return_im=0)
-        vid0_U_crop /= (vid0_U_crop ** 2).sum(axis=0)
+        vid0_U_crop /= (vid0_U_crop**2).sum(axis=0)
         vid0_U_crop = np.reshape(vid0_U_crop, (Ly_crop, Lx_crop, 500))
         if len(other_vidnames) == 1:
             warpedU[0] = vid0_U_crop  # replace 1st idx with cropped one
@@ -228,7 +228,7 @@ def get_warped_Us(reference_files, other_vidnames, plot=0, use_rep=0):
             vid1_U, Ly0, Lx0, rigid_tform, crop_data[idx, :], warp_mat
         )
         vid1_U_warped = z_score_U(vid1_U_warped, Ly_crop, Lx_crop, return_im=0)
-        vid1_U_warped /= (vid1_U_warped ** 2).sum(axis=0)
+        vid1_U_warped /= (vid1_U_warped**2).sum(axis=0)
         vid1_U_warped = np.reshape(vid1_U_warped, (Ly_crop, Lx_crop, 500))
         warpedU.append(vid1_U_warped)
 
@@ -289,7 +289,7 @@ def get_warped_Us(reference_files, other_vidnames, plot=0, use_rep=0):
         vid0_U_crop = np.reshape(vid0_U, (Ly0, Lx0, -500))
         vid0_U_crop = vid0_U_crop[yl : yr + 1, xl : xr + 1, :]
         vid0_U_crop = z_score_U(vid0_U_crop, Ly_crop, Lx_crop, return_im=0)
-        vid0_U_crop /= (vid0_U_crop ** 2).sum(axis=0)
+        vid0_U_crop /= (vid0_U_crop**2).sum(axis=0)
         warpedU[0] = vid0_U_crop  # first idx will be U from the reference
 
         for i, U in enumerate(warpedU):  # now adjust cropping of the other warped U's
@@ -310,7 +310,7 @@ def get_warped_Us(reference_files, other_vidnames, plot=0, use_rep=0):
             U = U[yl_adj : U.shape[0] - yr_adj, xl_adj : U.shape[1] - xr_adj, -1]
             U = np.reshape(U, (Ly_crop * Lx_crop, -1))
             U = z_score_U(U, Ly_crop, Lx_crop, return_im=0)
-            warpedU[i] = U / (U ** 2).sum(axis=0)
+            warpedU[i] = U / (U**2).sum(axis=0)
 
     return warpedU, warp_info, crop_data, V_orig
 

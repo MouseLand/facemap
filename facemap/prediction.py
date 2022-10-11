@@ -12,10 +12,9 @@ from torch.nn.functional import conv1d
 from facemap.utils import bin1d
 from facemap import keypoints
 
-
 def split_traintest(n_t, frac=0.25, pad=3, split_time=False):
     """this returns deterministic split of train and test in time chunks
-
+    
     Parameters
     ----------
 
@@ -36,37 +35,33 @@ def split_traintest(n_t, frac=0.25, pad=3, split_time=False):
 
     itrain: 2D int array
         times in train set, arranged in chunks
-
+    
     itest: 2D int array
         times in test set, arranged in chunks
 
     """
-    # usu want 20 segs, but might not have enough frames for that
-    n_segs = int(min(20, n_t / 4))
-    n_len = int(np.floor(n_t / n_segs))
+    #usu want 20 segs, but might not have enough frames for that
+    n_segs = int(min(20, n_t/4)) 
+    n_len = int(np.floor(n_t/n_segs))
     inds_train = np.linspace(0, n_t - n_len - 5, n_segs).astype(int)
     if not split_time:
-        l_train = int(np.floor(n_len * (1 - frac)))
+        l_train = int(np.floor(n_len * (1-frac)))
         inds_test = inds_train + l_train + pad
-        l_test = (
-            np.diff(np.stack((inds_train, inds_train + l_train)).T.flatten()).min()
-            - pad
-        )
+        l_test = np.diff(np.stack((inds_train, inds_train + l_train)).T.flatten()).min() - pad
     else:
-        inds_test = inds_train[: int(np.floor(n_segs * frac))]
-        inds_train = inds_train[int(np.floor(n_segs * frac)) :]
+        inds_test = inds_train[:int(np.floor(n_segs*frac))]
+        inds_train = inds_train[int(np.floor(n_segs*frac)):]
         l_train = n_len - 10
         l_test = l_train
-    itrain = inds_train[:, np.newaxis] + np.arange(0, l_train, 1, int)
-    itest = inds_test[:, np.newaxis] + np.arange(0, l_test, 1, int)
+    itrain = (inds_train[:,np.newaxis] + np.arange(0, l_train, 1, int))
+    itest = (inds_test[:,np.newaxis] + np.arange(0, l_test, 1, int))
     return itrain, itest
-
 
 def resample_frames(data, torig, tout):
     """
     Resample data from times torig at times tout.
     data is (n_samples, n_features). The data is filtered using a gaussian filter before resampling.
-
+    
     Parameters
     ----------
     data : 2D array, input data (n_samples, n_features)
@@ -88,15 +83,14 @@ def resample_frames(data, torig, tout):
     dout = f(tout)
     return dout
 
-
-def resample_data(data, tcam, tneural, crop="linspace"):
+def resample_data(data, tcam, tneural, crop='linspace'):
     """
     Resample data from camera times tcam at times tneural
 
     sometimes there are fewer camera timestamps than frames, so data is cropped
 
     data is (n_samples, n_features). The data is filtered using a gaussian filter before resampling.
-
+    
     Parameters
     ----------
     data : 2D array, input data (n_samples, n_features)
@@ -114,17 +108,16 @@ def resample_data(data, tcam, tneural, crop="linspace"):
     """
     ttot = len(data)
     tc = len(tcam)
-    if crop == "end":
+    if crop=='end':
         d = data[:tc]
-    elif crop == "start":
-        d = data[ttot - tc :]
-    elif crop == "linspace":
-        d = data[np.linspace(0, ttot - 1, tc).astype(int)]
+    elif crop=='start':
+        d = data[ttot-tc:]
+    elif crop=='linspace':
+        d = data[np.linspace(0,ttot-1, tc).astype(int)]
     else:
-        d = data[(ttot - tc) // 2 : (ttot - tc) // 2 + tc]
+        d = data[(ttot-tc)//2:(ttot-tc)//2+tc]
     data_resampled = resample_frames(d, tcam, tneural)
     return data_resampled
-
 
 def ridge_regression(X, Y, lam=0):
     """predict Y from X using regularized linear regression
@@ -171,7 +164,7 @@ def reduced_rank_regression(X, Y, rank=None, lam=0):
 
     rank : int (optional, default None)
         rank to compute reduced rank regression for
-
+    
     lam : float (optional, default 0)
         regularizer
 
@@ -211,10 +204,9 @@ def reduced_rank_regression(X, Y, rank=None, lam=0):
 
     return A, B
 
-
 def rrr_prediction(X, Y, rank=None, lam=0, itrain=None, itest=None, tbin=None):
-    """predict Y from X using regularized reduced rank regression for all ranks up to "rank"
-
+    """ predict Y from X using regularized reduced rank regression for all ranks up to "rank" 
+    
     *** subtract mean from X and Y before predicting
 
     if rank is None, returns A and B of full-rank (minus one) prediction
@@ -231,13 +223,13 @@ def rrr_prediction(X, Y, rank=None, lam=0, itrain=None, itest=None, tbin=None):
 
     rank : int (optional, default None)
         rank up to which to compute reduced rank regression for
-
+    
     lam : float (optional, default 0)
         regularizer
 
     itrain: 1D int array (optional, default None)
         times in train set
-
+    
     itest: 1D int array (optional, default None)
         times in test set
 
@@ -246,7 +238,7 @@ def rrr_prediction(X, Y, rank=None, lam=0, itrain=None, itest=None, tbin=None):
 
     Returns
     --------
-
+    
     Y_pred_test : 2D array - prediction of Y with max rank (len(itest), n_features)
 
     varexp : 1D array - variance explained across all features (rank,)
@@ -271,64 +263,61 @@ def rrr_prediction(X, Y, rank=None, lam=0, itrain=None, itest=None, tbin=None):
     rank = A.shape[1]
     corrf = np.zeros((rank, n_feats))
     varexpf = np.zeros((rank, n_feats))
-    varexp = np.zeros((rank, 2)) if tbin is not None else np.zeros((rank, 1))
+    varexp = np.zeros((rank,2)) if tbin is not None else np.zeros((rank,1))
     Y_pred_test = np.zeros((len(itest), n_feats))
     for r in range(rank):
         Y_pred_test = X[itest] @ B[:, : r + 1] @ A[:, : r + 1].T
         Y_test_var = (Y[itest] ** 2).mean(axis=0)
         corrf[r] = (Y[itest] * Y_pred_test).mean(axis=0) / (
-            Y_test_var ** 0.5 * Y_pred_test.std(axis=0)
+            Y_test_var**0.5 * Y_pred_test.std(axis=0)
         )
         residual = ((Y[itest] - Y_pred_test) ** 2).mean(axis=0)
         varexpf[r] = 1 - residual / Y_test_var
-        varexp[r, 0] = 1 - residual.mean() / Y_test_var.mean()
+        varexp[r,0] = 1 - residual.mean() / Y_test_var.mean()
         if tbin is not None and tbin > 1:
-            varexp[r, 1] = compute_varexp(
-                bin1d(Y[itest], tbin).flatten(), bin1d(Y_pred_test, tbin).flatten()
-            )
+            varexp[r,1] = compute_varexp(bin1d(Y[itest], tbin).flatten(), 
+                                          bin1d(Y_pred_test, tbin).flatten())
 
     return Y_pred_test, varexp.squeeze(), itest, A, B, varexpf, corrf
 
-
-def rrr_varexp_svds(svd_path, tcam, tneural, Y, U, spks, delay=-1, tbin=4, rank=32):
-    """predict neural PCs Y and compute varexp for PCs and spks"""
-    varexp = np.nan * np.zeros((127, 2, 2))
-    varexp_neurons = np.nan * np.zeros((len(spks), 2, 2))
+def rrr_varexp_svds(svd_path, tcam, tneural, Y, U, spks, delay=-1,
+                    tbin=4, rank=32):
+    """ predict neural PCs Y and compute varexp for PCs and spks"""
+    varexp = np.nan * np.zeros((127,2,2))
+    varexp_neurons = np.nan * np.zeros((len(spks),2,2))
     svds = np.load(svd_path, allow_pickle=True).item()
-    for k, key in enumerate(["motSVD", "movSVD"]):
+    for k, key in enumerate(['motSVD', 'movSVD']):
         X = svds[key][0].copy()
 
         X -= X.mean(axis=0)
-        X /= X[:, 0].std(axis=0)
+        X /= X[:,0].std(axis=0)
 
-        X_ds = resample_data(X, tcam, tneural, crop="linspace")
+        X_ds = resample_data(X, tcam, tneural, crop='linspace')
         if delay < 0:
-            Ys = np.vstack((Y[-delay:], np.tile(Y[[-1], :], (-delay, 1))))
+            Ys = np.vstack((Y[-delay:], np.tile(Y[[-1],:], (-delay,1))))
         else:
-            X_ds = np.vstack((X_ds[delay:], np.tile(X_ds[[-1], :], (delay, 1))))
+            X_ds = np.vstack((X_ds[delay:], np.tile(X_ds[[-1],:], (delay,1))))
             Ys = Y
-        Y_pred_test, ve_test, itest, A, B = rrr_prediction(
-            X_ds, Ys, rank=Y.shape[-1], lam=1e-6, tbin=tbin
-        )[:5]
-        varexp[:, :, k] = ve_test
+        Y_pred_test, ve_test, itest, A, B = rrr_prediction(X_ds, Ys, rank=Y.shape[-1], lam=1e-6, tbin=tbin)[:5]
+        varexp[:,:,k] = ve_test
         # return Y_pred_test at specified rank
-        Y_pred_test = X_ds[itest] @ B[:, :rank] @ A[:, :rank].T
+        Y_pred_test = X_ds[itest] @ B[:,:rank] @ A[:,:rank].T
 
         # single neuron prediction
-        spks_pred_test = Y_pred_test @ U.T
-        spks_test = spks[:, itest - delay].T
-        varexp_neurons[:, 0, k] = compute_varexp(spks_test, spks_pred_test)
+        spks_pred_test = Y_pred_test @ U.T 
+        spks_test = spks[:, itest-delay].T
+        varexp_neurons[:,0,k] = compute_varexp(spks_test, spks_pred_test)
         spks_test_bin = bin1d(spks_test, tbin)
         spks_pred_test_bin = bin1d(spks_pred_test, tbin)
-        varexp_neurons[:, 1, k] = compute_varexp(spks_test_bin, spks_pred_test_bin)
-        if k == 1:
+        varexp_neurons[:,1,k] = compute_varexp(spks_test_bin, spks_pred_test_bin)
+        if k==1:
             spks_pred_test0 = spks_pred_test.copy()
     return varexp, varexp_neurons, spks_pred_test0, itest
 
-
-def rrr_varexp_kps(kp_path, tcam, tneural, Y, U, spks, delay=-1, tbin=4, rank=32):
-    """predict neural PCs with keypoint wavelets Y and compute varexp for PCs and spks"""
-    varexp_neurons = np.nan * np.zeros((len(spks), 2))
+def rrr_varexp_kps(kp_path, tcam, tneural, Y, U, spks, delay=-1,
+                    tbin=4, rank=32):
+    """ predict neural PCs with keypoint wavelets Y and compute varexp for PCs and spks"""
+    varexp_neurons = np.nan * np.zeros((len(spks),2))
     xy, keypoint_labels = keypoints.load_keypoints(kp_path, keypoint_labels=None)
     xy_dists = keypoints.compute_dists(xy)
     X = keypoints.compute_wavelet_transforms(xy_dists)
@@ -337,79 +326,63 @@ def rrr_varexp_kps(kp_path, tcam, tneural, Y, U, spks, delay=-1, tbin=4, rank=32
     X -= X.mean(axis=0)
     X /= X.std(axis=0)
 
-    X_ds = resample_data(X, tcam, tneural, crop="linspace")
+    X_ds = resample_data(X, tcam, tneural, crop='linspace')
     if delay < 0:
-        Ys = np.vstack((Y[-delay:], np.tile(Y[[-1], :], (-delay, 1))))
+        Ys = np.vstack((Y[-delay:], np.tile(Y[[-1],:], (-delay,1))))
     else:
-        X_ds = np.vstack((X_ds[delay:], np.tile(X_ds[[-1], :], (delay, 1))))
+        X_ds = np.vstack((X_ds[delay:], np.tile(X_ds[[-1],:], (delay,1))))
         Ys = Y
-
-    Y_pred_test, varexp, itest, A, B = rrr_prediction(
-        X_ds, Ys, rank=Y.shape[-1], lam=1e-3, tbin=tbin
-    )[:5]
+    
+    Y_pred_test, varexp, itest, A, B = rrr_prediction(X_ds, Ys, rank=Y.shape[-1], lam=1e-3, tbin=tbin)[:5]
     # return Y_pred_test at specified rank
-    Y_pred_test = X_ds[itest] @ B[:, :rank] @ A[:, :rank].T
+    Y_pred_test = X_ds[itest] @ B[:,:rank] @ A[:,:rank].T
 
     # single neuron prediction
-    spks_pred_test = Y_pred_test @ U.T
-    spks_test = spks[:, itest - delay].T
-    varexp_neurons[:, 0] = compute_varexp(spks_test, spks_pred_test)
+    spks_pred_test = Y_pred_test @ U.T 
+    spks_test = spks[:, itest-delay].T
+    varexp_neurons[:,0] = compute_varexp(spks_test, spks_pred_test)
     spks_test_bin = bin1d(spks_test, tbin)
     spks_pred_test_bin = bin1d(spks_pred_test, tbin)
-    varexp_neurons[:, 1] = compute_varexp(spks_test_bin, spks_pred_test_bin)
+    varexp_neurons[:,1] = compute_varexp(spks_test_bin, spks_pred_test_bin)
 
     return varexp, varexp_neurons, spks_pred_test, itest
 
 
 def compute_varexp(y_true, y_pred):
-    """variance explained of y_true by y_pred across axis=0"""
+    """ variance explained of y_true by y_pred across axis=0
+    
+    """
     y_var = ((y_true - y_true.mean(axis=0)) ** 2).mean(axis=0)
     residual = ((y_true - y_pred) ** 2).mean(axis=0)
     varexp = 1 - residual / y_var
-    return varexp
+    return varexp 
 
-
-def kp_to_neural_varexp(
-    kp_path,
-    tcam,
-    tneural,
-    Y,
-    U,
-    spks,
-    delay=-1,
-    verbose=False,
-    per_pt=False,
-    device=torch.device("cuda"),
-):
+def kp_to_neural_varexp(kp_path, tcam, tneural, Y, U, spks, delay=-1,
+                        verbose=False, per_pt=False, device=torch.device('cuda')):
     xy, keypoint_labels = keypoints.load_keypoints(kp_path, keypoint_labels=None)
     x = xy.reshape(xy.shape[0], -1).copy()
     x = (x - x.mean(axis=0)) / x.std(axis=0)
-
-    np.random.seed(0)
-    torch.manual_seed(0)
-    torch.cuda.manual_seed(0)
+    
+    np.random.seed(0); torch.manual_seed(0); torch.cuda.manual_seed(0)
     model = KPN(n_in=x.shape[-1], n_out=Y.shape[-1]).to(device)
 
-    y_pred_test, ve_test, itest = train_model(
-        model, x, Y, tcam, tneural, delay=delay, verbose=verbose, device=device
-    )
-
+    y_pred_test, ve_test, itest = train_model(model, x, Y, tcam, tneural, delay=delay, 
+                                                verbose=verbose, device=device)
+                                                
     y_pred_test = y_pred_test.reshape(-1, Y.shape[-1])
     varexp = np.zeros(2)
     varexp_neurons = np.zeros((len(spks), 2))
     varexp[0] = ve_test
     Y_test_bin = bin1d(Y[itest.flatten()], 4)
     Y_pred_test_bin = bin1d(y_pred_test, 4)
-    varexp[1] = (
-        1 - ((Y_test_bin - Y_pred_test_bin) ** 2).mean() / ((Y_test_bin) ** 2).mean()
-    )
-    print(f"all kp, varexp {varexp[0]:.3f}; tbin=4: {varexp[1]:.3f}")
+    varexp[1] = 1 - ((Y_test_bin - Y_pred_test_bin)**2).mean() / ((Y_test_bin)**2).mean()
+    print(f'all kp, varexp {varexp[0]:.3f}; tbin=4: {varexp[1]:.3f}')
     spks_pred_test = y_pred_test @ U.T
-    spks_test = spks[:, itest.flatten()].T
-    varexp_neurons[:, 0] = compute_varexp(spks_test, spks_pred_test)
+    spks_test = spks[:,itest.flatten()].T
+    varexp_neurons[:,0] = compute_varexp(spks_test, spks_pred_test)
     spks_test_bin = bin1d(spks_test, 4)
     spks_pred_test_bin = bin1d(spks_pred_test, 4)
-    varexp_neurons[:, 1] = compute_varexp(spks_test_bin, spks_pred_test_bin)
+    varexp_neurons[:,1] = compute_varexp(spks_test_bin, spks_pred_test_bin)
     spks_pred_test0 = spks_pred_test.T.copy()
 
     # predict using each keypoint
@@ -417,69 +390,45 @@ def kp_to_neural_varexp(
         varexp_per_pt = np.nan * np.zeros((len(keypoint_labels), 2))
         varexp_neurons_per_pt = np.nan * np.zeros((len(spks), len(keypoint_labels), 2))
         for k, label in enumerate(keypoint_labels):
-            np.random.seed(0)
-            torch.manual_seed(0)
-            torch.cuda.manual_seed(0)
+            np.random.seed(0); torch.manual_seed(0); torch.cuda.manual_seed(0)
             model = KPN(n_in=2, n_out=Y.shape[-1]).to(device)
 
-            y_pred_test, ve_test, itest = train_model(
-                model,
-                x[:, 2 * k : 2 * k + 2],
-                Y,
-                tcam,
-                tneural,
-                delay=delay,
-                device=device,
-            )
+            y_pred_test, ve_test, itest = train_model(model, x[:, 2*k : 2*k+2],
+                                                        Y, tcam, tneural, 
+                                                      delay=delay, device=device)
             y_pred_test = y_pred_test.reshape(-1, Y.shape[-1])
-            varexp_per_pt[k, 0] = ve_test
-            varexp_per_pt[k, 1] = compute_varexp(
-                bin1d(Y[itest.flatten()], 4).flatten(), bin1d(y_pred_test, 4).flatten()
-            )
+            varexp_per_pt[k,0] = ve_test      
+            varexp_per_pt[k,1] = compute_varexp(bin1d(Y[itest.flatten()], 4).flatten(), 
+                                                bin1d(y_pred_test, 4).flatten())
             spks_pred_test = y_pred_test @ U.T
-            spks_test = spks[:, itest.flatten()].T
-            varexp_neurons_per_pt[:, k, 0] = compute_varexp(spks_test, spks_pred_test)
+            spks_test = spks[:,itest.flatten()].T
+            varexp_neurons_per_pt[:,k,0] = compute_varexp(spks_test, spks_pred_test)
             spks_test_bin = bin1d(spks_test, 4)
             spks_pred_test_bin = bin1d(spks_pred_test, 4)
-            varexp_neurons_per_pt[:, k, 1] = compute_varexp(
-                spks_test_bin, spks_pred_test_bin
-            )
-            print(
-                f"{label}, varexp {ve_test:.3f}, {varexp_neurons_per_pt[:,k,0].mean():.3f}"
-            )
-            return (
-                varexp,
-                varexp_neurons,
-                spks_pred_test0,
-                itest,
-                varexp_per_pt,
-                varexp_neurons_per_pt,
-            )
+            varexp_neurons_per_pt[:,k,1] = compute_varexp(spks_test_bin, spks_pred_test_bin)
+            print(f'{label}, varexp {ve_test:.3f}, {varexp_neurons_per_pt[:,k,0].mean():.3f}')
+            return varexp, varexp_neurons, spks_pred_test0, itest, varexp_per_pt, varexp_neurons_per_pt
     else:
         return varexp, varexp_neurons, spks_pred_test0, itest, model
-
+    
 
 def peer_prediction(spks, xpos, ypos, dum=400, tbin=4):
-    ineu1 = np.logical_xor((xpos % dum) < dum / 2, (ypos % dum) < dum / 2)
-    # ineu1 = np.random.rand(len(spks)) > 0.5
+    ineu1 = np.logical_xor((xpos%dum)<dum/2 , (ypos%dum) < dum/2)
+    #ineu1 = np.random.rand(len(spks)) > 0.5
     ineu2 = np.logical_not(ineu1)
     n_components = 128
     Vn = []
     for ineu in [ineu1, ineu2]:
-        Vn.append(
-            PCA(n_components=n_components, copy=False).fit_transform(spks[ineu].T)
-        )
+        Vn.append(PCA(n_components=n_components, copy=False).fit_transform(spks[ineu].T))
     varexp = np.zeros(2)
     varexp_neurons = np.zeros((spks.shape[0], 2))
-    for k, ineu in enumerate([ineu1, ineu2]):
-        V_pred_test, varexpk, itest = rrr_prediction(
-            Vn[(k + 1) % 2], Vn[k % 2], rank=128, lam=1e-1, tbin=tbin
-        )[:3]
+    for k,ineu in enumerate([ineu1, ineu2]):
+        V_pred_test,varexpk,itest = rrr_prediction(Vn[(k+1)%2], Vn[k%2], rank=128, lam=1e-1, tbin=tbin)[:3]
         varexp += varexpk[-1]
         U = spks[ineu] @ Vn[k]
-        U /= (U ** 2).sum(axis=0) ** 0.5
+        U /= (U**2).sum(axis=0)**0.5
         spks_pred_test = V_pred_test @ U.T
-        spks_test = spks[ineu][:, itest].T
+        spks_test = spks[ineu][:,itest].T
         varexp_neurons[ineu, 0] = compute_varexp(spks_test, spks_pred_test)
         spks_test_bin = bin1d(spks_test, tbin)
         spks_pred_test_bin = bin1d(spks_pred_test, tbin)
@@ -488,12 +437,10 @@ def peer_prediction(spks, xpos, ypos, dum=400, tbin=4):
     varexp /= 2
     return varexp, varexp_neurons
 
-
-def split_batches(
-    tcam, tneural, frac=0.25, pad=3, split_time=False, itrain=None, itest=None
-):
+def split_batches(tcam, tneural, frac=0.25, pad=3, split_time=False,
+                  itrain=None, itest=None):
     """this returns deterministic split of train and test in time chunks for neural and cam times
-
+    
     Parameters
     ----------
 
@@ -517,17 +464,17 @@ def split_batches(
 
     itrain: 2D int array
         times in train set, arranged in chunks
-
+    
     itest: 2D int array
         times in test set, arranged in chunks
 
-
+    
     Returns
     --------
 
     itrain: 1D int array
         times in train set, arranged in chunks
-
+    
     itest: 1D int array
         times in test set, arranged in chunks
 
@@ -538,128 +485,88 @@ def split_batches(
         times in cam frames in test set, arranged in chunks
 
     """
-
+    
     if itrain is None or itest is None:
-        itrain, itest = split_traintest(
-            len(tneural), frac=frac, pad=pad, split_time=split_time
-        )
-    inds_train, inds_test = itrain[:, 0], itest[:, 0]
+        itrain, itest = split_traintest(len(tneural), frac=frac, pad=pad, split_time=split_time)
+    inds_train, inds_test = itrain[:,0], itest[:,0]
     l_train, l_test = itrain.shape[-1], itest.shape[-1]
-
+    
     # find itrain and itest in cam inds
-    f = interp1d(
-        tcam,
-        np.arange(0, len(tcam)),
-        kind="nearest",
-        axis=-1,
-        fill_value="extrapolate",
-        bounds_error=False,
-    )
+    f = interp1d(tcam, np.arange(0, len(tcam)), kind='nearest', axis=-1,
+                fill_value='extrapolate', bounds_error=False)
 
-    inds_cam_train = f(tneural[inds_train]).astype("int")
-    inds_cam_test = f(tneural[inds_test]).astype("int")
+    inds_cam_train = f(tneural[inds_train]).astype('int')
+    inds_cam_test = f(tneural[inds_test]).astype('int')
 
     l_cam_train = int(np.ceil(np.diff(tneural).mean() / np.diff(tcam).mean() * l_train))
     l_cam_test = int(np.ceil(np.diff(tneural).mean() / np.diff(tcam).mean() * l_test))
 
     # create itrain and itest in cam inds
-    itrain_cam = inds_cam_train[:, np.newaxis] + np.arange(0, l_cam_train, 1, int)
-    itest_cam = inds_cam_test[:, np.newaxis] + np.arange(0, l_cam_test, 1, int)
-
-    itrain_cam = np.minimum(len(tcam) - 1, itrain_cam)
-    itest_cam = np.minimum(len(tcam) - 1, itest_cam)
+    itrain_cam = (inds_cam_train[:,np.newaxis] + np.arange(0, l_cam_train, 1, int))
+    itest_cam = (inds_cam_test[:,np.newaxis] + np.arange(0, l_cam_test, 1, int))
+    
+    itrain_cam = np.minimum(len(tcam)-1, itrain_cam)
+    itest_cam = np.minimum(len(tcam)-1, itest_cam)
 
     # inds for downsampling itrain_cam and itest_cam
     itrain_sample = f(tneural[itrain.flatten()]).astype(int)
     itest_sample = f(tneural[itest.flatten()]).astype(int)
-
+    
     # convert to indices in itrain_cam and itest_cam
-    it = np.zeros(len(tcam), "bool")
+    it = np.zeros(len(tcam), 'bool')
     it[itrain_sample] = True
     itrain_sample = it[itrain_cam.flatten()].nonzero()[0]
-
-    it = np.zeros(len(tcam), "bool")
+    
+    it = np.zeros(len(tcam), 'bool')
     it[itest_sample] = True
     itest_sample = it[itest_cam.flatten()].nonzero()[0]
 
     return itrain, itest, itrain_cam, itest_cam, itrain_sample, itest_sample
 
-
-def split_data(
-    X,
-    Y,
-    tcam,
-    tneural,
-    frac=0.25,
-    delay=-1,
-    split_time=False,
-    device=torch.device("cuda"),
-):
+def split_data(X, Y, tcam, tneural, frac=0.25, delay=-1, split_time=False, device=torch.device('cuda')):
     # ensure keypoints and timestamps are same length
     tc, ttot = len(tcam), len(X)
-    inds = np.linspace(0, max(ttot, tc) - 1, min(ttot, tc)).astype(int)
-    X = X[inds] if ttot > tc else X
+    inds = np.linspace(0, max(ttot,tc)-1, min(ttot,tc)).astype(int)
+    X = X[inds] if ttot > tc else X 
     tcam = tcam[inds] if tc > ttot else tcam
     if delay < 0:
-        Ys = np.vstack((Y[-delay:], np.tile(Y[[-1], :], (-delay, 1))))
+        Ys = np.vstack((Y[-delay:], np.tile(Y[[-1],:], (-delay,1))))
         Xs = X
     elif delay > 0:
-        Xs = np.vstack((X[delay:], np.tile(X[[-1], :], (delay, 1))))
+        Xs = np.vstack((X[delay:], np.tile(X[[-1],:], (delay,1))))
         Ys = Y
     else:
-        Xs = X
+        Xs = X 
         Ys = Y
-    splits = split_batches(tcam, tneural, frac=frac, split_time=split_time)
+    splits = split_batches(tcam, tneural, frac=frac, 
+                            split_time=split_time)
     itrain, itest, itrain_cam, itest_cam, itrain_sample, itest_sample = splits
     X_train = torch.from_numpy(Xs[itrain_cam]).float().to(device)
     Y_train = torch.from_numpy(Ys[itrain]).float().to(device)
     X_test = torch.from_numpy(Xs[itest_cam]).float().to(device)
     Y_test = torch.from_numpy(Ys[itest]).float().to(device).reshape(-1, Y.shape[-1])
-
+    
     itrain_sample_b = torch.zeros(itrain_cam.size, dtype=bool, device=device)
     itrain_sample_b[itrain_sample] = True
     itest_sample_b = torch.zeros(itest_cam.size, dtype=bool, device=device)
     itest_sample_b[itest_sample] = True
     itrain_sample_b = itrain_sample_b.reshape(itrain_cam.shape)
     itest_sample_b = itest_sample_b.reshape(itest_cam.shape)
-
+    
     itest -= delay
 
-    return (
-        X_train,
-        X_test,
-        Y_train,
-        Y_test,
-        itrain_sample_b,
-        itest_sample_b,
-        itrain_sample,
-        itest_sample,
-        itrain,
-        itest,
-    )
-
+    return X_train, X_test, Y_train, Y_test, itrain_sample_b, itest_sample_b, itrain_sample, itest_sample, itrain, itest
 
 class Core(nn.Module):
-    """linear -> conv1d -> relu -> linear -> relu = latents for KPN model"""
-
-    def __init__(
-        self,
-        n_in=28,
-        n_kp=None,
-        n_filt=10,
-        kernel_size=201,
-        n_layers=1,
-        n_med=50,
-        n_latents=256,
-        identity=False,
-        same_conv=True,
-        relu_wavelets=True,
-        relu_latents=True,
-    ):
+    """ linear -> conv1d -> relu -> linear -> relu = latents for KPN model"""
+    def __init__(self, n_in=28, n_kp=None, n_filt=10, kernel_size=201, 
+                 n_layers=1, n_med=50, n_latents=256, 
+                 identity=False, same_conv=True, 
+                 relu_wavelets=True, relu_latents=True):
         super().__init__()
         self.n_in = n_in
         self.n_kp = n_in if n_kp is None or identity else n_kp
-        self.n_filt = (n_filt // 2) * 2  # must be even for initialization
+        self.n_filt = (n_filt//2) * 2 # must be even for initialization
         self.relu_latents = relu_latents
         self.relu_wavelets = relu_wavelets
         self.same_conv = same_conv
@@ -669,102 +576,69 @@ class Core(nn.Module):
 
         # combine keypoints into n_kp features
         if identity:
-            self.features.add_module("linear0", nn.Identity(self.n_in))
+            self.features.add_module('linear0', nn.Identity(self.n_in))
         else:
-            self.features.add_module(
-                "linear0",
-                nn.Sequential(
-                    nn.Linear(self.n_in, self.n_kp),
-                ),
-            )
+            self.features.add_module('linear0', nn.Sequential(nn.Linear(self.n_in, self.n_kp),
+                                                              ))
         # initialize filters with gabors
-        f = np.geomspace(1, 10, self.n_filt // 2).astype("float32")
-        gw0 = keypoints.gabor_wavelet(1, f[:, np.newaxis], 0, n_pts=kernel_size)
-        gw1 = keypoints.gabor_wavelet(1, f[:, np.newaxis], np.pi / 2, n_pts=kernel_size)
+        f = np.geomspace(1, 10, self.n_filt//2).astype('float32')
+        gw0 = keypoints.gabor_wavelet(1, f[:,np.newaxis], 0, n_pts=kernel_size)
+        gw1 = keypoints.gabor_wavelet(1, f[:,np.newaxis], np.pi/2, n_pts=kernel_size)
         if self.same_conv:
             # compute n_filt wavelet features of each one => n_filt * n_kp features
-            self.features.add_module(
-                "wavelet0",
-                nn.Conv1d(
-                    1,
-                    self.n_filt,
-                    kernel_size=kernel_size,
-                    padding=kernel_size // 2,
-                    bias=False,
-                ),
-            )
-            self.features[-1].weight.data = torch.from_numpy(
-                np.vstack((gw0, gw1))
-            ).unsqueeze(1)
+            self.features.add_module('wavelet0', nn.Conv1d(1, self.n_filt, kernel_size=kernel_size,
+                                                        padding=kernel_size//2, bias=False))
+            self.features[-1].weight.data = torch.from_numpy(np.vstack((gw0, gw1))).unsqueeze(1)
         else:
-            self.features.add_module(
-                "wavelet0",
-                nn.Conv1d(
-                    self.n_kp,
-                    self.n_kp,
-                    kernel_size=kernel_size,
-                    padding=kernel_size // 2,
-                    bias=False,
-                    groups=self.n_kp,
-                ),
-            )
-            self.features[-1].weight.data = torch.tile(
-                torch.from_numpy(gw0[[1]]).unsqueeze(1), (self.n_kp, 1, 1)
-            )
+            self.features.add_module('wavelet0', nn.Conv1d(self.n_kp, self.n_kp, kernel_size=kernel_size,
+                                                        padding=kernel_size//2, bias=False, groups=self.n_kp))
+            self.features[-1].weight.data = torch.tile(torch.from_numpy(gw0[[1]]).unsqueeze(1), 
+                                                        (self.n_kp, 1, 1))
             self.n_filt = 1
         for n in range(1, n_layers):
-            n_in = self.n_kp * self.n_filt if n == 1 else n_med
-            self.features.add_module(
-                f"linear{n}",
-                nn.Sequential(
-                    nn.Linear(n_in, n_med),
-                ),
-            )
+            n_in = self.n_kp * self.n_filt if n==1 else n_med
+            self.features.add_module(f'linear{n}', nn.Sequential(nn.Linear(n_in, 
+                                                                            n_med),
+                                                                 ))
 
         # latent linear layer
         n_med = n_med if n_layers > 1 else self.n_filt * self.n_kp
-        self.features.add_module(
-            "latent",
-            nn.Sequential(
-                nn.Linear(n_med, n_latents),
-            ),
-        )
-
+        self.features.add_module('latent', nn.Sequential(nn.Linear(n_med, n_latents),
+                                                        ))
+        
     def wavelets(self, x):
-        """compute wavelets of keypoints through linear + conv1d + relu layer"""
+        """ compute wavelets of keypoints through linear + conv1d + relu layer """
         # x is (n_batches, time, features)
         out = self.features[0](x.reshape(-1, x.shape[-1]))
-        out = out.reshape(x.shape[0], x.shape[1], -1).transpose(2, 1)
+        out = out.reshape(x.shape[0], x.shape[1], -1).transpose(2,1)
         # out is now (n_batches, n_kp, time)
         if self.same_conv:
             out = out.reshape(-1, out.shape[-1]).unsqueeze(1)
             # out is now (n_batches * n_kp, 1, time)
             out = self.features[1](out)
             # out is now (n_batches * n_kp, n_filt, time)
-            out = out.reshape(-1, self.n_kp * self.n_filt, out.shape[-1]).transpose(
-                2, 1
-            )
+            out = out.reshape(-1, self.n_kp * self.n_filt, out.shape[-1]).transpose(2,1)
             out = out.reshape(-1, self.n_kp * self.n_filt)
         else:
             out = self.features[1](out)
-            out = out.transpose(-1, -2)
+            out = out.transpose(-1,-2)
         if self.relu_wavelets:
             out = F.relu(out)
-
+        
         # if n_layers > 1, go through more linear layers
         for n in range(1, self.n_layers):
-            out = self.features[n + 1](out)
+            out = self.features[n+1](out)
             out = F.relu(out)
         return out
-
+                                              
     def forward(self, x=None, wavelets=None):
-        """x is (n_batches, time, features)
-        sample_inds is (sub_time) over batches
+        """ x is (n_batches, time, features)
+            sample_inds is (sub_time) over batches
         """
         if wavelets is None:
             wavelets = self.wavelets(x)
         wavelets = wavelets.reshape(-1, wavelets.shape[-1])
-
+        
         # latent layer
         latents = self.features[-1](wavelets)
         latents = latents.reshape(x.shape[0], -1, latents.shape[-1])
@@ -773,21 +647,20 @@ class Core(nn.Module):
         latents = latents.reshape(-1, latents.shape[-1])
         return latents
 
-
 class Readout(nn.Module):
-    """linear layer from latents to neural PCs or neurons"""
-
-    def __init__(self, n_animals=1, n_latents=256, n_layers=1, n_med=128, n_out=128):
+    """ linear layer from latents to neural PCs or neurons """
+    def __init__(self, n_animals=1, n_latents=256, n_layers=1, 
+                n_med=128, n_out=128):
         super().__init__()
         self.n_animals = n_animals
         self.linear = nn.Sequential()
         self.bias = nn.Parameter(torch.zeros(n_out))
-        if n_animals == 1:
+        if n_animals==1:
             for j in range(n_layers):
-                n_in = n_latents if j == 0 else n_med
-                n_outc = n_out if j == n_layers - 1 else n_med
+                n_in = n_latents if j==0 else n_med 
+                n_outc = n_out if j==n_layers-1 else n_med 
                 self.linear.append(nn.Linear(n_in, n_outc))
-                if n_layers > 1 and j < n_layers - 1:
+                if n_layers > 1 and j < n_layers-1:
                     self.linear.append(nn.ReLU())
         else:
             # no option for n_layers > 1
@@ -796,49 +669,22 @@ class Readout(nn.Module):
         self.bias.requires_grad = False
 
     def forward(self, latents, animal_id=0):
-        if self.n_animals == 1:
+        if self.n_animals==1:
             return self.linear(latents) + self.bias
         else:
             return self.linear[animal_id](latents) + self.bias
 
-
 class KPN(nn.Module):
-    """keypoint to neural PCs / neural activity model"""
-
-    def __init__(
-        self,
-        n_in=28,
-        n_kp=None,
-        n_filt=10,
-        kernel_size=201,
-        n_core_layers=2,
-        n_latents=256,
-        n_out_layers=1,
-        n_out=128,
-        n_med=50,
-        n_animals=1,
-        same_conv=True,
-        identity=False,
-        relu_wavelets=True,
-        relu_latents=True,
-    ):
+    """ keypoint to neural PCs / neural activity model """
+    def __init__(self, n_in=28, n_kp=None, n_filt=10, kernel_size=201, n_core_layers=2,
+                 n_latents=256, n_out_layers=1, n_out=128, n_med=50, n_animals=1, same_conv=True,
+                 identity=False, relu_wavelets=True, relu_latents=True):
         super().__init__()
-        self.core = Core(
-            n_in=n_in,
-            n_kp=n_kp,
-            n_filt=n_filt,
-            kernel_size=kernel_size,
-            n_layers=n_core_layers,
-            n_med=n_med,
-            n_latents=n_latents,
-            same_conv=same_conv,
-            identity=identity,
-            relu_wavelets=relu_wavelets,
-            relu_latents=relu_latents,
-        )
-        self.readout = Readout(
-            n_animals=n_animals, n_latents=n_latents, n_layers=n_out_layers, n_out=n_out
-        )
+        self.core = Core(n_in=n_in, n_kp=n_kp, n_filt=n_filt, kernel_size=kernel_size, 
+                         n_layers=n_core_layers, n_med=n_med, n_latents=n_latents, same_conv=same_conv,
+                         identity=identity, relu_wavelets=relu_wavelets, relu_latents=relu_latents)
+        self.readout = Readout(n_animals=n_animals, n_latents=n_latents, n_layers=n_out_layers, 
+                                n_out=n_out)
 
     def forward(self, x, sample_inds=None, animal_id=0):
         latents = self.core(x)
@@ -847,161 +693,99 @@ class KPN(nn.Module):
         latents = latents.reshape(x.shape[0], -1, latents.shape[-1])
         y_pred = self.readout(latents, animal_id=animal_id)
         return y_pred, latents
+    
+def train_model(model, X_dat, Y_dat, tcam_list, tneural_list, 
+                    delay=-1, smoothing_penalty=0.5, 
+                   n_iter=300, learning_rate=5e-4, annealing_steps=2,
+                   weight_decay=1e-4, device=torch.device('cuda'), 
+                   split_time=False, verbose=False):
+    """ train behavior -> neural model using multiple animals """
 
-
-def train_model(
-    model,
-    X_dat,
-    Y_dat,
-    tcam_list,
-    tneural_list,
-    delay=-1,
-    smoothing_penalty=0.5,
-    n_iter=300,
-    learning_rate=5e-4,
-    annealing_steps=2,
-    weight_decay=1e-4,
-    device=torch.device("cuda"),
-    split_time=False,
-    verbose=False,
-):
-    """train behavior -> neural model using multiple animals"""
-
-    optimizer = torch.optim.AdamW(
-        model.parameters(), lr=learning_rate, weight_decay=weight_decay
-    )
+    optimizer = torch.optim.AdamW(model.parameters(), lr=learning_rate, weight_decay=weight_decay)
     ### make input data a list if it's not already
     not_list = False
     if not isinstance(X_dat, list):
         not_list = True
-        X_dat, Y_dat, tcam_list, tneural_list = (
-            [X_dat],
-            [Y_dat],
-            [tcam_list],
-            [tneural_list],
-        )
-
+        X_dat, Y_dat, tcam_list, tneural_list = [X_dat], [Y_dat], [tcam_list], [tneural_list]
+    
     ### split data into train / test and concatenate
-    arrs = [[], [], [], [], [], [], [], [], [], []]
-    for i, (X, Y, tcam, tneural) in enumerate(
-        zip(X_dat, Y_dat, tcam_list, tneural_list)
-    ):
-        dsplits = split_data(
-            X, Y, tcam, tneural, delay=delay, split_time=split_time, device=device
-        )
-        for d, a in zip(dsplits, arrs):
+    arrs = [[],[],[],[],[],[],[],[],[],[]]
+    for i, (X, Y, tcam, tneural) in enumerate(zip(X_dat, Y_dat, tcam_list, tneural_list)):
+        dsplits = split_data(X, Y, tcam, tneural, delay=delay, split_time=split_time, device=device)
+        for d,a in zip(dsplits, arrs):
             a.append(d)
-    (
-        X_train,
-        X_test,
-        Y_train,
-        Y_test,
-        itrain_sample_b,
-        itest_sample_b,
-        itrain_sample,
-        itest_sample,
-        itrain,
-        itest,
-    ) = arrs
+    X_train, X_test, Y_train, Y_test, itrain_sample_b, itest_sample_b, itrain_sample, itest_sample, itrain, itest = arrs
     n_animals = len(X_train)
-
+    
     tic = time.time()
     ### determine total number of batches across all animals to sample from
     n_batches = [0]
-    n_batches.extend([X_train[i].shape[0] for i in range(n_animals)])
+    n_batches.extend([X_train[i].shape[0] for i in range(n_animals)]) 
     n_batches = np.array(n_batches)
     c_batches = np.cumsum(n_batches)
-    n_batches = n_batches.sum()
+    n_batches = n_batches.sum()   
 
-    anneal_epochs = n_iter - 50 * np.arange(1, annealing_steps + 1)
+    anneal_epochs = n_iter - 50*np.arange(1, annealing_steps+1)
 
     ### optimize all parameters with SGD
     for epoch in range(n_iter):
         model.train()
         if epoch in anneal_epochs:
             if verbose:
-                print("annealing learning rate")
-            optimizer.param_groups[0]["lr"] /= 10.0
+                print('annealing learning rate')
+            optimizer.param_groups[0]['lr'] /= 10.
         np.random.seed(epoch)
         rperm = np.random.permutation(n_batches)
         train_loss = 0
         for nr in rperm:
             i = np.nonzero(nr >= c_batches)[0][-1]
             n = nr - c_batches[i]
-            y_pred = model(
-                X_train[i][n].unsqueeze(0), itrain_sample_b[i][n], animal_id=i
-            )[0]
-            loss = ((y_pred - Y_train[i][n].unsqueeze(0)) ** 2).mean()
-            loss += (
-                smoothing_penalty
-                * (torch.diff(model.core.features[1].weight) ** 2).sum()
-            )
+            y_pred = model(X_train[i][n].unsqueeze(0), 
+                         itrain_sample_b[i][n], 
+                         animal_id=i)[0]
+            loss = ((y_pred - Y_train[i][n].unsqueeze(0))**2).mean()
+            loss += smoothing_penalty * (torch.diff(model.core.features[1].weight)**2).sum()
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
             train_loss += loss.item()
-
+            
         train_loss /= n_batches
 
         # compute test loss and test variance explained
-        if epoch % 20 == 0 or epoch == n_iter - 1:
+        if epoch%20==0 or epoch==n_iter-1:
             ve_all, y_pred_all = [], []
             model.eval()
             with torch.no_grad():
-                pstr = f"epoch {epoch}, "
+                pstr = f'epoch {epoch}, '
                 for i in range(n_animals):
-                    y_pred = model(X_test[i], itest_sample_b[i].flatten(), animal_id=i)[
-                        0
-                    ]
+                    y_pred = model(X_test[i], itest_sample_b[i].flatten(), animal_id=i)[0]
                     y_pred = y_pred.reshape(-1, y_pred.shape[-1])
-                    tl = ((y_pred - Y_test[i]) ** 2).mean()
-                    ve = 1 - tl / ((Y_test[i] - Y_test[i].mean(axis=0)) ** 2).mean()
+                    tl = ((y_pred - Y_test[i])**2).mean()
+                    ve = 1 - tl / ((Y_test[i] - Y_test[i].mean(axis=0))**2).mean()
                     y_pred_all.append(y_pred.cpu().numpy())
                     ve_all.append(ve.item())
-                    if n_animals == 1:
-                        pstr += f"animal {i}, train loss {train_loss:.4f}, test loss {tl.item():.4f}, varexp {ve.item():.4f}, "
+                    if n_animals==1:
+                        pstr += f'animal {i}, train loss {train_loss:.4f}, test loss {tl.item():.4f}, varexp {ve.item():.4f}, '
                     else:
-                        pstr += f"varexp{i} {ve.item():.4f}, "
-            pstr += f"time {time.time()-tic:.1f}s"
+                        pstr += f'varexp{i} {ve.item():.4f}, '
+            pstr += f'time {time.time()-tic:.1f}s'
             if verbose:
                 print(pstr)
-
+    
     if not_list:
         return y_pred_all[0], ve_all[0], itest[0]
     else:
         return y_pred_all, ve_all, itest
 
-
-def train_model_test(
-    model,
-    X,
-    Y,
-    tcam,
-    tneural,
-    sgd=False,
-    lam=1e-3,
-    n_iter=600,
-    learning_rate=5e-4,
-    fix_model=True,
-    smoothing_penalty=1.0,
-    weight_decay=1e-4,
-    device=torch.device("cuda"),
-):
+def train_model_test(model, X, Y, tcam, tneural, sgd=False, lam=1e-3, 
+                   n_iter=600, learning_rate=5e-4, fix_model=True,
+                   smoothing_penalty=1.0,
+                   weight_decay=1e-4, device=torch.device('cuda')):
 
     dsplits = split_data(X, Y, tcam, tneural, device=device)
-    (
-        X_train,
-        X_test,
-        Y_train,
-        Y_test,
-        itrain_sample_b,
-        itest_sample_b,
-        itrain_sample,
-        itest_sample,
-        itrain,
-        itest,
-    ) = dsplits
-
+    X_train, X_test, Y_train, Y_test, itrain_sample_b, itest_sample_b, itrain_sample, itest_sample, itrain, itest = dsplits
+            
     tic = time.time()
 
     n_batches = X_train.shape[0]
@@ -1009,49 +793,45 @@ def train_model_test(
         model.train()
         if fix_model:
             for param in model.parameters():
-                param.requires_grad = False
+                param.requires_grad = False 
             model.test_classifier.weight.requires_grad = True
             model.test_classifier.bias.requires_grad = True
         else:
             for param in model.parameters():
-                param.requires_grad = True
-
-        optimizer = torch.optim.AdamW(
-            model.parameters(), lr=learning_rate, weight_decay=weight_decay
-        )
+                param.requires_grad = True 
+            
+        
+        optimizer = torch.optim.AdamW(model.parameters(), lr=learning_rate, weight_decay=weight_decay)
         for epoch in range(n_iter):
             model.train()
             np.random.seed(epoch)
             rperm = np.random.permutation(n_batches)
             train_loss = 0
             for n in rperm:
-                y_pred, latents = model(
-                    X_train[n].unsqueeze(0), itrain_sample_b[n], test=True
-                )
-                loss = ((y_pred - Y_train[n].unsqueeze(0)) ** 2).mean()
-                loss += (
-                    smoothing_penalty
-                    * (torch.diff(model.features[1].weight) ** 2).sum()
-                )
+                y_pred, latents = model(X_train[n].unsqueeze(0), 
+                                    itrain_sample_b[n], 
+                                    test=True)
+                loss = ((y_pred - Y_train[n].unsqueeze(0))**2).mean()
+                loss += smoothing_penalty * (torch.diff(model.features[1].weight)**2).sum()
                 optimizer.zero_grad()
                 loss.backward()
                 optimizer.step()
                 train_loss += loss.item()
             train_loss /= n_batches
-            if epoch % 20 == 0 or epoch == n_iter - 1:
+            if epoch%20==0 or epoch==n_iter-1:
                 ve_all = []
                 y_pred_all = []
                 with torch.no_grad():
                     model.eval()
-                    pstr = f"epoch {epoch}, "
+                    pstr = f'epoch {epoch}, '
                     y_pred = model(X_test, itest_sample_b.flatten(), test=True)[0]
-                    tl = ((y_pred - Y_test) ** 2).mean()
-                    ve = 1 - tl / (Y_test ** 2).mean()
-                    # ve = ve.item()
+                    tl = ((y_pred - Y_test)**2).mean()
+                    ve = 1 - tl / (Y_test**2).mean()
+                    #ve = ve.item()
                     y_pred = y_pred.cpu().numpy()
-                    # y_pred_all.append(y_pred.cpu().numpy())
-                    # ve_all.append(ve.item())
-                    pstr += f"train loss {train_loss:.4f}, test loss {tl.item():.4f}, varexp {ve.item():.4f}"
+                    #y_pred_all.append(y_pred.cpu().numpy())
+                    #ve_all.append(ve.item())
+                    pstr += f'train loss {train_loss:.4f}, test loss {tl.item():.4f}, varexp {ve.item():.4f}'
                     print(pstr)
 
     else:
@@ -1060,153 +840,120 @@ def train_model_test(
         with torch.no_grad():
             model.eval()
             for n in range(n_batches):
-                y_pred, latents = model(
-                    X_train[n].unsqueeze(0), itrain_sample_b[n], test=True
-                )
-                if n == 0:
+                y_pred, latents = model(X_train[n].unsqueeze(0), 
+                                    itrain_sample_b[n], 
+                                    test=True)
+                if n==0:
                     n_latents = latents.shape[-1]
-                    latents_train = np.ones((itrain.size, n_latents + 1), "float32")
-                latents_train[
-                    n * l_train : (n + 1) * l_train, :n_latents
-                ] = latents.cpu().numpy()
-            latents_test = np.ones((itest.size, n_latents + 1), "float32")
-            latents_test[:, :n_latents] = (
-                model(X_test, itest_sample_b.flatten(), test=True)[1]
-                .cpu()
-                .numpy()
-                .reshape(-1, n_latents)
-            )
+                    latents_train = np.ones((itrain.size, n_latents+1), 'float32')
+                latents_train[n*l_train : (n+1)*l_train, :n_latents] = latents.cpu().numpy()
+            latents_test = np.ones((itest.size, n_latents+1), 'float32')
+            latents_test[:,:n_latents] = model(X_test, 
+                                            itest_sample_b.flatten(), 
+                                            test=True)[1].cpu().numpy().reshape(-1, n_latents)
 
             Y_train = Y_train.cpu().numpy()
             Y_test = Y_test.cpu().numpy().reshape(-1, Y_test.shape[-1])
-            Y_train = Y_train.reshape(-1, Y_train.shape[-1])
-            A = np.linalg.solve(
-                latents_train.T @ latents_train + lam * np.eye(n_latents + 1),
-                latents_train.T @ Y_train,
-            )
-            y_pred = latents_test @ A
-            tl = ((y_pred - Y_test) ** 2).mean()
-            ve = 1 - tl / (Y_test ** 2).mean()
-            model.test_classifier.weight.data = (
-                torch.from_numpy(A[:n_latents].T).float().to(device)
-            )
+            Y_train = Y_train.reshape(-1, Y_train.shape[-1])          
+            A = np.linalg.solve(latents_train.T @ latents_train + lam * np.eye(n_latents+1),
+                                latents_train.T @ Y_train)
+            y_pred = latents_test @ A 
+            tl = ((y_pred - Y_test)**2).mean()
+            ve = 1 - tl / (Y_test**2).mean()
+            model.test_classifier.weight.data = torch.from_numpy(A[:n_latents].T).float().to(device)
             model.test_classifier.bias.data = torch.from_numpy(A[-1]).float().to(device)
             print(ve)
 
     return y_pred, ve, itest
 
-
 def KLDiv_discrete(P, Q, binsize=200):
     # Q is the null distribution; P and Q are 2D distributions
-
-    x_bins = np.append(np.arange(0, np.amax(P[:, 0]), binsize), np.amax(P[:, 0]))
-    y_bins = np.append(np.arange(0, np.amax(P[:, 1]), binsize), np.amax(P[:, 1]))
+    
+    x_bins = np.append(np.arange(0, np.amax(P[:,0]), binsize), np.amax(P[:,0]))
+    y_bins = np.append(np.arange(0, np.amax(P[:,1]), binsize), np.amax(P[:,1]))
 
     this_KL = 0
-    for i in range(len(x_bins) - 1):
-        for j in range(len(y_bins) - 1):
-            Qx = (
-                np.sum(
-                    (Q[:, 0] >= x_bins[i])
-                    & (Q[:, 0] < x_bins[i + 1])
-                    & (Q[:, 1] >= y_bins[j])
-                    & (Q[:, 1] < y_bins[j + 1])
-                )
-            ) / len(Q)
-            Px = (
-                np.sum(
-                    (P[:, 0] >= x_bins[i])
-                    & (P[:, 0] < x_bins[i + 1])
-                    & (P[:, 1] >= y_bins[j])
-                    & (P[:, 1] < y_bins[j + 1])
-                )
-            ) / len(P)
-            if (Px == 0) | (
-                Qx == 0
-            ):  # no points in test or null distrib -- can't have log(0), or /0
+    for i in range(len(x_bins)-1):
+        for j in range(len(y_bins)-1):
+            Qx = (np.sum((Q[:,0] >= x_bins[i]) & (Q[:,0] < x_bins[i+1]) & \
+                        (Q[:,1] >= y_bins[j]) & (Q[:,1] < y_bins[j+1]))) / len(Q)
+            Px = (np.sum((P[:,0] >= x_bins[i]) & (P[:,0] < x_bins[i+1]) & \
+                        (P[:,1] >= y_bins[j]) & (P[:,1] < y_bins[j+1]))) / len(P)
+            if (Px == 0) | (Qx == 0): # no points in test or null distrib -- can't have log(0), or /0
                 continue
 
             this_KL += Px * np.log(Px / Qx)
-
+    
     return this_KL
 
 
-def causal_filter(X, swave, tlag, remove_start=False, device=torch.device("cuda")):
-    """filter matrix X (n_channels, (n_batches,) n_time) with filters swave
-
+def causal_filter(X, swave, tlag, remove_start=False, device=torch.device('cuda')):
+    """ filter matrix X (n_channels, (n_batches,) n_time) with filters swave
+    
     returns Xfilt (n_out, n_batches*n_time)
     """
     if X.ndim < 3:
         X = X.unsqueeze(1)
     NT = X.shape[-1]
-    nt = swave.shape[1]
+    nt =  swave.shape[1]
     # reshape X for input to be (n_channels*n_batches, 1, n_time)
-    Xfilt = conv1d(
-        X.reshape(-1, X.shape[-1]).unsqueeze(1), swave.unsqueeze(1), padding=nt + tlag
-    )
+    Xfilt = conv1d(X.reshape(-1, X.shape[-1]).unsqueeze(1), 
+                   swave.unsqueeze(1), padding=nt+tlag)
     Xfilt = Xfilt[..., :NT]
     Xfilt = Xfilt[..., nt:] if remove_start else Xfilt
     Xfilt = Xfilt.reshape(X.shape[0], X.shape[1], swave.shape[0], -1)
-    Xfilt = Xfilt.permute(0, 2, 1, 3)
-    Xfilt = Xfilt.reshape(X.shape[0] * swave.shape[0], X.shape[1], -1)
+    Xfilt = Xfilt.permute(0,2,1,3)
+    Xfilt = Xfilt.reshape(X.shape[0]*swave.shape[0], X.shape[1], -1)
     return Xfilt
 
-
-def fit_causal_prediction(
-    X_train, X_test, swave, lam=1e-3, tlag=1, device=torch.device("cuda")
-):
-    """predict X in the future with exponential filters"""
+def fit_causal_prediction(X_train, X_test, swave, lam = 1e-3, tlag=1, device=torch.device('cuda')):
+    """ predict X in the future with exponential filters"""
     # fit on train data
-    Xfilt = causal_filter(X_train, swave, tlag)
+    Xfilt = causal_filter(X_train, swave, tlag)    
     Xfilt = Xfilt.reshape(Xfilt.shape[0], -1)
     NT = X_train.shape[1] * X_train.shape[2]
     nff = Xfilt.shape[0]
-    CC = (Xfilt @ Xfilt.T) / NT + lam * torch.eye(nff, device=device)
-    CX = (Xfilt @ X_train.reshape(-1, NT).T) / NT
-    B = torch.linalg.solve(CC, CX)
+    CC = (Xfilt @ Xfilt.T)/NT + lam * torch.eye(nff, device = device)
+    CX = (Xfilt @ X_train.reshape(-1,NT).T) / NT
+    B = torch.linalg.solve(CC, CX)    
 
     # performance on test data
-    Xfilt = causal_filter(X_test, swave, tlag, remove_start=True)
+    Xfilt = causal_filter(X_test, swave, tlag, remove_start=True)    
     Xfilt = Xfilt.reshape(Xfilt.shape[0], -1)
     ypred = B.T @ Xfilt
     nt = swave.shape[1]
-    ve = compute_varexp(X_test[:, :, nt:].reshape(X_test.shape[0], -1).T, ypred.T)
+    ve = compute_varexp(X_test[:,:,nt:].reshape(X_test.shape[0],-1).T, ypred.T)
     return ve, ypred, B
 
-
-def future_prediction(X, Ball, swave, device=torch.device("cuda")):
-    """create future prediction"""
+def future_prediction(X, Ball, swave, device=torch.device('cuda')):
+    """ create future prediction """
     tlag = Ball.shape[-1]
     Xfilt = causal_filter(X, swave, tlag, remove_start=True)
     vef = np.zeros((X.shape[0], tlag))
     nt = swave.shape[1]
-    Xpred = np.zeros((X.shape[0], X.shape[1], X.shape[2] - nt, tlag))
+    Xpred = np.zeros((X.shape[0], X.shape[1], X.shape[2]-nt, tlag))
     for k in range(tlag):
-        Xfilt0 = Xfilt[:, :, tlag - k :].reshape(Xfilt.shape[0], -1)
-        B = torch.from_numpy(Ball[:, :, k]).to(device)
-        ypred = B.T @ Xfilt0
-        ve = compute_varexp(
-            X[:, :, nt : -(tlag - k)].reshape(X.shape[0], -1).T, ypred.T
-        )
+        Xfilt0 = Xfilt[:,:,tlag-k:].reshape(Xfilt.shape[0], -1)
+        B = torch.from_numpy(Ball[:,:,k]).to(device)
+        ypred = (B.T @ Xfilt0)
+        ve = compute_varexp(X[:,:,nt:-(tlag-k)].reshape(X.shape[0],-1).T, 
+                                        ypred.T)
         ypred = ypred.reshape(X.shape[0], X.shape[1], -1)
-        vef[:, k] = ve.cpu().numpy()
-        Xpred[:, :, : -(tlag - k), k] = ypred.cpu().numpy()
+        vef[:,k] = ve.cpu().numpy()
+        Xpred[:,:,:-(tlag-k),k] = ypred.cpu().numpy()
     return vef, Xpred
 
-
-def predict_future(
-    x, keypoint_labels=None, get_future=True, lam=1e-3, device=torch.device("cuda")
-):
-    """predict keypoints or latents in future
-
+def predict_future(x, keypoint_labels=None, get_future=True, lam=1e-3, device=torch.device('cuda')):
+    """ predict keypoints or latents in future
+    
     x is (n_time, n_keypoints) and z-scored per keypoint
-
+    
     """
     nt = 128
-    sigs = torch.FloatTensor(2 ** np.arange(0, 8, 1)).unsqueeze(-1)
-    swave = torch.exp(-torch.arange(nt) / sigs).to(device)
+    sigs = torch.FloatTensor(2**np.arange(0,8,1)).unsqueeze(-1)
+    swave = torch.exp( - torch.arange(nt) / sigs).to(device)
     swave = torch.flip(swave, [1])
-    swave = swave / (swave ** 2).sum(1, keepdim=True) ** 0.5
+    swave = swave / (swave**2).sum(1, keepdim=True)**.5
 
     tlags = np.arange(1, 501, 1)
     tlags = np.append(tlags, np.arange(525, 2000, 25))
@@ -1215,33 +962,31 @@ def predict_future(
 
     itrain, itest = split_traintest(len(x), frac=0.25, pad=nt)
 
-    X_train = X[:, itrain]
-    X_test = X[:, itest]
+    X_train = X[:,itrain]
+    X_test = X[:,itest]
 
     n_kp = X_train.shape[0]
     n_tlags = len(tlags)
-    vet = np.zeros((n_kp, n_tlags), "float32")
-    Ball = np.zeros((swave.shape[0] * n_kp, n_kp, n_tlags), "float32")
-    for k, tlag in enumerate(tlags):
+    vet = np.zeros((n_kp, n_tlags), 'float32')
+    Ball = np.zeros((swave.shape[0]*n_kp, n_kp, n_tlags), 'float32')
+    for k,tlag in enumerate(tlags):
         ve, ypred, B = fit_causal_prediction(X_train, X_test, swave, tlag=tlag, lam=lam)
-        vet[:, k] = ve.cpu().numpy()
-        Ball[:, :, k] = B.cpu().numpy()
-
+        vet[:,k] = ve.cpu().numpy()
+        Ball[:,:,k] = B.cpu().numpy()
+        
     if get_future:
-        vef, ypred = future_prediction(X_test, Ball[:, :, :500], swave)
+        vef, ypred = future_prediction(X_test, Ball[:,:,:500], swave)
     else:
         ypred = None
 
     if keypoint_labels is not None:
         # tile for X and Y
-        kp_labels = np.tile(np.array(keypoint_labels)[:, np.newaxis], (1, 2)).flatten()
+        kp_labels = np.tile(np.array(keypoint_labels)[:,np.newaxis], (1,2)).flatten()
 
-        areas = ["eye", "whisker", "nose"]
+        areas = ['eye', 'whisker', 'nose']
         vet_area = np.zeros((len(areas), vet.shape[1]))
         for j in range(len(areas)):
-            ak = np.array(
-                [k for k in range(len(kp_labels)) if areas[j] in kp_labels[k]]
-            )
+            ak = np.array([k for k in range(len(kp_labels)) if areas[j] in kp_labels[k]])
             vet_area[j] = vet[ak].mean(axis=0)
     else:
         vet_area = None

@@ -221,8 +221,8 @@ def compute_SVD(
                             ncb = min(nc, lilbin.shape[-1])
                             usv = utils.svdecon(lilbin.T, k=ncb)
                             ncb = usv[0].shape[-1]
-                            u0, uend = ni_mot[wmot[i] + 1], ni_mot[wmot[i] + 1] + ncb
-                            U_mot[wmot[i] + 1][:, u0:uend] = usv[0] * usv[1]
+                            u0, uend = ni_mot[wmot[i]+1], ni_mot[wmot[i]+1]+ncb
+                            U_mot[wmot[i] + 1][:, u0:uend] = usv[0] * usv[1]  
                             ni_mot[wmot[i] + 1] += ncb
                         if movSVD:
                             lilbin = imbin_mov[:, ymin:ymax, xmin:xmax]
@@ -230,10 +230,10 @@ def compute_SVD(
                             ncb = min(nc, lilbin.shape[-1])
                             usv = utils.svdecon(lilbin.T, k=ncb)
                             ncb = usv[0].shape[-1]
-                            u0, uend = ni_mov[wmot[i] + 1], ni_mov[wmot[i] + 1] + ncb
+                            u0, uend = ni_mov[wmot[i]+1], ni_mov[wmot[i]+1]+ncb
                             U_mov[wmot[i] + 1][:, u0:uend] = usv[0] * usv[1]
                             ni_mov[wmot[i] + 1] += ncb
-            print(f"computed svd chunk {n} / {nsegs}, time {time.time()-tic: .2f}sec")
+            print(f'computed svd chunk {n} / {nsegs}, time {time.time()-tic: .2f}sec')
         utils.update_mainwindow_progressbar(MainWindow, GUIobject, w, "Computing SVD ")
 
         if fullSVD:
@@ -500,16 +500,14 @@ def process_ROIs(
                             (vproj[0, :][np.newaxis, :], vproj), axis=0
                         )
                     V_mov[0][t : t + vproj.shape[0], :] = vproj
-
-            if n % 10 == 0:
-                print(
-                    f"computed projection chunk {n} / {nsegs}, time {time.time()-tic: .2f}sec"
-                )
+            
+            if n%10==0:
+                print(f'computed projection chunk {n} / {nsegs}, time {time.time()-tic: .2f}sec')
 
             utils.update_mainwindow_progressbar(
                 MainWindow, GUIobject, s, "Computing projection "
             )
-
+            
     utils.update_mainwindow_message(
         MainWindow, GUIobject, "Finished computing projection "
     )
