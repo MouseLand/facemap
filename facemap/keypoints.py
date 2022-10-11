@@ -18,7 +18,7 @@ def get_confidence_threshold(conf, baseline_window=200):
     
     """
     conf_baseline = conf - gaussian_filter1d(conf, baseline_window, axis=0)
-    threshold = -8 * conf_baseline.std(axis=0)
+    threshold = -6 * conf_baseline.std(axis=0)
     return conf_baseline, threshold
 
 def nanmedian_filter(x, win=7):
@@ -33,7 +33,7 @@ def nanmedian_filter(x, win=7):
         xmed[...,k::win] = xm[:len(np.arange(k,nt,win))]
     return xmed
 
-def filter_outliers(x, y, filter_window = 15, baseline_window = 50, max_spike = 50, max_diff = 50):
+def filter_outliers(x, y, filter_window = 15, baseline_window = 50, max_spike = 25, max_diff = 25):
 
     # remove frames with large jumps
     x_diff = np.abs(np.append(np.zeros(1,), np.diff(x)))
@@ -53,6 +53,8 @@ def filter_outliers(x, y, filter_window = 15, baseline_window = 50, max_spike = 
     # filter x and y
     x_filt = nanmedian_filter(x, filter_window)
     y_filt = nanmedian_filter(y, filter_window)
+    #x_filt = x_baseline
+    #y_filt = y_baseline
     
     # this in theory shouldn't add more frames
     replace_inds = np.logical_or(replace_inds, np.isnan(x_filt))
@@ -79,7 +81,8 @@ def filter_outliers(x, y, filter_window = 15, baseline_window = 50, max_spike = 
 
 def keypoint_labels_per_cam(cam_type=0):
     if cam_type==0:
-        keypoints_labels = ['eye(back)', 'eye(bottom)', 'eye(front)', 'eye(top)', 'whisker(c1)', 'whisker(c2)', 'whisker(d1)',
+        keypoints_labels = ['eye(back)', 'eye(bottom)', 'eye(front)', 'eye(top)', 
+                            'whisker(c1)', 'whisker(d2)', 'whisker(d1)',
                             'nose(bottom)', 'nose(r)', 'nose(tip)', 'nose(top)', 'paw']
     else:
         keypoints_labels = ['eye(back)', 'eye(bottom)', 'eye(front)', 'eye(top)', 'whisker(c1)', 'whisker(d2)', 'whisker(d1)',
@@ -101,7 +104,11 @@ def load_keypoints(kp_file, outlier_filter=True, median_filter=False,
         inds = np.arange(0, len(df.columns), 3)
         keypoint_labels = df.columns.get_level_values('bodyparts')[::3]
     else:
+        if 'whisker(c2)' in list(df.columns.get_level_values('bodyparts')):
+            keypoint_labels[5] = 'whisker(c2)'
         inds = np.array([(df.columns.get_level_values('bodyparts') == label).nonzero()[0][0] for label in keypoint_labels])
+        if 'whisker(c2)' in list(df.columns.get_level_values('bodyparts')):
+            keypoint_labels[5] = 'whisker(d2)'
     xy = np.stack((df.values[:,inds], df.values[:,inds+1]), axis=-1)
     conf = df.values[:,inds+2]
     
@@ -109,6 +116,7 @@ def load_keypoints(kp_file, outlier_filter=True, median_filter=False,
         conf, confidence_threshold = get_confidence_threshold(conf)
     if not isinstance(confidence_threshold, (bool, int)):
         xy[conf < confidence_threshold] = np.nan
+        print(np.isnan(xy).sum())
     
     if outlier_filter:
         for i in range(xy.shape[1]):
@@ -116,6 +124,7 @@ def load_keypoints(kp_file, outlier_filter=True, median_filter=False,
             x, y = filter_outliers(x, y)
             xy[:,i] = np.vstack((x,y)).T
     
+
     return xy, list(keypoint_labels)
 
 def keypoints_features(xy):
