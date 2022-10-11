@@ -400,21 +400,19 @@ class MainW(QtWidgets.QMainWindow):
         self.pose_groupbox.setLayout(QGridLayout())
 
         # Add a dropdown menu for selecting the pose model to use
-        select_model_label = QLabel("Pose model:")
+        select_model_label = QLabel("Model:")
         select_model_label.setStyleSheet("color: gray;")
         self.pose_groupbox.layout().addWidget(select_model_label, 0, 0)
 
         self.pose_model_combobox = QComboBox(self)
         # Set size of combobox
-        self.pose_model_combobox.setFixedWidth(int(0.03 * self.sizeObject.width()))
+        self.pose_model_combobox.setFixedWidth(int(0.09 * self.sizeObject.width()))
         # make combobox scrollable
-        self.pose_model_combobox.view().setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOn)
-        # Set minimum contents length to 5
-        self.pose_model_combobox.setMinimumContentsLength(5)
-        
-        # Adjust size of dropdown menu to show some items at once (max 5)
-        self.pose_model_combobox.setSizeAdjustPolicy(QComboBox.AdjustToMinimumContentsLength)
-
+        self.pose_model_combobox.view().setVerticalScrollBarPolicy(
+            QtCore.Qt.ScrollBarAlwaysOn
+        )
+        self.pose_model_combobox.setMaxVisibleItems(5)
+        self.pose_model_combobox.setStyleSheet("QComboBox { combobox-popup: 0; }")
         self.update_pose_model_combo_box()
         self.pose_groupbox.layout().addWidget(self.pose_model_combobox, 0, 1)
 
@@ -425,6 +423,7 @@ class MainW(QtWidgets.QMainWindow):
         self.batch_size_spinbox = QSpinBox()
         self.batch_size_spinbox.setRange(1, 100)
         self.batch_size_spinbox.setValue(1)
+        self.batch_size_spinbox.setFixedWidth(int(0.03 * self.sizeObject.width()))
         self.pose_groupbox.layout().addWidget(self.batch_size_spinbox, 1, 1)
 
         self.is_pose_loaded = False
@@ -434,6 +433,9 @@ class MainW(QtWidgets.QMainWindow):
         self.keypoints_threshold_spinbox = QSpinBox()
         self.keypoints_threshold_spinbox.setRange(0, 100)
         self.keypoints_threshold_spinbox.setValue(0)
+        self.keypoints_threshold_spinbox.setFixedWidth(
+            int(0.03 * self.sizeObject.width())
+        )
         self.keypoints_threshold = self.keypoints_threshold_spinbox.value()
         self.keypoints_threshold_spinbox.valueChanged.connect(
             self.update_keypoints_threshold
@@ -1331,7 +1333,7 @@ class MainW(QtWidgets.QMainWindow):
                 size=0.009 * self.sizeObject.height(),
                 symbol="o",
                 brush=brushes,
-                symbolPen=pg.mkPen(color=(255, 255, 255)), #self.colors,
+                symbolPen=pg.mkPen(color=(255, 255, 255)),  # self.colors,
                 hoverable=True,
                 hoverSize=10,
                 data=labels,

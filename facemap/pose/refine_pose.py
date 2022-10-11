@@ -207,18 +207,23 @@ class ModelTrainingPopup(QDialog):
             "QLabel {color: 'white'; font-weight: bold; font-size: 16}"
         )
         self.model_groupbox.layout().addWidget(self.model_label)
-
         self.model_dropdown = QComboBox(self)
+        self.model_dropdown.setFixedWidth(
+            int(np.floor(self.window_max_size.width() * 0.25 * 0.5))
+        )
+        self.model_dropdown.view().setVerticalScrollBarPolicy(
+            QtCore.Qt.ScrollBarAlwaysOn
+        )
+        self.model_dropdown.setMaxVisibleItems(5)
+        self.model_dropdown.setStyleSheet(
+            "QComboBox { combobox-popup: 0; color: 'black';}"
+        )
         # Add the model files to the dropdown menu
         self.model_dropdown.addItem("Base model")
         for model_file in self.model_files:
             if os.path.basename(model_file) == "facemap_model_state.pt":
                 continue
             self.model_dropdown.addItem(os.path.basename(model_file.split(".pt")[0]))
-        self.model_dropdown.setStyleSheet("QComboBox {color: 'black';}")
-        self.model_dropdown.setFixedWidth(
-            int(np.floor(self.window_max_size.width() * 0.25 * 0.5))
-        )
         self.model_groupbox.layout().addWidget(
             self.model_dropdown, alignment=QtCore.Qt.AlignRight
         )
@@ -319,15 +324,21 @@ class ModelTrainingPopup(QDialog):
 
         # Add a QLabel and QLineedit for difficult frames threshold
         self.difficult_frames_threshold_label = QLabel(self)
-        self.difficult_frames_threshold_label.setText("Difficulty threshold (percentile):")
+        self.difficult_frames_threshold_label.setText(
+            "Difficulty threshold (percentile):"
+        )
         self.difficult_frames_threshold_label.setStyleSheet("QLabel {color: 'white';}")
-        self.random_frames_groupbox.layout().addWidget(self.difficult_frames_threshold_label)
+        self.random_frames_groupbox.layout().addWidget(
+            self.difficult_frames_threshold_label
+        )
 
         self.difficult_frames_threshold_box = QSpinBox(self)
         self.difficult_frames_threshold_box.setRange(0, 100)
         self.difficult_frames_threshold_box.setValue(95)
         self.difficult_frames_threshold_box.setStyleSheet("QSpinBox {color: 'black';}")
-        self.random_frames_groupbox.layout().addWidget(self.difficult_frames_threshold_box)
+        self.random_frames_groupbox.layout().addWidget(
+            self.difficult_frames_threshold_box
+        )
 
         self.verticalLayout.addWidget(self.random_frames_groupbox)
 
@@ -365,19 +376,21 @@ class ModelTrainingPopup(QDialog):
         self.use_old_data_radio_groupbox.layout().addWidget(self.use_old_data_no_radio)
         self.npy_files_groupbox.layout().addWidget(self.use_old_data_radio_groupbox)
 
-        # Add checkboxes to scroll area for selecting data files 
+        # Add checkboxes to scroll area for selecting data files
         form_layout = QFormLayout()
         checkbox_groupbox = QGroupBox(self)
         self.npy_files_checkboxes = []
         for i, file in enumerate(self.data_files):
             checkbox = QCheckBox(file, self)
-            checkbox.setStyleSheet("QCheckBox {color: 'black';}") #'white';}")
+            checkbox.setStyleSheet("QCheckBox {color: 'black';}")  #'white';}")
             form_layout.addRow(checkbox)
             self.npy_files_checkboxes.append(checkbox)
             checkbox.hide()
         checkbox_groupbox.setLayout(form_layout)
         self.checkbox_scroll_area = QScrollArea(self)
-        self.checkbox_scroll_area.setStyleSheet("QScrollArea {background: 'black'; color: 'black';}")
+        self.checkbox_scroll_area.setStyleSheet(
+            "QScrollArea {background: 'black'; color: 'black';}"
+        )
         self.checkbox_scroll_area.setWidget(checkbox_groupbox)
         self.checkbox_scroll_area.setWidgetResizable(True)
         self.checkbox_scroll_area.setFixedHeight(200)
@@ -680,7 +693,9 @@ class ModelTrainingPopup(QDialog):
                 frames_indices = predict_frame_index
 
             # Get the predictions for the selected frames
-            output = self.generate_predictions(frames_indices, model_name=self.model_dropdown.currentText())
+            output = self.generate_predictions(
+                frames_indices, model_name=self.model_dropdown.currentText()
+            )
             if output is None:  # User cancelled the refinement
                 self.close()
                 return
@@ -694,7 +709,12 @@ class ModelTrainingPopup(QDialog):
                 self.difficult_frames_idx = frames_indices[difficult_frames_idx]
                 self.easy_frames_idx = frames_indices[easy_frames_idx]
                 print("len frame indices", len(frames_indices))
-                num_easy_frames = int(np.floor(self.num_video_frames[self.current_video_idx] * (float(self.percent_random_frames_box.text())/100))) #self.num_video_frames[self.current_video_idx] // 2
+                num_easy_frames = int(
+                    np.floor(
+                        self.num_video_frames[self.current_video_idx]
+                        * (float(self.percent_random_frames_box.text()) / 100)
+                    )
+                )  # self.num_video_frames[self.current_video_idx] // 2
                 num_difficult_frames = (
                     self.num_video_frames[self.current_video_idx] - num_easy_frames
                 )
@@ -704,8 +724,13 @@ class ModelTrainingPopup(QDialog):
                         self.num_video_frames[self.current_video_idx]
                         - num_difficult_frames
                     )
-                print("Total training frames: {}, Total easy frames: {}, Total difficult frames: {}".format(self.num_video_frames[self.current_video_idx], 
-                        num_easy_frames, num_difficult_frames))
+                print(
+                    "Total training frames: {}, Total easy frames: {}, Total difficult frames: {}".format(
+                        self.num_video_frames[self.current_video_idx],
+                        num_easy_frames,
+                        num_difficult_frames,
+                    )
+                )
                 print("len easy frames", len(easy_frames_idx))
                 print("len difficult frames", len(difficult_frames_idx))
                 easy_frames_idx = easy_frames_idx[:num_easy_frames]
@@ -770,7 +795,9 @@ class ModelTrainingPopup(QDialog):
         self.win = pg.GraphicsLayoutWidget()
         self.win.setObjectName("Keypoints refinement")
         self.keypoints_scatterplot = KeypointsGraph(parent=self)
-        self.frame_win = KeypointsViewBox(scatter_item=self.keypoints_scatterplot, invertY=True, lockAspect=True) #self.win.addViewBox(invertY=True)
+        self.frame_win = KeypointsViewBox(
+            scatter_item=self.keypoints_scatterplot, invertY=True, lockAspect=True
+        )  # self.win.addViewBox(invertY=True)
         self.frame_win.setAspectLocked(True, QtCore.Qt.IgnoreAspectRatio)
         self.frame_win.setMouseEnabled(False, False)
         self.frame_win.setMenuEnabled(False)
@@ -803,7 +830,9 @@ class ModelTrainingPopup(QDialog):
         self.saturation_slider.valueChanged.connect(self.update_saturation)
         self.saturation_slider.setTracking(False)
         # Set width of slider
-        self.saturation_slider.setFixedWidth(int(np.floor(self.window_max_size.width()*0.6*0.2)))
+        self.saturation_slider.setFixedWidth(
+            int(np.floor(self.window_max_size.width() * 0.6 * 0.2))
+        )
         self.saturation_group.layout().addWidget(self.saturation_slider)
         self.left_vertical_group.layout().addWidget(self.saturation_group)
 
@@ -882,12 +911,16 @@ class ModelTrainingPopup(QDialog):
         """
         Update the saturation of the image
         """
-        saturation = float(self.saturation_slider.value()) / 100 * (self.all_frames[self.current_video_idx][self.current_frame].max())
+        saturation = (
+            float(self.saturation_slider.value())
+            / 100
+            * (self.all_frames[self.current_video_idx][self.current_frame].max())
+        )
         self.img.setLevels([0, saturation])
 
     def split_frames_idx_by_category(self, pose_pred_data):
         """
-        Split the frames into difficult or easy frames category based on the likelihood threshold percentile 
+        Split the frames into difficult or easy frames category based on the likelihood threshold percentile
         and return the indices of the frames in each category.
         Parameters
         ----------
@@ -900,7 +933,9 @@ class ModelTrainingPopup(QDialog):
         easy_frames_idx : list
             List of indices of the frames that are not difficult.
         """
-        likelihood_threshold_percentile = float(self.difficult_frames_threshold_box.text())
+        likelihood_threshold_percentile = float(
+            self.difficult_frames_threshold_box.text()
+        )
         likelihood = pose_pred_data[:, :, -1].mean(axis=1)
         likelihood_threshold = np.nanpercentile(
             likelihood, likelihood_threshold_percentile
@@ -975,9 +1010,7 @@ class ModelTrainingPopup(QDialog):
         help_windows.RefinementHelpWindow(self, self.window_max_size)
 
     def generate_predictions(self, frame_indices, model_name):
-        output = self.gui.process_subset_keypoints(
-            frame_indices, model_name
-        )
+        output = self.gui.process_subset_keypoints(frame_indices, model_name)
         return output
 
     def radio_button_clicked(self):
@@ -1016,7 +1049,7 @@ class ModelTrainingPopup(QDialog):
         self.keypoints_scatterplot.setData(
             pos=np.array([x, y]).T,
             symbolBrush=self.brushes,
-            symbolPen=pg.mkPen(color=(255, 255, 255)), #self.colors,
+            symbolPen=pg.mkPen(color=(255, 255, 255)),  # self.colors,
             symbol="o",
             brush=self.brushes,
             hoverable=True,
@@ -1026,7 +1059,7 @@ class ModelTrainingPopup(QDialog):
             hoverBrush="r",
             name=self.bodyparts,
             data=self.bodyparts,
-            size=self.gui.sizeObject.height() * 0.008,   
+            size=self.gui.sizeObject.height() * 0.008,
         )
         self.frame_win.addItem(self.keypoints_scatterplot)
 
@@ -1250,7 +1283,9 @@ class ModelTrainingPopup(QDialog):
                     random_frame_indices, self.random_frames_ind
                 )
 
-        output = self.generate_predictions(random_frame_indices, model_name=None) # Use the finetuned model
+        output = self.generate_predictions(
+            random_frame_indices, model_name=None
+        )  # Use the finetuned model
         if output is None:
             self.close()
             return
@@ -1359,11 +1394,12 @@ class ModelTrainingPopup(QDialog):
         )
         return random_frames_ind
 
+
 ### Keypoints viewbox containing the keypoints scatterplot ###
 class KeypointsViewBox(pg.ViewBox):
     def __init__(self, parent=None, scatter_item=None, **kwds):
         pg.ViewBox.__init__(self, parent, **kwds)
-        #self.setMouseMode(self.RectMode)
+        # self.setMouseMode(self.RectMode)
         self.parent = parent
         self.scatter_item = scatter_item
         if self.scatter_item is not None:
@@ -1372,7 +1408,9 @@ class KeypointsViewBox(pg.ViewBox):
     # Override mouseclick event to enable clicking on the image
     def mousePressEvent(self, event):
         if event.button() == QtCore.Qt.RightButton:
-            self.scatter_item.right_click_add_keypoint(self.mapSceneToView(event.scenePos())) 
+            self.scatter_item.right_click_add_keypoint(
+                self.mapSceneToView(event.scenePos())
+            )
         else:
             event.ignore()
 
@@ -1510,9 +1548,7 @@ class KeypointsGraph(pg.GraphItem):
         self.parent.radio_buttons[ind].clicked.emit(True)
 
     # Add feature for adding a keypoint to the scatterplot
-    def right_click_add_keypoint(
-        self, add_point_pos
-    ): 
+    def right_click_add_keypoint(self, add_point_pos):
         """
         Use right click to add a keypoint to the scatter plot (if the keypoint is not already present)
         """
