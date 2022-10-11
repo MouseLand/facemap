@@ -1,3 +1,4 @@
+from ctypes import alignment
 import os
 import sys
 
@@ -370,6 +371,7 @@ class MainW(QtWidgets.QMainWindow):
         self.svd_groupbox.layout().addWidget(self.comboBox, 0, 0)
         # self.comboBox.currentIndexChanged.connect(self.mode_change)
         self.addROI = QPushButton("Add ROI")
+        self.addROI.setFixedWidth(int(0.04 * self.sizeObject.width()))
         self.addROI.setFont(QFont("Arial", 10, QFont.Bold))
         self.addROI.clicked.connect(lambda clicked: self.add_ROI())
         self.addROI.setEnabled(False)
@@ -377,20 +379,21 @@ class MainW(QtWidgets.QMainWindow):
 
         svdbin_label = QLabel("SVD spatial bin:")
         svdbin_label.setStyleSheet("color: gray;")
-        self.svd_groupbox.layout().addWidget(svdbin_label, 1, 0)
+        self.svd_groupbox.layout().addWidget(svdbin_label, 1, 0, alignment=QtCore.Qt.AlignLeft)
         self.svdbin_spinbox = QSpinBox()
         self.svdbin_spinbox.setRange(1, 20)
         self.svdbin_spinbox.setValue(self.ops["sbin"])
-        self.svd_groupbox.layout().addWidget(self.svdbin_spinbox, 1, 1)
+        self.svdbin_spinbox.setFixedWidth(int(0.03 * self.sizeObject.width()))
+        self.svd_groupbox.layout().addWidget(self.svdbin_spinbox, 1, 1, alignment=QtCore.Qt.AlignRight)
         binLabel = QLabel("Pupil sigma:")
         binLabel.setStyleSheet("color: gray;")
-        self.svd_groupbox.layout().addWidget(binLabel, 2, 0)
+        self.svd_groupbox.layout().addWidget(binLabel, 2, 0, alignment=QtCore.Qt.AlignLeft)
         self.sigma_box = QLineEdit()
         self.sigma_box.setText(str(self.ops["pupil_sigma"]))
-        self.sigma_box.setFixedWidth(int(0.05 * self.sizeObject.width()))
+        self.sigma_box.setFixedWidth(int(0.02 * self.sizeObject.width()))
         self.pupil_sigma = float(self.sigma_box.text())
         self.sigma_box.returnPressed.connect(self.pupil_sigma_change)
-        self.svd_groupbox.layout().addWidget(self.sigma_box, 2, 1)
+        self.svd_groupbox.layout().addWidget(self.sigma_box, 2, 1, alignment=QtCore.Qt.AlignRight)
 
         # ~~~~~~~~~~~~~~~~~~~~~~~~ Pose/keypoints variables ~~~~~~~~~~~~~~~~~~~~~~~~
         self.pose_groupbox = QGroupBox("Pose settings:")
@@ -406,17 +409,13 @@ class MainW(QtWidgets.QMainWindow):
 
         self.pose_model_combobox = QComboBox(self)
         # Set size of combobox
-        self.pose_model_combobox.setFixedWidth(int(0.03 * self.sizeObject.width()))
+        self.pose_model_combobox.setFixedWidth(int(0.085 * self.sizeObject.width()))
         # make combobox scrollable
         self.pose_model_combobox.view().setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOn)
-        # Set minimum contents length to 5
-        self.pose_model_combobox.setMinimumContentsLength(5)
-        
-        # Adjust size of dropdown menu to show some items at once (max 5)
-        self.pose_model_combobox.setSizeAdjustPolicy(QComboBox.AdjustToMinimumContentsLength)
-
+        self.pose_model_combobox.setMaxVisibleItems(5)
+        self.pose_model_combobox.setStyleSheet("QComboBox { combobox-popup: 0; }")
         self.update_pose_model_combo_box()
-        self.pose_groupbox.layout().addWidget(self.pose_model_combobox, 0, 1)
+        self.pose_groupbox.layout().addWidget(self.pose_model_combobox, 0, 1, alignment=QtCore.Qt.AlignLeft)
 
         # Add a QLabel and spinbox for selecting batch size
         batch_size_label = QLabel("Batch size:")
@@ -425,7 +424,8 @@ class MainW(QtWidgets.QMainWindow):
         self.batch_size_spinbox = QSpinBox()
         self.batch_size_spinbox.setRange(1, 100)
         self.batch_size_spinbox.setValue(1)
-        self.pose_groupbox.layout().addWidget(self.batch_size_spinbox, 1, 1)
+        self.batch_size_spinbox.setFixedWidth(int(0.04 * self.sizeObject.width()))
+        self.pose_groupbox.layout().addWidget(self.batch_size_spinbox, 1, 1, alignment=QtCore.Qt.AlignRight)
 
         self.is_pose_loaded = False
         keypoints_threshold_label = QLabel("Threshold (%):")
@@ -435,10 +435,11 @@ class MainW(QtWidgets.QMainWindow):
         self.keypoints_threshold_spinbox.setRange(0, 100)
         self.keypoints_threshold_spinbox.setValue(0)
         self.keypoints_threshold = self.keypoints_threshold_spinbox.value()
+        self.keypoints_threshold_spinbox.setFixedWidth(int(0.04 * self.sizeObject.width()))
         self.keypoints_threshold_spinbox.valueChanged.connect(
             self.update_keypoints_threshold
         )
-        self.pose_groupbox.layout().addWidget(self.keypoints_threshold_spinbox, 2, 1)
+        self.pose_groupbox.layout().addWidget(self.keypoints_threshold_spinbox, 2, 1, alignment=QtCore.Qt.AlignRight)
 
         # ~~~~~~~~~~~~~~~~~~~~~~~~ Process features ~~~~~~~~~~~~~~~~~~~~~~~~
         self.process_groupbox = QGroupBox("Process settings:")

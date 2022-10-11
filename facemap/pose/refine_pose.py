@@ -209,16 +209,19 @@ class ModelTrainingPopup(QDialog):
         self.model_groupbox.layout().addWidget(self.model_label)
 
         self.model_dropdown = QComboBox(self)
+        self.model_dropdown.setFixedWidth(
+            int(np.floor(self.window_max_size.width() * 0.25 * 0.5))
+        )
+        self.model_dropdown.view().setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOn)
+        self.model_dropdown.setMaxVisibleItems(5)
+        self.model_dropdown.setStyleSheet("QComboBox { combobox-popup: 0; color: 'black';}")
         # Add the model files to the dropdown menu
         self.model_dropdown.addItem("Base model")
         for model_file in self.model_files:
             if os.path.basename(model_file) == "facemap_model_state.pt":
                 continue
             self.model_dropdown.addItem(os.path.basename(model_file.split(".pt")[0]))
-        self.model_dropdown.setStyleSheet("QComboBox {color: 'black';}")
-        self.model_dropdown.setFixedWidth(
-            int(np.floor(self.window_max_size.width() * 0.25 * 0.5))
-        )
+
         self.model_groupbox.layout().addWidget(
             self.model_dropdown, alignment=QtCore.Qt.AlignRight
         )
