@@ -31,9 +31,10 @@ from PyQt5.QtWidgets import (
 from scipy.stats import skew, zscore
 
 from facemap import cluster, process, roi, utils
-from facemap.neural_prediction import neural_activity
+from facemap.neural_prediction import neural_activity, prediction_utils
 from facemap.pose import pose_gui, refine_pose
 from facemap.pose import model_loader, pose
+
 from . import guiparts, io, menus
 
 istr = ["pupil", "motSVD", "blink", "running", "movSVD"]
@@ -1885,7 +1886,7 @@ class MainW(QtWidgets.QMainWindow):
         dialog.setContentsMargins(10, 10, 10, 10)
         # Set size of the dialog
         dialog.setFixedWidth(np.floor(self.sizeObject.width() / 3).astype(int))
-        dialog.setFixedHeight(np.floor(self.sizeObject.height() / 2.5).astype(int))
+        # dialog.setFixedHeight(np.floor(self.sizeObject.height() / 2.25).astype(int))
 
         # Create a vertical layout for the dialog
         vbox = QtWidgets.QVBoxLayout()
@@ -2089,6 +2090,24 @@ class MainW(QtWidgets.QMainWindow):
         input_data_groupbox.layout().addWidget(dialog.input_data_svd_radio_button)
         neural_data_prediction_groupbox.layout().addWidget(input_data_groupbox)
 
+        # Add a groupbox for selecting type of output: neural pcs or activity
+        output_type_groupbox = QtWidgets.QGroupBox()
+        output_type_groupbox.setLayout(QtWidgets.QHBoxLayout())
+        output_type_groupbox.setStyleSheet("QGroupBox { border: 0px solid gray; }")
+        output_type_label = QtWidgets.QLabel("Predict neural PCs:")
+        output_type_groupbox.layout().addWidget(output_type_label)
+        # Create two radio buttons named yes and no to ask the user to select the type of output
+        output_type_radio_button_group = QtWidgets.QButtonGroup()
+        output_type_radio_button_group.setExclusive(True)
+        dialog.neural_pcs_yes_radio_button = QtWidgets.QRadioButton("Yes")
+        dialog.neural_pcs_yes_radio_button.setChecked(True)
+        dialog.neural_pcs_no_radio_button = QtWidgets.QRadioButton("No")
+        output_type_radio_button_group.addButton(dialog.neural_pcs_yes_radio_button)
+        output_type_radio_button_group.addButton(dialog.neural_pcs_no_radio_button)
+        output_type_groupbox.layout().addWidget(dialog.neural_pcs_yes_radio_button)
+        output_type_groupbox.layout().addWidget(dialog.neural_pcs_no_radio_button)
+        neural_data_prediction_groupbox.layout().addWidget(output_type_groupbox)
+
         vbox.addWidget(neural_data_prediction_groupbox)
 
         # Add a hbox for cancel and done buttons
@@ -2121,7 +2140,35 @@ class MainW(QtWidgets.QMainWindow):
         Run neural predictions
         """
         if dialog.input_data_keypoints_radio_button.isChecked():
-            print("Using keypoints input")
+            print("Using keypoints as input for prediction")
+            # TODO: Add try catch here for loading timestamps from npy files
+            behavior_timestamps = np.load(dialog.behav_data_timestamps_qlineedit.text())
+            neural_timestamps = np.load(dialog.neural_data_timestamps_lineedit.text())
+            if dialog.neural_pcs_yes_radio_button.isChecked():
+                print("Predicting neural pcs")
+                # print("Neural activity shape: %s" % str(self.neural_activity.data.shape))
+                U, S, V = prediction_utils.get_neural_pcs(self.neural_activity.data)
+                print(
+                    "U shape: %s, S shape: %s, V shape: %s"
+                    % (U.shape, S.shape, V.shape)
+                )
+            else:
+                print("Predicting neural activity")
+            print("Pose file:", self.poseFilepath[0])
+            (
+                _,
+                _,
+                model,
+                pred_data,
+                varexp_testdata,
+                test_indices,
+            ) = prediction_utils.get_keypoints_to_neural_prediction(
+                self.poseFilepath[0], V, behavior_timestamps, neural_timestamps
+            )
+            print("varexp_testdata: %s" % str(varexp_testdata))
+            # if dialog.neural_pcs_yes_radio_button.isChecked():
+            #    # Get neural predictions from the model
+            #    pred_data, varexp_neurons = prediction_utils.get_predicted_neural_activity(spks, U, model)
         else:
             print("Using SVD input")
         print("Running neural predictions...")
