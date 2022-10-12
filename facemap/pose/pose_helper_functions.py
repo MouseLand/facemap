@@ -93,7 +93,7 @@ def predict(net, im_input, smooth=False):
         locx_pred = locx_pred.reshape(batch_size, num_keypoints, lx * ly)
         locy_pred = locy_pred.reshape(batch_size, num_keypoints, lx * ly)
 
-        #likelihood, imax = torch.max(hm_pred, -1)
+        # likelihood, imax = torch.max(hm_pred, -1)
         _, imax = torch.max(hm_pred, -1)
         likelihood = torch.sigmoid(hm_pred)
         likelihood, _ = torch.max(likelihood, -1)

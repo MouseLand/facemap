@@ -1,6 +1,6 @@
-from ctypes import alignment
 import os
 import sys
+from ctypes import alignment
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -30,10 +30,10 @@ from PyQt5.QtWidgets import (
 )
 from scipy.stats import skew, zscore
 
-from facemap import cluster, neural_activity, process, roi, utils
+from facemap import cluster, process, roi, utils
+from facemap.neural_prediction import neural_activity
 from facemap.pose import pose_gui, refine_pose
 from facemap.pose import model_loader, pose
-
 from . import guiparts, io, menus
 
 istr = ["pupil", "motSVD", "blink", "running", "movSVD"]
@@ -379,21 +379,29 @@ class MainW(QtWidgets.QMainWindow):
 
         svdbin_label = QLabel("SVD spatial bin:")
         svdbin_label.setStyleSheet("color: gray;")
-        self.svd_groupbox.layout().addWidget(svdbin_label, 1, 0, alignment=QtCore.Qt.AlignLeft)
+        self.svd_groupbox.layout().addWidget(
+            svdbin_label, 1, 0, alignment=QtCore.Qt.AlignLeft
+        )
         self.svdbin_spinbox = QSpinBox()
         self.svdbin_spinbox.setRange(1, 20)
         self.svdbin_spinbox.setValue(self.ops["sbin"])
         self.svdbin_spinbox.setFixedWidth(int(0.03 * self.sizeObject.width()))
-        self.svd_groupbox.layout().addWidget(self.svdbin_spinbox, 1, 1, alignment=QtCore.Qt.AlignRight)
+        self.svd_groupbox.layout().addWidget(
+            self.svdbin_spinbox, 1, 1, alignment=QtCore.Qt.AlignRight
+        )
         binLabel = QLabel("Pupil sigma:")
         binLabel.setStyleSheet("color: gray;")
-        self.svd_groupbox.layout().addWidget(binLabel, 2, 0, alignment=QtCore.Qt.AlignLeft)
+        self.svd_groupbox.layout().addWidget(
+            binLabel, 2, 0, alignment=QtCore.Qt.AlignLeft
+        )
         self.sigma_box = QLineEdit()
         self.sigma_box.setText(str(self.ops["pupil_sigma"]))
         self.sigma_box.setFixedWidth(int(0.02 * self.sizeObject.width()))
         self.pupil_sigma = float(self.sigma_box.text())
         self.sigma_box.returnPressed.connect(self.pupil_sigma_change)
-        self.svd_groupbox.layout().addWidget(self.sigma_box, 2, 1, alignment=QtCore.Qt.AlignRight)
+        self.svd_groupbox.layout().addWidget(
+            self.sigma_box, 2, 1, alignment=QtCore.Qt.AlignRight
+        )
 
         # ~~~~~~~~~~~~~~~~~~~~~~~~ Pose/keypoints variables ~~~~~~~~~~~~~~~~~~~~~~~~
         self.pose_groupbox = QGroupBox("Pose settings:")
@@ -411,11 +419,15 @@ class MainW(QtWidgets.QMainWindow):
         # Set size of combobox
         self.pose_model_combobox.setFixedWidth(int(0.085 * self.sizeObject.width()))
         # make combobox scrollable
-        self.pose_model_combobox.view().setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOn)
+        self.pose_model_combobox.view().setVerticalScrollBarPolicy(
+            QtCore.Qt.ScrollBarAlwaysOn
+        )
         self.pose_model_combobox.setMaxVisibleItems(5)
         self.pose_model_combobox.setStyleSheet("QComboBox { combobox-popup: 0; }")
         self.update_pose_model_combo_box()
-        self.pose_groupbox.layout().addWidget(self.pose_model_combobox, 0, 1, alignment=QtCore.Qt.AlignLeft)
+        self.pose_groupbox.layout().addWidget(
+            self.pose_model_combobox, 0, 1, alignment=QtCore.Qt.AlignLeft
+        )
 
         # Add a QLabel and spinbox for selecting batch size
         batch_size_label = QLabel("Batch size:")
@@ -425,7 +437,9 @@ class MainW(QtWidgets.QMainWindow):
         self.batch_size_spinbox.setRange(1, 100)
         self.batch_size_spinbox.setValue(1)
         self.batch_size_spinbox.setFixedWidth(int(0.04 * self.sizeObject.width()))
-        self.pose_groupbox.layout().addWidget(self.batch_size_spinbox, 1, 1, alignment=QtCore.Qt.AlignRight)
+        self.pose_groupbox.layout().addWidget(
+            self.batch_size_spinbox, 1, 1, alignment=QtCore.Qt.AlignRight
+        )
 
         self.is_pose_loaded = False
         keypoints_threshold_label = QLabel("Threshold (%):")
@@ -435,11 +449,15 @@ class MainW(QtWidgets.QMainWindow):
         self.keypoints_threshold_spinbox.setRange(0, 100)
         self.keypoints_threshold_spinbox.setValue(0)
         self.keypoints_threshold = self.keypoints_threshold_spinbox.value()
-        self.keypoints_threshold_spinbox.setFixedWidth(int(0.04 * self.sizeObject.width()))
+        self.keypoints_threshold_spinbox.setFixedWidth(
+            int(0.04 * self.sizeObject.width())
+        )
         self.keypoints_threshold_spinbox.valueChanged.connect(
             self.update_keypoints_threshold
         )
-        self.pose_groupbox.layout().addWidget(self.keypoints_threshold_spinbox, 2, 1, alignment=QtCore.Qt.AlignRight)
+        self.pose_groupbox.layout().addWidget(
+            self.keypoints_threshold_spinbox, 2, 1, alignment=QtCore.Qt.AlignRight
+        )
 
         # ~~~~~~~~~~~~~~~~~~~~~~~~ Process features ~~~~~~~~~~~~~~~~~~~~~~~~
         self.process_groupbox = QGroupBox("Process settings:")
@@ -1332,7 +1350,7 @@ class MainW(QtWidgets.QMainWindow):
                 size=0.009 * self.sizeObject.height(),
                 symbol="o",
                 brush=brushes,
-                symbolPen=pg.mkPen(color=(255, 255, 255)), #self.colors,
+                symbolPen=pg.mkPen(color=(255, 255, 255)),  # self.colors,
                 hoverable=True,
                 hoverSize=10,
                 data=labels,
@@ -1861,18 +1879,13 @@ class MainW(QtWidgets.QMainWindow):
     ## ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Neural data plot ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ ##
 
     # Open a QDialog to select the neural data to plot
-    def load_neural_data(self, prediction_mode=False):
+    def load_neural_data(self):
         dialog = QtWidgets.QDialog()
         dialog.setWindowTitle("Neural activity")
         dialog.setContentsMargins(10, 10, 10, 10)
-        dialog.prediction_mode = prediction_mode
         # Set size of the dialog
-        if dialog.prediction_mode:
-            dialog.setFixedWidth(np.floor(self.sizeObject.width() / 3).astype(int))
-            dialog.setFixedHeight(np.floor(self.sizeObject.height() / 4).astype(int))
-        else:
-            dialog.setFixedWidth(np.floor(self.sizeObject.width() / 3).astype(int))
-            dialog.setFixedHeight(np.floor(self.sizeObject.height() / 3).astype(int))
+        dialog.setFixedWidth(np.floor(self.sizeObject.width() / 3).astype(int))
+        dialog.setFixedHeight(np.floor(self.sizeObject.height() / 2.5).astype(int))
 
         # Create a vertical layout for the dialog
         vbox = QtWidgets.QVBoxLayout()
@@ -1944,120 +1957,174 @@ class MainW(QtWidgets.QMainWindow):
 
         vbox.addWidget(neural_activity_groupbox)
 
-        if not dialog.prediction_mode:
-            # Add a timestamps groupbox
-            timestamps_groupbox = QtWidgets.QGroupBox("Timestamps (Optional)")
-            timestamps_groupbox.setLayout(QtWidgets.QVBoxLayout())
-            timestamps_groupbox.setStyleSheet(
-                "QGroupBox {border: 1px solid gray; border-radius: 9px; margin-top: 0.5em;} "
-            )
+        # Add a timestamps groupbox
+        timestamps_groupbox = QtWidgets.QGroupBox("Timestamps (Optional)")
+        timestamps_groupbox.setLayout(QtWidgets.QVBoxLayout())
+        timestamps_groupbox.setStyleSheet(
+            "QGroupBox {border: 1px solid gray; border-radius: 9px; margin-top: 0.5em;} "
+        )
 
-            # Add a groupbpx for neural timestamps selection
-            neural_data_timestamps_groupbox = QtWidgets.QGroupBox()
-            neural_data_timestamps_groupbox.setLayout(QtWidgets.QHBoxLayout())
-            neural_data_timestamps_groupbox.setStyleSheet(
-                "QGroupBox { border: 0px solid gray; }"
-            )
-            neural_timestamps_label = QtWidgets.QLabel("Neural timestamps:")
-            neural_data_timestamps_groupbox.layout().addWidget(neural_timestamps_label)
-            dialog.neural_data_timestamps_lineedit = QtWidgets.QLineEdit()
-            dialog.neural_data_timestamps_lineedit.setReadOnly(True)
-            neural_data_timestamps_groupbox.layout().addWidget(
-                dialog.neural_data_timestamps_lineedit
-            )
-            neural_timestamps_browse_button = QtWidgets.QPushButton("Browse...")
-            neural_timestamps_browse_button.clicked.connect(
-                lambda clicked: self.set_neural_timestamps_filepath(clicked, dialog)
-            )
-            neural_data_timestamps_groupbox.layout().addWidget(
-                neural_timestamps_browse_button
-            )
-            timestamps_groupbox.layout().addWidget(neural_data_timestamps_groupbox)
+        # Add a groupbpx for neural timestamps selection
+        neural_data_timestamps_groupbox = QtWidgets.QGroupBox()
+        neural_data_timestamps_groupbox.setLayout(QtWidgets.QHBoxLayout())
+        neural_data_timestamps_groupbox.setStyleSheet(
+            "QGroupBox { border: 0px solid gray; }"
+        )
+        neural_timestamps_label = QtWidgets.QLabel("Neural timestamps:")
+        neural_data_timestamps_groupbox.layout().addWidget(neural_timestamps_label)
+        dialog.neural_data_timestamps_lineedit = QtWidgets.QLineEdit()
+        dialog.neural_data_timestamps_lineedit.setReadOnly(True)
+        neural_data_timestamps_groupbox.layout().addWidget(
+            dialog.neural_data_timestamps_lineedit
+        )
+        neural_timestamps_browse_button = QtWidgets.QPushButton("Browse...")
+        neural_timestamps_browse_button.clicked.connect(
+            lambda clicked: self.set_neural_timestamps_filepath(clicked, dialog)
+        )
+        neural_data_timestamps_groupbox.layout().addWidget(
+            neural_timestamps_browse_button
+        )
+        timestamps_groupbox.layout().addWidget(neural_data_timestamps_groupbox)
 
-            """
-            neural_time_groupbox = QtWidgets.QGroupBox()
-            neural_time_groupbox.setLayout(QtWidgets.QHBoxLayout())
-            neural_time_groupbox.setStyleSheet("QGroupBox { border: 0px solid gray; }")
-            neural_tstart_label = QtWidgets.QLabel("Start time:")
-            neural_time_groupbox.layout().addWidget(neural_tstart_label)
-            dialog.neural_tstart_qlineedit = QtWidgets.QLineEdit()
-            neural_time_groupbox.layout().addWidget(dialog.neural_tstart_qlineedit)
-            neural_tend_label = QtWidgets.QLabel("End time:")
-            neural_time_groupbox.layout().addWidget(neural_tend_label)
-            dialog.neural_tend_qlineedit = QtWidgets.QLineEdit()
-            neural_time_groupbox.layout().addWidget(dialog.neural_tend_qlineedit)
-            timestamps_groupbox.layout().addWidget(neural_time_groupbox)
-            """
+        """
+        neural_time_groupbox = QtWidgets.QGroupBox()
+        neural_time_groupbox.setLayout(QtWidgets.QHBoxLayout())
+        neural_time_groupbox.setStyleSheet("QGroupBox { border: 0px solid gray; }")
+        neural_tstart_label = QtWidgets.QLabel("Start time:")
+        neural_time_groupbox.layout().addWidget(neural_tstart_label)
+        dialog.neural_tstart_qlineedit = QtWidgets.QLineEdit()
+        neural_time_groupbox.layout().addWidget(dialog.neural_tstart_qlineedit)
+        neural_tend_label = QtWidgets.QLabel("End time:")
+        neural_time_groupbox.layout().addWidget(neural_tend_label)
+        dialog.neural_tend_qlineedit = QtWidgets.QLineEdit()
+        neural_time_groupbox.layout().addWidget(dialog.neural_tend_qlineedit)
+        timestamps_groupbox.layout().addWidget(neural_time_groupbox)
+        """
 
-            # Add a groupbpx for behav timestamps selection
-            behav_data_timestamps_groupbox = QtWidgets.QGroupBox()
-            behav_data_timestamps_groupbox.setLayout(QtWidgets.QHBoxLayout())
-            behav_data_timestamps_groupbox.setStyleSheet(
-                "QGroupBox { border: 0px solid gray; }"
-            )
-            behav_timestamps_label = QtWidgets.QLabel("Behavior timestamps:")
-            behav_data_timestamps_groupbox.layout().addWidget(behav_timestamps_label)
-            dialog.behav_data_timestamps_qlineedit = QtWidgets.QLineEdit()
-            dialog.behav_data_timestamps_qlineedit.setReadOnly(True)
-            behav_data_timestamps_groupbox.layout().addWidget(
-                dialog.behav_data_timestamps_qlineedit
-            )
-            behav_timestamps_browse_button = QtWidgets.QPushButton("Browse...")
-            behav_timestamps_browse_button.clicked.connect(
-                lambda clicked: self.set_behav_timestamps_filepath(clicked, dialog)
-            )
-            behav_data_timestamps_groupbox.layout().addWidget(
-                behav_timestamps_browse_button
-            )
-            timestamps_groupbox.layout().addWidget(behav_data_timestamps_groupbox)
+        # Add a groupbpx for behav timestamps selection
+        behav_data_timestamps_groupbox = QtWidgets.QGroupBox()
+        behav_data_timestamps_groupbox.setLayout(QtWidgets.QHBoxLayout())
+        behav_data_timestamps_groupbox.setStyleSheet(
+            "QGroupBox { border: 0px solid gray; }"
+        )
+        behav_timestamps_label = QtWidgets.QLabel("Behavior timestamps:")
+        behav_data_timestamps_groupbox.layout().addWidget(behav_timestamps_label)
+        dialog.behav_data_timestamps_qlineedit = QtWidgets.QLineEdit()
+        dialog.behav_data_timestamps_qlineedit.setReadOnly(True)
+        behav_data_timestamps_groupbox.layout().addWidget(
+            dialog.behav_data_timestamps_qlineedit
+        )
+        behav_timestamps_browse_button = QtWidgets.QPushButton("Browse...")
+        behav_timestamps_browse_button.clicked.connect(
+            lambda clicked: self.set_behav_timestamps_filepath(clicked, dialog)
+        )
+        behav_data_timestamps_groupbox.layout().addWidget(
+            behav_timestamps_browse_button
+        )
+        timestamps_groupbox.layout().addWidget(behav_data_timestamps_groupbox)
 
-            """
-            behav_time_groupbox = QtWidgets.QGroupBox()
-            behav_time_groupbox.setLayout(QtWidgets.QHBoxLayout())
-            behav_time_groupbox.setStyleSheet("QGroupBox { border: 0px solid gray; }")
-            behav_tstart_label = QtWidgets.QLabel("Start time:")
-            behav_time_groupbox.layout().addWidget(behav_tstart_label)
-            dialog.behav_tstart_qlineedit = QtWidgets.QLineEdit()
-            behav_time_groupbox.layout().addWidget(dialog.behav_tstart_qlineedit)
-            behav_tend_label = QtWidgets.QLabel("End time:")
-            behav_time_groupbox.layout().addWidget(behav_tend_label)
-            dialog.behav_tend_qlineedit = QtWidgets.QLineEdit()
-            behav_time_groupbox.layout().addWidget(dialog.behav_tend_qlineedit)
-            timestamps_groupbox.layout().addWidget(behav_time_groupbox)
-            """
+        """
+        behav_time_groupbox = QtWidgets.QGroupBox()
+        behav_time_groupbox.setLayout(QtWidgets.QHBoxLayout())
+        behav_time_groupbox.setStyleSheet("QGroupBox { border: 0px solid gray; }")
+        behav_tstart_label = QtWidgets.QLabel("Start time:")
+        behav_time_groupbox.layout().addWidget(behav_tstart_label)
+        dialog.behav_tstart_qlineedit = QtWidgets.QLineEdit()
+        behav_time_groupbox.layout().addWidget(dialog.behav_tstart_qlineedit)
+        behav_tend_label = QtWidgets.QLabel("End time:")
+        behav_time_groupbox.layout().addWidget(behav_tend_label)
+        dialog.behav_tend_qlineedit = QtWidgets.QLineEdit()
+        behav_time_groupbox.layout().addWidget(dialog.behav_tend_qlineedit)
+        timestamps_groupbox.layout().addWidget(behav_time_groupbox)
+        """
 
-            vbox.addWidget(timestamps_groupbox)
+        vbox.addWidget(timestamps_groupbox)
 
-            # Add a hbox for cancel and done buttons
-            neural_data_buttons_hbox = QtWidgets.QHBoxLayout()
-            # Add a cancel button
-            neural_data_cancel_button = QtWidgets.QPushButton("Cancel")
-            neural_data_cancel_button.clicked.connect(dialog.reject)
-            neural_data_buttons_hbox.addWidget(neural_data_cancel_button)
-            # Add a done button
-            neural_data_done_button = QtWidgets.QPushButton("Done")
-            neural_data_done_button.clicked.connect(
-                lambda clicked: self.set_neural_data(clicked, dialog)
-            )
-            neural_data_buttons_hbox.addWidget(neural_data_done_button)
-            vbox.addLayout(neural_data_buttons_hbox)
+        # Add a groupbox for neural data prediction using keypoints
+        neural_data_prediction_groupbox = QtWidgets.QGroupBox()
+        neural_data_prediction_groupbox.setLayout(QtWidgets.QVBoxLayout())
+        neural_data_prediction_groupbox.setStyleSheet(
+            "QGroupBox {border: 1px solid gray; border-radius: 9px; margin-top: 0.5em;} "
+        )
+        neural_data_prediction_groupbox.setTitle("Neural data prediction")
 
-        else:
-            # Add a hbox for cancel and done buttons
-            buttons_hbox = QtWidgets.QHBoxLayout()
-            # Add a cancel button
-            cancel_button = QtWidgets.QPushButton("Cancel")
-            cancel_button.clicked.connect(dialog.reject)
-            buttons_hbox.addWidget(cancel_button)
-            # Add a done button
-            done_button = QtWidgets.QPushButton("Done")
-            done_button.clicked.connect(
-                lambda clicked: self.set_neural_prediction_data(clicked, dialog)
-            )
-            buttons_hbox.addWidget(done_button)
-            vbox.addLayout(buttons_hbox)
+        # Add a radio button group with two options "Yes" and "No" to ask if the user wants to predict
+        # neural data
+        radio_groupbox = QtWidgets.QGroupBox()
+        radio_groupbox.setLayout(QtWidgets.QHBoxLayout())
+        radio_groupbox.setStyleSheet("QGroupBox { border: 0px solid gray; }")
+        radio_button_label = QtWidgets.QLabel("Run prediction:")
+        radio_groupbox.layout().addWidget(radio_button_label)
+        radio_button_group = QtWidgets.QButtonGroup()
+        radio_button_group.setExclusive(True)
+        dialog.neural_data_prediction_yes_radio_button = QtWidgets.QRadioButton("Yes")
+        dialog.neural_data_prediction_yes_radio_button.setChecked(True)
+        dialog.neural_data_prediction_no_radio_button = QtWidgets.QRadioButton("No")
+        radio_button_group.addButton(dialog.neural_data_prediction_yes_radio_button)
+        radio_button_group.addButton(dialog.neural_data_prediction_no_radio_button)
+        radio_groupbox.layout().addWidget(
+            dialog.neural_data_prediction_yes_radio_button
+        )
+        radio_groupbox.layout().addWidget(dialog.neural_data_prediction_no_radio_button)
+        neural_data_prediction_groupbox.layout().addWidget(radio_groupbox)
+
+        # Add a groupbox for selecting input data for prediction
+        input_data_groupbox = QtWidgets.QGroupBox()
+        input_data_groupbox.setLayout(QtWidgets.QHBoxLayout())
+        input_data_groupbox.setStyleSheet("QGroupBox { border: 0px solid gray; }")
+        input_data_label = QtWidgets.QLabel("Input data:")
+        input_data_groupbox.layout().addWidget(input_data_label)
+        # Create two radio buttons named keypoints and svd to ask the user to select the input data
+        # for prediction
+        input_data_radio_button_group = QtWidgets.QButtonGroup()
+        input_data_radio_button_group.setExclusive(True)
+        dialog.input_data_keypoints_radio_button = QtWidgets.QRadioButton("Keypoints")
+        dialog.input_data_keypoints_radio_button.setChecked(True)
+        dialog.input_data_svd_radio_button = QtWidgets.QRadioButton("SVD")
+        input_data_radio_button_group.addButton(
+            dialog.input_data_keypoints_radio_button
+        )
+        input_data_radio_button_group.addButton(dialog.input_data_svd_radio_button)
+        input_data_groupbox.layout().addWidget(dialog.input_data_keypoints_radio_button)
+        input_data_groupbox.layout().addWidget(dialog.input_data_svd_radio_button)
+        neural_data_prediction_groupbox.layout().addWidget(input_data_groupbox)
+
+        vbox.addWidget(neural_data_prediction_groupbox)
+
+        # Add a hbox for cancel and done buttons
+        neural_data_buttons_hbox = QtWidgets.QHBoxLayout()
+        # Add a cancel button
+        neural_data_cancel_button = QtWidgets.QPushButton("Cancel")
+        neural_data_cancel_button.clicked.connect(dialog.reject)
+        neural_data_buttons_hbox.addWidget(neural_data_cancel_button)
+        # Add a done button
+        neural_data_done_button = QtWidgets.QPushButton("Done")
+        neural_data_done_button.clicked.connect(
+            lambda clicked: self.neural_data_done_clicked(clicked, dialog)
+        )
+        neural_data_buttons_hbox.addWidget(neural_data_done_button)
+        vbox.addLayout(neural_data_buttons_hbox)
 
         dialog.exec_()
+
+    def neural_data_done_clicked(self, clicked, dialog):
+        print("Done button clicked")
+        self.set_neural_data(clicked, dialog)
+        if self.neural_activity.data is None:
+            self.update_status_bar("No neural activity data loaded")
+            dialog.accept()
+        if dialog.neural_data_prediction_yes_radio_button.isChecked():
+            self.run_neural_predictions(dialog)
+
+    def run_neural_predictions(self, dialog):
+        """
+        Run neural predictions
+        """
+        if dialog.input_data_keypoints_radio_button.isChecked():
+            print("Using keypoints input")
+        else:
+            print("Using SVD input")
+        print("Running neural predictions...")
 
     def set_neural_data_filepath(self, clicked, dialog):
         """

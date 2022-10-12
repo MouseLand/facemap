@@ -6,29 +6,29 @@ from . import help_windows, io
 def mainmenu(parent):
     # --------------- MENU BAR --------------------------
     # run suite2p from scratch
-    openFile = QAction("Load single movie file", parent)
-    openFile.triggered.connect(lambda: io.open_file(parent))
-    parent.addAction(openFile)
+    open_file = QAction("Load single movie file", parent)
+    open_file.triggered.connect(lambda: io.open_file(parent))
+    parent.addAction(open_file)
 
-    openFolder = QAction("Open folder of movies", parent)
-    openFolder.setShortcut("Ctrl+O")
-    openFolder.triggered.connect(lambda: io.open_folder(parent))
-    parent.addAction(openFolder)
+    open_folder = QAction("Open folder of movies", parent)
+    open_folder.setShortcut("Ctrl+O")
+    open_folder.triggered.connect(lambda: io.open_folder(parent))
+    parent.addAction(open_folder)
 
     # load processed data
-    loadProc = QAction("&Load processed data", parent)
-    loadProc.setShortcut("Ctrl+L")
-    loadProc.triggered.connect(lambda: io.open_proc(parent))
-    parent.addAction(loadProc)
+    load_proc = QAction("&Load processed data", parent)
+    load_proc.setShortcut("Ctrl+L")
+    load_proc.triggered.connect(lambda: io.open_proc(parent))
+    parent.addAction(load_proc)
 
     # Set output folder
-    setOutputFolder = QAction("Set output folder", parent)
-    setOutputFolder.triggered.connect(lambda: io.save_folder(parent))
-    parent.addAction(setOutputFolder)
+    set_output_folder = QAction("Set output folder", parent)
+    set_output_folder.triggered.connect(lambda: io.save_folder(parent))
+    parent.addAction(set_output_folder)
 
-    loadPose = QAction("Load keypoints", parent)
-    loadPose.triggered.connect(lambda: io.get_pose_file(parent))
-    parent.addAction(loadPose)
+    load_pose = QAction("Load keypoints", parent)
+    load_pose.triggered.connect(lambda: io.get_pose_file(parent))
+    parent.addAction(load_pose)
 
     train_model = QAction("&Train model", parent)
     train_model.setShortcut("Ctrl+T")
@@ -36,10 +36,16 @@ def mainmenu(parent):
     parent.addAction(train_model)
 
     # Load neural data
-    loadNeural = QAction("Load neural data", parent)
-    loadNeural.setShortcut("Ctrl+N")
-    loadNeural.triggered.connect(lambda: parent.load_neural_data())
-    parent.addAction(loadNeural)
+    load_neural = QAction("Load neural data", parent)
+    load_neural.setShortcut("Ctrl+N")
+    load_neural.triggered.connect(lambda: parent.load_neural_data())
+    parent.addAction(load_neural)
+
+    # Run neural predictions
+    run_neural_prediction = QAction("Run neural predictions", parent)
+    run_neural_prediction.setShortcut("Ctrl+R")
+    run_neural_prediction.triggered.connect(lambda: parent.run_neural_predictions())
+    parent.addAction(run_neural_prediction)
 
     # Load neural predictions
     load_neural_predictions = QAction("Load neural predictions", parent)
@@ -61,17 +67,18 @@ def mainmenu(parent):
 
     file_menu = main_menu.addMenu("&File")
     file_menu.grabShortcut("Ctrl+F")
-    file_menu.addAction(openFile)
-    file_menu.addAction(openFolder)
-    file_menu.addAction(loadProc)
-    file_menu.addAction(setOutputFolder)
+    file_menu.addAction(open_file)
+    file_menu.addAction(open_folder)
+    file_menu.addAction(load_proc)
+    file_menu.addAction(set_output_folder)
 
     pose_menu = main_menu.addMenu("Pose")
-    pose_menu.addAction(loadPose)
+    pose_menu.addAction(load_pose)
     pose_menu.addAction(train_model)
 
     neural_activity_menu = main_menu.addMenu("Neural activity")
-    neural_activity_menu.addAction(loadNeural)
+    neural_activity_menu.addAction(load_neural)
+    neural_activity_menu.addAction(run_neural_prediction)
     neural_activity_menu.addAction(load_neural_predictions)
 
     help_menu = main_menu.addMenu("&Help")

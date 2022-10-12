@@ -1,8 +1,9 @@
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Network ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-import numpy as np
+
 
 class FMnet(nn.Module):
     def __init__(
@@ -72,7 +73,9 @@ class FMnet(nn.Module):
         hm = self.Conv2_1x1[0](x)
         hm = F.relu(hm)
         if self.training:
-            hm = 10 * hm / (1e-4 + hm.sum(axis=(-2, -1)).unsqueeze(-1).unsqueeze(-1)) # Normalize
+            hm = (
+                10 * hm / (1e-4 + hm.sum(axis=(-2, -1)).unsqueeze(-1).unsqueeze(-1))
+            )  # Normalize
         if smooth_confidence:
             hm = smooth_heatmap(hm, self.device)
 
@@ -81,22 +84,22 @@ class FMnet(nn.Module):
 
 # Create a gaussian wavelet of a set bin size
 def gaussian_wavelet(bin_size, sigma):
-    x = np.arange(-bin_size//2, bin_size//2 + 1)
-    gaussian = np.exp(-x**2 / (2 * sigma**2))
+    x = np.arange(-bin_size // 2, bin_size // 2 + 1)
+    gaussian = np.exp(-(x**2) / (2 * sigma**2))
     return gaussian / gaussian.sum()
 
 
-# Write a function that takes a heatmap of dimensions (n_batches, n_keypoints, width, height) 
+# Write a function that takes a heatmap of dimensions (n_batches, n_keypoints, width, height)
 # and returns a smoothed heatmap using the gaussian smoothing function
 def smooth_heatmap(heatmap, device=None):
     """
     Parameters
     ----------------
     heatmap: ND-array of shape (n_batches, n_keypoints, width, height)
-                A heatmap containing confidence scores for each key point 
+                A heatmap containing confidence scores for each key point
     Returns
     ----------------
-    heatmap_smoothed_reshaped: ND-array of shape (n_batches, n_keypoints, width, height) 
+    heatmap_smoothed_reshaped: ND-array of shape (n_batches, n_keypoints, width, height)
                             A smoothed heatmap containing confidence scores resulting from covolution
                              across a batch of images for each key point
     """
@@ -104,20 +107,28 @@ def smooth_heatmap(heatmap, device=None):
     n_keypoints = heatmap.shape[1]
     lx = heatmap.shape[2]
     ly = heatmap.shape[3]
-    bin_size = heatmap.shape[0]-1
+    bin_size = heatmap.shape[0] - 1
 
-    gaussian_filter = torch.nn.Conv1d(in_channels=n_keypoints, out_channels=n_keypoints, 
-                                    kernel_size=bin_size+1, bias=False, padding='same')
+    gaussian_filter = torch.nn.Conv1d(
+        in_channels=n_keypoints,
+        out_channels=n_keypoints,
+        kernel_size=bin_size + 1,
+        bias=False,
+        padding="same",
+    )
     for i in range(n_keypoints):
-        gaussian_filter.weight.data[i][i] =  torch.tensor(gaussian_wavelet(bin_size, 2), 
-                                                                        dtype=torch.float32)
+        gaussian_filter.weight.data[i][i] = torch.tensor(
+            gaussian_wavelet(bin_size, 2), dtype=torch.float32
+        )
     gaussian_filter.weight.data = (gaussian_filter.weight.data).to(device)
     gaussian_filter.weight.requires_grad = False
 
-    # Apply gaussian smoothing on each keypoint at a time using the gaussian smoothing function above 
-    heatmap_reshaped = heatmap.reshape(n_batches, n_keypoints, -1).permute(2,1,0)
+    # Apply gaussian smoothing on each keypoint at a time using the gaussian smoothing function above
+    heatmap_reshaped = heatmap.reshape(n_batches, n_keypoints, -1).permute(2, 1, 0)
     heatmap_smoothed = gaussian_filter(heatmap_reshaped)
-    heatmap_smoothed_reshaped = heatmap_smoothed.permute(2,1,0).reshape(n_batches, n_keypoints, lx, ly)
+    heatmap_smoothed_reshaped = heatmap_smoothed.permute(2, 1, 0).reshape(
+        n_batches, n_keypoints, lx, ly
+    )
     return heatmap_smoothed_reshaped
 
 

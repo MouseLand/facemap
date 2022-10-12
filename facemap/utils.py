@@ -24,17 +24,22 @@ def update_mainwindow_message(MainWindow, GUIobject, prompt, hide_progress=True)
 
 
 def bin1d(X, bin_size, axis=0):
-    """ mean bin over axis of data with bin bin_size """
+    """mean bin over axis of data with bin bin_size"""
     if bin_size > 0:
         size = list(X.shape)
         Xb = X.swapaxes(0, axis)
-        Xb = Xb[:size[axis]//bin_size*bin_size].reshape((size[axis]//bin_size, bin_size, -1)).mean(axis=1)
+        Xb = (
+            Xb[: size[axis] // bin_size * bin_size]
+            .reshape((size[axis] // bin_size, bin_size, -1))
+            .mean(axis=1)
+        )
         Xb = Xb.swapaxes(axis, 0)
         size[axis] = Xb.shape[axis]
         Xb = Xb.reshape(size)
         return Xb
     else:
         return X
+
 
 def get_frame(cframe, nframes, cumframes, containers):
     cframe = np.maximum(0, np.minimum(nframes - 1, cframe))
