@@ -173,7 +173,7 @@ class KeypointsNetwork(nn.Module):
                             spks_test = spks[i][:, itest[i].flatten()].T if spks[i] is not None else Y_test[i].cpu().numpy()
                             ven = prediction_utils.compute_varexp(spks_test, spks_pred_test)
                             ve_neurons.append(ven)
-                            spks_pred_all.append(spks_pred_test)
+                            spks_pred_all.append(spks_pred_test.T)
                 pstr += f"time {time.time()-tic:.1f}s"
                 if verbose:
                     print(pstr)        

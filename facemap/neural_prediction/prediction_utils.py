@@ -146,7 +146,7 @@ def ridge_regression(X, Y, lam=0):
     return A
 
 
-def reduced_rank_regression(X, Y, rank=None, lam=0):
+def reduced_rank_regression(X, Y, rank=None, lam=0, device=torch.device('cuda')):
     """predict Y from X using regularized reduced rank regression
 
     *** subtract mean from X and Y before predicting
@@ -159,9 +159,9 @@ def reduced_rank_regression(X, Y, rank=None, lam=0):
     Parameters
     ----------
 
-    X : 2D array, input data (n_samples, n_features)
+    X : 2D array, input data, float32 torch tensor (n_samples, n_features)
 
-    Y : 2D array, data to predict (n_samples, n_predictors)
+    Y : 2D array, data to predict, float32 torch tensor (n_samples, n_predictors)
 
     rank : int (optional, default None)
         rank to compute reduced rank regression for
@@ -184,30 +184,28 @@ def reduced_rank_regression(X, Y, rank=None, lam=0):
         rank = min(min_dim, rank)
 
     # make covariance matrices
-    CXX = (X.T @ X + lam * np.eye(X.shape[1])) / X.shape[0]
+    CXX = (X.T @ X + lam * torch.eye(X.shape[1], device=device)) / X.shape[0]
     CYX = (Y.T @ X) / X.shape[0]
 
     # compute inverse square root of matrix
-    s, u = eigh(CXX)
-    # u = model.components_.T
-    # s = model.singular_values_**2
+    #s, u = eigh(CXX.cpu().numpy())
+    u, s = torch.svd(CXX)[:2]
     CXXMH = (u * (s + lam) ** -0.5) @ u.T
 
     # project into prediction space
     M = CYX @ CXXMH
-
     # do svd of prediction projection
-    model = PCA(n_components=rank).fit(M)
-    c = model.components_.T
-    s = model.singular_values_
+    #model = PCA(n_components=rank).fit(M)
+    #c = model.components_.T
+    #s = model.singular_values_
+    s, c = torch.svd(M)[1:]
     A = M @ c
     B = CXXMH @ c
-
     return A, B
 
 
 def rrr_prediction(
-    X, Y, rank=None, lam=0, itrain=None, itest=None, tbin=None
+    X, Y, rank=None, lam=0, itrain=None, itest=None, tbin=None, device=torch.device('cuda')
 ):
     """predict Y from X using regularized reduced rank regression for all ranks up to "rank"
 
@@ -221,9 +219,9 @@ def rrr_prediction(
     Parameters
     ----------
 
-    X : 2D array, input data (n_samples, n_features)
+    X : 2D array, input data, float32 (n_samples, n_features)
 
-    Y : 2D array, data to predict (n_samples, n_predictors)
+    Y : 2D array, data to predict, float32 (n_samples, n_predictors)
 
     rank : int (optional, default None)
         rank up to which to compute reduced rank regression for
@@ -263,8 +261,9 @@ def rrr_prediction(
     if itrain is None and itest is None:
         itrain, itest = split_traintest(n_t)
     itrain, itest = itrain.flatten(), itest.flatten()
-    A, B = reduced_rank_regression(X[itrain], Y[itrain], rank=rank, lam=lam)
-    rank = A.shape[1]
+    X = torch.from_numpy(X).to(device)
+    Y = torch.from_numpy(Y).to(device)
+    A, B = reduced_rank_regression(X[itrain], Y[itrain], rank=rank, lam=lam, device=device)
     corrf = np.zeros((rank, n_feats))
     varexpf = np.zeros((rank, n_feats))
     varexp = np.zeros((rank, 2)) if tbin is not None else np.zeros((rank, 1))
@@ -272,17 +271,17 @@ def rrr_prediction(
     for r in range(rank):
         Y_pred_test = X[itest] @ B[:, : r + 1] @ A[:, : r + 1].T
         Y_test_var = (Y[itest] ** 2).mean(axis=0)
-        corrf[r] = (Y[itest] * Y_pred_test).mean(axis=0) / (
+        corrf[r] = ((Y[itest] * Y_pred_test).mean(axis=0) / (
             Y_test_var**0.5 * Y_pred_test.std(axis=0)
-        )
+        )).cpu().numpy()
         residual = ((Y[itest] - Y_pred_test) ** 2).mean(axis=0)
-        varexpf[r] = 1 - residual / Y_test_var
-        varexp[r, 0] = 1 - residual.mean() / Y_test_var.mean()
+        varexpf[r] = (1 - residual / Y_test_var).cpu().numpy()
+        varexp[r, 0] = (1 - residual.mean() / Y_test_var.mean()).cpu().numpy()
         if tbin is not None and tbin > 1:
             varexp[r, 1] = compute_varexp(
                 bin1d(Y[itest], tbin).flatten(), bin1d(Y_pred_test, tbin).flatten()
-            )
-    return Y_pred_test, varexp.squeeze(), itest, A, B, varexpf, corrf
+            ).cpu().numpy()
+    return Y_pred_test.cpu().numpy(), varexp.squeeze(), itest, A.cpu().numpy(), B.cpu().numpy(), varexpf, corrf
 
 
 def rrr_varexp_svds(
@@ -310,7 +309,7 @@ def rrr_varexp_svds(
             X_ds = np.vstack((X_ds[delay:], np.tile(X_ds[[-1], :], (delay, 1))))
             Ys = Y
         Y_pred_test, ve_test, itest, A, B = rrr_prediction(
-            X_ds, Ys, rank=rank, lam=lam
+            X_ds.astype('float32'), Ys.astype('float32'), rank=rank, lam=lam
         )[:5]
         varexp[:, k] = ve_test
         
