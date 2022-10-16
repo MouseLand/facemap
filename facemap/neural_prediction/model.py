@@ -54,6 +54,7 @@ class Core(nn.Module):
         self.n_filt = (n_filt // 2) * 2  # must be even for initialization
         self.relu_latents = relu_latents
         self.relu_wavelets = relu_wavelets
+        self.kernel_size = kernel_size
         self.n_layers = n_layers
         self.n_latents = n_latents
         self.features = nn.Sequential()
