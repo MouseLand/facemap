@@ -79,11 +79,13 @@ class Core(nn.Module):
         self.n_in = n_in
         self.n_kp = n_in if n_kp is None or identity else n_kp
         self.n_filt = (n_filt // 2) * 2  # must be even for initialization
-        self.relu_latents = relu_latents
-        self.relu_wavelets = relu_wavelets
-        self.same_conv = same_conv
+        self.kernel_size = kernel_size
         self.n_layers = n_layers
+        self.n_med = n_med
         self.n_latents = n_latents
+        self.same_conv = same_conv
+        self.relu_wavelets = relu_wavelets
+        self.relu_latents = relu_latents
         self.features = nn.Sequential()
 
         # combine keypoints into n_kp features
@@ -201,19 +203,25 @@ class Readout(nn.Module):
     def __init__(self, n_animals=1, n_latents=256, n_layers=1, n_med=128, n_out=128):
         super().__init__()
         self.n_animals = n_animals
+        self.n_latents = n_latents
+        self.n_layers = n_layers
+        self.n_med = n_med
+        self.n_out = n_out
         self.features = nn.Sequential()
-        self.bias = nn.Parameter(torch.zeros(n_out))
+        self.bias = nn.Parameter(torch.zeros(self.n_out))
         if n_animals == 1:
             for j in range(n_layers):
                 n_in = n_latents if j == 0 else n_med
-                n_outc = n_out if j == n_layers - 1 else n_med
+                n_outc = self.n_out if j == n_layers - 1 else n_med
                 self.features.add_module(f"linear{j}", nn.Linear(n_in, n_outc))
                 if n_layers > 1 and j < n_layers - 1:
                     self.features.add_module(f"relu{j}", nn.ReLU())
         else:
             # no option for n_layers > 1
             for n in range(n_animals):
-                self.features.add_module(f"linear0_{n}", nn.Linear(n_latents, n_out))
+                self.features.add_module(
+                    f"linear0_{n}", nn.Linear(n_latents, self.n_out)
+                )
         self.bias.requires_grad = False
 
     def forward(self, latents, animal_id=0):

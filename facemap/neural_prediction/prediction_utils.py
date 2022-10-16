@@ -412,76 +412,40 @@ def get_neural_pcs(neural_activity, n_comps=128):
     return U, S, V
 
 
-def get_keypoints_to_neural_prediction(
-    keypoints_path,
-    y,
-    behavior_timestamps,
-    neural_timestamps,
-    delay=-1,
-    verbose=False,
-    device=torch.device("cuda"),
-):
+def get_normalized_keypoints(keypoints_path):
     """
-    Get variance explained of neural PCs prediction by keypoints
-    (or variance explained of neural spikes prediction by keypoints)
+    Load keypoints and normalize them
     Parameters
     ----------
     keypoints_path : str
-        path to keypoints file (either .npy or .h5)
-    y : 2D-array
-        neural PCs or spike responses to predict
-    behavior_timestamps : 1D array
-        timestamps of behavior data for each frame
-    neural_timestamps : 1D array
-        timestamps of neural data for each frame
-    verbose : bool, optional
-        print progress, by default False
-    device : torch.device, optional
-        device to use for prediction, by default torch.device("cuda")
+        path to keypoints file
+    Returns
+    -------
+    keypoints_normalized : 2D-array
+        normalized keypoints of shape [n_keypoints x 2, time]
     """
     # Load keypoints
     if os.path.splitext(keypoints_path)[-1] == ".h5":
-        xy, keypoint_labels = keypoints.load_keypoints(keypoints_path)
+        keypoints_xy, keypoint_labels = keypoints.load_keypoints(keypoints_path)
     else:
         kp = np.load(keypoints_path, allow_pickle=True).item()
-        xy, keypoint_labels = kp["xy"], kp["keypoint_labels"]
+        keypoints_xy, keypoint_labels = kp["xy"], kp["keypoint_labels"]
 
-    # Normalize keypoints (input data x)
-    x = xy.reshape(xy.shape[0], -1).copy()
-    x = (x - x.mean(axis=0)) / x.std(axis=0)
-
-    # Initialize model for keypoints to neural prediction
-    np.random.seed(0)
-    torch.manual_seed(0)
-    torch.cuda.manual_seed(0)
-    model = KeypointsNetwork(n_in=x.shape[-1], n_out=y.shape[-1]).to(device)
-
-    # Train model and get predictions
-    y_pred_test, varexp_testdata, test_indices = train_model(
-        model,
-        x,
-        y,
-        behavior_timestamps,
-        neural_timestamps,
-        delay=delay,
-        verbose=verbose,
-        device=device,
-    )
-
-    return x, keypoint_labels, model, y_pred_test, varexp_testdata, test_indices
+    # Normalize keypoints
+    keypoints_normalized = keypoints_xy.reshape(keypoints_xy.shape[0], -1).copy()
+    keypoints_normalized = (
+        keypoints_normalized - keypoints_normalized.mean(axis=0)
+    ) / keypoints_normalized.std(axis=0)
+    return keypoints_normalized
 
 
 def get_keypoints_to_neural_varexp(
-    keypoints_path,
+    input_data,
+    target_neural_data,
     behavior_timestamps,
     neural_timestamps,
-    neural_pcs_V,
-    neural_pcs_U,
-    spks,
     delay=-1,
-    tbin=4,
     verbose=False,
-    varexp_per_keypoint=False,
     device=torch.device("cuda"),
 ):
     """
@@ -489,18 +453,14 @@ def get_keypoints_to_neural_varexp(
     (or variance explained of neural spikes prediction by keypoints)
     Parameters
     ----------
-    keypoints_path : str
-        path to keypoints file (either .npy or .h5)
+    input_data : 2D-array
+        input data of shape [n_features, time]
+    target_neural_data : 2D array
+        neural data of shape [neurons x time] which can represent neural PCs or neural spikes
     behavior_timestamps : 1D array
         timestamps of behavior data for each frame
     neural_timestamps : 1D array
         timestamps of neural data for each frame
-    neural_pcs_V : 2D array
-        Transformed neural PCs where each row is a PC and each column is a frame
-    neural_pcs_U : 2D array
-        Eigenvalues where each row is a PC and each column is a neuron
-    spks : 2D array
-        Neural activity where each row is a neuron and each column is a frame
     delay : int, optional
         number of frames to delay neural data, by default -1
     tbin : int, optional
@@ -511,132 +471,123 @@ def get_keypoints_to_neural_varexp(
         return variance explained per keypoint, by default False and returns variance explained for all keypoints
     device : torch.device, optional
         device to use for prediction, by default torch.device("cuda")
+    Returns
+    -------
+    varexp : float
+        variance explained of neural PCs prediction by keypoints
+    model : torch.nn.Module
+        model used for prediction
+    itest : 1D array
+        indices of test data
     """
-    (
+    x = input_data
+    y = target_neural_data
+    # Train model and get predictions
+    print("Keypoints: ", x.shape)
+    print("Neural: ", y.shape)
+    print("Keypoints timestamps: ", behavior_timestamps.shape)
+    print("Neural timestamps: ", neural_timestamps.shape)
+    model, itest = train_model(
         x,
-        keypoint_labels,
-        model,
-        y_pred_test,
-        varexp_testdata,
-        test_indices,
-    ) = get_keypoints_to_neural_prediction(
-        keypoints_path,
-        neural_pcs_V,
+        y,
         behavior_timestamps,
         neural_timestamps,
         delay=delay,
         verbose=verbose,
         device=device,
     )
+    y_pred, _ = get_trained_model_predictions(x, model)
 
-    n_t = x.shape[0]
-    latents = np.zeros((n_t, model.core.features.latent[0].weight.shape[0]), "float32")
+    # Get variance explained for test data
+    y_pred_test = y_pred[itest]
+    y_pred_test = y_pred_test.reshape(-1, target_neural_data.shape[-1])
+    y_test = y[itest]
+    y_test = y_test.reshape(-1, target_neural_data.shape[-1])
+    varexp = (
+        1 - ((y_test - y_pred_test) ** 2).mean() / ((y_test) ** 2).mean()
+    )  # compute_varexp(y_test, y_pred_test)
+
+    return varexp, y_pred_test, itest, model
+
+
+def get_trained_model_predictions(keypoints, model, device=torch.device("cuda")):
+    """
+    Get prediction from keypoints using a trained model
+    Parameters
+    ----------
+    keypoints :
+        array of shape (n_frames, n_keypoints, 2)
+    model : torch.nn.Module
+        an instance of KeypointsNetwork model already trained
+    device : torch.device, optional
+        device to use for prediction, by default torch.device("cuda")
+    Returns
+    -------
+    prediction : ND-array
+        prediction from the model
+    """
+    num_timepoints = keypoints.shape[0]
+    pred_data = np.zeros((num_timepoints, model.readout.n_out), "float32")
     batch_size = 10000
-    n_batches = int(np.ceil(n_t / batch_size))
+    latents = np.zeros(
+        (num_timepoints, model.core.features.latent[0].weight.shape[0]), "float32"
+    )
+    n_batches = int(np.ceil(num_timepoints / batch_size))
+
     with torch.no_grad():
         model.eval()
         for n in range(n_batches):
-            x_batch = x[n * batch_size : min(n_t, (n + 1) * batch_size)].astype(
-                "float32"
-            )
+            x_batch = keypoints[
+                n * batch_size : min(num_timepoints, (n + 1) * batch_size)
+            ].astype("float32")
             x_batch = torch.from_numpy(x_batch).to(device)
-            y_pred, l_batch = model(x_batch.unsqueeze(0))
+            y_batch, l_batch = model(x_batch.unsqueeze(0))
+            pred_data[
+                n * batch_size : min(num_timepoints, (n + 1) * batch_size)
+            ] = y_batch.cpu().numpy()
             latents[
-                n * batch_size : min(n_t, (n + 1) * batch_size)
+                n * batch_size : min(num_timepoints, (n + 1) * batch_size)
             ] = l_batch.cpu().numpy()
-
-    y_pred_test = y_pred_test.reshape(-1, neural_pcs_V.shape[-1])
-    varexp = np.zeros(2)
-    varexp_neurons = np.zeros((len(spks), 2))
-    varexp[0] = varexp_testdata
-    Y_test_bin = bin1d(neural_pcs_V[test_indices.flatten()], tbin)
-    Y_pred_test_bin = bin1d(y_pred_test, tbin)
-    varexp[1] = (
-        1 - ((Y_test_bin - Y_pred_test_bin) ** 2).mean() / ((Y_test_bin) ** 2).mean()
-    )
-    print(f"all kp, varexp {varexp[0]:.3f}; tbin=4: {varexp[1]:.3f}")
-    spks_pred_test = y_pred_test @ neural_pcs_U.T
-    spks_test = spks[:, test_indices.flatten()].T
-    varexp_neurons[:, 0] = compute_varexp(spks_test, spks_pred_test)
-    spks_test_bin = bin1d(spks_test, tbin)
-    spks_pred_test_bin = bin1d(spks_pred_test, tbin)
-    varexp_neurons[:, 1] = compute_varexp(spks_test_bin, spks_pred_test_bin)
-    spks_pred_test0 = spks_pred_test.T.copy()
-    y_pred_test0 = y_pred_test.copy()
-
-    # predict using each keypoint
-    if varexp_per_keypoint:
-        varexp_per_pt = np.nan * np.zeros((len(keypoint_labels), 2))
-        varexp_neurons_per_pt = np.nan * np.zeros((len(spks), len(keypoint_labels), 2))
-        for k, label in enumerate(keypoint_labels):
-            np.random.seed(0)
-            torch.manual_seed(0)
-            torch.cuda.manual_seed(0)
-            model = KeypointsNetwork(n_in=2, n_out=neural_pcs_V.shape[-1]).to(device)
-
-            y_pred_test, varexp_testdata, test_indices = train_model(
-                model,
-                x[:, 2 * k : 2 * k + 2],
-                neural_pcs_V,
-                behavior_timestamps,
-                neural_timestamps,
-                delay=delay,
-                device=device,
-            )
-            y_pred_test = y_pred_test.reshape(-1, neural_pcs_V.shape[-1])
-            varexp_per_pt[k, 0] = varexp_testdata
-            varexp_per_pt[k, 1] = compute_varexp(
-                bin1d(neural_pcs_V[test_indices.flatten()], 4).flatten(),
-                bin1d(y_pred_test, 4).flatten(),
-            )
-            spks_pred_test = y_pred_test @ neural_pcs_U.T
-            spks_test = spks[:, test_indices.flatten()].T
-            varexp_neurons_per_pt[:, k, 0] = compute_varexp(spks_test, spks_pred_test)
-            spks_test_bin = bin1d(spks_test, 4)
-            spks_pred_test_bin = bin1d(spks_pred_test, 4)
-            varexp_neurons_per_pt[:, k, 1] = compute_varexp(
-                spks_test_bin, spks_pred_test_bin
-            )
-            print(
-                f"{label}, varexp {varexp_testdata:.3f}, {varexp_neurons_per_pt[:,k,0].mean():.3f}"
-            )
-            return (
-                varexp,
-                varexp_neurons,
-                spks_pred_test0,
-                test_indices,
-                varexp_per_pt,
-                varexp_neurons_per_pt,
-            )
-    else:
-        return (
-            varexp,
-            varexp_neurons,
-            y_pred_test0,
-            spks_pred_test0,
-            test_indices,
-            latents,
-            model,
-        )
+    return pred_data, latents
 
 
-def get_predicted_neural_activity(
-    x, spks, neural_pcs_U, model, device=torch.device("cuda")
-):
+def transform_neural_pcs_to_activity(neural_pcs, neural_pcs_U):
     """
-    Get predicted neural activity from trained model
+    Transform PCs to neural activity using the neural_pcs_U matrix
+    Parameters
+    ----------
+    neural_pcs : 2D array
+        PCs where each row is a PC and each column is a frame
+    neural_pcs_U : 2D array
+        Eigenvalues where each row is a PC and each column is a neuron
+    Returns
+    -------
+    neural_activity : 2D array
+        Neural activity where each row is a neuron and each column is a frame
     """
-    model.eval()
-    with torch.no_grad():
-        y_pred = (
-            model(torch.from_numpy(x).float().to(device), torch.arange(x.shape[1]))
-            .cpu()
-            .numpy()
-        )
-    spks_pred_test = y_pred @ neural_pcs_U.T
-    spks_test = spks.T
-    varexp_neurons = compute_varexp(spks_test, spks_pred_test)
-    return spks_pred_test, varexp_neurons
+    neural_activity = neural_pcs @ neural_pcs_U.T
+    return neural_activity
+
+
+def resample_data_to_neural_timestamps(data, behavior_timestamps, neural_timestamps):
+    """
+    Resample data to neural timestamps using linear interpolation
+    Parameters
+    ----------
+    data : 2D array
+    behavior_timestamps : 1D array
+        timestamps of behavior data for each frame
+    neural_timestamps : 1D array
+        timestamps of neural data for each frame
+    Returns
+    -------
+    data_resampled : 2D array
+        Resampled data
+    """
+    f = interp1d(behavior_timestamps, np.arange(0, len(behavior_timestamps)))
+    sample_inds = np.round(f(neural_timestamps)).astype(int)
+    data_resampled = data[sample_inds]
+    return data_resampled
 
 
 def peer_prediction(spks, xpos, ypos, dum=400, tbin=4, split_time=False):
@@ -825,7 +776,6 @@ def split_data(
 
 
 def train_model(
-    model,
     X_dat,
     Y_dat,
     tcam_list,
@@ -840,7 +790,28 @@ def train_model(
     split_time=False,
     verbose=False,
 ):
-    """train behavior -> neural model using multiple animals"""
+    """
+    Train KeypointsNetwork (behavior -> neural) model using multiple animals
+    Parameters
+    ----------
+    X_dat: list of 2D arrays
+        behavior data for each animal
+    Y_dat: list of 2D arrays
+        neural data for each animal
+    tcam_list: list of 1D arrays
+        timestamps for behavior data for each animal
+    tneural_list: list of 1D arrays
+        timestamps for neural data for each animal
+    Returns
+    -------
+    model: torch.nn.Module
+        KeypointsNetwork trained on data
+    """
+    # Initialize model for keypoints to neural prediction
+    np.random.seed(0)
+    torch.manual_seed(0)
+    torch.cuda.manual_seed(0)
+    model = KeypointsNetwork(n_in=X_dat.shape[-1], n_out=Y_dat.shape[-1]).to(device)
 
     optimizer = torch.optim.AdamW(
         model.parameters(), lr=learning_rate, weight_decay=weight_decay
@@ -942,10 +913,7 @@ def train_model(
             if verbose:
                 print(pstr)
 
-    if not_list:
-        return y_pred_all[0], ve_all[0], itest[0]
-    else:
-        return y_pred_all, ve_all, itest
+    return model, itest
 
 
 def train_model_test(

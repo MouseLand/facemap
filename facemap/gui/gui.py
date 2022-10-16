@@ -1,6 +1,7 @@
 import os
 import sys
 from ctypes import alignment
+from tabnanny import verbose
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -2022,6 +2023,12 @@ class MainW(QtWidgets.QMainWindow):
         behav_data_timestamps_groupbox.layout().addWidget(
             behav_timestamps_browse_button
         )
+        # Add a checkbox for data alignment
+        dialog.align_behav_data_checkbox = QtWidgets.QCheckBox("Align data")
+        dialog.align_behav_data_checkbox.setChecked(True)
+        behav_data_timestamps_groupbox.layout().addWidget(
+            dialog.align_behav_data_checkbox
+        )
         timestamps_groupbox.layout().addWidget(behav_data_timestamps_groupbox)
 
         """
@@ -2127,7 +2134,6 @@ class MainW(QtWidgets.QMainWindow):
         dialog.exec_()
 
     def neural_data_done_clicked(self, clicked, dialog):
-        print("Done button clicked")
         self.set_neural_data(clicked, dialog)
         if self.neural_activity.data is None:
             self.update_status_bar("No neural activity data loaded")
@@ -2139,39 +2145,53 @@ class MainW(QtWidgets.QMainWindow):
         """
         Run neural predictions
         """
+        # TODO: Add try here for loading timestamps from npy files
+        behavior_timestamps = np.load(dialog.behav_data_timestamps_qlineedit.text())
+        neural_timestamps = np.load(dialog.neural_data_timestamps_lineedit.text())
+        print("Neural activity shape: %s" % str(self.neural_activity.data.shape))
         if dialog.input_data_keypoints_radio_button.isChecked():
-            print("Using keypoints as input for prediction")
-            # TODO: Add try catch here for loading timestamps from npy files
-            behavior_timestamps = np.load(dialog.behav_data_timestamps_qlineedit.text())
-            neural_timestamps = np.load(dialog.neural_data_timestamps_lineedit.text())
+            keypoints = prediction_utils.get_normalized_keypoints(self.poseFilepath[0])
+            if dialog.align_behav_data_checkbox.isChecked():
+                keypoints = keypoints[
+                    np.linspace(0, len(keypoints) - 1, len(behavior_timestamps)).astype(
+                        int
+                    )
+                ]
+
             if dialog.neural_pcs_yes_radio_button.isChecked():
-                print("Predicting neural pcs")
-                # print("Neural activity shape: %s" % str(self.neural_activity.data.shape))
                 U, S, V = prediction_utils.get_neural_pcs(self.neural_activity.data)
                 print(
                     "U shape: %s, S shape: %s, V shape: %s"
                     % (U.shape, S.shape, V.shape)
                 )
             else:
-                print("Predicting neural activity")
-            print("Pose file:", self.poseFilepath[0])
+                V = self.neural_activity.data.T
             (
+                varexp_testdata,
                 _,
                 _,
                 model,
-                pred_data,
-                varexp_testdata,
-                test_indices,
-            ) = prediction_utils.get_keypoints_to_neural_prediction(
-                self.poseFilepath[0], V, behavior_timestamps, neural_timestamps
+            ) = prediction_utils.get_keypoints_to_neural_varexp(
+                keypoints, V, behavior_timestamps, neural_timestamps, verbose=True
             )
-            print("varexp_testdata: %s" % str(varexp_testdata))
-            # if dialog.neural_pcs_yes_radio_button.isChecked():
-            #    # Get neural predictions from the model
-            #    pred_data, varexp_neurons = prediction_utils.get_predicted_neural_activity(spks, U, model)
+            predictions, _ = prediction_utils.get_trained_model_predictions(
+                keypoints, model
+            )
+
+            if dialog.neural_pcs_yes_radio_button.isChecked():
+                print("PC varexp: {}".format(varexp_testdata * 100))
+                predictions = prediction_utils.transform_neural_pcs_to_activity(
+                    predictions, U
+                )
+            else:
+                print("Neural activity varexp: {}".format(varexp_testdata * 100))
+                predictions = predictions.T
         else:
-            print("Using SVD input")
-        print("Running neural predictions...")
+            print("Using SVD for training model")
+            # TODO: Add prediction using SVDs
+
+        # Plot neural activity predictions
+        self.set_neural_prediction_data(dialog, predictions)
 
     def set_neural_data_filepath(self, clicked, dialog):
         """
@@ -2235,25 +2255,16 @@ class MainW(QtWidgets.QMainWindow):
         self.plot_neural_data()
         dialog.accept()
 
-    def set_neural_prediction_data(self, clicked, dialog):
+    def set_neural_prediction_data(self, dialog, data):
         """
         Get user settings from the dialog box to set neural prediction data
-        """
-        neural_data_filepath = dialog.neural_data_lineedit.text()
-        """
-        if dialog.calcium_radiobutton.isChecked():
-            neural_data_type = "calcium"
-        else:
-            neural_data_type = "ephys"
         """
         if dialog.heatmap_button.isChecked():
             data_viz_method = "heatmap"
         else:
             data_viz_method = "lineplot"
-        print("neural_data_filepath:", neural_data_filepath)
         print("data_viz_type:", data_viz_method)
-        print("\n")
-        self.neural_predictions.set_data(neural_data_filepath, None, data_viz_method)
+        self.neural_predictions.set_data(data, None, data_viz_method)
         self.neural_predictions_loaded = True
         self.plot_neural_predictions()
         dialog.accept()
@@ -2324,10 +2335,17 @@ class MainW(QtWidgets.QMainWindow):
             self.neural_heatmap = pg.ImageItem(
                 self.neural_predictions.data, autoDownsample=True, levels=(vmin, vmax)
             )
-            # TODO - Use same resampling as neural data
-            # if self.neural_activity.behavior_timestamps is not None and self.neural_activity.neural_timestamps is not None:
-            #    extent = QtCore.QRect(0, 0, self.neural_activity.behavior_timestamps.shape[0], self.neural_activity.data.shape[0])
-            #    self.neural_heatmap.setRect(extent)
+            if (
+                self.neural_activity.behavior_timestamps is not None
+                and self.neural_activity.neural_timestamps is not None
+            ):
+                extent = QtCore.QRect(
+                    self.neural_activity.neural_timestamps_resampled[0],
+                    0,
+                    self.neural_activity.neural_timestamps_resampled[-1],
+                    self.nframes,
+                )
+                self.neural_heatmap.setRect(extent)
             self.neural_predictions_plot.addItem(self.neural_heatmap)
             colormap = cm.get_cmap("gray_r")
             colormap._init()
