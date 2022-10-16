@@ -12,35 +12,17 @@ class KeypointsNetwork(nn.Module):
     """
 
     def __init__(
-        self,
-        n_in=28,
-        n_kp=None,
-        n_filt=10,
-        kernel_size=201,
-        n_core_layers=2,
-        n_latents=256,
-        n_out_layers=1,
-        n_out=128,
-        n_med=50,
-        n_animals=1,
-        same_conv=True,
-        identity=False,
-        relu_wavelets=True,
-        relu_latents=True,
+        self, n_in=28, n_kp=None, n_filt=10, kernel_size=201,
+        n_core_layers=2, n_latents=256, n_out_layers=1,
+        n_out=128, n_med=50, n_animals=1,
+        identity=False, relu_wavelets=True, relu_latents=True,
     ):
         super().__init__()
         self.core = Core(
-            n_in=n_in,
-            n_kp=n_kp,
-            n_filt=n_filt,
-            kernel_size=kernel_size,
-            n_layers=n_core_layers,
-            n_med=n_med,
-            n_latents=n_latents,
-            same_conv=same_conv,
-            identity=identity,
-            relu_wavelets=relu_wavelets,
-            relu_latents=relu_latents,
+            n_in=n_in, n_kp=n_kp, n_filt=n_filt, kernel_size=kernel_size,
+            n_layers=n_core_layers, n_med=n_med, n_latents=n_latents,
+            identity=identity, 
+            relu_wavelets=relu_wavelets, relu_latents=relu_latents,
         )
         self.readout = Readout(
             n_animals=n_animals, n_latents=n_latents, n_layers=n_out_layers, n_out=n_out
@@ -62,18 +44,9 @@ class Core(nn.Module):
     """
 
     def __init__(
-        self,
-        n_in=28,
-        n_kp=None,
-        n_filt=10,
-        kernel_size=201,
-        n_layers=1,
-        n_med=50,
-        n_latents=256,
-        identity=False,
-        same_conv=True,
-        relu_wavelets=True,
-        relu_latents=True,
+        self, n_in=28, n_kp=None, n_filt=10, kernel_size=201,
+        n_layers=1, n_med=50, n_latents=256, identity=False,
+        relu_wavelets=True, relu_latents=True,
     ):
         super().__init__()
         self.n_in = n_in
@@ -81,7 +54,6 @@ class Core(nn.Module):
         self.n_filt = (n_filt // 2) * 2  # must be even for initialization
         self.relu_latents = relu_latents
         self.relu_wavelets = relu_wavelets
-        self.same_conv = same_conv
         self.n_layers = n_layers
         self.n_latents = n_latents
         self.features = nn.Sequential()
@@ -100,37 +72,16 @@ class Core(nn.Module):
         f = np.geomspace(1, 10, self.n_filt // 2).astype("float32")
         gw0 = keypoints.gabor_wavelet(1, f[:, np.newaxis], 0, n_pts=kernel_size)
         gw1 = keypoints.gabor_wavelet(1, f[:, np.newaxis], np.pi / 2, n_pts=kernel_size)
-        if self.same_conv:
-            # compute n_filt wavelet features of each one => n_filt * n_kp features
-            self.features.add_module(
-                "wavelet0",
-                nn.Conv1d(
-                    1,
-                    self.n_filt,
-                    kernel_size=kernel_size,
-                    padding=kernel_size // 2,
-                    bias=False,
-                ),
-            )
-            self.features[-1].weight.data = torch.from_numpy(
-                np.vstack((gw0, gw1))
-            ).unsqueeze(1)
-        else:
-            self.features.add_module(
-                "wavelet0",
-                nn.Conv1d(
-                    self.n_kp,
-                    self.n_kp,
-                    kernel_size=kernel_size,
-                    padding=kernel_size // 2,
-                    bias=False,
-                    groups=self.n_kp,
-                ),
-            )
-            self.features[-1].weight.data = torch.tile(
-                torch.from_numpy(gw0[[1]]).unsqueeze(1), (self.n_kp, 1, 1)
-            )
-            self.n_filt = 1
+        wav_init = np.vstack((gw0, gw1))
+        # compute n_filt wavelet features of each one => n_filt * n_kp features
+        self.features.add_module(
+            "wavelet0",
+            nn.Conv1d(1, self.n_filt, kernel_size=kernel_size,
+                      padding=kernel_size // 2, bias=False,
+            ),
+        )
+        self.features[-1].weight.data = torch.from_numpy(wav_init).unsqueeze(1)
+    
         for n in range(1, n_layers):
             n_in = self.n_kp * self.n_filt if n == 1 else n_med
             self.features.add_module(
@@ -155,18 +106,14 @@ class Core(nn.Module):
         out = self.features[0](x.reshape(-1, x.shape[-1]))
         out = out.reshape(x.shape[0], x.shape[1], -1).transpose(2, 1)
         # out is now (n_batches, n_kp, time)
-        if self.same_conv:
-            out = out.reshape(-1, out.shape[-1]).unsqueeze(1)
-            # out is now (n_batches * n_kp, 1, time)
-            out = self.features[1](out)
-            # out is now (n_batches * n_kp, n_filt, time)
-            out = out.reshape(-1, self.n_kp * self.n_filt, out.shape[-1]).transpose(
-                2, 1
-            )
-            out = out.reshape(-1, self.n_kp * self.n_filt)
-        else:
-            out = self.features[1](out)
-            out = out.transpose(-1, -2)
+        out = out.reshape(-1, out.shape[-1]).unsqueeze(1)
+        # out is now (n_batches * n_kp, 1, time)
+        out = self.features[1](out)
+        # out is now (n_batches * n_kp, n_filt, time)
+        out = out.reshape(-1, self.n_kp * self.n_filt, out.shape[-1]).transpose(
+            2, 1
+        )
+        out = out.reshape(-1, self.n_kp * self.n_filt)
         if self.relu_wavelets:
             out = F.relu(out)
 

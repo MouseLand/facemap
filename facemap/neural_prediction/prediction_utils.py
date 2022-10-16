@@ -15,7 +15,7 @@ from facemap.utils import bin1d
 from .model import KeypointsNetwork
 
 
-def split_traintest(n_t, frac=0.25, pad=3, split_time=False):
+def split_traintest(n_t, frac=0.25, pad=3):
     """this returns deterministic split of train and test in time chunks
 
     Parameters
@@ -28,10 +28,8 @@ def split_traintest(n_t, frac=0.25, pad=3, split_time=False):
         fraction of points to put in test set
 
     pad : int (optional, default 3)
-        number of timepoints to exclude from test set before and after training segment
-
-    split_time : bool (optional, default False)
-        split train and test into beginning and end of experiment
+        number of timepoints to exclude from test set before and after training segment, 
+        in addition to 5 timepoints auto-included
 
     Returns
     --------
@@ -47,21 +45,12 @@ def split_traintest(n_t, frac=0.25, pad=3, split_time=False):
     n_segs = int(min(10, n_t / 4))
     n_len = int(np.floor(n_t / n_segs))
     inds_train = np.linspace(0, n_t - n_len - 5, n_segs).astype(int)
-    if not split_time:
-        l_train = int(np.floor(n_len * (1 - frac)))
-        inds_test = inds_train + l_train + pad
-        l_test = (
-            np.diff(np.stack((inds_train, inds_train + l_train)).T.flatten()).min()
-            - pad
-        )
-    else:
-        i0 = int(np.floor(n_segs * frac / 2))
-        i1 = i0 + int(np.floor(n_segs * frac))
-        # inds_test = inds_train[:int(np.floor(n_segs*frac))]
-        inds_test = inds_train[i0:i1]
-        inds_train = np.hstack((inds_train[:i0], inds_train[i1:]))
-        l_train = n_len - 10
-        l_test = l_train
+    l_train = int(np.floor(n_len * (1 - frac)))
+    inds_test = inds_train + l_train + pad
+    l_test = (
+        np.diff(np.stack((inds_train, inds_train + l_train)).T.flatten()).min()
+        - pad
+    )
     itrain = inds_train[:, np.newaxis] + np.arange(0, l_train, 1, int)
     itest = inds_test[:, np.newaxis] + np.arange(0, l_test, 1, int)
     return itrain, itest
@@ -218,7 +207,7 @@ def reduced_rank_regression(X, Y, rank=None, lam=0):
 
 
 def rrr_prediction(
-    X, Y, rank=None, lam=0, itrain=None, itest=None, tbin=None, split_time=False
+    X, Y, rank=None, lam=0, itrain=None, itest=None, tbin=None
 ):
     """predict Y from X using regularized reduced rank regression for all ranks up to "rank"
 
@@ -251,9 +240,6 @@ def rrr_prediction(
     tbin: int (optional, default None)
         also compute variance explained in bins of tbin
 
-    split_time: bool (optional, default False)
-        split train test into separate time periods
-
     Returns
     --------
 
@@ -275,7 +261,7 @@ def rrr_prediction(
     """
     n_t, n_feats = Y.shape
     if itrain is None and itest is None:
-        itrain, itest = split_traintest(n_t, split_time=split_time)
+        itrain, itest = split_traintest(n_t)
     itrain, itest = itrain.flatten(), itest.flatten()
     A, B = reduced_rank_regression(X[itrain], Y[itrain], rank=rank, lam=lam)
     rank = A.shape[1]
@@ -301,14 +287,19 @@ def rrr_prediction(
 
 
 def rrr_varexp_svds(
-    svd_path, tcam, tneural, Y, U, spks, delay=-1, tbin=4, rank=32, split_time=False
+    svd_path, tcam, tneural, Y, U, spks, delay=-1, running=None, 
+    tbin=4, rank=32
 ):
     """predict neural PCs Y and compute varexp for PCs and spks"""
     varexp = np.nan * np.zeros((127, 2, 2))
     varexp_neurons = np.nan * np.zeros((len(spks), 2, 2))
     svds = np.load(svd_path, allow_pickle=True).item()
+    spks_pred_test0 = [] 
+    Y_pred_test0 = []
     for k, key in enumerate(["motSVD", "movSVD"]):
         X = svds[key][0].copy()
+        if running is not None: 
+            X = np.concatenate((X, running[:,np.newaxis]), axis=-1)
 
         X -= X.mean(axis=0)
         X /= X[:, 0].std(axis=0)
@@ -320,7 +311,7 @@ def rrr_varexp_svds(
             X_ds = np.vstack((X_ds[delay:], np.tile(X_ds[[-1], :], (delay, 1))))
             Ys = Y
         Y_pred_test, ve_test, itest, A, B = rrr_prediction(
-            X_ds, Ys, rank=Y.shape[-1], lam=1e-6, tbin=tbin, split_time=split_time
+            X_ds, Ys, rank=Y.shape[-1], lam=1e-6, tbin=tbin
         )[:5]
         varexp[:, :, k] = ve_test
         # return Y_pred_test at specified rank
@@ -334,10 +325,9 @@ def rrr_varexp_svds(
         spks_test_bin = bin1d(spks_test, tbin)
         spks_pred_test_bin = bin1d(spks_pred_test, tbin)
         varexp_neurons[:, 1, k] = compute_varexp(spks_test_bin, spks_pred_test_bin)
-        if k == 1:
-            spks_pred_test0 = spks_pred_test.copy()
-            Y_pred_test0 = Y_pred_test.copy()
-    return varexp, varexp_neurons, Y_pred_test0, spks_pred_test0, itest
+        spks_pred_test0.append(spks_pred_test)
+        Y_pred_test0.append(Y_pred_test)
+    return varexp, varexp_neurons, np.array(Y_pred_test0), np.array(spks_pred_test0), itest
 
 
 def rrr_varexp_kps(kp_path, tcam, tneural, Y, U, spks, delay=-1, tbin=4, rank=32):
@@ -417,6 +407,8 @@ def get_keypoints_to_neural_prediction(
     y,
     behavior_timestamps,
     neural_timestamps,
+    running=None,
+    exclude_keypoints=None,
     delay=-1,
     verbose=False,
     device=torch.device("cuda"),
@@ -445,9 +437,22 @@ def get_keypoints_to_neural_prediction(
     else:
         kp = np.load(keypoints_path, allow_pickle=True).item()
         xy, keypoint_labels = kp["xy"], kp["keypoint_labels"]
+    if exclude_keypoints is not None:
+        xy0=np.zeros((xy.shape[0],0,2))
+        keypoint_labels0 = []
+        for k,key in enumerate(keypoint_labels):
+            if exclude_keypoints not in key:
+                xy0 = np.concatenate((xy0, xy[:,[k]]), axis=1)
+                keypoint_labels0.append(key)
+        xy, keypoint_labels = xy0, keypoint_labels0
+    print('predicting neural activity using...')
+    print(keypoint_labels)    
 
     # Normalize keypoints (input data x)
     x = xy.reshape(xy.shape[0], -1).copy()
+    if running is not None or (exclude_keypoints is not None and 'running' not in exclude_keypoints): 
+        x = np.concatenate((x, running[:,np.newaxis]), axis=-1)
+        print('and running')
     x = (x - x.mean(axis=0)) / x.std(axis=0)
 
     # Initialize model for keypoints to neural prediction
@@ -480,8 +485,9 @@ def get_keypoints_to_neural_varexp(
     spks,
     delay=-1,
     tbin=4,
+    running=None,
     verbose=False,
-    varexp_per_keypoint=False,
+    exclude_keypoints=None,
     device=torch.device("cuda"),
 ):
     """
@@ -505,6 +511,8 @@ def get_keypoints_to_neural_varexp(
         number of frames to delay neural data, by default -1
     tbin : int, optional
         bin size for data, by default 4
+    running : array, optional
+        1D running trace to include in the prediction model
     verbose : bool, optional
         print progress, by default False
     varexp_per_keypoint : bool, optional
@@ -525,6 +533,8 @@ def get_keypoints_to_neural_varexp(
         behavior_timestamps,
         neural_timestamps,
         delay=delay,
+        running=running,
+        exclude_keypoints=exclude_keypoints,
         verbose=verbose,
         device=device,
     )
@@ -564,52 +574,7 @@ def get_keypoints_to_neural_varexp(
     spks_pred_test0 = spks_pred_test.T.copy()
     y_pred_test0 = y_pred_test.copy()
 
-    # predict using each keypoint
-    if varexp_per_keypoint:
-        varexp_per_pt = np.nan * np.zeros((len(keypoint_labels), 2))
-        varexp_neurons_per_pt = np.nan * np.zeros((len(spks), len(keypoint_labels), 2))
-        for k, label in enumerate(keypoint_labels):
-            np.random.seed(0)
-            torch.manual_seed(0)
-            torch.cuda.manual_seed(0)
-            model = KeypointsNetwork(n_in=2, n_out=neural_pcs_V.shape[-1]).to(device)
-
-            y_pred_test, varexp_testdata, test_indices = train_model(
-                model,
-                x[:, 2 * k : 2 * k + 2],
-                neural_pcs_V,
-                behavior_timestamps,
-                neural_timestamps,
-                delay=delay,
-                device=device,
-            )
-            y_pred_test = y_pred_test.reshape(-1, neural_pcs_V.shape[-1])
-            varexp_per_pt[k, 0] = varexp_testdata
-            varexp_per_pt[k, 1] = compute_varexp(
-                bin1d(neural_pcs_V[test_indices.flatten()], 4).flatten(),
-                bin1d(y_pred_test, 4).flatten(),
-            )
-            spks_pred_test = y_pred_test @ neural_pcs_U.T
-            spks_test = spks[:, test_indices.flatten()].T
-            varexp_neurons_per_pt[:, k, 0] = compute_varexp(spks_test, spks_pred_test)
-            spks_test_bin = bin1d(spks_test, 4)
-            spks_pred_test_bin = bin1d(spks_pred_test, 4)
-            varexp_neurons_per_pt[:, k, 1] = compute_varexp(
-                spks_test_bin, spks_pred_test_bin
-            )
-            print(
-                f"{label}, varexp {varexp_testdata:.3f}, {varexp_neurons_per_pt[:,k,0].mean():.3f}"
-            )
-            return (
-                varexp,
-                varexp_neurons,
-                spks_pred_test0,
-                test_indices,
-                varexp_per_pt,
-                varexp_neurons_per_pt,
-            )
-    else:
-        return (
+    return (
             varexp,
             varexp_neurons,
             y_pred_test0,
@@ -639,7 +604,7 @@ def get_predicted_neural_activity(
     return spks_pred_test, varexp_neurons
 
 
-def peer_prediction(spks, xpos, ypos, dum=400, tbin=4, split_time=False):
+def peer_prediction(spks, xpos, ypos, dum=400, tbin=4):
     ineu1 = np.logical_xor((xpos % dum) < dum / 2, (ypos % dum) < dum / 2)
     # ineu1 = np.random.rand(len(spks)) > 0.5
     ineu2 = np.logical_not(ineu1)
@@ -658,7 +623,6 @@ def peer_prediction(spks, xpos, ypos, dum=400, tbin=4, split_time=False):
             rank=128,
             lam=1e-1,
             tbin=tbin,
-            split_time=split_time,
         )[:3]
         varexp += varexpk[-1]
         U = spks[ineu] @ Vn[k]
@@ -675,7 +639,7 @@ def peer_prediction(spks, xpos, ypos, dum=400, tbin=4, split_time=False):
 
 
 def split_batches(
-    tcam, tneural, frac=0.25, pad=3, split_time=False, itrain=None, itest=None
+    tcam, tneural, frac=0.25, pad=3, itrain=None, itest=None
 ):
     """this returns deterministic split of train and test in time chunks for neural and cam times
 
@@ -696,9 +660,6 @@ def split_batches(
 
     pad : int (optional, default 3)
         number of timepoints to exclude from test set before and after training segment
-
-    split_time : bool (optional, default False)
-        split train and test into beginning and end of experiment
 
     itrain: 2D int array
         times in train set, arranged in chunks
@@ -726,7 +687,7 @@ def split_batches(
 
     if itrain is None or itest is None:
         itrain, itest = split_traintest(
-            len(tneural), frac=frac, pad=pad, split_time=split_time
+            len(tneural), frac=frac, pad=pad
         )
     inds_train, inds_test = itrain[:, 0], itest[:, 0]
     l_train, l_test = itrain.shape[-1], itest.shape[-1]
@@ -777,7 +738,6 @@ def split_data(
     tneural,
     frac=0.25,
     delay=-1,
-    split_time=False,
     device=torch.device("cuda"),
 ):
     # ensure keypoints and timestamps are same length
@@ -794,7 +754,7 @@ def split_data(
     else:
         Xs = X
         Ys = Y
-    splits = split_batches(tcam, tneural, frac=frac, split_time=split_time)
+    splits = split_batches(tcam, tneural, frac=frac)
     itrain, itest, itrain_cam, itest_cam, itrain_sample, itest_sample = splits
     X_train = torch.from_numpy(Xs[itrain_cam]).float().to(device)
     Y_train = torch.from_numpy(Ys[itrain]).float().to(device)
@@ -837,7 +797,6 @@ def train_model(
     annealing_steps=2,
     weight_decay=1e-4,
     device=torch.device("cuda"),
-    split_time=False,
     verbose=False,
 ):
     """train behavior -> neural model using multiple animals"""
@@ -862,7 +821,7 @@ def train_model(
         zip(X_dat, Y_dat, tcam_list, tneural_list)
     ):
         dsplits = split_data(
-            X, Y, tcam, tneural, delay=delay, split_time=split_time, device=device
+            X, Y, tcam, tneural, delay=delay, device=device
         )
         for d, a in zip(dsplits, arrs):
             a.append(d)
@@ -1171,7 +1130,7 @@ def future_prediction(X, Ball, swave, device=torch.device("cuda")):
 
 
 def predict_future(
-    x, keypoint_labels=None, get_future=True, lam=1e-3, device=torch.device("cuda")
+    x, keypoint_labels=None, get_future=True, lam=1e-2, device=torch.device("cuda")
 ):
     """predict keypoints or latents in future
 
