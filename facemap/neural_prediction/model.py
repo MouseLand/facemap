@@ -1,9 +1,11 @@
+import time
 import numpy as np
 import torch
 from torch import nn
 from torch.nn import functional as F
 
 from .. import keypoints
+from . import prediction_utils
 
 
 class KeypointsNetwork(nn.Module):
@@ -35,6 +37,141 @@ class KeypointsNetwork(nn.Module):
         latents = latents.reshape(x.shape[0], -1, latents.shape[-1])
         y_pred = self.readout(latents, animal_id=animal_id)
         return y_pred, latents
+
+    def train_model(
+        self,
+        X_dat,
+        Y_dat,
+        tcam_list,
+        tneural_list,
+        delay=-1,
+        smoothing_penalty=0.5,
+        n_iter=300,
+        learning_rate=1e-3,
+        annealing_steps=2,
+        weight_decay=1e-4,
+        device=torch.device("cuda"),
+        verbose=False,
+    ):
+        """
+        Train KeypointsNetwork (behavior -> neural) model using multiple animals
+        Parameters
+        ----------
+        X_dat: list of 2D arrays
+            behavior data for each animal
+        Y_dat: list of 2D arrays
+            neural data for each animal
+        tcam_list: list of 1D arrays
+            timestamps for behavior data for each animal
+        tneural_list: list of 1D arrays
+            timestamps for neural data for each animal
+        """
+        
+        optimizer = torch.optim.AdamW(
+            self.parameters(), lr=learning_rate, weight_decay=weight_decay
+        )
+        ### make input data a list if it's not already
+        not_list = False
+        if not isinstance(X_dat, list):
+            not_list = True
+            X_dat, Y_dat, tcam_list, tneural_list = (
+                [X_dat],
+                [Y_dat],
+                [tcam_list],
+                [tneural_list],
+            )
+
+        ### split data into train / test and concatenate
+        arrs = [[], [], [], [], [], [], [], [], [], []]
+        for i, (X, Y, tcam, tneural) in enumerate(
+            zip(X_dat, Y_dat, tcam_list, tneural_list)
+        ):
+            dsplits = prediction_utils.split_data(
+                X, Y, tcam, tneural, delay=delay, device=device
+            )
+            for d, a in zip(dsplits, arrs):
+                a.append(d)
+        (
+            X_train,
+            X_test,
+            Y_train,
+            Y_test,
+            itrain_sample_b,
+            itest_sample_b,
+            itrain_sample,
+            itest_sample,
+            itrain,
+            itest,
+        ) = arrs
+        n_animals = len(X_train)
+
+        tic = time.time()
+        ### determine total number of batches across all animals to sample from
+        n_batches = [0]
+        n_batches.extend([X_train[i].shape[0] for i in range(n_animals)])
+        n_batches = np.array(n_batches)
+        c_batches = np.cumsum(n_batches)
+        n_batches = n_batches.sum()
+
+        anneal_epochs = n_iter - 50 * np.arange(1, annealing_steps + 1)
+
+        ### optimize all parameters with SGD
+        for epoch in range(n_iter):
+            self.train()
+            if epoch in anneal_epochs:
+                if verbose:
+                    print("annealing learning rate")
+                optimizer.param_groups[0]["lr"] /= 10.0
+            np.random.seed(epoch)
+            rperm = np.random.permutation(n_batches)
+            train_loss = 0
+            for nr in rperm:
+                i = np.nonzero(nr >= c_batches)[0][-1]
+                n = nr - c_batches[i]
+
+                y_pred = self.forward(
+                    X_train[i][n].unsqueeze(0), itrain_sample_b[i][n], animal_id=i
+                )[0]
+                loss = ((y_pred - Y_train[i][n].unsqueeze(0)) ** 2).mean()
+                loss += (
+                    smoothing_penalty
+                    * (torch.diff(self.core.features[1].weight) ** 2).sum()
+                )
+                optimizer.zero_grad()
+                loss.backward()
+                optimizer.step()
+                train_loss += loss.item()
+
+            train_loss /= n_batches
+
+            # compute test loss and test variance explained
+            if epoch % 20 == 0 or epoch == n_iter - 1:
+                ve_all, y_pred_all = [], []
+                self.eval()
+                with torch.no_grad():
+                    pstr = f"epoch {epoch}, "
+                    for i in range(n_animals):
+                        y_pred = self(X_test[i], itest_sample_b[i].flatten(), animal_id=i)[
+                            0
+                        ]
+                        y_pred = y_pred.reshape(-1, y_pred.shape[-1])
+                        tl = ((y_pred - Y_test[i]) ** 2).mean()
+                        ve = 1 - tl / ((Y_test[i] - Y_test[i].mean(axis=0)) ** 2).mean()
+                        y_pred_all.append(y_pred.cpu().numpy())
+                        ve_all.append(ve.item())
+                        if n_animals == 1:
+                            pstr += f"animal {i}, train loss {train_loss:.4f}, test loss {tl.item():.4f}, varexp {ve.item():.4f}, "
+                        else:
+                            pstr += f"varexp{i} {ve.item():.4f}, "
+                pstr += f"time {time.time()-tic:.1f}s"
+                if verbose:
+                    print(pstr)
+
+        if not_list:
+            return y_pred_all[0], ve_all[0], itest[0]
+        else:
+            return y_pred_all, ve_all, itest
+
 
 
 class Core(nn.Module):

@@ -445,8 +445,8 @@ def get_keypoints_to_neural_varexp(
     neural_timestamps,
     spks=None,
     U=None,
-    compute_latents=False,
     delay=-1,
+    compute_latents=False,
     tbin=4,
     verbose=False,
     device=torch.device("cuda"),
@@ -500,38 +500,22 @@ def get_keypoints_to_neural_varexp(
     print("Keypoints timestamps: ", behavior_timestamps.shape)
     print("Neural timestamps: ", neural_timestamps.shape)
 
-    y_pred_test, varexp_testdata, test_indices = train_model(
-        model,
+    y_pred_test, varexp_testdata, test_indices = model.train_model(
         x,
         y,
         behavior_timestamps,
         neural_timestamps,
         delay=delay,
-        verbose=verbose,
+        verbose=False,
         device=device,
     )
     if compute_latents:
-        n_t = x.shape[0]
-        latents = np.zeros((n_t, model.core.features.latent[0].weight.shape[0]), "float32")
-        batch_size = 10000
-        n_batches = int(np.ceil(n_t / batch_size))
-        with torch.no_grad():
-            model.eval()
-            for n in range(n_batches):
-                x_batch = x[n * batch_size : min(n_t, (n + 1) * batch_size)].astype(
-                    "float32"
-                )
-                x_batch = torch.from_numpy(x_batch).to(device)
-                y_pred, l_batch = model(x_batch.unsqueeze(0))
-                latents[
-                    n * batch_size : min(n_t, (n + 1) * batch_size)
-                ] = l_batch.cpu().numpy()
+        latents = get_trained_model_predictions(x, model, behavior_timestamps, neural_timestamps)[-1]
     else:
         latents = None
     y_pred_test = y_pred_test.reshape(-1, y.shape[-1])
     varexp = np.zeros(2)
     varexp[0] = varexp_testdata
-    varexp = np.zeros(2)
     Y_test_bin = bin1d(y[test_indices.flatten()], tbin)
     Y_pred_test_bin = bin1d(y_pred_test, tbin)
     varexp[1] = (
@@ -548,6 +532,7 @@ def get_keypoints_to_neural_varexp(
         varexp_neurons[:, 1] = compute_varexp(spks_test_bin, spks_pred_test_bin)
     else:
         varexp_neurons, spks_pred_test = None, None
+
     return (
             varexp,
             varexp_neurons,
@@ -558,8 +543,8 @@ def get_keypoints_to_neural_varexp(
             model,
         )
 
-
-def get_trained_model_predictions(keypoints, model, device=torch.device("cuda")):
+def get_trained_model_predictions(keypoints, model, behavior_timestamps,
+        neural_timestamps, device=torch.device("cuda")):
     """
     Get prediction from keypoints using a trained model
     Parameters
@@ -597,6 +582,9 @@ def get_trained_model_predictions(keypoints, model, device=torch.device("cuda"))
             latents[
                 n * batch_size : min(num_timepoints, (n + 1) * batch_size)
             ] = l_batch.cpu().numpy()
+    f = interp1d(behavior_timestamps, np.arange(0, len(behavior_timestamps)))
+    sample_inds = np.round(f(neural_timestamps)).astype(int)
+    pred_data = pred_data[sample_inds]
     return pred_data, latents
 
 
@@ -765,7 +753,6 @@ def split_batches(
 
     return itrain, itest, itrain_cam, itest_cam, itrain_sample, itest_sample
 
-
 def split_data(
     X,
     Y,
@@ -817,270 +804,6 @@ def split_data(
         itrain,
         itest,
     )
-
-
-def train_model(
-    model,
-    X_dat,
-    Y_dat,
-    tcam_list,
-    tneural_list,
-    delay=-1,
-    smoothing_penalty=0.5,
-    n_iter=300,
-    learning_rate=1e-3,
-    annealing_steps=2,
-    weight_decay=1e-4,
-    device=torch.device("cuda"),
-    verbose=False,
-):
-    """
-    Train KeypointsNetwork (behavior -> neural) model using multiple animals
-    Parameters
-    ----------
-    X_dat: list of 2D arrays
-        behavior data for each animal
-    Y_dat: list of 2D arrays
-        neural data for each animal
-    tcam_list: list of 1D arrays
-        timestamps for behavior data for each animal
-    tneural_list: list of 1D arrays
-        timestamps for neural data for each animal
-    Returns
-    -------
-    model: torch.nn.Module
-        KeypointsNetwork trained on data
-    """
-    
-    optimizer = torch.optim.AdamW(
-        model.parameters(), lr=learning_rate, weight_decay=weight_decay
-    )
-    ### make input data a list if it's not already
-    not_list = False
-    if not isinstance(X_dat, list):
-        not_list = True
-        X_dat, Y_dat, tcam_list, tneural_list = (
-            [X_dat],
-            [Y_dat],
-            [tcam_list],
-            [tneural_list],
-        )
-
-    ### split data into train / test and concatenate
-    arrs = [[], [], [], [], [], [], [], [], [], []]
-    for i, (X, Y, tcam, tneural) in enumerate(
-        zip(X_dat, Y_dat, tcam_list, tneural_list)
-    ):
-        dsplits = split_data(
-            X, Y, tcam, tneural, delay=delay, device=device
-        )
-        for d, a in zip(dsplits, arrs):
-            a.append(d)
-    (
-        X_train,
-        X_test,
-        Y_train,
-        Y_test,
-        itrain_sample_b,
-        itest_sample_b,
-        itrain_sample,
-        itest_sample,
-        itrain,
-        itest,
-    ) = arrs
-    n_animals = len(X_train)
-
-    tic = time.time()
-    ### determine total number of batches across all animals to sample from
-    n_batches = [0]
-    n_batches.extend([X_train[i].shape[0] for i in range(n_animals)])
-    n_batches = np.array(n_batches)
-    c_batches = np.cumsum(n_batches)
-    n_batches = n_batches.sum()
-
-    anneal_epochs = n_iter - 50 * np.arange(1, annealing_steps + 1)
-
-    ### optimize all parameters with SGD
-    for epoch in range(n_iter):
-        model.train()
-        if epoch in anneal_epochs:
-            if verbose:
-                print("annealing learning rate")
-            optimizer.param_groups[0]["lr"] /= 10.0
-        np.random.seed(epoch)
-        rperm = np.random.permutation(n_batches)
-        train_loss = 0
-        for nr in rperm:
-            i = np.nonzero(nr >= c_batches)[0][-1]
-            n = nr - c_batches[i]
-
-            y_pred = model(
-                X_train[i][n].unsqueeze(0), itrain_sample_b[i][n], animal_id=i
-            )[0]
-            loss = ((y_pred - Y_train[i][n].unsqueeze(0)) ** 2).mean()
-            loss += (
-                smoothing_penalty
-                * (torch.diff(model.core.features[1].weight) ** 2).sum()
-            )
-            optimizer.zero_grad()
-            loss.backward()
-            optimizer.step()
-            train_loss += loss.item()
-
-        train_loss /= n_batches
-
-        # compute test loss and test variance explained
-        if epoch % 20 == 0 or epoch == n_iter - 1:
-            ve_all, y_pred_all = [], []
-            model.eval()
-            with torch.no_grad():
-                pstr = f"epoch {epoch}, "
-                for i in range(n_animals):
-                    y_pred = model(X_test[i], itest_sample_b[i].flatten(), animal_id=i)[
-                        0
-                    ]
-                    y_pred = y_pred.reshape(-1, y_pred.shape[-1])
-                    tl = ((y_pred - Y_test[i]) ** 2).mean()
-                    ve = 1 - tl / ((Y_test[i] - Y_test[i].mean(axis=0)) ** 2).mean()
-                    y_pred_all.append(y_pred.cpu().numpy())
-                    ve_all.append(ve.item())
-                    if n_animals == 1:
-                        pstr += f"animal {i}, train loss {train_loss:.4f}, test loss {tl.item():.4f}, varexp {ve.item():.4f}, "
-                    else:
-                        pstr += f"varexp{i} {ve.item():.4f}, "
-            pstr += f"time {time.time()-tic:.1f}s"
-            if verbose:
-                print(pstr)
-
-    if not_list:
-        return y_pred_all[0], ve_all[0], itest[0]
-    else:
-        return y_pred_all, ve_all, itest
-
-
-def train_model_test(
-    model,
-    X,
-    Y,
-    tcam,
-    tneural,
-    sgd=False,
-    lam=1e-3,
-    n_iter=600,
-    learning_rate=5e-4,
-    fix_model=True,
-    smoothing_penalty=1.0,
-    weight_decay=1e-4,
-    device=torch.device("cuda"),
-):
-
-    dsplits = split_data(X, Y, tcam, tneural, device=device)
-    (
-        X_train,
-        X_test,
-        Y_train,
-        Y_test,
-        itrain_sample_b,
-        itest_sample_b,
-        itrain_sample,
-        itest_sample,
-        itrain,
-        itest,
-    ) = dsplits
-
-    tic = time.time()
-
-    n_batches = X_train.shape[0]
-    if sgd:
-        model.train()
-        if fix_model:
-            for param in model.parameters():
-                param.requires_grad = False
-            model.test_classifier.weight.requires_grad = True
-            model.test_classifier.bias.requires_grad = True
-        else:
-            for param in model.parameters():
-                param.requires_grad = True
-
-        optimizer = torch.optim.AdamW(
-            model.parameters(), lr=learning_rate, weight_decay=weight_decay
-        )
-        for epoch in range(n_iter):
-            model.train()
-            np.random.seed(epoch)
-            rperm = np.random.permutation(n_batches)
-            train_loss = 0
-            for n in rperm:
-                y_pred, latents = model(
-                    X_train[n].unsqueeze(0), itrain_sample_b[n], test=True
-                )
-                loss = ((y_pred - Y_train[n].unsqueeze(0)) ** 2).mean()
-                loss += (
-                    smoothing_penalty
-                    * (torch.diff(model.features[1].weight) ** 2).sum()
-                )
-                optimizer.zero_grad()
-                loss.backward()
-                optimizer.step()
-                train_loss += loss.item()
-            train_loss /= n_batches
-            if epoch % 20 == 0 or epoch == n_iter - 1:
-                ve_all = []
-                y_pred_all = []
-                with torch.no_grad():
-                    model.eval()
-                    pstr = f"epoch {epoch}, "
-                    y_pred = model(X_test, itest_sample_b.flatten(), test=True)[0]
-                    tl = ((y_pred - Y_test) ** 2).mean()
-                    ve = 1 - tl / (Y_test**2).mean()
-                    # ve = ve.item()
-                    y_pred = y_pred.cpu().numpy()
-                    # y_pred_all.append(y_pred.cpu().numpy())
-                    # ve_all.append(ve.item())
-                    pstr += f"train loss {train_loss:.4f}, test loss {tl.item():.4f}, varexp {ve.item():.4f}"
-                    print(pstr)
-
-    else:
-        itrain = itrain.reshape(n_batches, -1)
-        l_train = itrain.shape[-1]
-        with torch.no_grad():
-            model.eval()
-            for n in range(n_batches):
-                y_pred, latents = model(
-                    X_train[n].unsqueeze(0), itrain_sample_b[n], test=True
-                )
-                if n == 0:
-                    n_latents = latents.shape[-1]
-                    latents_train = np.ones((itrain.size, n_latents + 1), "float32")
-                latents_train[
-                    n * l_train : (n + 1) * l_train, :n_latents
-                ] = latents.cpu().numpy()
-            latents_test = np.ones((itest.size, n_latents + 1), "float32")
-            latents_test[:, :n_latents] = (
-                model(X_test, itest_sample_b.flatten(), test=True)[1]
-                .cpu()
-                .numpy()
-                .reshape(-1, n_latents)
-            )
-
-            Y_train = Y_train.cpu().numpy()
-            Y_test = Y_test.cpu().numpy().reshape(-1, Y_test.shape[-1])
-            Y_train = Y_train.reshape(-1, Y_train.shape[-1])
-            A = np.linalg.solve(
-                latents_train.T @ latents_train + lam * np.eye(n_latents + 1),
-                latents_train.T @ Y_train,
-            )
-            y_pred = latents_test @ A
-            tl = ((y_pred - Y_test) ** 2).mean()
-            ve = 1 - tl / (Y_test**2).mean()
-            model.test_classifier.weight.data = (
-                torch.from_numpy(A[:n_latents].T).float().to(device)
-            )
-            model.test_classifier.bias.data = torch.from_numpy(A[-1]).float().to(device)
-            print(ve)
-
-    return y_pred, ve, itest
-
 
 def KLDiv_discrete(P, Q, binsize=200):
     # Q is the null distribution; P and Q are 2D distributions
