@@ -282,17 +282,16 @@ def rrr_prediction(
             varexp[r, 1] = compute_varexp(
                 bin1d(Y[itest], tbin).flatten(), bin1d(Y_pred_test, tbin).flatten()
             )
-
     return Y_pred_test, varexp.squeeze(), itest, A, B, varexpf, corrf
 
 
 def rrr_varexp_svds(
-    svd_path, tcam, tneural, Y, U, spks, delay=-1, running=None, 
-    tbin=4, rank=32
+    svd_path, tcam, tneural, Y, U=None, spks=None, delay=-1, running=None, 
+    rank=32, lam=1e-6
 ):
     """predict neural PCs Y and compute varexp for PCs and spks"""
-    varexp = np.nan * np.zeros((127, 2, 2))
-    varexp_neurons = np.nan * np.zeros((len(spks), 2, 2))
+    varexp = np.nan * np.zeros((rank, 2))
+    varexp_neurons = np.nan * np.zeros((len(spks), 2)) if spks is not None else np.nan * np.zeros((Y.shape[-1], 2))
     svds = np.load(svd_path, allow_pickle=True).item()
     spks_pred_test0 = [] 
     Y_pred_test0 = []
@@ -311,20 +310,15 @@ def rrr_varexp_svds(
             X_ds = np.vstack((X_ds[delay:], np.tile(X_ds[[-1], :], (delay, 1))))
             Ys = Y
         Y_pred_test, ve_test, itest, A, B = rrr_prediction(
-            X_ds, Ys, rank=Y.shape[-1], lam=1e-6, tbin=tbin
+            X_ds, Ys, rank=rank, lam=lam
         )[:5]
-        varexp[:, :, k] = ve_test
-        # return Y_pred_test at specified rank
-        Y_pred_test = X_ds[itest] @ B[:, :rank] @ A[:, :rank].T
-
+        varexp[:, k] = ve_test
+        
         itest -= delay
         # single neuron prediction
-        spks_pred_test = Y_pred_test @ U.T
-        spks_test = spks[:, itest].T
-        varexp_neurons[:, 0, k] = compute_varexp(spks_test, spks_pred_test)
-        spks_test_bin = bin1d(spks_test, tbin)
-        spks_pred_test_bin = bin1d(spks_pred_test, tbin)
-        varexp_neurons[:, 1, k] = compute_varexp(spks_test_bin, spks_pred_test_bin)
+        spks_pred_test = Y_pred_test @ U.T if spks is not None else Y_pred_test
+        spks_test = spks[:, itest].T if spks is not None else Y[itest]
+        varexp_neurons[:, k] = compute_varexp(spks_test, spks_pred_test)
         spks_pred_test0.append(spks_pred_test)
         Y_pred_test0.append(Y_pred_test)
     return varexp, varexp_neurons, np.array(Y_pred_test0), np.array(spks_pred_test0), itest
@@ -415,7 +409,7 @@ def get_normalized_keypoints(keypoints_path, exclude_keypoints=None, running=Non
     """
     # Load keypoints
     if os.path.splitext(keypoints_path)[-1] == ".h5":
-        keypoints_xy, keypoint_labels = keypoints.load_keypoints(keypoints_path)
+        xy, keypoint_labels = keypoints.load_keypoints(keypoints_path)
     else:
         kp = np.load(keypoints_path, allow_pickle=True).item()
         xy, keypoint_labels = kp["xy"], kp["keypoint_labels"]
@@ -447,7 +441,6 @@ def get_keypoints_to_neural_varexp(
     U=None,
     delay=-1,
     compute_latents=False,
-    tbin=4,
     verbose=False,
     device=torch.device("cuda"),
 ):
@@ -500,11 +493,13 @@ def get_keypoints_to_neural_varexp(
     print("Keypoints timestamps: ", behavior_timestamps.shape)
     print("Neural timestamps: ", neural_timestamps.shape)
 
-    y_pred_test, varexp_testdata, test_indices = model.train_model(
+    y_pred_test, varexp, spks_pred_test, varexp_neurons, test_indices = model.train_model(
         x,
         y,
         behavior_timestamps,
         neural_timestamps,
+        U=U,
+        spks=spks,
         delay=delay,
         verbose=verbose,
         device=device,
@@ -514,22 +509,9 @@ def get_keypoints_to_neural_varexp(
     else:
         latents = None
     y_pred_test = y_pred_test.reshape(-1, y.shape[-1])
-    varexp = np.zeros(2)
-    varexp[0] = varexp_testdata
-    Y_test_bin = bin1d(y[test_indices.flatten()], tbin)
-    Y_pred_test_bin = bin1d(y_pred_test, tbin)
-    varexp[1] = (
-        1 - ((Y_test_bin - Y_pred_test_bin) ** 2).mean() / ((Y_test_bin) ** 2).mean()
-    )
-    print(f"all kp, varexp {varexp[0]:.3f}; tbin=4: {varexp[1]:.3f}")
+    print(f"all kp, varexp {varexp:.3f}")
     if spks is not None:
-        varexp_neurons = np.zeros((len(spks), 2))
-        spks_pred_test = y_pred_test @ U.T
-        spks_test = spks[:, test_indices.flatten()].T
-        varexp_neurons[:, 0] = compute_varexp(spks_test, spks_pred_test)
-        spks_test_bin = bin1d(spks_test, tbin)
-        spks_pred_test_bin = bin1d(spks_pred_test, tbin)
-        varexp_neurons[:, 1] = compute_varexp(spks_test_bin, spks_pred_test_bin)
+        print(f'neuron varexp = {varexp_neurons.mean():.3f}')
     else:
         varexp_neurons, spks_pred_test = None, None
 
@@ -627,7 +609,7 @@ def resample_data_to_neural_timestamps(data, behavior_timestamps, neural_timesta
     return data_resampled
 
 
-def peer_prediction(spks, xpos, ypos, dum=400, tbin=4):
+def peer_prediction(spks, xpos, ypos, dum=400):
     ineu1 = np.logical_xor((xpos % dum) < dum / 2, (ypos % dum) < dum / 2)
     # ineu1 = np.random.rand(len(spks)) > 0.5
     ineu2 = np.logical_not(ineu1)
@@ -637,29 +619,25 @@ def peer_prediction(spks, xpos, ypos, dum=400, tbin=4):
         Vn.append(
             PCA(n_components=n_components, copy=False).fit_transform(spks[ineu].T)
         )
-    varexp = np.zeros(2)
-    varexp_neurons = np.zeros((spks.shape[0], 2))
+    varexp = 0
+    varexp_neurons = np.zeros((spks.shape[0]))
     for k, ineu in enumerate([ineu1, ineu2]):
         V_pred_test, varexpk, itest = rrr_prediction(
             Vn[(k + 1) % 2],
             Vn[k % 2],
             rank=128,
-            lam=1e-1,
-            tbin=tbin,
+            lam=1e-1
         )[:3]
         varexp += varexpk[-1]
         U = spks[ineu] @ Vn[k]
         U /= (U**2).sum(axis=0) ** 0.5
         spks_pred_test = V_pred_test @ U.T
         spks_test = spks[ineu][:, itest].T
-        varexp_neurons[ineu, 0] = compute_varexp(spks_test, spks_pred_test)
-        spks_test_bin = bin1d(spks_test, tbin)
-        spks_pred_test_bin = bin1d(spks_pred_test, tbin)
-        varexp_neurons[ineu, 1] = compute_varexp(spks_test_bin, spks_pred_test_bin)
+        varexp_neurons[ineu] = compute_varexp(spks_test, spks_pred_test)
+        
     # average variance explained for two halves
     varexp /= 2
     return varexp, varexp_neurons, itest
-
 
 def split_batches(
     tcam, tneural, frac=0.25, pad=3, itrain=None, itest=None

@@ -44,6 +44,8 @@ class KeypointsNetwork(nn.Module):
         Y_dat,
         tcam_list,
         tneural_list,
+        U=None, 
+        spks=None,
         delay=-1,
         smoothing_penalty=0.5,
         n_iter=300,
@@ -74,11 +76,13 @@ class KeypointsNetwork(nn.Module):
         not_list = False
         if not isinstance(X_dat, list):
             not_list = True
-            X_dat, Y_dat, tcam_list, tneural_list = (
+            X_dat, Y_dat, tcam_list, tneural_list, U, spks = (
                 [X_dat],
                 [Y_dat],
                 [tcam_list],
                 [tneural_list],
+                [U],
+                [spks]
             )
 
         ### split data into train / test and concatenate
@@ -146,7 +150,7 @@ class KeypointsNetwork(nn.Module):
 
             # compute test loss and test variance explained
             if epoch % 20 == 0 or epoch == n_iter - 1:
-                ve_all, y_pred_all = [], []
+                ve_all, ve_neurons, y_pred_all, spks_pred_all = [], [], [], []
                 self.eval()
                 with torch.no_grad():
                     pstr = f"epoch {epoch}, "
@@ -163,14 +167,21 @@ class KeypointsNetwork(nn.Module):
                             pstr += f"animal {i}, train loss {train_loss:.4f}, test loss {tl.item():.4f}, varexp {ve.item():.4f}, "
                         else:
                             pstr += f"varexp{i} {ve.item():.4f}, "
+
+                        if epoch==n_iter - 1:
+                            spks_pred_test = y_pred.cpu().numpy() @ U[i].T if spks[i] is not None else y_pred.cpu().numpy()
+                            spks_test = spks[i][:, itest[i].flatten()].T if spks[i] is not None else Y_test[i].cpu().numpy()
+                            ven = prediction_utils.compute_varexp(spks_test, spks_pred_test)
+                            ve_neurons.append(ven)
+                            spks_pred_all.append(spks_pred_test)
                 pstr += f"time {time.time()-tic:.1f}s"
                 if verbose:
-                    print(pstr)
+                    print(pstr)        
 
         if not_list:
-            return y_pred_all[0], ve_all[0], itest[0]
+            return y_pred_all[0], ve_all[0], spks_pred_all[0], ve_neurons[0], itest[0]
         else:
-            return y_pred_all, ve_all, itest
+            return y_pred_all, ve_all, spks_pred_all, ve_neurons, itest
 
     def ridge_regression(self,
                         X,
