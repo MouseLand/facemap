@@ -506,7 +506,7 @@ def get_keypoints_to_neural_varexp(
         behavior_timestamps,
         neural_timestamps,
         delay=delay,
-        verbose=False,
+        verbose=verbose,
         device=device,
     )
     if compute_latents:

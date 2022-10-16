@@ -172,6 +172,70 @@ class KeypointsNetwork(nn.Module):
         else:
             return y_pred_all, ve_all, itest
 
+    def ridge_regression(self,
+                        X,
+                        Y,
+                        tcam,
+                        tneural,
+                        lam=1e5,
+                        delay=-1,
+                        device=torch.device("cuda"),
+                    ):
+        """ compute readout layer with ridge regression """
+        dsplits = prediction_utils.split_data(X, Y, tcam, tneural, delay=delay, device=device)
+        (
+            X_train,
+            X_test,
+            Y_train,
+            Y_test,
+            itrain_sample_b,
+            itest_sample_b,
+            itrain_sample,
+            itest_sample,
+            itrain,
+            itest,
+        ) = dsplits
+
+        n_batches = X_train.shape[0]
+        itrain = itrain.reshape(n_batches, -1)
+        l_train = itrain.shape[-1]
+        with torch.no_grad():
+            self.eval()
+            for n in range(n_batches):
+                y_pred, latents = self.forward(
+                    X_train[n].unsqueeze(0), itrain_sample_b[n]
+                )
+                if n == 0:
+                    n_latents = latents.shape[-1]
+                    latents_train = np.ones((itrain.size, n_latents + 1), "float32")
+                latents_train[
+                    n * l_train : (n + 1) * l_train, :n_latents
+                ] = latents.cpu().numpy()
+            latents_test = np.ones((itest.size, n_latents + 1), "float32")
+            latents_test[:, :n_latents] = (
+                self.forward(X_test, itest_sample_b.flatten())[1]
+                .cpu()
+                .numpy()
+                .reshape(-1, n_latents)
+            )
+
+            Y_train = Y_train.cpu().numpy()
+            Y_test = Y_test.cpu().numpy().reshape(-1, Y_test.shape[-1])
+            Y_train = Y_train.reshape(-1, Y_train.shape[-1])
+            A = np.linalg.solve(
+                latents_train.T @ latents_train + lam * np.eye(n_latents + 1),
+                latents_train.T @ Y_train,
+            )
+            y_pred = latents_test @ A
+            tl = ((y_pred - Y_test) ** 2).mean()
+            ve = 1 - tl / (Y_test**2).mean()
+            self.readout.features.linear0.weight.data = (
+                torch.from_numpy(A[:n_latents].T).float().to(device)
+            )
+            self.readout.features.linear0.bias.data = torch.from_numpy(A[-1]).float().to(device)
+            print(ve)
+
+        return y_pred, ve, itest
 
 
 class Core(nn.Module):
@@ -287,7 +351,6 @@ class Readout(nn.Module):
         super().__init__()
         self.n_animals = n_animals
         self.features = nn.Sequential()
-        self.bias = nn.Parameter(torch.zeros(n_out))
         if n_animals == 1:
             for j in range(n_layers):
                 n_in = n_latents if j == 0 else n_med
@@ -299,10 +362,9 @@ class Readout(nn.Module):
             # no option for n_layers > 1
             for n in range(n_animals):
                 self.features.add_module(f"linear0_{n}", nn.Linear(n_latents, n_out))
-        self.bias.requires_grad = False
-
+        
     def forward(self, latents, animal_id=0):
         if self.n_animals == 1:
-            return self.features(latents) + self.bias
+            return self.features(latents)
         else:
-            return self.features[animal_id](latents) + self.bias
+            return self.features[animal_id](latents)
