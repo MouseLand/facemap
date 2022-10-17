@@ -1,4 +1,5 @@
 import time
+
 import numpy as np
 import torch
 from torch import nn
@@ -14,17 +15,33 @@ class KeypointsNetwork(nn.Module):
     """
 
     def __init__(
-        self, n_in=28, n_kp=None, n_filt=10, kernel_size=201,
-        n_core_layers=2, n_latents=256, n_out_layers=1,
-        n_out=128, n_med=50, n_animals=1,
-        identity=False, relu_wavelets=True, relu_latents=True,
+        self,
+        n_in=28,
+        n_kp=None,
+        n_filt=10,
+        kernel_size=201,
+        n_core_layers=2,
+        n_latents=256,
+        n_out_layers=1,
+        n_out=128,
+        n_med=50,
+        n_animals=1,
+        identity=False,
+        relu_wavelets=True,
+        relu_latents=True,
     ):
         super().__init__()
         self.core = Core(
-            n_in=n_in, n_kp=n_kp, n_filt=n_filt, kernel_size=kernel_size,
-            n_layers=n_core_layers, n_med=n_med, n_latents=n_latents,
-            identity=identity, 
-            relu_wavelets=relu_wavelets, relu_latents=relu_latents,
+            n_in=n_in,
+            n_kp=n_kp,
+            n_filt=n_filt,
+            kernel_size=kernel_size,
+            n_layers=n_core_layers,
+            n_med=n_med,
+            n_latents=n_latents,
+            identity=identity,
+            relu_wavelets=relu_wavelets,
+            relu_latents=relu_latents,
         )
         self.readout = Readout(
             n_animals=n_animals, n_latents=n_latents, n_layers=n_out_layers, n_out=n_out
@@ -44,7 +61,7 @@ class KeypointsNetwork(nn.Module):
         Y_dat,
         tcam_list,
         tneural_list,
-        U=None, 
+        U=None,
         spks=None,
         delay=-1,
         smoothing_penalty=0.5,
@@ -68,7 +85,7 @@ class KeypointsNetwork(nn.Module):
         tneural_list: list of 1D arrays
             timestamps for neural data for each animal
         """
-        
+
         optimizer = torch.optim.AdamW(
             self.parameters(), lr=learning_rate, weight_decay=weight_decay
         )
@@ -82,7 +99,7 @@ class KeypointsNetwork(nn.Module):
                 [tcam_list],
                 [tneural_list],
                 [U],
-                [spks]
+                [spks],
             )
 
         ### split data into train / test and concatenate
@@ -155,9 +172,9 @@ class KeypointsNetwork(nn.Module):
                 with torch.no_grad():
                     pstr = f"epoch {epoch}, "
                     for i in range(n_animals):
-                        y_pred = self(X_test[i], itest_sample_b[i].flatten(), animal_id=i)[
-                            0
-                        ]
+                        y_pred = self(
+                            X_test[i], itest_sample_b[i].flatten(), animal_id=i
+                        )[0]
                         y_pred = y_pred.reshape(-1, y_pred.shape[-1])
                         tl = ((y_pred - Y_test[i]) ** 2).mean()
                         ve = 1 - tl / ((Y_test[i] - Y_test[i].mean(axis=0)) ** 2).mean()
@@ -168,32 +185,45 @@ class KeypointsNetwork(nn.Module):
                         else:
                             pstr += f"varexp{i} {ve.item():.4f}, "
 
-                        if epoch==n_iter - 1:
-                            spks_pred_test = y_pred.cpu().numpy() @ U[i].T if spks[i] is not None else y_pred.cpu().numpy()
-                            spks_test = spks[i][:, itest[i].flatten()].T if spks[i] is not None else Y_test[i].cpu().numpy()
-                            ven = prediction_utils.compute_varexp(spks_test, spks_pred_test)
+                        if epoch == n_iter - 1:
+                            spks_pred_test = (
+                                y_pred.cpu().numpy() @ U[i].T
+                                if spks[i] is not None
+                                else y_pred.cpu().numpy()
+                            )
+                            spks_test = (
+                                spks[i][:, itest[i].flatten()].T
+                                if spks[i] is not None
+                                else Y_test[i].cpu().numpy()
+                            )
+                            ven = prediction_utils.compute_varexp(
+                                spks_test, spks_pred_test
+                            )
                             ve_neurons.append(ven)
                             spks_pred_all.append(spks_pred_test.T)
                 pstr += f"time {time.time()-tic:.1f}s"
                 if verbose:
-                    print(pstr)        
+                    print(pstr)
 
         if not_list:
             return y_pred_all[0], ve_all[0], spks_pred_all[0], ve_neurons[0], itest[0]
         else:
             return y_pred_all, ve_all, spks_pred_all, ve_neurons, itest
 
-    def ridge_regression(self,
-                        X,
-                        Y,
-                        tcam,
-                        tneural,
-                        lam=1e5,
-                        delay=-1,
-                        device=torch.device("cuda"),
-                    ):
-        """ compute readout layer with ridge regression """
-        dsplits = prediction_utils.split_data(X, Y, tcam, tneural, delay=delay, device=device)
+    def ridge_regression(
+        self,
+        X,
+        Y,
+        tcam,
+        tneural,
+        lam=1e5,
+        delay=-1,
+        device=torch.device("cuda"),
+    ):
+        """compute readout layer with ridge regression"""
+        dsplits = prediction_utils.split_data(
+            X, Y, tcam, tneural, delay=delay, device=device
+        )
         (
             X_train,
             X_test,
@@ -243,7 +273,9 @@ class KeypointsNetwork(nn.Module):
             self.readout.features.linear0.weight.data = (
                 torch.from_numpy(A[:n_latents].T).float().to(device)
             )
-            self.readout.features.linear0.bias.data = torch.from_numpy(A[-1]).float().to(device)
+            self.readout.features.linear0.bias.data = (
+                torch.from_numpy(A[-1]).float().to(device)
+            )
             print(ve)
 
         return y_pred, ve, itest
@@ -256,9 +288,17 @@ class Core(nn.Module):
     """
 
     def __init__(
-        self, n_in=28, n_kp=None, n_filt=10, kernel_size=201,
-        n_layers=1, n_med=50, n_latents=256, identity=False,
-        relu_wavelets=True, relu_latents=True,
+        self,
+        n_in=28,
+        n_kp=None,
+        n_filt=10,
+        kernel_size=201,
+        n_layers=1,
+        n_med=50,
+        n_latents=256,
+        identity=False,
+        relu_wavelets=True,
+        relu_latents=True,
     ):
         super().__init__()
         self.n_in = n_in
@@ -289,12 +329,16 @@ class Core(nn.Module):
         # compute n_filt wavelet features of each one => n_filt * n_kp features
         self.features.add_module(
             "wavelet0",
-            nn.Conv1d(1, self.n_filt, kernel_size=kernel_size,
-                      padding=kernel_size // 2, bias=False,
+            nn.Conv1d(
+                1,
+                self.n_filt,
+                kernel_size=kernel_size,
+                padding=kernel_size // 2,
+                bias=False,
             ),
         )
         self.features[-1].weight.data = torch.from_numpy(wav_init).unsqueeze(1)
-    
+
         for n in range(1, n_layers):
             n_in = self.n_kp * self.n_filt if n == 1 else n_med
             self.features.add_module(
@@ -323,9 +367,7 @@ class Core(nn.Module):
         # out is now (n_batches * n_kp, 1, time)
         out = self.features[1](out)
         # out is now (n_batches * n_kp, n_filt, time)
-        out = out.reshape(-1, self.n_kp * self.n_filt, out.shape[-1]).transpose(
-            2, 1
-        )
+        out = out.reshape(-1, self.n_kp * self.n_filt, out.shape[-1]).transpose(2, 1)
         out = out.reshape(-1, self.n_kp * self.n_filt)
         if self.relu_wavelets:
             out = F.relu(out)
@@ -361,19 +403,25 @@ class Readout(nn.Module):
     def __init__(self, n_animals=1, n_latents=256, n_layers=1, n_med=128, n_out=128):
         super().__init__()
         self.n_animals = n_animals
+        self.n_latents = n_latents
+        self.n_layers = n_layers
+        self.n_med = n_med
+        self.n_out = n_out
         self.features = nn.Sequential()
         if n_animals == 1:
             for j in range(n_layers):
-                n_in = n_latents if j == 0 else n_med
-                n_outc = n_out if j == n_layers - 1 else n_med
+                n_in = self.n_latents if j == 0 else self.n_med
+                n_outc = self.n_out if j == self.n_layers - 1 else self.n_med
                 self.features.add_module(f"linear{j}", nn.Linear(n_in, n_outc))
-                if n_layers > 1 and j < n_layers - 1:
+                if self.n_layers > 1 and j < self.n_layers - 1:
                     self.features.add_module(f"relu{j}", nn.ReLU())
         else:
             # no option for n_layers > 1
             for n in range(n_animals):
-                self.features.add_module(f"linear0_{n}", nn.Linear(n_latents, n_out))
-        
+                self.features.add_module(
+                    f"linear0_{n}", nn.Linear(n_latents, self.n_out)
+                )
+
     def forward(self, latents, animal_id=0):
         if self.n_animals == 1:
             return self.features(latents)

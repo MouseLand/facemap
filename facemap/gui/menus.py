@@ -41,17 +41,19 @@ def mainmenu(parent):
     load_neural.triggered.connect(lambda: parent.load_neural_data())
     parent.addAction(load_neural)
 
-    # Run neural predictions
-    run_neural_prediction = QAction("Run neural predictions", parent)
-    run_neural_prediction.setShortcut("Ctrl+R")
-    run_neural_prediction.triggered.connect(lambda: parent.run_neural_predictions())
-    parent.addAction(run_neural_prediction)
-
     # Load neural predictions
     load_neural_predictions = QAction("Load neural predictions", parent)
     load_neural_predictions.triggered.connect(
         lambda: parent.load_neural_data(prediction_mode=True)
     )
+
+    # Run neural predictions
+    run_neural_prediction = QAction("Run neural predictions", parent)
+    run_neural_prediction.setShortcut("Ctrl+R")
+    run_neural_prediction.triggered.connect(
+        lambda: parent.show_run_neural_predictions_dialog()
+    )
+    parent.addAction(run_neural_prediction)
 
     user_manual = QAction("User manual", parent)
     user_manual.setShortcut("Ctrl+H")
@@ -78,8 +80,8 @@ def mainmenu(parent):
 
     neural_activity_menu = main_menu.addMenu("Neural activity")
     neural_activity_menu.addAction(load_neural)
-    neural_activity_menu.addAction(run_neural_prediction)
     neural_activity_menu.addAction(load_neural_predictions)
+    neural_activity_menu.addAction(run_neural_prediction)
 
     help_menu = main_menu.addMenu("&Help")
     help_menu.addAction(user_manual)

@@ -2024,7 +2024,7 @@ class MainW(QtWidgets.QMainWindow):
             behav_timestamps_browse_button
         )
         # Add a checkbox for data alignment
-        dialog.align_behav_data_checkbox = QtWidgets.QCheckBox("Align data")
+        dialog.align_behav_data_checkbox = QtWidgets.QCheckBox("Align video")
         dialog.align_behav_data_checkbox.setChecked(True)
         behav_data_timestamps_groupbox.layout().addWidget(
             dialog.align_behav_data_checkbox
@@ -2048,6 +2048,34 @@ class MainW(QtWidgets.QMainWindow):
 
         vbox.addWidget(timestamps_groupbox)
 
+        # Add a hbox for cancel and done buttons
+        neural_data_buttons_hbox = QtWidgets.QHBoxLayout()
+        # Add a cancel button
+        neural_data_cancel_button = QtWidgets.QPushButton("Cancel")
+        neural_data_cancel_button.clicked.connect(dialog.reject)
+        neural_data_buttons_hbox.addWidget(neural_data_cancel_button)
+        # Add a done button
+        neural_data_done_button = QtWidgets.QPushButton("Done")
+        neural_data_done_button.clicked.connect(
+            lambda clicked: self.neural_data_done_clicked(clicked, dialog)
+        )
+        neural_data_buttons_hbox.addWidget(neural_data_done_button)
+        vbox.addLayout(neural_data_buttons_hbox)
+
+        dialog.exec_()
+
+    def show_run_neural_predictions_dialog(self):
+        dialog = QtWidgets.QDialog()
+        dialog.setWindowTitle("Neural activity")
+        dialog.setContentsMargins(10, 10, 10, 10)
+        # Set size of the dialog
+        dialog.setFixedWidth(np.floor(self.sizeObject.width() / 3).astype(int))
+        # dialog.setFixedHeight(np.floor(self.sizeObject.height() / 2.25).astype(int))
+
+        # Create a vertical layout for the dialog
+        vbox = QtWidgets.QVBoxLayout()
+        dialog.setLayout(vbox)
+
         # Add a groupbox for neural data prediction using keypoints
         neural_data_prediction_groupbox = QtWidgets.QGroupBox()
         neural_data_prediction_groupbox.setLayout(QtWidgets.QVBoxLayout())
@@ -2055,26 +2083,6 @@ class MainW(QtWidgets.QMainWindow):
             "QGroupBox {border: 1px solid gray; border-radius: 9px; margin-top: 0.5em;} "
         )
         neural_data_prediction_groupbox.setTitle("Neural data prediction")
-
-        # Add a radio button group with two options "Yes" and "No" to ask if the user wants to predict
-        # neural data
-        radio_groupbox = QtWidgets.QGroupBox()
-        radio_groupbox.setLayout(QtWidgets.QHBoxLayout())
-        radio_groupbox.setStyleSheet("QGroupBox { border: 0px solid gray; }")
-        radio_button_label = QtWidgets.QLabel("Run prediction:")
-        radio_groupbox.layout().addWidget(radio_button_label)
-        radio_button_group = QtWidgets.QButtonGroup()
-        radio_button_group.setExclusive(True)
-        dialog.neural_data_prediction_yes_radio_button = QtWidgets.QRadioButton("Yes")
-        dialog.neural_data_prediction_yes_radio_button.setChecked(True)
-        dialog.neural_data_prediction_no_radio_button = QtWidgets.QRadioButton("No")
-        radio_button_group.addButton(dialog.neural_data_prediction_yes_radio_button)
-        radio_button_group.addButton(dialog.neural_data_prediction_no_radio_button)
-        radio_groupbox.layout().addWidget(
-            dialog.neural_data_prediction_yes_radio_button
-        )
-        radio_groupbox.layout().addWidget(dialog.neural_data_prediction_no_radio_button)
-        neural_data_prediction_groupbox.layout().addWidget(radio_groupbox)
 
         # Add a groupbox for selecting input data for prediction
         input_data_groupbox = QtWidgets.QGroupBox()
@@ -2117,18 +2125,18 @@ class MainW(QtWidgets.QMainWindow):
 
         vbox.addWidget(neural_data_prediction_groupbox)
 
-        # Add a hbox for cancel and done buttons
+        # Add a hbox for cancel and run buttons
         neural_data_buttons_hbox = QtWidgets.QHBoxLayout()
         # Add a cancel button
         neural_data_cancel_button = QtWidgets.QPushButton("Cancel")
         neural_data_cancel_button.clicked.connect(dialog.reject)
         neural_data_buttons_hbox.addWidget(neural_data_cancel_button)
         # Add a done button
-        neural_data_done_button = QtWidgets.QPushButton("Done")
-        neural_data_done_button.clicked.connect(
-            lambda clicked: self.neural_data_done_clicked(clicked, dialog)
+        run_predictions_button = QtWidgets.QPushButton("Run")
+        run_predictions_button.clicked.connect(
+            lambda clicked: self.run_neural_predictions(clicked, dialog)
         )
-        neural_data_buttons_hbox.addWidget(neural_data_done_button)
+        neural_data_buttons_hbox.addWidget(run_predictions_button)
         vbox.addLayout(neural_data_buttons_hbox)
 
         dialog.exec_()
@@ -2138,60 +2146,80 @@ class MainW(QtWidgets.QMainWindow):
         if self.neural_activity.data is None:
             self.update_status_bar("No neural activity data loaded")
             dialog.accept()
-        if dialog.neural_data_prediction_yes_radio_button.isChecked():
-            self.run_neural_predictions(dialog)
+        # TODO: Add try-catch here for loading timestamps from npy files. If no files loaded then
+        # use an array of np.arange(0, len(neural_activity.data))
+        try:
+            self.behavior_timestamps = np.load(
+                dialog.behav_data_timestamps_qlineedit.text()
+            )
+        except:
+            self.behavior_timestamps = np.arange(0, self.nframes)
+        try:
+            self.neural_timestamps = np.load(
+                dialog.neural_data_timestamps_lineedit.text()
+            )
+        except:
+            self.neural_timestamps = np.arange(0, len(self.neural_activity.data))
+        print("Neural activity shape: %s" % str(self.neural_activity.data.shape))
+        print("Behavior timestamps shape: %s" % str(self.behavior_timestamps.shape))
+        print("Neural timestamps shape: %s" % str(self.neural_timestamps.shape))
 
-    def run_neural_predictions(self, dialog):
+    def run_neural_predictions(self, clicked, dialog):
         """
         Run neural predictions
         """
-        # TODO: Add try here for loading timestamps from npy files
-        behavior_timestamps = np.load(dialog.behav_data_timestamps_qlineedit.text())
-        neural_timestamps = np.load(dialog.neural_data_timestamps_lineedit.text())
-        print("Neural activity shape: %s" % str(self.neural_activity.data.shape))
         if dialog.input_data_keypoints_radio_button.isChecked():
             keypoints = prediction_utils.get_normalized_keypoints(self.poseFilepath[0])
-            if dialog.align_behav_data_checkbox.isChecked():
+            # If the number of timestamps is not equal to the number of frames, then interpolate
+            if len(self.behavior_timestamps) != self.nframes:
                 keypoints = keypoints[
-                    np.linspace(0, len(keypoints) - 1, len(behavior_timestamps)).astype(
-                        int
-                    )
+                    np.linspace(
+                        0, len(keypoints) - 1, len(self.behavior_timestamps)
+                    ).astype(int)
                 ]
 
             if dialog.neural_pcs_yes_radio_button.isChecked():
-                U, S, V = prediction_utils.get_neural_pcs(self.neural_activity.data)
-                print(
-                    "U shape: %s, S shape: %s, V shape: %s"
-                    % (U.shape, S.shape, V.shape)
+                neural_target, Vt = prediction_utils.get_neural_pcs(
+                    self.neural_activity.data.copy()
                 )
+                print("Neural PCs shape: ", neural_target.shape)
+                print("Vt shape: ", Vt.shape)
             else:
-                V = self.neural_activity.data.T
+                neural_target = self.neural_activity.data.T.copy()
             (
-                varexp_testdata,
+                varexp,
+                varexp_neurons,
+                _,
+                _,
                 _,
                 _,
                 model,
             ) = prediction_utils.get_keypoints_to_neural_varexp(
-                keypoints, V, behavior_timestamps, neural_timestamps, verbose=True
+                keypoints,
+                neural_target,
+                self.behavior_timestamps,
+                self.neural_timestamps,
+                verbose=True,
             )
             predictions, _ = prediction_utils.get_trained_model_predictions(
-                keypoints, model
+                keypoints, model, self.behavior_timestamps, self.neural_timestamps
             )
 
             if dialog.neural_pcs_yes_radio_button.isChecked():
-                print("PC varexp: {}".format(varexp_testdata * 100))
-                predictions = prediction_utils.transform_neural_pcs_to_activity(
-                    predictions, U
+                print("PC varexp: {}".format(varexp * 100))
+                predictions = prediction_utils.get_pca_inverse_transform(
+                    predictions, Vt
                 )
             else:
-                print("Neural activity varexp: {}".format(varexp_testdata * 100))
+                print("Neural activity varexp: {}".format(varexp * 100))
                 predictions = predictions.T
         else:
-            print("Using SVD for training model")
+            print("Using SVD for predictions using a linear model")
             # TODO: Add prediction using SVDs
 
         # Plot neural activity predictions
         self.set_neural_prediction_data(dialog, predictions)
+        print("Predictions completed")
 
     def set_neural_data_filepath(self, clicked, dialog):
         """
@@ -2235,11 +2263,6 @@ class MainW(QtWidgets.QMainWindow):
         behav_data_timestamps_filepath = dialog.behav_data_timestamps_qlineedit.text()
         # behav_tstart = dialog.behav_tstart_qlineedit.text()
         # behav_tend = dialog.behav_tend_qlineedit.text()
-        print("neural_data_filepath:", neural_data_filepath)
-        print("data_viz_type:", data_viz_method)
-        print("neural_timestamps_filepath:", neural_timestamps_filepath)
-        print("behav_data_timestamps_filepath:", behav_data_timestamps_filepath)
-        print("\n")
         self.neural_activity.set_data(
             neural_data_filepath,
             None,
@@ -2259,12 +2282,9 @@ class MainW(QtWidgets.QMainWindow):
         """
         Get user settings from the dialog box to set neural prediction data
         """
-        if dialog.heatmap_button.isChecked():
-            data_viz_method = "heatmap"
-        else:
-            data_viz_method = "lineplot"
-        print("data_viz_type:", data_viz_method)
-        self.neural_predictions.set_data(data, None, data_viz_method)
+        self.neural_predictions.set_data(
+            data, None, self.neural_activity.data_viz_method
+        )
         self.neural_predictions_loaded = True
         self.plot_neural_predictions()
         dialog.accept()

@@ -12,7 +12,7 @@ from torch.nn.functional import conv1d
 from facemap import keypoints
 from facemap.utils import bin1d
 
-from .model import KeypointsNetwork
+from .neural_model import KeypointsNetwork
 
 
 def split_traintest(n_t, frac=0.25, pad=3):
@@ -28,7 +28,7 @@ def split_traintest(n_t, frac=0.25, pad=3):
         fraction of points to put in test set
 
     pad : int (optional, default 3)
-        number of timepoints to exclude from test set before and after training segment, 
+        number of timepoints to exclude from test set before and after training segment,
         in addition to 5 timepoints auto-included
 
     Returns
@@ -48,8 +48,7 @@ def split_traintest(n_t, frac=0.25, pad=3):
     l_train = int(np.floor(n_len * (1 - frac)))
     inds_test = inds_train + l_train + pad
     l_test = (
-        np.diff(np.stack((inds_train, inds_train + l_train)).T.flatten()).min()
-        - pad
+        np.diff(np.stack((inds_train, inds_train + l_train)).T.flatten()).min() - pad
     )
     itrain = inds_train[:, np.newaxis] + np.arange(0, l_train, 1, int)
     itest = inds_test[:, np.newaxis] + np.arange(0, l_test, 1, int)
@@ -146,7 +145,7 @@ def ridge_regression(X, Y, lam=0):
     return A
 
 
-def reduced_rank_regression(X, Y, rank=None, lam=0, device=torch.device('cuda')):
+def reduced_rank_regression(X, Y, rank=None, lam=0, device=torch.device("cuda")):
     """predict Y from X using regularized reduced rank regression
 
     *** subtract mean from X and Y before predicting
@@ -188,16 +187,16 @@ def reduced_rank_regression(X, Y, rank=None, lam=0, device=torch.device('cuda'))
     CYX = (Y.T @ X) / X.shape[0]
 
     # compute inverse square root of matrix
-    #s, u = eigh(CXX.cpu().numpy())
+    # s, u = eigh(CXX.cpu().numpy())
     u, s = torch.svd(CXX)[:2]
     CXXMH = (u * (s + lam) ** -0.5) @ u.T
 
     # project into prediction space
     M = CYX @ CXXMH
     # do svd of prediction projection
-    #model = PCA(n_components=rank).fit(M)
-    #c = model.components_.T
-    #s = model.singular_values_
+    # model = PCA(n_components=rank).fit(M)
+    # c = model.components_.T
+    # s = model.singular_values_
     s, c = torch.svd(M)[1:]
     A = M @ c
     B = CXXMH @ c
@@ -205,7 +204,14 @@ def reduced_rank_regression(X, Y, rank=None, lam=0, device=torch.device('cuda'))
 
 
 def rrr_prediction(
-    X, Y, rank=None, lam=0, itrain=None, itest=None, tbin=None, device=torch.device('cuda')
+    X,
+    Y,
+    rank=None,
+    lam=0,
+    itrain=None,
+    itest=None,
+    tbin=None,
+    device=torch.device("cuda"),
 ):
     """predict Y from X using regularized reduced rank regression for all ranks up to "rank"
 
@@ -263,7 +269,9 @@ def rrr_prediction(
     itrain, itest = itrain.flatten(), itest.flatten()
     X = torch.from_numpy(X).to(device)
     Y = torch.from_numpy(Y).to(device)
-    A, B = reduced_rank_regression(X[itrain], Y[itrain], rank=rank, lam=lam, device=device)
+    A, B = reduced_rank_regression(
+        X[itrain], Y[itrain], rank=rank, lam=lam, device=device
+    )
     corrf = np.zeros((rank, n_feats))
     varexpf = np.zeros((rank, n_feats))
     varexp = np.zeros((rank, 2)) if tbin is not None else np.zeros((rank, 1))
@@ -271,33 +279,62 @@ def rrr_prediction(
     for r in range(rank):
         Y_pred_test = X[itest] @ B[:, : r + 1] @ A[:, : r + 1].T
         Y_test_var = (Y[itest] ** 2).mean(axis=0)
-        corrf[r] = ((Y[itest] * Y_pred_test).mean(axis=0) / (
-            Y_test_var**0.5 * Y_pred_test.std(axis=0)
-        )).cpu().numpy()
+        corrf[r] = (
+            (
+                (Y[itest] * Y_pred_test).mean(axis=0)
+                / (Y_test_var**0.5 * Y_pred_test.std(axis=0))
+            )
+            .cpu()
+            .numpy()
+        )
         residual = ((Y[itest] - Y_pred_test) ** 2).mean(axis=0)
         varexpf[r] = (1 - residual / Y_test_var).cpu().numpy()
         varexp[r, 0] = (1 - residual.mean() / Y_test_var.mean()).cpu().numpy()
         if tbin is not None and tbin > 1:
-            varexp[r, 1] = compute_varexp(
-                bin1d(Y[itest], tbin).flatten(), bin1d(Y_pred_test, tbin).flatten()
-            ).cpu().numpy()
-    return Y_pred_test.cpu().numpy(), varexp.squeeze(), itest, A.cpu().numpy(), B.cpu().numpy(), varexpf, corrf
+            varexp[r, 1] = (
+                compute_varexp(
+                    bin1d(Y[itest], tbin).flatten(), bin1d(Y_pred_test, tbin).flatten()
+                )
+                .cpu()
+                .numpy()
+            )
+    return (
+        Y_pred_test.cpu().numpy(),
+        varexp.squeeze(),
+        itest,
+        A.cpu().numpy(),
+        B.cpu().numpy(),
+        varexpf,
+        corrf,
+    )
 
 
 def rrr_varexp_svds(
-    svd_path, tcam, tneural, Y, U=None, spks=None, delay=-1, running=None, 
-    rank=32, lam=1e-6
+    svd_path,
+    tcam,
+    tneural,
+    Y,
+    U=None,
+    spks=None,
+    delay=-1,
+    running=None,
+    rank=32,
+    lam=1e-6,
 ):
     """predict neural PCs Y and compute varexp for PCs and spks"""
     varexp = np.nan * np.zeros((rank, 2))
-    varexp_neurons = np.nan * np.zeros((len(spks), 2)) if spks is not None else np.nan * np.zeros((Y.shape[-1], 2))
+    varexp_neurons = (
+        np.nan * np.zeros((len(spks), 2))
+        if spks is not None
+        else np.nan * np.zeros((Y.shape[-1], 2))
+    )
     svds = np.load(svd_path, allow_pickle=True).item()
-    spks_pred_test0 = [] 
+    spks_pred_test0 = []
     Y_pred_test0 = []
     for k, key in enumerate(["motSVD", "movSVD"]):
         X = svds[key][0].copy()
-        if running is not None: 
-            X = np.concatenate((X, running[:,np.newaxis]), axis=-1)
+        if running is not None:
+            X = np.concatenate((X, running[:, np.newaxis]), axis=-1)
 
         X -= X.mean(axis=0)
         X /= X[:, 0].std(axis=0)
@@ -309,10 +346,10 @@ def rrr_varexp_svds(
             X_ds = np.vstack((X_ds[delay:], np.tile(X_ds[[-1], :], (delay, 1))))
             Ys = Y
         Y_pred_test, ve_test, itest, A, B = rrr_prediction(
-            X_ds.astype('float32'), Ys.astype('float32'), rank=rank, lam=lam
+            X_ds.astype("float32"), Ys.astype("float32"), rank=rank, lam=lam
         )[:5]
         varexp[:, k] = ve_test
-        
+
         itest -= delay
         # single neuron prediction
         spks_pred_test = Y_pred_test @ U.T if spks is not None else Y_pred_test
@@ -320,7 +357,13 @@ def rrr_varexp_svds(
         varexp_neurons[:, k] = compute_varexp(spks_test, spks_pred_test)
         spks_pred_test0.append(spks_pred_test)
         Y_pred_test0.append(Y_pred_test)
-    return varexp, varexp_neurons, np.array(Y_pred_test0), np.array(spks_pred_test0), itest
+    return (
+        varexp,
+        varexp_neurons,
+        np.array(Y_pred_test0),
+        np.array(spks_pred_test0),
+        itest,
+    )
 
 
 def rrr_varexp_kps(kp_path, tcam, tneural, Y, U, spks, delay=-1, tbin=4, rank=32):
@@ -391,8 +434,28 @@ def get_neural_pcs(neural_activity, n_comps=128):
     neural_activity /= std
     model = PCA(n_components=n_comps, copy=False).fit(neural_activity)
     U, S = model.components_, model.singular_values_
-    V = U.T * S
-    return U, S, V
+    Vt = model.transform(neural_activity)
+    neural_pcs = U.T * S
+    return neural_pcs, Vt
+
+
+def get_pca_inverse_transform(pca_data, components):
+    """
+    Perform inverse PCA transform on data
+    Parameters
+    ----------
+    pca_data : 2D-array
+        neural PCs of shape [n_features x n_comps]
+    components : 2D-array
+        neural PCs of shape [n_samples x n_comps]
+    Returns
+    -------
+    data : 2D-array
+        data of shape [n_samples x n_features]
+    """
+    data = (pca_data @ components.T).T
+    return data
+
 
 def get_normalized_keypoints(keypoints_path, exclude_keypoints=None, running=None):
     """
@@ -413,23 +476,24 @@ def get_normalized_keypoints(keypoints_path, exclude_keypoints=None, running=Non
         kp = np.load(keypoints_path, allow_pickle=True).item()
         xy, keypoint_labels = kp["xy"], kp["keypoint_labels"]
     if exclude_keypoints is not None:
-        xy0=np.zeros((xy.shape[0],0,2))
+        xy0 = np.zeros((xy.shape[0], 0, 2))
         keypoint_labels0 = []
-        for k,key in enumerate(keypoint_labels):
+        for k, key in enumerate(keypoint_labels):
             if exclude_keypoints not in key:
-                xy0 = np.concatenate((xy0, xy[:,[k]]), axis=1)
+                xy0 = np.concatenate((xy0, xy[:, [k]]), axis=1)
                 keypoint_labels0.append(key)
         xy, keypoint_labels = xy0, keypoint_labels0
-    print('predicting neural activity using...')
-    print(keypoint_labels)    
+    print("predicting neural activity using...")
+    print(keypoint_labels)
 
     # Normalize keypoints (input data x)
     x = xy.reshape(xy.shape[0], -1).copy()
-    if running is not None: 
-        x = np.concatenate((x, running[:,np.newaxis]), axis=-1)
-        print('and running')
+    if running is not None:
+        x = np.concatenate((x, running[:, np.newaxis]), axis=-1)
+        print("and running")
     x = (x - x.mean(axis=0)) / x.std(axis=0)
-    return x 
+    return x
+
 
 def get_keypoints_to_neural_varexp(
     input_data,
@@ -489,10 +553,14 @@ def get_keypoints_to_neural_varexp(
     # Train model and get predictions
     print("Keypoints: ", x.shape)
     print("Neural: ", y.shape)
-    print("Keypoints timestamps: ", behavior_timestamps.shape)
-    print("Neural timestamps: ", neural_timestamps.shape)
 
-    y_pred_test, varexp, spks_pred_test, varexp_neurons, test_indices = model.train_model(
+    (
+        y_pred_test,
+        varexp,
+        spks_pred_test,
+        varexp_neurons,
+        test_indices,
+    ) = model.train_model(
         x,
         y,
         behavior_timestamps,
@@ -504,28 +572,36 @@ def get_keypoints_to_neural_varexp(
         device=device,
     )
     if compute_latents:
-        latents = get_trained_model_predictions(x, model, behavior_timestamps, neural_timestamps)[-1]
+        latents = get_trained_model_predictions(
+            x, model, behavior_timestamps, neural_timestamps
+        )[-1]
     else:
         latents = None
     y_pred_test = y_pred_test.reshape(-1, y.shape[-1])
     print(f"all kp, varexp {varexp:.3f}")
     if spks is not None:
-        print(f'neuron varexp = {varexp_neurons.mean():.3f}')
+        print(f"neuron varexp = {varexp_neurons.mean():.3f}")
     else:
         varexp_neurons, spks_pred_test = None, None
 
     return (
-            varexp,
-            varexp_neurons,
-            y_pred_test,
-            spks_pred_test,
-            test_indices,
-            latents,
-            model,
-        )
+        varexp,
+        varexp_neurons,
+        y_pred_test,
+        spks_pred_test,
+        test_indices,
+        latents,
+        model,
+    )
 
-def get_trained_model_predictions(keypoints, model, behavior_timestamps,
-        neural_timestamps, device=torch.device("cuda")):
+
+def get_trained_model_predictions(
+    keypoints,
+    model,
+    behavior_timestamps,
+    neural_timestamps,
+    device=torch.device("cuda"),
+):
     """
     Get prediction from keypoints using a trained model
     Parameters
@@ -569,24 +645,6 @@ def get_trained_model_predictions(keypoints, model, behavior_timestamps,
     return pred_data, latents
 
 
-def transform_neural_pcs_to_activity(neural_pcs, neural_pcs_U):
-    """
-    Transform PCs to neural activity using the neural_pcs_U matrix
-    Parameters
-    ----------
-    neural_pcs : 2D array
-        PCs where each row is a PC and each column is a frame
-    neural_pcs_U : 2D array
-        Eigenvalues where each row is a PC and each column is a neuron
-    Returns
-    -------
-    neural_activity : 2D array
-        Neural activity where each row is a neuron and each column is a frame
-    """
-    neural_activity = neural_pcs @ neural_pcs_U.T
-    return neural_activity
-
-
 def resample_data_to_neural_timestamps(data, behavior_timestamps, neural_timestamps):
     """
     Resample data to neural timestamps using linear interpolation
@@ -622,10 +680,7 @@ def peer_prediction(spks, xpos, ypos, dum=400):
     varexp_neurons = np.zeros((spks.shape[0]))
     for k, ineu in enumerate([ineu1, ineu2]):
         V_pred_test, varexpk, itest = rrr_prediction(
-            Vn[(k + 1) % 2],
-            Vn[k % 2],
-            rank=128,
-            lam=1e-1
+            Vn[(k + 1) % 2], Vn[k % 2], rank=128, lam=1e-1
         )[:3]
         varexp += varexpk[-1]
         U = spks[ineu] @ Vn[k]
@@ -633,14 +688,13 @@ def peer_prediction(spks, xpos, ypos, dum=400):
         spks_pred_test = V_pred_test @ U.T
         spks_test = spks[ineu][:, itest].T
         varexp_neurons[ineu] = compute_varexp(spks_test, spks_pred_test)
-        
+
     # average variance explained for two halves
     varexp /= 2
     return varexp, varexp_neurons, itest
 
-def split_batches(
-    tcam, tneural, frac=0.25, pad=3, itrain=None, itest=None
-):
+
+def split_batches(tcam, tneural, frac=0.25, pad=3, itrain=None, itest=None):
     """this returns deterministic split of train and test in time chunks for neural and cam times
 
     Parameters
@@ -686,9 +740,7 @@ def split_batches(
     """
 
     if itrain is None or itest is None:
-        itrain, itest = split_traintest(
-            len(tneural), frac=frac, pad=pad
-        )
+        itrain, itest = split_traintest(len(tneural), frac=frac, pad=pad)
     inds_train, inds_test = itrain[:, 0], itest[:, 0]
     l_train, l_test = itrain.shape[-1], itest.shape[-1]
 
@@ -729,6 +781,7 @@ def split_batches(
     itest_sample = it[itest_cam.flatten()].nonzero()[0]
 
     return itrain, itest, itrain_cam, itest_cam, itrain_sample, itest_sample
+
 
 def split_data(
     X,
@@ -781,6 +834,7 @@ def split_data(
         itrain,
         itest,
     )
+
 
 def KLDiv_discrete(P, Q, binsize=200):
     # Q is the null distribution; P and Q are 2D distributions
