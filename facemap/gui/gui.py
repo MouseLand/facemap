@@ -3,6 +3,7 @@ import sys
 from ctypes import alignment
 from tabnanny import verbose
 
+import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
@@ -2023,12 +2024,7 @@ class MainW(QtWidgets.QMainWindow):
         behav_data_timestamps_groupbox.layout().addWidget(
             behav_timestamps_browse_button
         )
-        # Add a checkbox for data alignment
-        dialog.align_behav_data_checkbox = QtWidgets.QCheckBox("Align video")
-        dialog.align_behav_data_checkbox.setChecked(True)
-        behav_data_timestamps_groupbox.layout().addWidget(
-            dialog.align_behav_data_checkbox
-        )
+
         timestamps_groupbox.layout().addWidget(behav_data_timestamps_groupbox)
 
         """
@@ -2136,6 +2132,7 @@ class MainW(QtWidgets.QMainWindow):
         run_predictions_button.clicked.connect(
             lambda clicked: self.run_neural_predictions(clicked, dialog)
         )
+        run_predictions_button.setDefault(True)
         neural_data_buttons_hbox.addWidget(run_predictions_button)
         vbox.addLayout(neural_data_buttons_hbox)
 
@@ -2191,7 +2188,7 @@ class MainW(QtWidgets.QMainWindow):
                 varexp_neurons,
                 _,
                 _,
-                _,
+                test_indices,
                 _,
                 model,
             ) = prediction_utils.get_keypoints_to_neural_varexp(
@@ -2218,7 +2215,7 @@ class MainW(QtWidgets.QMainWindow):
             # TODO: Add prediction using SVDs
 
         # Plot neural activity predictions
-        self.set_neural_prediction_data(dialog, predictions)
+        self.set_neural_prediction_data(dialog, predictions, test_indices)
         print("Predictions completed")
 
     def set_neural_data_filepath(self, clicked, dialog):
@@ -2278,7 +2275,7 @@ class MainW(QtWidgets.QMainWindow):
         self.plot_neural_data()
         dialog.accept()
 
-    def set_neural_prediction_data(self, dialog, data):
+    def set_neural_prediction_data(self, dialog, data, test_indices):
         """
         Get user settings from the dialog box to set neural prediction data
         """
@@ -2286,8 +2283,59 @@ class MainW(QtWidgets.QMainWindow):
             data, None, self.neural_activity.data_viz_method
         )
         self.neural_predictions_loaded = True
+        self.neural_predictions.test_data_image = None
         self.plot_neural_predictions()
+        self.highlight_test_data(test_indices)
         dialog.accept()
+
+    def highlight_test_data(self, test_indices_list):
+        """
+        Highlight the test data in the neural predictions plot
+        Parameters
+        ----------
+        test_indices : list
+            List of test indices
+        """
+        # Create a pyqtgraph image item with low alpha value to highlight the test data
+        test_section_box = np.zeros(self.neural_predictions.data.shape)
+        # Set the test section box to 1 for the test indices
+        for test_idx_list in test_indices_list:
+            test_section_box[:, test_idx_list[0] : test_idx_list[-1]] = 1
+
+        self.neural_predictions.test_data_image = pg.ImageItem(
+            test_section_box, opacity=0.3
+        )  # np.ones(self.neural_predictions.data.shape)
+        extent = QtCore.QRect(
+            self.neural_activity.neural_timestamps_resampled[0],
+            0,
+            self.neural_activity.neural_timestamps_resampled[-1],
+            self.nframes,
+        )
+        self.neural_predictions.test_data_image.setRect(extent)
+        # Set color of test data to be black
+        c_black = matplotlib.colors.colorConverter.to_rgba("black", alpha=0)
+        c_green = matplotlib.colors.colorConverter.to_rgba("green", alpha=1)
+        colormap = matplotlib.colors.LinearSegmentedColormap.from_list(
+            "custom_cmap", [c_black, c_green], 255
+        )
+        colormap._init()
+        lut = (colormap._lut * 255).view(
+            np.ndarray
+        )  # Convert matplotlib colormap from 0-1 to 0 -255 for Qt
+        lut = lut[0:-3, :]
+        # apply the colormap
+        self.neural_predictions.test_data_image.setLookupTable(lut)
+        self.neural_predictions_plot.addItem(self.neural_predictions.test_data_image)
+
+    def toggle_testdata_display(self, button):
+        """
+        Toggle the display of test data in the neural predictions plot
+        """
+        if self.neural_predictions.test_data_image is not None:
+            if button.isChecked():
+                self.neural_predictions.test_data_image.show()
+            else:
+                self.neural_predictions.test_data_image.hide()
 
     def plot_neural_data(self):
         # Clear plot

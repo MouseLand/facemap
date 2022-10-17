@@ -46,6 +46,7 @@ def mainmenu(parent):
     load_neural_predictions.triggered.connect(
         lambda: parent.load_neural_data(prediction_mode=True)
     )
+    parent.addAction(load_neural_predictions)
 
     # Run neural predictions
     run_neural_prediction = QAction("Run neural predictions", parent)
@@ -54,6 +55,15 @@ def mainmenu(parent):
         lambda: parent.show_run_neural_predictions_dialog()
     )
     parent.addAction(run_neural_prediction)
+
+    # Add a checkable action to toggle the visibility of test data in the predictions plot
+    toggle_test_data = QAction("Highlight test data", parent)
+    toggle_test_data.setCheckable(True)
+    toggle_test_data.setChecked(True)
+    toggle_test_data.triggered.connect(
+        lambda: parent.toggle_testdata_display(toggle_test_data)
+    )
+    parent.addAction(toggle_test_data)
 
     user_manual = QAction("User manual", parent)
     user_manual.setShortcut("Ctrl+H")
@@ -82,6 +92,7 @@ def mainmenu(parent):
     neural_activity_menu.addAction(load_neural)
     neural_activity_menu.addAction(load_neural_predictions)
     neural_activity_menu.addAction(run_neural_prediction)
+    neural_activity_menu.addAction(toggle_test_data)
 
     help_menu = main_menu.addMenu("&Help")
     help_menu.addAction(user_manual)
