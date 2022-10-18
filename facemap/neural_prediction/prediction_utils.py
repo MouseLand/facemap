@@ -639,7 +639,12 @@ def get_trained_model_predictions(
             latents[
                 n * batch_size : min(num_timepoints, (n + 1) * batch_size)
             ] = l_batch.cpu().numpy()
-    f = interp1d(behavior_timestamps, np.arange(0, len(behavior_timestamps)))
+    f = interp1d(behavior_timestamps, 
+                 np.arange(0, len(behavior_timestamps)),
+                 kind="nearest",
+                 fill_value="extrapolate",
+                 bounds_error=False,
+            )
     sample_inds = np.round(f(neural_timestamps)).astype(int)
     pred_data = pred_data[sample_inds]
     return pred_data, latents
