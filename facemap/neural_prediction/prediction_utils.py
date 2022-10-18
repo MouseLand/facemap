@@ -790,6 +790,8 @@ def split_data(
     tneural,
     frac=0.25,
     delay=-1,
+    itrain=None,
+    itest=None,
     device=torch.device("cuda"),
 ):
     # ensure keypoints and timestamps are same length
@@ -806,7 +808,7 @@ def split_data(
     else:
         Xs = X
         Ys = Y
-    splits = split_batches(tcam, tneural, frac=frac)
+    splits = split_batches(tcam, tneural, frac=frac, itrain=itrain, itest=itest)
     itrain, itest, itrain_cam, itest_cam, itrain_sample, itest_sample = splits
     X_train = torch.from_numpy(Xs[itrain_cam]).float().to(device)
     Y_train = torch.from_numpy(Ys[itrain]).float().to(device)

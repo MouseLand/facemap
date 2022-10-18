@@ -69,6 +69,8 @@ class KeypointsNetwork(nn.Module):
         learning_rate=1e-3,
         annealing_steps=2,
         weight_decay=1e-4,
+        itrain=None,
+        itest=None,
         device=torch.device("cuda"),
         verbose=False,
     ):
@@ -108,7 +110,7 @@ class KeypointsNetwork(nn.Module):
             zip(X_dat, Y_dat, tcam_list, tneural_list)
         ):
             dsplits = prediction_utils.split_data(
-                X, Y, tcam, tneural, delay=delay, device=device
+                X, Y, tcam, tneural, itrain=itrain, itest=itest, delay=delay, device=device
             )
             for d, a in zip(dsplits, arrs):
                 a.append(d)
