@@ -338,19 +338,21 @@ def load_movies(parent, filelist=None):
     return good
 
 
-def load_npy_file(parent):
+def load_npy_file(parent, allow_mat=False):
     # Open a file dialog to select a folder
-    file_name = QFileDialog.getOpenFileName(
-        parent, "Select a file", "", "Data files (*.npy *.npz)"
-    )[0]
+    if allow_mat:
+        filetypes = "NPY or MAT (*.npy *.npz *.mat)"
+    else:
+        filetypes = "NPY (*.npy *.npz)"
+    path = QFileDialog.getOpenFileName(parent, "Select a file", filter=filetypes)
     # Check if path exists
-    if file_name:
-        return file_name
+    if path[0]:
+        return path[0]
     else:
         # Open a qmessagebox to inform the user that the path does not exist
         msg = QMessageBox()
         msg.setIcon(QMessageBox.Warning)
-        msg.setText("Filepath does not exist")
+        msg.setText("The path does not exist")
         msg.setWindowTitle("Warning")
         msg.exec_()
         return None

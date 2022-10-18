@@ -2060,9 +2060,42 @@ class MainW(QtWidgets.QMainWindow):
 
     def load_neural_predictions_file(self):
         """Load neural predictions file."""
-        neural_predictions_filepath = io.load_npy_file()
-        if neural_predictions_filepath is not None:
-            dat = np.load(neural_predictions_filepath)
+        neural_predictions_filepath = io.load_npy_file(self, allow_mat=True)
+        if neural_predictions_filepath is not None and (
+            ".npy" in neural_predictions_filepath
+            or ".npz" in neural_predictions_filepath
+        ):
+            dat = np.load(neural_predictions_filepath, allow_pickle=True).item()
+            extent = dat["plot_extent"]
+        # FIXME: extent not working for mat files
+        elif (
+            neural_predictions_filepath is not None
+            and ".mat" in neural_predictions_filepath
+        ):
+            dat = sio.loadmat(neural_predictions_filepath)
+            extent = dat["plot_extent"][0]
+        else:
+            return
+        # Check if the file is a dictionary
+        if isinstance(dat, dict):
+            try:
+                self.neural_predictions.data = dat["predictions"]
+                self.neural_predictions.data_viz_method = "heatmap"
+                print("extent", extent)
+                self.plot_neural_predictions(extent=dat["plot_extent"])
+                self.highlight_test_data(dat["test_indices"], extent=extent)
+                print("Variance explained: {}".format(dat["variance_explained"]))
+            except Exception as e:
+                print("error", e)
+                # Show error message
+                msg = QtWidgets.QMessageBox()
+                msg.setIcon(QtWidgets.QMessageBox.Critical)
+                msg.setText("Invalid neural predictions file.")
+                msg.setInformativeText(
+                    "The selected file is not a valid neural predictions file."
+                )
+                msg.setWindowTitle("Error")
+                msg.exec_()
 
     def show_run_neural_predictions_dialog(self):
         dialog = QtWidgets.QDialog()
@@ -2220,14 +2253,13 @@ class MainW(QtWidgets.QMainWindow):
             )
         except:
             self.neural_timestamps = np.arange(0, len(self.neural_activity.data))
-        print("Neural activity shape: %s" % str(self.neural_activity.data.shape))
-        print("Behavior timestamps shape: %s" % str(self.behavior_timestamps.shape))
-        print("Neural timestamps shape: %s" % str(self.neural_timestamps.shape))
 
     def run_neural_predictions(self, clicked, dialog):
         """
         Run neural predictions
         """
+        # TODO: Add a progress bar
+        # TODO: Add try catch for checking if input data is loaded
         if dialog.input_data_keypoints_radio_button.isChecked():
             keypoints = prediction_utils.get_normalized_keypoints(self.poseFilepath[0])
             # If the number of timestamps is not equal to the number of frames, then interpolate
@@ -2275,7 +2307,7 @@ class MainW(QtWidgets.QMainWindow):
                 predictions = predictions.T
         else:
             print("Using SVD for predictions using a linear model")
-            # TODO: Add prediction using SVDs
+            # TODO: Add prediction using SVDs!!
 
         # Plot neural activity predictions
         self.set_neural_prediction_data(dialog, predictions, test_indices)
@@ -2284,13 +2316,15 @@ class MainW(QtWidgets.QMainWindow):
         save_data_dict = {
             "predictions": predictions,
             "test_indices": test_indices,
-            "varexp": varexp,
-            "plot_extent": [
-                self.neural_activity.neural_timestamps_resampled[0],
-                0,
-                self.neural_activity.neural_timestamps_resampled[-1],
-                self.nframes,
-            ],
+            "variance_explained": varexp,
+            "plot_extent": np.array(
+                [
+                    self.neural_activity.neural_timestamps_resampled[0],
+                    0,
+                    self.neural_activity.neural_timestamps_resampled[-1],
+                    self.nframes,
+                ]
+            ),
         }
         save_dir = dialog.output_file_path_line_edit.text()
         save_filename = dialog.output_filename_line_edit.text()
@@ -2387,7 +2421,7 @@ class MainW(QtWidgets.QMainWindow):
         self.highlight_test_data(test_indices)
         dialog.accept()
 
-    def highlight_test_data(self, test_indices_list):
+    def highlight_test_data(self, test_indices_list, extent=None):
         """
         Highlight the test data in the neural predictions plot
         Parameters
@@ -2403,15 +2437,21 @@ class MainW(QtWidgets.QMainWindow):
 
         self.neural_predictions.test_data_image = pg.ImageItem(
             test_section_box, opacity=0.3
-        )  # np.ones(self.neural_predictions.data.shape)
-        extent = QtCore.QRect(
-            self.neural_activity.neural_timestamps_resampled[0],
-            0,
-            self.neural_activity.neural_timestamps_resampled[-1],
-            self.nframes,
         )
+
+        # Set limits of the image item
+        if extent is None:
+            extent = QtCore.QRect(
+                self.neural_activity.neural_timestamps_resampled[0],
+                0,
+                self.neural_activity.neural_timestamps_resampled[-1],
+                self.nframes,
+            )
+        else:
+            extent = QtCore.QRect(*extent)
         self.neural_predictions.test_data_image.setRect(extent)
-        # Set color of test data to be black
+
+        # Change color of the image item for test sections
         c_black = matplotlib.colors.colorConverter.to_rgba("black", alpha=0)
         c_green = matplotlib.colors.colorConverter.to_rgba("green", alpha=1)
         colormap = matplotlib.colors.LinearSegmentedColormap.from_list(
@@ -2422,7 +2462,6 @@ class MainW(QtWidgets.QMainWindow):
             np.ndarray
         )  # Convert matplotlib colormap from 0-1 to 0 -255 for Qt
         lut = lut[0:-3, :]
-        # apply the colormap
         self.neural_predictions.test_data_image.setLookupTable(lut)
         self.neural_predictions_plot.addItem(self.neural_predictions.test_data_image)
 
@@ -2490,7 +2529,7 @@ class MainW(QtWidgets.QMainWindow):
 
         self.update_status_bar("Neural data loaded")
 
-    def plot_neural_predictions(self):
+    def plot_neural_predictions(self, extent=None):
         # Clear plot
         self.neural_predictions_plot.clear()
 
@@ -2502,7 +2541,9 @@ class MainW(QtWidgets.QMainWindow):
             self.neural_heatmap = pg.ImageItem(
                 self.neural_predictions.data, autoDownsample=True, levels=(vmin, vmax)
             )
-            if (
+            if extent is not None:
+                self.neural_heatmap.setRect(QtCore.QRect(*extent))
+            elif (
                 self.neural_activity.behavior_timestamps is not None
                 and self.neural_activity.neural_timestamps is not None
             ):
