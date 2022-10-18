@@ -37,20 +37,18 @@ def mainmenu(parent):
 
     # Load neural data
     load_neural = QAction("Load neural data", parent)
-    load_neural.setShortcut("Ctrl+N")
     load_neural.triggered.connect(lambda: parent.load_neural_data())
     parent.addAction(load_neural)
 
     # Load neural predictions
     load_neural_predictions = QAction("Load neural predictions", parent)
     load_neural_predictions.triggered.connect(
-        lambda: parent.load_neural_data(prediction_mode=True)
+        lambda: parent.load_neural_predictions_file()
     )
     parent.addAction(load_neural_predictions)
 
     # Run neural predictions
     run_neural_prediction = QAction("Run neural predictions", parent)
-    run_neural_prediction.setShortcut("Ctrl+R")
     run_neural_prediction.triggered.connect(
         lambda: parent.show_run_neural_predictions_dialog()
     )

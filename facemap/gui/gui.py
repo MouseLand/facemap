@@ -1,13 +1,12 @@
 import os
 import sys
-from ctypes import alignment
-from tabnanny import verbose
 
 import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import pyqtgraph as pg
+import scipy.io as sio
 from matplotlib import cm
 from matplotlib import colors as mpl_colors
 from PyQt5 import QtCore, QtWidgets
@@ -1967,7 +1966,7 @@ class MainW(QtWidgets.QMainWindow):
             "QGroupBox {border: 1px solid gray; border-radius: 9px; margin-top: 0.5em;} "
         )
 
-        # Add a groupbpx for neural timestamps selection
+        # Add a groupbox for neural timestamps selection
         neural_data_timestamps_groupbox = QtWidgets.QGroupBox()
         neural_data_timestamps_groupbox.setLayout(QtWidgets.QHBoxLayout())
         neural_data_timestamps_groupbox.setStyleSheet(
@@ -1976,7 +1975,6 @@ class MainW(QtWidgets.QMainWindow):
         neural_timestamps_label = QtWidgets.QLabel("Neural timestamps:")
         neural_data_timestamps_groupbox.layout().addWidget(neural_timestamps_label)
         dialog.neural_data_timestamps_lineedit = QtWidgets.QLineEdit()
-        dialog.neural_data_timestamps_lineedit.setReadOnly(True)
         neural_data_timestamps_groupbox.layout().addWidget(
             dialog.neural_data_timestamps_lineedit
         )
@@ -2060,6 +2058,12 @@ class MainW(QtWidgets.QMainWindow):
 
         dialog.exec_()
 
+    def load_neural_predictions_file(self):
+        """Load neural predictions file."""
+        neural_predictions_filepath = io.load_npy_file()
+        if neural_predictions_filepath is not None:
+            dat = np.load(neural_predictions_filepath)
+
     def show_run_neural_predictions_dialog(self):
         dialog = QtWidgets.QDialog()
         dialog.setWindowTitle("Neural activity")
@@ -2121,6 +2125,67 @@ class MainW(QtWidgets.QMainWindow):
 
         vbox.addWidget(neural_data_prediction_groupbox)
 
+        # Add a groupbox for saving the neural predictions
+        save_neural_predictions_groupbox = QtWidgets.QGroupBox()
+        save_neural_predictions_groupbox.setLayout(QtWidgets.QVBoxLayout())
+        save_neural_predictions_groupbox.setStyleSheet(
+            "QGroupBox {border: 1px solid gray; border-radius: 9px; margin-top: 0.5em;} "
+        )
+        save_neural_predictions_groupbox.setTitle("Save output")
+
+        # Add a label for file datatype and two checkboxes for selecting the file datatype
+        save_datatype_groupbox = QtWidgets.QGroupBox()
+        save_datatype_groupbox.setLayout(QtWidgets.QHBoxLayout())
+        save_datatype_groupbox.setStyleSheet("QGroupBox { border: 0px solid gray; }")
+        save_datatype_label = QtWidgets.QLabel("File datatype:")
+        save_datatype_groupbox.layout().addWidget(save_datatype_label)
+        # Create two checkboxes named npy and mat to ask the user to select the file datatype
+        save_datatype_checkbox_group = QtWidgets.QButtonGroup()
+        save_datatype_checkbox_group.setExclusive(False)
+        dialog.save_npy_checkbox = QtWidgets.QCheckBox("npy")
+        dialog.save_npy_checkbox.setChecked(True)
+        dialog.save_mat_checkbox = QtWidgets.QCheckBox("mat")
+        save_datatype_checkbox_group.addButton(dialog.save_npy_checkbox)
+        save_datatype_checkbox_group.addButton(dialog.save_mat_checkbox)
+        save_datatype_groupbox.layout().addWidget(dialog.save_npy_checkbox)
+        save_datatype_groupbox.layout().addWidget(dialog.save_mat_checkbox)
+        save_neural_predictions_groupbox.layout().addWidget(save_datatype_groupbox)
+
+        # Add a groupbox for selecting the output file path
+        output_file_path_groupbox = QtWidgets.QGroupBox()
+        output_file_path_groupbox.setLayout(QtWidgets.QHBoxLayout())
+        output_file_path_groupbox.setStyleSheet("QGroupBox { border: 0px solid gray; }")
+        output_file_path_label = QtWidgets.QLabel("Output file path:")
+        output_file_path_groupbox.layout().addWidget(output_file_path_label)
+        # Create a line edit to ask the user to enter the output file path
+        dialog.output_file_path_line_edit = QtWidgets.QLineEdit()
+        dialog.output_file_path_line_edit.setText(self.save_path)
+        output_file_path_groupbox.layout().addWidget(dialog.output_file_path_line_edit)
+        # Create a button to ask the user to select the output file path
+        output_file_path_button = QtWidgets.QPushButton("Browse")
+        output_file_path_button.clicked.connect(
+            lambda clicked: self.output_file_path_button_clicked(
+                clicked, dialog.output_file_path_line_edit
+            )
+        )
+        output_file_path_groupbox.layout().addWidget(output_file_path_button)
+        save_neural_predictions_groupbox.layout().addWidget(output_file_path_groupbox)
+
+        # Add a groupbox for selecting the output file name
+        output_filename_groupbox = QtWidgets.QGroupBox()
+        output_filename_groupbox.setLayout(QtWidgets.QHBoxLayout())
+        output_filename_groupbox.setStyleSheet("QGroupBox { border: 0px solid gray; }")
+        output_filename_label = QtWidgets.QLabel("Output filename:")
+        output_filename_groupbox.layout().addWidget(output_filename_label)
+        # Create a line edit to ask the user to enter the output filename
+        dialog.output_filename_line_edit = QtWidgets.QLineEdit()
+        dialog.output_filename_line_edit.setText("neural_predictions")
+        output_filename_groupbox.layout().addWidget(dialog.output_filename_line_edit)
+
+        save_neural_predictions_groupbox.layout().addWidget(output_filename_groupbox)
+
+        vbox.addWidget(save_neural_predictions_groupbox)
+
         # Add a hbox for cancel and run buttons
         neural_data_buttons_hbox = QtWidgets.QHBoxLayout()
         # Add a cancel button
@@ -2143,8 +2208,6 @@ class MainW(QtWidgets.QMainWindow):
         if self.neural_activity.data is None:
             self.update_status_bar("No neural activity data loaded")
             dialog.accept()
-        # TODO: Add try-catch here for loading timestamps from npy files. If no files loaded then
-        # use an array of np.arange(0, len(neural_activity.data))
         try:
             self.behavior_timestamps = np.load(
                 dialog.behav_data_timestamps_qlineedit.text()
@@ -2216,7 +2279,43 @@ class MainW(QtWidgets.QMainWindow):
 
         # Plot neural activity predictions
         self.set_neural_prediction_data(dialog, predictions, test_indices)
-        print("Predictions completed")
+
+        # Save neural predictions
+        save_data_dict = {
+            "predictions": predictions,
+            "test_indices": test_indices,
+            "varexp": varexp,
+            "plot_extent": [
+                self.neural_activity.neural_timestamps_resampled[0],
+                0,
+                self.neural_activity.neural_timestamps_resampled[-1],
+                self.nframes,
+            ],
+        }
+        save_dir = dialog.output_file_path_line_edit.text()
+        save_filename = dialog.output_filename_line_edit.text()
+        save_path = os.path.join(save_dir, save_filename)
+
+        if dialog.save_npy_checkbox.isChecked():
+            np.save(
+                save_path + ".npy",
+                save_data_dict,
+            )
+        if dialog.save_mat_checkbox.isChecked():
+            sio.savemat(
+                save_path + ".mat",
+                save_data_dict,
+            )
+        print("Predictions saved to: {}".format(save_dir))
+
+    def output_file_path_button_clicked(self, clicked, line_edit):
+        """
+        Select the output file path
+        """
+        save_path = QtWidgets.QFileDialog.getExistingDirectory(
+            self, "Select a directory to save the predictions"
+        )
+        line_edit.setText(save_path)
 
     def set_neural_data_filepath(self, clicked, dialog):
         """

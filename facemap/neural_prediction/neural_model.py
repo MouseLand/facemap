@@ -65,7 +65,7 @@ class KeypointsNetwork(nn.Module):
         spks=None,
         delay=-1,
         smoothing_penalty=0.5,
-        n_iter=50,  # TODO: change back to 300 after testing
+        n_iter=300,
         learning_rate=1e-3,
         annealing_steps=2,
         weight_decay=1e-4,
