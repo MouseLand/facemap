@@ -188,15 +188,17 @@ class KeypointsNetwork(nn.Module):
                             pstr += f"varexp{i} {ve.item():.4f}, "
 
                         if epoch == n_iter - 1:
+                            y_pred = y_pred.cpu().numpy()
+                            y_test = Y_test[i].cpu().numpy()
                             spks_pred_test = (
-                                y_pred.cpu().numpy() @ U[i].T
+                                y_pred @ U[i].T
                                 if spks[i] is not None
-                                else y_pred.cpu().numpy()
+                                else y_pred
                             )
                             spks_test = (
                                 spks[i][:, itest[i].flatten()].T
                                 if spks[i] is not None
-                                else Y_test[i].cpu().numpy()
+                                else y_test
                             )
                             ven = prediction_utils.compute_varexp(
                                 spks_test, spks_pred_test
