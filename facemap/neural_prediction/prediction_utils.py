@@ -267,11 +267,16 @@ def rrr_prediction(
     if itrain is None and itest is None:
         itrain, itest = split_traintest(n_t)
     itrain, itest = itrain.flatten(), itest.flatten()
-    X = torch.from_numpy(X).to(device)
-    Y = torch.from_numpy(Y).to(device)
+    X = torch.from_numpy(X).to(device, dtype=torch.float64)
+    Y = torch.from_numpy(Y).to(device, dtype=torch.float64)
     A, B = reduced_rank_regression(
         X[itrain], Y[itrain], rank=rank, lam=lam, device=device
     )
+    min_dim = min(Y.shape[1], min(X.shape[0], X.shape[1])) - 1
+    if rank is None:
+        rank = min_dim
+    else:
+        rank = min(min_dim, rank)
     corrf = np.zeros((rank, n_feats))
     varexpf = np.zeros((rank, n_feats))
     varexp = np.zeros((rank, 2)) if tbin is not None else np.zeros((rank, 1))
