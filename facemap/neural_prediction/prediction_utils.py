@@ -510,6 +510,9 @@ def get_keypoints_to_neural_varexp(
     delay=-1,
     compute_latents=False,
     verbose=False,
+    n_iter=300,
+    learning_rate=1e-3,
+    weight_decay=1e-4,
     device=torch.device("cuda"),
 ):
     """
@@ -558,6 +561,7 @@ def get_keypoints_to_neural_varexp(
     # Train model and get predictions
     print("Keypoints: ", x.shape)
     print("Neural: ", y.shape)
+    print("Using lr, n_iter, weight_decay: ", learning_rate, n_iter, weight_decay)
 
     (
         y_pred_test,
@@ -573,6 +577,9 @@ def get_keypoints_to_neural_varexp(
         U=U,
         spks=spks,
         delay=delay,
+        n_iter=n_iter,
+        learning_rate=learning_rate,
+        weight_decay=weight_decay,
         verbose=verbose,
         device=device,
     )

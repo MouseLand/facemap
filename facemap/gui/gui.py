@@ -2092,7 +2092,7 @@ class MainW(QtWidgets.QMainWindow):
         dialog.setWindowTitle("Neural activity")
         dialog.setContentsMargins(10, 10, 10, 10)
         # Set size of the dialog
-        dialog.setFixedWidth(np.floor(self.sizeObject.width() / 3).astype(int))
+        dialog.setFixedWidth(np.floor(self.sizeObject.width() / 2.5).astype(int))
         # dialog.setFixedHeight(np.floor(self.sizeObject.height() / 2.25).astype(int))
 
         # Create a vertical layout for the dialog
@@ -2150,6 +2150,41 @@ class MainW(QtWidgets.QMainWindow):
         neural_data_prediction_groupbox.layout().addWidget(output_type_groupbox)
 
         vbox.addWidget(neural_data_prediction_groupbox)
+
+        # Add a groupbox for setting training hyperparameters for neural data prediction
+        training_hyperparameters_groupbox = QtWidgets.QGroupBox()
+        training_hyperparameters_groupbox.setLayout(QtWidgets.QHBoxLayout())
+        training_hyperparameters_groupbox.setStyleSheet(
+            "QGroupBox {border: 1px solid gray; border-radius: 9px; margin-top: 1em;} "
+        )
+        training_hyperparameters_groupbox.setTitle("Training hyperparameters")
+        learning_rate_label = QtWidgets.QLabel("Learning rate:")
+        dialog.learning_rate_line_edit = QtWidgets.QLineEdit()
+        dialog.learning_rate_line_edit.setText("0.001")
+        weight_decay_label = QtWidgets.QLabel("Weight decay:")
+        dialog.weight_decay_line_edit = QtWidgets.QLineEdit()
+        dialog.weight_decay_line_edit.setText("0.0001")
+        n_epochs_label = QtWidgets.QLabel("# Epochs:")
+        dialog.n_epochs_line_edit = QtWidgets.QLineEdit()
+        dialog.n_epochs_line_edit.setText("300")
+        num_neurons_label = QtWidgets.QLabel("# Neurons:")
+        dialog.num_neurons_line_edit = QtWidgets.QLineEdit()
+        dialog.num_neurons_line_edit.setText("100")
+        training_hyperparameters_groupbox.layout().addWidget(learning_rate_label)
+        training_hyperparameters_groupbox.layout().addWidget(
+            dialog.learning_rate_line_edit
+        )
+        training_hyperparameters_groupbox.layout().addWidget(weight_decay_label)
+        training_hyperparameters_groupbox.layout().addWidget(
+            dialog.weight_decay_line_edit
+        )
+        training_hyperparameters_groupbox.layout().addWidget(n_epochs_label)
+        training_hyperparameters_groupbox.layout().addWidget(dialog.n_epochs_line_edit)
+        training_hyperparameters_groupbox.layout().addWidget(num_neurons_label)
+        training_hyperparameters_groupbox.layout().addWidget(
+            dialog.num_neurons_line_edit
+        )
+        vbox.addWidget(training_hyperparameters_groupbox)
 
         # Add a groupbox for saving the neural predictions
         save_neural_predictions_groupbox = QtWidgets.QGroupBox()
@@ -2241,6 +2276,8 @@ class MainW(QtWidgets.QMainWindow):
         neural_data_buttons_hbox.addWidget(run_predictions_button)
         vbox.addLayout(neural_data_buttons_hbox)
 
+        # TODO: Add a help button for recommended training parameters
+
         dialog.exec_()
 
     def neural_data_done_clicked(self, clicked, dialog):
@@ -2309,7 +2346,11 @@ class MainW(QtWidgets.QMainWindow):
                 self.behavior_timestamps,
                 self.neural_timestamps,
                 verbose=True,
+                learning_rate=float(dialog.learning_rate_line_edit.text()),
+                n_iter=int(dialog.n_epochs_line_edit.text()),
+                weight_decay=float(dialog.weight_decay_line_edit.text()),
             )
+            # TODO: Use num neurons input provided by the user
             predictions, _ = prediction_utils.get_trained_model_predictions(
                 keypoints, model, self.behavior_timestamps, self.neural_timestamps
             )
