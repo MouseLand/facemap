@@ -110,7 +110,14 @@ class KeypointsNetwork(nn.Module):
             zip(X_dat, Y_dat, tcam_list, tneural_list)
         ):
             dsplits = prediction_utils.split_data(
-                X, Y, tcam, tneural, itrain=itrain, itest=itest, delay=delay, device=device
+                X,
+                Y,
+                tcam,
+                tneural,
+                itrain=itrain,
+                itest=itest,
+                delay=delay,
+                device=device,
             )
             for d, a in zip(dsplits, arrs):
                 a.append(d)
@@ -191,9 +198,7 @@ class KeypointsNetwork(nn.Module):
                             y_pred = y_pred.cpu().numpy()
                             y_test = Y_test[i].cpu().numpy()
                             spks_pred_test = (
-                                y_pred @ U[i].T
-                                if spks[i] is not None
-                                else y_pred
+                                y_pred @ U[i].T if spks[i] is not None else y_pred
                             )
                             spks_test = (
                                 spks[i][:, itest[i].flatten()].T

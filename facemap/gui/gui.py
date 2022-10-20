@@ -2058,28 +2058,20 @@ class MainW(QtWidgets.QMainWindow):
 
     def load_neural_predictions_file(self):
         """Load neural predictions file."""
-        neural_predictions_filepath = io.load_npy_file(self, allow_mat=True)
+        neural_predictions_filepath = io.load_npy_file(self)
         if neural_predictions_filepath is not None and (
             ".npy" in neural_predictions_filepath
             or ".npz" in neural_predictions_filepath
         ):
             dat = np.load(neural_predictions_filepath, allow_pickle=True).item()
-            extent = dat["plot_extent"]
-        # FIXME: extent not working for mat files
-        elif (
-            neural_predictions_filepath is not None
-            and ".mat" in neural_predictions_filepath
-        ):
-            dat = sio.loadmat(neural_predictions_filepath)
-            extent = dat["plot_extent"][0]
         else:
             return
         # Check if the file is a dictionary
         if isinstance(dat, dict):
             try:
                 self.neural_predictions.data = dat["predictions"]
+                extent = dat["plot_extent"]
                 self.neural_predictions.data_viz_method = "heatmap"
-                print("extent", extent)
                 self.plot_neural_predictions(extent=dat["plot_extent"])
                 self.highlight_test_data(dat["test_indices"], extent=extent)
                 print("Variance explained: {}".format(dat["variance_explained"]))
@@ -2186,24 +2178,6 @@ class MainW(QtWidgets.QMainWindow):
         save_output_groupbox.layout().addWidget(dialog.save_output_no_radio_button)
         save_neural_predictions_groupbox.layout().addWidget(save_output_groupbox)
 
-        # Add a label for file datatype and two checkboxes for selecting the file datatype
-        save_datatype_groupbox = QtWidgets.QGroupBox()
-        save_datatype_groupbox.setLayout(QtWidgets.QHBoxLayout())
-        save_datatype_groupbox.setStyleSheet("QGroupBox { border: 0px solid gray; }")
-        save_datatype_label = QtWidgets.QLabel("File datatype:")
-        save_datatype_groupbox.layout().addWidget(save_datatype_label)
-        # Create two checkboxes named npy and mat to ask the user to select the file datatype
-        save_datatype_checkbox_group = QtWidgets.QButtonGroup()
-        save_datatype_checkbox_group.setExclusive(False)
-        dialog.save_npy_checkbox = QtWidgets.QCheckBox("npy")
-        dialog.save_npy_checkbox.setChecked(True)
-        dialog.save_mat_checkbox = QtWidgets.QCheckBox("mat")
-        save_datatype_checkbox_group.addButton(dialog.save_npy_checkbox)
-        save_datatype_checkbox_group.addButton(dialog.save_mat_checkbox)
-        save_datatype_groupbox.layout().addWidget(dialog.save_npy_checkbox)
-        save_datatype_groupbox.layout().addWidget(dialog.save_mat_checkbox)
-        save_neural_predictions_groupbox.layout().addWidget(save_datatype_groupbox)
-
         # Add a groupbox for selecting the output file path
         output_file_path_groupbox = QtWidgets.QGroupBox()
         output_file_path_groupbox.setLayout(QtWidgets.QHBoxLayout())
@@ -2234,8 +2208,21 @@ class MainW(QtWidgets.QMainWindow):
         dialog.output_filename_line_edit = QtWidgets.QLineEdit()
         dialog.output_filename_line_edit.setText("neural_predictions")
         output_filename_groupbox.layout().addWidget(dialog.output_filename_line_edit)
-
         save_neural_predictions_groupbox.layout().addWidget(output_filename_groupbox)
+
+        # Add a label for file datatype and two checkboxes for selecting the file datatype
+        save_datatype_groupbox = QtWidgets.QGroupBox()
+        save_datatype_groupbox.setLayout(QtWidgets.QHBoxLayout())
+        save_datatype_groupbox.setStyleSheet("QGroupBox { border: 0px solid gray; }")
+        save_datatype_label = QtWidgets.QLabel("Save *.mat:")
+        save_datatype_groupbox.layout().addWidget(save_datatype_label)
+        # Create two checkboxes named npy and mat to ask the user to select the file datatype
+        save_datatype_checkbox_group = QtWidgets.QButtonGroup()
+        save_datatype_checkbox_group.setExclusive(False)
+        dialog.save_mat_checkbox = QtWidgets.QCheckBox("mat")
+        save_datatype_checkbox_group.addButton(dialog.save_mat_checkbox)
+        save_datatype_groupbox.layout().addWidget(dialog.save_mat_checkbox)
+        save_neural_predictions_groupbox.layout().addWidget(save_datatype_groupbox)
 
         vbox.addWidget(save_neural_predictions_groupbox)
 
@@ -2416,11 +2403,10 @@ class MainW(QtWidgets.QMainWindow):
             save_filename = dialog.output_filename_line_edit.text()
             save_path = os.path.join(save_dir, save_filename)
 
-            if dialog.save_npy_checkbox.isChecked():
-                np.save(
-                    save_path + ".npy",
-                    save_data_dict,
-                )
+            np.save(
+                save_path + ".npy",
+                save_data_dict,
+            )
             if dialog.save_mat_checkbox.isChecked():
                 sio.savemat(
                     save_path + ".mat",
@@ -2521,11 +2507,6 @@ class MainW(QtWidgets.QMainWindow):
         # Set the test section box to 1 for the test indices
         for test_idx_list in test_indices_list:
             test_section_box[:, test_idx_list[0] : test_idx_list[-1]] = 1
-            print(
-                "test_idx_list[0], test_idx_list[-1]: ",
-                test_idx_list[0],
-                test_idx_list[-1],
-            )
 
         self.neural_predictions.test_data_image = pg.ImageItem(
             test_section_box, opacity=0.3
