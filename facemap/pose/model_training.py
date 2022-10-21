@@ -7,9 +7,8 @@ import torch
 from torch import optim
 from tqdm import tqdm
 
-from . import pose_gui
+from ..gui import help_windows
 from . import pose_helper_functions as pose_utils
-from . import transforms
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -87,7 +86,7 @@ def train(
     avg_test_rmse = np.inf
 
     if gui is not None and gui_obj is not None:
-        progress_bar = pose_gui.ProgressBarPopup(gui)
+        progress_bar = help_windows.ProgressBarPopup(gui, "Training model...")
     progress_output = StringIO()
 
     for epoch in tqdm(range(n_epochs), file=progress_output):

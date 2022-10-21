@@ -1,11 +1,14 @@
 import time
+from io import StringIO
 
 import numpy as np
 import torch
 from torch import nn
 from torch.nn import functional as F
+from tqdm import tqdm
 
-from .. import keypoints
+from .. import keypoints, utils
+from ..gui import help_windows
 from . import prediction_utils
 
 
@@ -73,6 +76,8 @@ class KeypointsNetwork(nn.Module):
         itest=None,
         device=torch.device("cuda"),
         verbose=False,
+        gui=None,
+        GUIobject=None,
     ):
         """
         Train KeypointsNetwork (behavior -> neural) model using multiple animals
@@ -104,8 +109,8 @@ class KeypointsNetwork(nn.Module):
                 [spks],
             )
         elif spks is None:
-            U, spks = [None]*len(X_dat), [None]*len(X_dat)
-            
+            U, spks = [None] * len(X_dat), [None] * len(X_dat)
+
         ### split data into train / test and concatenate
         arrs = [[], [], [], [], [], [], [], [], [], []]
         for i, (X, Y, tcam, tneural) in enumerate(
@@ -147,8 +152,18 @@ class KeypointsNetwork(nn.Module):
 
         anneal_epochs = n_iter - 50 * np.arange(1, annealing_steps + 1)
 
+        if gui is not None and GUIobject is not None:
+            progress_bar = help_windows.ProgressBarPopup(gui, "Training model...")
+        progress_output = StringIO()
         ### optimize all parameters with SGD
-        for epoch in range(n_iter):
+        for epoch in tqdm(
+            range(n_iter),
+            desc="Training model",
+            unit="epoch",
+            unit_scale=True,
+            file=progress_output,
+            total=n_iter,
+        ):
             self.train()
             if epoch in anneal_epochs:
                 if verbose:
@@ -215,6 +230,9 @@ class KeypointsNetwork(nn.Module):
                 pstr += f"time {time.time()-tic:.1f}s"
                 if verbose:
                     print(pstr)
+            progress_bar.update_progress_bar(progress_output, GUIobject)
+        if gui is not None and GUIobject is not None:
+            progress_bar.close()
 
         if not_list:
             return y_pred_all[0], ve_all[0], spks_pred_all[0], ve_neurons[0], itest[0]
@@ -289,18 +307,10 @@ class KeypointsNetwork(nn.Module):
             self.readout.features.linear0.bias.data = (
                 torch.from_numpy(A[-1]).float().to(device)
             )
-            
-            spks_pred_test = (
-                y_pred @ U.T if spks is not None else y_pred
-            )
-            spks_test = (
-                spks[:, itest.flatten()].T
-                if spks is not None
-                else Y_test
-            )
-            ven = prediction_utils.compute_varexp(
-                spks_test, spks_pred_test
-            )
+
+            spks_pred_test = y_pred @ U.T if spks is not None else y_pred
+            spks_test = spks[:, itest.flatten()].T if spks is not None else Y_test
+            ven = prediction_utils.compute_varexp(spks_test, spks_pred_test)
 
         return y_pred, ve, spks_pred_test, ven, itest
 

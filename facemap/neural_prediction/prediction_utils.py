@@ -513,6 +513,8 @@ def get_keypoints_to_neural_varexp(
     n_iter=300,
     learning_rate=1e-3,
     weight_decay=1e-4,
+    gui=None,
+    GUIobject=None,
     device=torch.device("cuda"),
 ):
     """
@@ -581,6 +583,8 @@ def get_keypoints_to_neural_varexp(
         learning_rate=learning_rate,
         weight_decay=weight_decay,
         verbose=verbose,
+        gui=gui,
+        GUIobject=GUIobject,
         device=device,
     )
     if compute_latents:

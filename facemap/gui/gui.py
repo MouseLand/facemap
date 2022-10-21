@@ -1,6 +1,5 @@
 import os
 import sys
-from re import L
 
 import matplotlib
 import matplotlib.pyplot as plt
@@ -2311,7 +2310,19 @@ class MainW(QtWidgets.QMainWindow):
         """
         Run neural predictions
         """
-        # TODO: Add a progress bar
+
+        if self.neural_activity.data is None:
+            msg = QtWidgets.QMessageBox()
+            msg.setIcon(QtWidgets.QMessageBox.Critical)
+            msg.setText("Neural activity not loaded")
+            msg.setInformativeText(
+                "Please load neural activity data before running neural predictions"
+            )
+            msg.setWindowTitle("Error")
+            msg.exec_()
+            dialog.accept()
+            return
+
         if dialog.input_data_keypoints_radio_button.isChecked():
             # Check if keypoints are loaded
             if self.poseFilepath[0] is None:
@@ -2358,6 +2369,8 @@ class MainW(QtWidgets.QMainWindow):
                 learning_rate=float(dialog.learning_rate_line_edit.text()),
                 n_iter=int(dialog.n_epochs_line_edit.text()),
                 weight_decay=float(dialog.weight_decay_line_edit.text()),
+                gui=dialog,
+                GUIobject=QtWidgets,
             )
             # TODO: Use num neurons input provided by the user
             predictions, _ = prediction_utils.get_trained_model_predictions(
@@ -2374,11 +2387,22 @@ class MainW(QtWidgets.QMainWindow):
                 predictions = predictions.T
         # TODO: Get predictions using SVDs!!
         else:
-            # try:
-            if dialog.input_data_motsvd_radio_button.isChecked():
-                x_input = self.motSVDs[0]
-            else:
-                x_input = self.movSVDs[0]
+            try:
+                if dialog.input_data_motsvd_radio_button.isChecked():
+                    x_input = self.motSVDs[0]
+                else:
+                    x_input = self.movSVDs[0]
+            except:
+                msg = QtWidgets.QMessageBox()
+                msg.setIcon(QtWidgets.QMessageBox.Critical)
+                msg.setText("SVDs not loaded")
+                msg.setInformativeText(
+                    "Please load SVDs (proc file) before running neural predictions"
+                )
+                msg.setWindowTitle("Error")
+                msg.exec_()
+                return
+
             if dialog.neural_pcs_yes_radio_button.isChecked():
                 neural_target, Vt = prediction_utils.get_neural_pcs(
                     self.neural_activity.data.copy()
@@ -2410,8 +2434,6 @@ class MainW(QtWidgets.QMainWindow):
                 )
             )
             predictions = x_input @ B[:, :ranks] @ A[:, :ranks].T
-            print("predictions shape: ", predictions.shape)
-            print("test_indices shape: ", test_indices.shape)
             # Split test indices where there is a gap of more than 1 and convert each split to a list
             test_indices = np.split(
                 test_indices, np.where(np.diff(test_indices) != 1)[0] + 1
@@ -2420,16 +2442,6 @@ class MainW(QtWidgets.QMainWindow):
 
             # test_indices = [np.concatenate((list(test_indices[i]), list(test_indices[i+1]))) for i in range(0, len(test_indices), 2)]
             print("Test indices length: ", len(test_indices))
-            """
-            except:
-                msg = QtWidgets.QMessageBox()
-                msg.setIcon(QtWidgets.QMessageBox.Critical)
-                msg.setText("SVDs not loaded")
-                msg.setInformativeText("Please load SVDs (proc file) before running neural predictions")
-                msg.setWindowTitle("Error")
-                msg.exec_()
-                return
-            """
 
         # Plot neural activity predictions
         self.set_neural_prediction_data(dialog, predictions, test_indices)
