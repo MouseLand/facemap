@@ -103,7 +103,9 @@ class KeypointsNetwork(nn.Module):
                 [U],
                 [spks],
             )
-
+        elif spks is None:
+            U, spks = [None]*len(X_dat), [None]*len(X_dat)
+            
         ### split data into train / test and concatenate
         arrs = [[], [], [], [], [], [], [], [], [], []]
         for i, (X, Y, tcam, tneural) in enumerate(
@@ -227,6 +229,8 @@ class KeypointsNetwork(nn.Module):
         tneural,
         lam=1e5,
         delay=-1,
+        U=None,
+        spks=None,
         device=torch.device("cuda"),
     ):
         """compute readout layer with ridge regression"""
@@ -285,9 +289,20 @@ class KeypointsNetwork(nn.Module):
             self.readout.features.linear0.bias.data = (
                 torch.from_numpy(A[-1]).float().to(device)
             )
-            print(ve)
+            
+            spks_pred_test = (
+                y_pred @ U.T if spks is not None else y_pred
+            )
+            spks_test = (
+                spks[:, itest.flatten()].T
+                if spks is not None
+                else Y_test
+            )
+            ven = prediction_utils.compute_varexp(
+                spks_test, spks_pred_test
+            )
 
-        return y_pred, ve, itest
+        return y_pred, ve, spks_pred_test, ven, itest
 
 
 class Core(nn.Module):
