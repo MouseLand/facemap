@@ -129,7 +129,7 @@ class NeuralActivity:
         Load the neural data from a file.
         """
         if file_name.endswith(".npy") or file_name.endswith(".npz"):
-            self.data = np.load(file_name)
+            self.data = np.load(file_name, allow_pickle=True)
         else:
             raise ValueError("File type not recognized.")
         # Check if timestamps file is not loaded then create timestamp array

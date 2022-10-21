@@ -43,7 +43,14 @@ istr = ["pupil", "motSVD", "blink", "running", "movSVD"]
 
 
 class MainW(QtWidgets.QMainWindow):
-    def __init__(self, moviefile=None, savedir=None):
+    def __init__(
+        self,
+        movie_file=None,
+        savedir=None,
+        keypoints_file=None,
+        neural_activity_file=None,
+        neural_predictions_file=None,
+    ):
         super(MainW, self).__init__()
         icon_path = os.path.join(
             os.path.dirname(os.path.realpath(__file__)), "../mouse.png"
@@ -324,11 +331,6 @@ class MainW(QtWidgets.QMainWindow):
         self.video_window.show()
         self.show()
         self.processed = False
-        if moviefile is not None:
-            io.load_movies(self, [[moviefile]])
-        if savedir is not None:
-            self.save_path = savedir
-            self.savelabel.setText("..." + savedir[-20:])
 
         # Status bar
         self.statusBar = QStatusBar()
@@ -343,6 +345,38 @@ class MainW(QtWidgets.QMainWindow):
         # Create neural activity data object
         self.neural_activity = neural_activity.NeuralActivity(parent=self)
         self.neural_predictions = neural_activity.NeuralActivity(parent=self)
+
+        # Load data from CLI command
+        if movie_file is not None:
+            # Check if moviefile is 2D list or string
+            if isinstance(movie_file, list):
+                if isinstance(movie_file[0], list):
+                    io.load_movies(self, movie_file)
+                else:
+                    io.load_movies(self, [movie_file])
+            else:
+                io.load_movies(self, [[movie_file]])
+        if savedir is not None:
+            self.save_path = savedir
+            self.savelabel.setText("..." + savedir[-20:])
+        if keypoints_file is not None:
+            self.poseFilepath = keypoints_file
+            if not isinstance(self.poseFilepath, list):
+                self.poseFilepath = [self.poseFilepath]
+            self.load_keypoints()
+        if neural_activity_file is not None:
+            self.neural_activity.set_data(neural_activity_file, data_viz_type="heatmap")
+            self.neural_data_loaded = True
+            self.plot_neural_data()
+        # FIXME: Load neural predictions from GUI functions instead
+        """
+        if neural_predictions_file is not None:
+            self.neural_predictions.set_data(
+                neural_predictions_file, data_viz_type="heatmap"
+            )
+            self.neural_predictions_loaded = True
+            self.plot_neural_predictions()
+        """
 
     def make_buttons(self):
         facemap_label = QLabel("Facemap - SVDs & Tracker")
@@ -3026,7 +3060,13 @@ class MainW(QtWidgets.QMainWindow):
 ### ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Main ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 
-def run(moviefile=None, savedir=None):
+def run(
+    moviefile=None,
+    savedir=None,
+    keypoints_file=None,
+    neural_activity_file=None,
+    neural_predictions_file=None,
+):
     # Always start by initializing Qt (only once per application)
     app = QtWidgets.QApplication(sys.argv)
     icon_path = os.path.join(
@@ -3040,6 +3080,17 @@ def run(moviefile=None, savedir=None):
     app_icon.addFile(icon_path, QtCore.QSize(96, 96))
     app_icon.addFile(icon_path, QtCore.QSize(256, 256))
     app.setWindowIcon(app_icon)
-    GUI = MainW(moviefile, savedir)
+    print("moviefile", moviefile)
+    print("savedir", savedir)
+    print("keypoints_file", keypoints_file)
+    print("neural_activity_file", neural_activity_file)
+    print("neural_predictions_file", neural_predictions_file)
+    GUI = MainW(
+        moviefile,
+        savedir,
+        keypoints_file,
+        neural_activity_file,
+        neural_predictions_file,
+    )
     ret = app.exec_()
     sys.exit(ret)
