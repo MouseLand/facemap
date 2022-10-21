@@ -241,7 +241,7 @@ def rrr_prediction(
     itest: 1D int array (optional, default None)
         times in test set
 
-    tbin: int (optional, default None)
+    tbin: int (optional, default 0)
         also compute variance explained in bins of tbin
 
     Returns
@@ -279,7 +279,7 @@ def rrr_prediction(
         rank = min(min_dim, rank)
     corrf = np.zeros((rank, n_feats))
     varexpf = np.zeros((rank, n_feats))
-    varexp = np.zeros((rank, 2)) if tbin is not None else np.zeros((rank, 1))
+    varexp = np.zeros((rank, 2)) if tbin != 0 else np.zeros((rank, 1))
     Y_pred_test = np.zeros((len(itest), n_feats))
     for r in range(rank):
         Y_pred_test = X[itest] @ B[:, : r + 1] @ A[:, : r + 1].T
@@ -295,7 +295,7 @@ def rrr_prediction(
         residual = ((Y[itest] - Y_pred_test) ** 2).mean(axis=0)
         varexpf[r] = (1 - residual / Y_test_var).cpu().numpy()
         varexp[r, 0] = (1 - residual.mean() / Y_test_var.mean()).cpu().numpy()
-        if tbin is not None and tbin > 1:
+        if tbin != 0 and tbin > 1:
             varexp[r, 1] = (
                 compute_varexp(
                     bin1d(Y[itest], tbin).flatten(), bin1d(Y_pred_test, tbin).flatten()
@@ -532,8 +532,6 @@ def get_keypoints_to_neural_varexp(
         timestamps of neural data for each frame
     delay : int, optional
         number of frames to delay neural data, by default -1
-    tbin : int, optional
-        bin size for data, by default 4
     running : array, optional
         1D running trace to include in the prediction model
     verbose : bool, optional

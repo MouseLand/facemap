@@ -2128,6 +2128,9 @@ class MainW(QtWidgets.QMainWindow):
         input_data_groupbox.layout().addWidget(dialog.input_data_keypoints_radio_button)
         input_data_groupbox.layout().addWidget(dialog.input_data_motsvd_radio_button)
         input_data_groupbox.layout().addWidget(dialog.input_data_movsvd_radio_button)
+        input_data_radio_button_group.buttonToggled.connect(
+            lambda: self.update_hyperparameter_box(dialog)
+        )
         neural_data_prediction_groupbox.layout().addWidget(input_data_groupbox)
 
         # Add a groupbox for selecting type of output: neural pcs or activity
@@ -2151,12 +2154,14 @@ class MainW(QtWidgets.QMainWindow):
         vbox.addWidget(neural_data_prediction_groupbox)
 
         # Add a groupbox for setting training hyperparameters for neural data prediction
-        training_hyperparameters_groupbox = QtWidgets.QGroupBox()
-        training_hyperparameters_groupbox.setLayout(QtWidgets.QHBoxLayout())
-        training_hyperparameters_groupbox.setStyleSheet(
+        dialog.neural_model_hyperparameters_groupbox = QtWidgets.QGroupBox()
+        dialog.neural_model_hyperparameters_groupbox.setLayout(QtWidgets.QHBoxLayout())
+        dialog.neural_model_hyperparameters_groupbox.setStyleSheet(
             "QGroupBox {border: 1px solid gray; border-radius: 9px; margin-top: 1em;} "
         )
-        training_hyperparameters_groupbox.setTitle("Training hyperparameters")
+        dialog.neural_model_hyperparameters_groupbox.setTitle(
+            "Keypoints network hyperparameters"
+        )
         learning_rate_label = QtWidgets.QLabel("Learning rate:")
         dialog.learning_rate_line_edit = QtWidgets.QLineEdit()
         dialog.learning_rate_line_edit.setText("0.001")
@@ -2169,21 +2174,61 @@ class MainW(QtWidgets.QMainWindow):
         num_neurons_label = QtWidgets.QLabel("# Neurons:")
         dialog.num_neurons_line_edit = QtWidgets.QLineEdit()
         dialog.num_neurons_line_edit.setText("100")
-        training_hyperparameters_groupbox.layout().addWidget(learning_rate_label)
-        training_hyperparameters_groupbox.layout().addWidget(
+        dialog.neural_model_hyperparameters_groupbox.layout().addWidget(
+            learning_rate_label
+        )
+        dialog.neural_model_hyperparameters_groupbox.layout().addWidget(
             dialog.learning_rate_line_edit
         )
-        training_hyperparameters_groupbox.layout().addWidget(weight_decay_label)
-        training_hyperparameters_groupbox.layout().addWidget(
+        dialog.neural_model_hyperparameters_groupbox.layout().addWidget(
+            weight_decay_label
+        )
+        dialog.neural_model_hyperparameters_groupbox.layout().addWidget(
             dialog.weight_decay_line_edit
         )
-        training_hyperparameters_groupbox.layout().addWidget(n_epochs_label)
-        training_hyperparameters_groupbox.layout().addWidget(dialog.n_epochs_line_edit)
-        training_hyperparameters_groupbox.layout().addWidget(num_neurons_label)
-        training_hyperparameters_groupbox.layout().addWidget(
+        dialog.neural_model_hyperparameters_groupbox.layout().addWidget(n_epochs_label)
+        dialog.neural_model_hyperparameters_groupbox.layout().addWidget(
+            dialog.n_epochs_line_edit
+        )
+        dialog.neural_model_hyperparameters_groupbox.layout().addWidget(
+            num_neurons_label
+        )
+        dialog.neural_model_hyperparameters_groupbox.layout().addWidget(
             dialog.num_neurons_line_edit
         )
-        vbox.addWidget(training_hyperparameters_groupbox)
+        vbox.addWidget(dialog.neural_model_hyperparameters_groupbox)
+
+        # Add a groupbox for setting hyperparameters for linear regression
+        dialog.linear_regression_hyperparameters_groupbox = QtWidgets.QGroupBox()
+        dialog.linear_regression_hyperparameters_groupbox.setLayout(
+            QtWidgets.QHBoxLayout()
+        )
+        dialog.linear_regression_hyperparameters_groupbox.setStyleSheet(
+            "QGroupBox {border: 1px solid gray; border-radius: 9px; margin-top: 1em;} "
+        )
+        dialog.linear_regression_hyperparameters_groupbox.setTitle(
+            "Linear regression hyperparameters"
+        )
+        lambda_label = QtWidgets.QLabel("Lambda:")
+        dialog.lambda_line_edit = QtWidgets.QLineEdit()
+        dialog.lambda_line_edit.setText("0")
+        dialog.linear_regression_hyperparameters_groupbox.layout().addWidget(
+            lambda_label
+        )
+        dialog.linear_regression_hyperparameters_groupbox.layout().addWidget(
+            dialog.lambda_line_edit
+        )
+        tbin_label = QtWidgets.QLabel("binsize:")
+        dialog.tbin_spinbox = QtWidgets.QSpinBox()
+        dialog.tbin_spinbox.setMinimum(0)
+        dialog.tbin_spinbox.setMaximum(100)
+        dialog.tbin_spinbox.setValue(0)
+        dialog.linear_regression_hyperparameters_groupbox.layout().addWidget(tbin_label)
+        dialog.linear_regression_hyperparameters_groupbox.layout().addWidget(
+            dialog.tbin_spinbox
+        )
+        dialog.linear_regression_hyperparameters_groupbox.hide()
+        vbox.addWidget(dialog.linear_regression_hyperparameters_groupbox)
 
         # Add a groupbox for saving the neural predictions
         save_neural_predictions_groupbox = QtWidgets.QGroupBox()
@@ -2282,6 +2327,16 @@ class MainW(QtWidgets.QMainWindow):
         vbox.addLayout(neural_data_buttons_hbox)
 
         dialog.exec_()
+
+    def update_hyperparameter_box(self, dialog):
+        """Update the hyperparameter box when the user changes the input/model type."""
+        # Hide the training hyperparameters box if keypoints is not selected
+        if dialog.input_data_keypoints_radio_button.isChecked():
+            dialog.neural_model_hyperparameters_groupbox.show()
+            dialog.linear_regression_hyperparameters_groupbox.hide()
+        else:
+            dialog.neural_model_hyperparameters_groupbox.hide()
+            dialog.linear_regression_hyperparameters_groupbox.show()
 
     def neural_data_help_button_clicked(self, clicked, dialog):
         help_windows.NeuralModelTrainingWindow(
@@ -2385,7 +2440,6 @@ class MainW(QtWidgets.QMainWindow):
             else:
                 print("Neural activity varexp: {}".format(varexp * 100))
                 predictions = predictions.T
-        # TODO: Get predictions using SVDs!!
         else:
             try:
                 if dialog.input_data_motsvd_radio_button.isChecked():
@@ -2422,18 +2476,27 @@ class MainW(QtWidgets.QMainWindow):
             x_input = prediction_utils.resample_data_to_neural_timestamps(
                 x_input, self.behavior_timestamps, self.neural_timestamps
             )
-            (_, varexp, test_indices, A, B, _, _) = prediction_utils.rrr_prediction(
-                x_input, neural_target
+            print(
+                "Using tbin and lambda: ",
+                dialog.tbin_spinbox.value(),
+                dialog.lambda_line_edit.text(),
             )
-            # TODO: Add options to set lambda and ranks
-            # FIXME: Highlight test data not working with SVD test indices
+            (_, varexp, test_indices, A, B, _, _) = prediction_utils.rrr_prediction(
+                x_input,
+                neural_target,
+                tbin=dialog.tbin_spinbox.value(),
+                lam=float(dialog.lambda_line_edit.text()),
+            )
+            # FIXME: Predictions starting extent not the same as the neural activity
             ranks = np.argmax(varexp)
             print(
                 "Max neural activity variance explained {} using {} ranks".format(
                     max(varexp) * 100, ranks + 1
                 )
             )
-            predictions = x_input @ B[:, :ranks] @ A[:, :ranks].T
+            predictions = (x_input @ B[:, :ranks] @ A[:, :ranks].T).T
+            print("predictions shape: ", predictions.shape)
+            print("neural activity shape: ", self.neural_activity.data.shape)
             # Split test indices where there is a gap of more than 1 and convert each split to a list
             test_indices = np.split(
                 test_indices, np.where(np.diff(test_indices) != 1)[0] + 1
