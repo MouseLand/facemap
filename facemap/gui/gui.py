@@ -1,5 +1,6 @@
 import os
 import sys
+from re import L
 
 import matplotlib
 import matplotlib.pyplot as plt
@@ -8,7 +9,6 @@ import pandas as pd
 import pyqtgraph as pg
 import scipy.io as sio
 from matplotlib import cm
-from matplotlib import colors as mpl_colors
 from PyQt5 import QtCore, QtWidgets
 from PyQt5.QtGui import QFont, QIcon, QPainterPath
 from PyQt5.QtWidgets import (
@@ -36,7 +36,7 @@ from facemap.neural_prediction import neural_activity, prediction_utils
 from facemap.pose import pose_gui, refine_pose
 from facemap.pose import model_loader, pose
 
-from . import guiparts, io, menus
+from . import guiparts, help_windows, io, menus
 
 istr = ["pupil", "motSVD", "blink", "running", "movSVD"]
 
@@ -2267,7 +2267,13 @@ class MainW(QtWidgets.QMainWindow):
         neural_data_cancel_button = QtWidgets.QPushButton("Cancel")
         neural_data_cancel_button.clicked.connect(dialog.reject)
         neural_data_buttons_hbox.addWidget(neural_data_cancel_button)
-        # Add a done button
+        # Add a help button to open the help page for model training
+        neural_data_help_button = QtWidgets.QPushButton("Help")
+        neural_data_help_button.clicked.connect(
+            lambda clicked: self.neural_data_help_button_clicked(clicked, dialog)
+        )
+        neural_data_buttons_hbox.addWidget(neural_data_help_button)
+        # Add a run button
         run_predictions_button = QtWidgets.QPushButton("Run")
         run_predictions_button.clicked.connect(
             lambda clicked: self.run_neural_predictions(clicked, dialog)
@@ -2276,9 +2282,12 @@ class MainW(QtWidgets.QMainWindow):
         neural_data_buttons_hbox.addWidget(run_predictions_button)
         vbox.addLayout(neural_data_buttons_hbox)
 
-        # TODO: Add a help button for recommended training parameters
-
         dialog.exec_()
+
+    def neural_data_help_button_clicked(self, clicked, dialog):
+        help_windows.NeuralModelTrainingWindow(
+            parent=dialog, window_size=self.sizeObject
+        )
 
     def neural_data_done_clicked(self, clicked, dialog):
         self.set_neural_data(clicked, dialog)

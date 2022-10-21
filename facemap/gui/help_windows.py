@@ -329,6 +329,67 @@ class RefinementHelpWindow(QDialog):
         self.show()
 
 
+# TODO: Update help button with correct rectification instructions
+
+
+class NeuralModelTrainingWindow(QDialog):
+    def __init__(self, parent=None, window_size=None):
+        super(NeuralModelTrainingWindow, self).__init__(parent)
+        width, height = int(window_size.width() * 0.4), int(window_size.height() * 0.45)
+        self.resize(width, height)
+        self.setWindowTitle("Help - Neural Model Training")
+
+        self.win = QWidget(self)
+        layout = QVBoxLayout()
+        layout.setAlignment(QtCore.Qt.AlignCenter)
+        self.win.setLayout(layout)
+
+        self.scrollArea = QScrollArea(self)
+        self.scrollArea.setFixedHeight(height)
+        self.scrollArea.setFixedWidth(width)
+        self.scrollArea.setWidgetResizable(True)
+        self.scrollArea.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOn)
+        self.scrollArea.setStyleSheet("background: 'black'; ")
+        self.scrollArea.setWidget(self.win)
+
+        # Add a list of hyperparameters and their descriptions with recommended values
+        main_text = """
+            <h2>Training instructions</h2>
+            <p>
+            <ul>
+                <li>Select input data to be used for training the model and prediction</li>
+                <li>Set the hyperparameters for training the model</li>
+                <li>Select whether to save the model and predictions</li>
+            </ul>
+            </p>
+            <h2>Hyperparameters</h2>
+            <p>
+            <ul>
+                <li><b>Learning rate:</b> Learning rate for the optimizer. Recommended value: 0.001</li>
+                <li><b>Weight decay:</b> Weight decay for the optimizer. Recommended value: 0.0001</li>
+                <li><b># Epochs:</b> Number of epochs to train the model. Recommended value: 100</li>
+                <li><b># Neurons split:</b> Number of neurons in the split layer. Recommended value: 100</li>
+            </ul>
+            </p>
+            """
+        main_text = QLabel(main_text, self)
+        main_text.setStyleSheet(
+            "font-size: 12pt; font-family: Arial; color: white; text-align: center; "
+        )
+        main_text.setWordWrap(True)
+        layout.addWidget(main_text, stretch=1)
+
+        # Add ok button to close the window
+        self.ok_button = QPushButton("Ok")
+        self.ok_button.clicked.connect(self.close)
+        self.ok_button.setStyleSheet(
+            "background: 'black'; color: 'white'; font-size: 12pt; font-family: Arial; "
+        )
+        layout.addWidget(self.ok_button, alignment=QtCore.Qt.AlignCenter)
+
+        self.show()
+
+
 def get_img_groupbox(img_width, img_height):
     """
     Add face keypoints label examples to an image groupbox
