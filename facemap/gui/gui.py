@@ -246,7 +246,7 @@ class MainW(QtWidgets.QMainWindow):
         self.svd_traces_plot.hideAxis("left")
         self.scatter2 = pg.ScatterPlotItem()
         self.svd_traces_plot.addItem(self.scatter1)
-        self.svd_traces_plot.setXLink("keypoints_traces_plot")
+        self.svd_traces_plot.setXLink(self.keypoints_traces_plot)
         self.svd_plot_vtick = None
 
         # Add third plot
@@ -259,21 +259,24 @@ class MainW(QtWidgets.QMainWindow):
         self.neural_activity_plot.setMouseEnabled(x=True, y=False)
         self.neural_activity_plot.setMenuEnabled(False)
         self.neural_activity_plot.hideAxis("left")
-        self.neural_activity_plot.setXLink("keypoints_traces_plot")
+        self.neural_activity_plot.setXLink(self.keypoints_traces_plot)
         self.neural_activity_plot.disableAutoRange()
         self.neural_activity_vtick = None
 
         # Add fourth plot
         self.neural_predictions_plot = self.plots_window.addPlot(
-            name="neural_predictions_plot", row=3, col=1, title="Neural predictions"
+            name="neural_predictions_plot",
+            row=3,
+            col=1,
+            title="Neural predictions",
         )
         self.neural_predictions_plot.scene().sigMouseClicked.connect(
-            self.on_click_neural_activity_plot
+            self.on_click_neural_predictions_plot
         )
         self.neural_predictions_plot.setMouseEnabled(x=True, y=False)
         self.neural_predictions_plot.setMenuEnabled(False)
         self.neural_predictions_plot.hideAxis("left")
-        self.neural_predictions_plot.setXLink("keypoints_traces_plot")
+        self.neural_predictions_plot.setXLink(self.keypoints_traces_plot)
         self.neural_predictions_plot.disableAutoRange()
         self.neural_predictions_vtick = None
 
@@ -369,14 +372,8 @@ class MainW(QtWidgets.QMainWindow):
             self.neural_data_loaded = True
             self.plot_neural_data()
         # FIXME: Load neural predictions from GUI functions instead
-        """
         if neural_predictions_file is not None:
-            self.neural_predictions.set_data(
-                neural_predictions_file, data_viz_type="heatmap"
-            )
-            self.neural_predictions_loaded = True
-            self.plot_neural_predictions()
-        """
+            self.load_neural_predictions_file(neural_predictions_file)
 
     def make_buttons(self):
         facemap_label = QLabel("Facemap - SVDs & Tracker")
@@ -2089,9 +2086,10 @@ class MainW(QtWidgets.QMainWindow):
 
         dialog.exec_()
 
-    def load_neural_predictions_file(self):
+    def load_neural_predictions_file(self, neural_predictions_filepath=None):
         """Load neural predictions file."""
-        neural_predictions_filepath = io.load_npy_file(self)
+        if neural_predictions_filepath is None:
+            neural_predictions_filepath = io.load_npy_file(self)
         if neural_predictions_filepath is not None and (
             ".npy" in neural_predictions_filepath
             or ".npz" in neural_predictions_filepath
@@ -2108,6 +2106,7 @@ class MainW(QtWidgets.QMainWindow):
                 self.plot_neural_predictions(extent=dat["plot_extent"])
                 self.highlight_test_data(dat["test_indices"], extent=extent)
                 print("Variance explained: {}".format(dat["variance_explained"]))
+                self.neural_predictions_loaded = True
             except Exception as e:
                 print("error", e)
                 # Show error message
