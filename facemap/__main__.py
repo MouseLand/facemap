@@ -42,6 +42,18 @@ if __name__ == "__main__":
         type=str,
         help="Absolute path to neural prediction file (*.npy)",
     )
+    parser.add_argument(
+        "--tneural",
+        default=None,
+        type=str,
+        help="Absolute path to neural timestamps file (*.npy)",
+    )
+    parser.add_argument(
+        "--tbehavior",
+        default=None,
+        type=str,
+        help="Absolute path to behavior timestamps file (*.npy)",
+    )
     parser.add_argument("--savedir", default=None, type=str, help="savedir")
     parser.add_argument(
         "--poseGUI",
@@ -74,4 +86,6 @@ if __name__ == "__main__":
             args.keypoints,
             args.neural_activity,
             args.neural_prediction,
+            args.tneural,
+            args.tbehavior,
         )

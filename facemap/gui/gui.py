@@ -50,6 +50,8 @@ class MainW(QtWidgets.QMainWindow):
         keypoints_file=None,
         neural_activity_file=None,
         neural_predictions_file=None,
+        tneural_activity_file=None,
+        tbehavior_file=None,
     ):
         super(MainW, self).__init__()
         icon_path = os.path.join(
@@ -359,6 +361,14 @@ class MainW(QtWidgets.QMainWindow):
                     io.load_movies(self, [movie_file])
             else:
                 io.load_movies(self, [[movie_file]])
+        if tneural_activity_file is not None:
+            self.neural_timestamps = np.load(tneural_activity_file)
+        else:
+            self.neural_timestamps = None
+        if tbehavior_file is not None:
+            self.behavior_timestamps = np.load(tbehavior_file)
+        else:
+            self.behavior_timestamps = None
         if savedir is not None:
             self.save_path = savedir
             self.savelabel.setText("..." + savedir[-20:])
@@ -368,10 +378,14 @@ class MainW(QtWidgets.QMainWindow):
                 self.poseFilepath = [self.poseFilepath]
             self.load_keypoints()
         if neural_activity_file is not None:
-            self.neural_activity.set_data(neural_activity_file, data_viz_type="heatmap")
+            self.neural_activity.set_data(
+                neural_activity_file,
+                data_viz_type="heatmap",
+                neural_timestamps_filepath=self.neural_timestamps,
+                behav_data_timestamps_filepath=self.behavior_timestamps,
+            )
             self.neural_data_loaded = True
             self.plot_neural_data()
-        # FIXME: Load neural predictions from GUI functions instead
         if neural_predictions_file is not None:
             self.load_neural_predictions_file(neural_predictions_file)
 
@@ -2377,10 +2391,20 @@ class MainW(QtWidgets.QMainWindow):
         )
 
     def neural_data_done_clicked(self, clicked, dialog):
-        self.set_neural_data(clicked, dialog)
-        if self.neural_activity.data is None:
-            self.update_status_bar("No neural activity data loaded")
-            dialog.accept()
+        neural_data_filepath = dialog.neural_data_lineedit.text()
+        if not os.path.isfile(neural_data_filepath):
+            QtWidgets.QMessageBox.warning(
+                dialog,
+                "Neural data file not found",
+                "The neural data file could not be found. Please select a valid file.",
+            )
+            return
+        else:
+            neural_data = np.load(neural_data_filepath)
+        if dialog.heatmap_button.isChecked():
+            data_viz_method = "heatmap"
+        else:
+            data_viz_method = "lineplot"
         try:
             self.behavior_timestamps = np.load(
                 dialog.behav_data_timestamps_qlineedit.text()
@@ -2392,7 +2416,14 @@ class MainW(QtWidgets.QMainWindow):
                 dialog.neural_data_timestamps_lineedit.text()
             )
         except:
-            self.neural_timestamps = np.arange(0, len(self.neural_activity.data))
+            self.neural_timestamps = np.arange(0, neural_data.shape[1])
+        self.set_neural_data(
+            neural_data_filepath,
+            data_viz_method,
+            self.neural_timestamps,
+            self.behavior_timestamps,
+        )
+        dialog.accept()
 
     def run_neural_predictions(self, clicked, dialog):
         """
@@ -2550,10 +2581,10 @@ class MainW(QtWidgets.QMainWindow):
                 "variance_explained": varexp,
                 "plot_extent": np.array(
                     [
-                        self.neural_activity.neural_timestamps_resampled[0],
+                        0,
                         0,
                         self.neural_activity.neural_timestamps_resampled[-1],
-                        self.nframes,
+                        self.neural_activity.data.shape[0],
                     ]
                 ),
             }
@@ -2603,27 +2634,16 @@ class MainW(QtWidgets.QMainWindow):
         behav_data_file = io.load_npy_file(self)
         dialog.behav_data_timestamps_qlineedit.setText(behav_data_file)
 
-    def set_neural_data(self, clicked, dialog):
+    def set_neural_data(
+        self,
+        neural_data_filepath,
+        data_viz_method,
+        neural_timestamps_filepath,
+        behav_data_timestamps_filepath,
+    ):
         """
         Get user settings from the dialog box to set neural activity data
         """
-        neural_data_filepath = dialog.neural_data_lineedit.text()
-        """
-        if dialog.calcium_radiobutton.isChecked():
-            neural_data_type = "calcium"
-        else:
-            neural_data_type = "ephys"
-        """
-        if dialog.heatmap_button.isChecked():
-            data_viz_method = "heatmap"
-        else:
-            data_viz_method = "lineplot"
-        neural_timestamps_filepath = dialog.neural_data_timestamps_lineedit.text()
-        # neural_tstart = dialog.neural_tstart_qlineedit.text()
-        # neural_tend = dialog.neural_tend_qlineedit.text()
-        behav_data_timestamps_filepath = dialog.behav_data_timestamps_qlineedit.text()
-        # behav_tstart = dialog.behav_tstart_qlineedit.text()
-        # behav_tend = dialog.behav_tend_qlineedit.text()
         self.neural_activity.set_data(
             neural_data_filepath,
             None,
@@ -2637,7 +2657,6 @@ class MainW(QtWidgets.QMainWindow):
         )
         self.neural_data_loaded = True
         self.plot_neural_data()
-        dialog.accept()
 
     def set_neural_prediction_data(self, dialog, data, test_indices):
         """
@@ -2676,10 +2695,10 @@ class MainW(QtWidgets.QMainWindow):
         # Set limits of the image item
         if extent is None:
             extent = QtCore.QRect(
-                self.neural_activity.neural_timestamps_resampled[0],
+                0,
                 0,
                 self.neural_activity.neural_timestamps_resampled[-1],
-                self.nframes,
+                self.neural_activity.data.shape[0],
             )
         else:
             extent = QtCore.QRect(*extent)
@@ -2735,10 +2754,10 @@ class MainW(QtWidgets.QMainWindow):
                 and self.neural_activity.neural_timestamps is not None
             ):
                 extent = QtCore.QRect(
-                    self.neural_activity.neural_timestamps_resampled[0],
+                    0,
                     0,
                     self.neural_activity.neural_timestamps_resampled[-1],
-                    self.nframes,
+                    self.neural_activity.data.shape[0],
                 )
                 self.neural_heatmap.setRect(extent)
             self.neural_activity_plot.addItem(self.neural_heatmap)
@@ -2790,10 +2809,10 @@ class MainW(QtWidgets.QMainWindow):
                 and self.neural_activity.neural_timestamps is not None
             ):
                 extent = QtCore.QRect(
-                    self.neural_activity.neural_timestamps_resampled[0],
+                    0,
                     0,
                     self.neural_activity.neural_timestamps_resampled[-1],
-                    self.nframes,
+                    self.neural_activity.data.shape[0],
                 )
                 self.neural_heatmap.setRect(extent)
             self.neural_predictions_plot.addItem(self.neural_heatmap)
@@ -3065,6 +3084,8 @@ def run(
     keypoints_file=None,
     neural_activity_file=None,
     neural_predictions_file=None,
+    tneural_activity_file=None,
+    tbehavior_file=None,
 ):
     # Always start by initializing Qt (only once per application)
     app = QtWidgets.QApplication(sys.argv)
@@ -3079,17 +3100,14 @@ def run(
     app_icon.addFile(icon_path, QtCore.QSize(96, 96))
     app_icon.addFile(icon_path, QtCore.QSize(256, 256))
     app.setWindowIcon(app_icon)
-    print("moviefile", moviefile)
-    print("savedir", savedir)
-    print("keypoints_file", keypoints_file)
-    print("neural_activity_file", neural_activity_file)
-    print("neural_predictions_file", neural_predictions_file)
     GUI = MainW(
         moviefile,
         savedir,
         keypoints_file,
         neural_activity_file,
         neural_predictions_file,
+        tneural_activity_file,
+        tbehavior_file,
     )
     ret = app.exec_()
     sys.exit(ret)

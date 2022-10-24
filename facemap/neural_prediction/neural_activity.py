@@ -62,6 +62,7 @@ class NeuralActivity:
         )
 
         if self.behavior_timestamps is not None and self.neural_timestamps is not None:
+            print("Resampling behavior timestamps to neural timestamps.")
             self.neural_timestamps_resampled = self.resample_behavior_to_neural()
             self.neural_timestamps_resampled = np.linspace(
                 self.neural_timestamps_resampled[0],
