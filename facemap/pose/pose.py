@@ -109,6 +109,7 @@ class Pose:
                 prompt="Processing video: {}".format(self.filenames[0][video_id]),
                 hide_progress=True,
             )
+            print("video id", video_id)
             pred_data, metadata = self.predict_landmarks(video_id)
             dataFrame = self.write_dataframe(pred_data.cpu().numpy())
             savepath = self.save_pose_prediction(dataFrame, video_id)
@@ -139,10 +140,7 @@ class Pose:
         )
 
     def update_gui_pose(self, savepath, video_id):
-        if len(self.gui.poseFilepath) == 0:
-            self.gui.poseFilepath.append(savepath)
-        else:
-            self.gui.poseFilepath[video_id] = savepath
+        self.gui.poseFilepath.append(savepath)
         self.gui.load_keypoints()
         self.gui.keypoints_checkbox.setChecked(False)
         self.gui.keypoints_checkbox.setChecked(True)
@@ -267,7 +265,6 @@ class Pose:
         Predict labels for all frames in video and save output as .h5 file
         """
         nchannels = 1
-
         if frame_ind is None:
             total_frames = self.cumframes[-1]
             frame_ind = np.arange(total_frames)
@@ -290,7 +287,6 @@ class Pose:
         print("resize:", self.resize)
         print("padding:", self.add_padding)
         print("Batch size:", self.batch_size)
-
         progress_output = StringIO()
         with tqdm(
             total=total_frames, unit="frame", unit_scale=True, file=progress_output
@@ -308,9 +304,9 @@ class Pose:
                     total_frames,
                     self.cumframes,
                     self.containers,
+                    video_idx=video_id,
                     grayscale=True,
                 )
-
                 # Inference time includes: pre-processing, inference, post-processing
                 t0 = time.time()
 

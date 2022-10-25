@@ -730,7 +730,6 @@ def run(
     ncomps = 500
     if fullSVD or nroi > 0:
         tqdm.write("Computing subsampled SVD...")
-        print("motSVD", motSVD, "movSVD", movSVD)
         U_mot, U_mov, S_mot, S_mov = compute_SVD(
             containers,
             cumframes,

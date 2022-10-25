@@ -23,10 +23,14 @@ def main():
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Movie files")
     parser.add_argument("--ops", default=[], type=str, help="options")
-    parser.add_argument("--movie", default=None, type=str, help="moviefile")
+    parser.add_argument(
+        "--movie", default=None, nargs="+", type=str, help="Absolute path to video(s)"
+    )
+    # Currently supports loading movie files recorded simultaneously
     parser.add_argument(
         "--keypoints",
         default=None,
+        nargs="+",
         type=str,
         help="Absolute path to keypoints file (*.h5)",
     )
@@ -65,7 +69,6 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    # TODO: Add tags for loading tneural and tbehavior
     # FIXME: check loading and running batch files from CLI
 
     if args.poseGUI:

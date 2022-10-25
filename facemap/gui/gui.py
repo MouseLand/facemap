@@ -32,8 +32,7 @@ from scipy.stats import skew, zscore
 
 from facemap import cluster, process, roi, utils
 from facemap.neural_prediction import neural_activity, prediction_utils
-from facemap.pose import pose_gui, refine_pose
-from facemap.pose import model_loader, pose
+from facemap.pose import model_loader, pose, pose_gui, refine_pose
 
 from . import guiparts, help_windows, io, menus
 
@@ -374,8 +373,6 @@ class MainW(QtWidgets.QMainWindow):
             self.savelabel.setText("..." + savedir[-20:])
         if keypoints_file is not None:
             self.poseFilepath = keypoints_file
-            if not isinstance(self.poseFilepath, list):
-                self.poseFilepath = [self.poseFilepath]
             self.load_keypoints()
         if neural_activity_file is not None:
             self.neural_activity.set_data(
@@ -2551,7 +2548,6 @@ class MainW(QtWidgets.QMainWindow):
                 tbin=dialog.tbin_spinbox.value(),
                 lam=float(dialog.lambda_line_edit.text()),
             )
-            # FIXME: Predictions starting extent not the same as the neural activity
             ranks = np.argmax(varexp)
             print(
                 "Max neural activity variance explained {} using {} ranks".format(

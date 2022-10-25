@@ -63,27 +63,30 @@ def get_frame(cframe, nframes, cumframes, containers):
 
 
 def get_batch_frames(
-    frame_indices, total_frames, cumframes, containers, grayscale=False
+    frame_indices, total_frames, cumframes, containers, video_idx, grayscale=False
 ):
     # frame_indices = np.maximum(0, np.minimum(total_frames - 1, frame_indices))
+    """
     try:
         video_idx = (cumframes < frame_indices).nonzero()[0][-1]
     except:
         video_idx = 0
+    """
     imgs = []
-    for vs in containers[video_idx]:
-        for idx in frame_indices:
-            frame_ind = idx - cumframes[video_idx]
-            capture = vs
-            if int(capture.get(cv2.CAP_PROP_POS_FRAMES)) != frame_ind:
-                capture.set(cv2.CAP_PROP_POS_FRAMES, frame_ind)
-            ret, frame = capture.read()
-            if grayscale:
-                frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)[np.newaxis, ...]
-            if ret:
-                imgs.append(frame)
-            else:
-                print("Error reading frame")
+    # for vs in containers[video_idx]:
+    capture = containers[0][video_idx]
+    for idx in frame_indices:
+        frame_ind = idx - cumframes[video_idx]
+        # capture = vs
+        if int(capture.get(cv2.CAP_PROP_POS_FRAMES)) != frame_ind:
+            capture.set(cv2.CAP_PROP_POS_FRAMES, frame_ind)
+        ret, frame = capture.read()
+        if grayscale:
+            frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)[np.newaxis, ...]
+        if ret:
+            imgs.append(frame)
+        else:
+            print("Error reading frame")
     return np.array(imgs)
 
 
