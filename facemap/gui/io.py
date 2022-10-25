@@ -335,6 +335,8 @@ def load_movies(parent, filelist=None):
         parent.processed = False
         parent.jump_to_frame()
         parent.update_window_title(parent.filenames[0][0])
+        if parent.autoload_keypoints:
+            parent.load_keypoints_from_videodir()
     return good
 
 

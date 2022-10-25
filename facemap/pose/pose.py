@@ -287,6 +287,10 @@ class Pose:
         print("resize:", self.resize)
         print("padding:", self.add_padding)
         print("Batch size:", self.batch_size)
+        print("cumframes:", self.cumframes)
+        print("containers", self.containers)
+        print("video_id", video_id)
+        # FIXME: Plotting keypoints after batch processing is not working properly
         progress_output = StringIO()
         with tqdm(
             total=total_frames, unit="frame", unit_scale=True, file=progress_output

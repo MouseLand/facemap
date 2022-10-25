@@ -51,6 +51,7 @@ class MainW(QtWidgets.QMainWindow):
         neural_predictions_file=None,
         tneural_activity_file=None,
         tbehavior_file=None,
+        autoload_keypoints=True,
     ):
         super(MainW, self).__init__()
         icon_path = os.path.join(
@@ -351,6 +352,7 @@ class MainW(QtWidgets.QMainWindow):
         self.neural_predictions = neural_activity.NeuralActivity(parent=self)
 
         # Load data from CLI command
+        self.autoload_keypoints = autoload_keypoints
         if movie_file is not None:
             # Check if moviefile is 2D list or string
             if isinstance(movie_file, list):
@@ -374,6 +376,10 @@ class MainW(QtWidgets.QMainWindow):
         if keypoints_file is not None:
             self.poseFilepath = keypoints_file
             self.load_keypoints()
+        elif self.autoload_keypoints:
+            # Check if self.filenames exists
+            if hasattr(self, "filenames"):
+                self.load_keypoints_from_videodir()
         if neural_activity_file is not None:
             self.neural_activity.set_data(
                 neural_activity_file,
@@ -1304,6 +1310,34 @@ class MainW(QtWidgets.QMainWindow):
             self.keypoints_threshold = np.nanpercentile(
                 self.pose_likelihood, value
             )  # percentile value
+
+    def load_keypoints_from_videodir(self):
+        """
+        Load keypoints from current working directory
+        """
+        video_h5 = []
+        for video_name in self.filenames[0]:
+            # Get current working directory
+            video_dir = os.path.dirname(video_name)
+            print("video_dir", video_dir)
+            # Get all files in current working directory
+            files = os.listdir(video_dir)
+            # Get all files with .h5 extension
+            h5_files = [f for f in files if f.endswith(".h5")]
+            print("h5 files in current working directory: ", h5_files)
+            # Check if video name in the list of h5 files
+            video_name = os.path.splitext(os.path.basename(video_name))[0]
+            print("video_name", video_name)
+            # Get index of video name in list of h5 files
+            video_h5_index = [
+                i for i, filename in enumerate(h5_files) if video_name in filename
+            ]
+            if len(video_h5_index) > 0:
+                video_h5.append(os.path.join(video_dir, h5_files[video_h5_index[0]]))
+        self.poseFilepath = video_h5
+        print("poseFilepath", self.poseFilepath)
+        if len(self.poseFilepath) > 0:
+            self.load_keypoints()
 
     def load_keypoints(self):
         # Read Pose file
@@ -3082,6 +3116,7 @@ def run(
     neural_predictions_file=None,
     tneural_activity_file=None,
     tbehavior_file=None,
+    autoload_keypoints=True,
 ):
     # Always start by initializing Qt (only once per application)
     app = QtWidgets.QApplication(sys.argv)
@@ -3104,6 +3139,7 @@ def run(
         neural_predictions_file,
         tneural_activity_file,
         tbehavior_file,
+        autoload_keypoints,
     )
     ret = app.exec_()
     sys.exit(ret)

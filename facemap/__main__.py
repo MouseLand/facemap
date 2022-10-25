@@ -1,5 +1,6 @@
 import argparse
 import time
+from distutils.util import strtobool
 
 import numpy as np
 
@@ -59,6 +60,14 @@ if __name__ == "__main__":
         help="Absolute path to behavior timestamps file (*.npy)",
     )
     parser.add_argument("--savedir", default=None, type=str, help="savedir")
+    # Add a flag to autoload keypoints in the same directory as the movie
+    parser.add_argument(
+        "--autoload_keypoints",
+        dest="autoload_keypoints",
+        type=lambda x: bool(strtobool(x)),
+        help="Automatically load keypoints in the same directory as the movie",
+    )
+    parser.set_defaults(autoload_keypoints=True)
     parser.add_argument(
         "--poseGUI",
         dest="poseGUI",
@@ -68,9 +77,6 @@ if __name__ == "__main__":
     parser.set_defaults(poseGUI=True)
 
     args = parser.parse_args()
-
-    # FIXME: check loading and running batch files from CLI
-
     if args.poseGUI:
         print("Running Facemap w/ pose estimation GUI")
     else:
@@ -91,4 +97,5 @@ if __name__ == "__main__":
             args.neural_prediction,
             args.tneural,
             args.tbehavior,
+            args.autoload_keypoints,
         )
