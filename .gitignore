@@ -13,6 +13,9 @@ $RECYCLE.BIN/
 *.mexw64
 *.asv
 
+# Sphinx documentation
+docs/_build/
+
 # Windows shortcuts
 *.lnk
 
