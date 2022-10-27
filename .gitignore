@@ -31,10 +31,8 @@ dist/
 suite2p.egg-info/
 build/
 FaceMap/ops_user.npy
-*.ipynb
 *.pth
 *.pt
-*.gif
 *.sh
 
 #
