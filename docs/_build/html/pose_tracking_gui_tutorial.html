@@ -1,0 +1,169 @@
+
+<!DOCTYPE html>
+
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="generator" content="Docutils 0.19: https://docutils.sourceforge.io/" />
+
+    <title>Pose tracking (GUI) :mouse: &#8212; Facemap 0.2.0 documentation</title>
+    <link rel="stylesheet" type="text/css" href="_static/pygments.css" />
+    <link rel="stylesheet" type="text/css" href="_static/alabaster.css" />
+    <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
+    <script src="_static/jquery.js"></script>
+    <script src="_static/underscore.js"></script>
+    <script src="_static/_sphinx_javascript_frameworks_compat.js"></script>
+    <script src="_static/doctools.js"></script>
+    <script src="_static/sphinx_highlight.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="prev" title="Installation" href="installation.html" />
+   
+  <link rel="stylesheet" href="_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <section id="pose-tracking-gui-mouse">
+<h1>Pose tracking <strong>(GUI)</strong> :mouse:<a class="headerlink" href="#pose-tracking-gui-mouse" title="Permalink to this heading">¶</a></h1>
+<p>The latest python version is integrated with Facemap network for tracking 14 distinct keypoints on mouse face and an additional point for tracking paw. The keypoints can be tracked from different camera views (some examples shown below).</p>
+<p>&lt;p float=”middle”&gt;
+&lt;img src=”../figs/mouse_face1_keypoints.png”  width=”310” height=”290” title=”View 1” alt=”view1” align=”left” vspace = “10” hspace=”30” style=”border: 0.5px solid white”  /&gt;
+&lt;img src=”../figs/mouse_face0_keypoints.png” width=”310” height=”290” title=”View 2” alt=”view2” algin=”right” vspace = “10” style=”border: 0.5px solid white”&gt;
+&lt;/p&gt;</p>
+<p>For pose tracking using GUI after following the [installation instructions](installation.md), proceed with the following steps:</p>
+<ol class="arabic simple">
+<li><dl class="simple">
+<dt>Load video</dt><dd><ul class="simple">
+<li><p>Select <cite>File</cite> from the menu bar</p></li>
+<li><p>For processing single video, select <cite>Load single movie file</cite></p></li>
+<li><p>Alternatively, for processing multiple videos, select <cite>Open folder of movies</cite> and then select the files you want to process. Please note multiple videos are processed sequentially.</p></li>
+</ul>
+</dd>
+</dl>
+</li>
+<li><dl class="simple">
+<dt>Select output folder</dt><dd><ul class="simple">
+<li><p>Use the file menu to <cite>Set output folder</cite>.</p></li>
+<li><p>The processed keypoints file will be saved in the selected output folder with an extension of <cite>.h5</cite> and corresponding metadata file with extension <cite>.pkl</cite>.</p></li>
+</ul>
+</dd>
+</dl>
+</li>
+<li><dl class="simple">
+<dt>Choose processing options</dt><dd><ul class="simple">
+<li><dl class="simple">
+<dt>Check at least one of the following boxes:</dt><dd><ul>
+<li><p><cite>Keypoints</cite> for face pose tracking.</p></li>
+<li><p><cite>motSVD</cite> for SVD processing of difference across frames over time.</p></li>
+<li><p><cite>movSVD</cite> for SVD processing of raw movie frames.</p></li>
+</ul>
+</dd>
+</dl>
+</li>
+<li><p>Click <cite>process</cite> button and monitor progress bar at the bottom of the window to see updates.</p></li>
+</ul>
+</dd>
+</dl>
+</li>
+<li><dl class="simple">
+<dt>Select ROI/bounding box for face</dt><dd><ul class="simple">
+<li><p>Once you hit <cite>process</cite>, a dialog box will appear for selecting a bounding box for the face. The keypoints will be tracked in the selected bounding box. Please ensure that the bouding box is focused on the face where all the keypoints shown above will be visible. See example frames [here](figs/mouse_views.png). Once the bounding box is focused, click ‘Done’ to continue.</p></li>
+<li><p>Alternatively, if you wish to use the entire frame for the mouse then click ‘Skip’ to continue.</p></li>
+<li><p>If a ‘Face (pose)’ ROI has already been selected using the dropdown menu for ROIs the bounding box will be automatically selected and the keypoints will be tracked in the selected ROI.</p></li>
+</ul>
+</dd>
+</dl>
+</li>
+</ol>
+<p>The videos will be processed in the order they are listed in the file list and output will be saved in the output folder.</p>
+<p>## Visualize pose estimates</p>
+<p>For plotting pose estimates, generated using Facemap or other software that save output (<a href="#id1"><span class="problematic" id="id2">*</span></a>.h5) in the same format as DeepLabCut, follow the following steps:</p>
+<ol class="arabic simple">
+<li><p>Load video: Select <cite>File</cite> from the menu bar and select <cite>Load single movie file</cite></p></li>
+<li><p>Load data: From the file menu options, select <cite>Load pose data</cite></p></li>
+<li><p>Select the <cite>Keypoints</cite> checkbox on GUI to plot the keypoints on the loaded video. Toggle the checkbox to change visibility of the points.</p></li>
+</ol>
+<p>Note: this feature currently only supports single video.</p>
+</section>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="index.html">Facemap</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<p class="caption" role="heading"><span class="caption-text">Basics:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="installation.html">Installation</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Pose tracking <strong>(GUI)</strong> :mouse:</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="index.html">Documentation overview</a><ul>
+      <li>Previous: <a href="installation.html" title="previous chapter">Installation</a></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2020, Carsen Stringer & Atika Syeda & Renee Tung.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 5.3.0</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+      |
+      <a href="_sources/pose_tracking_gui_tutorial.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>
