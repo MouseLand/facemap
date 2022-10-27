@@ -51,7 +51,7 @@ class FacemapDataset(torch.utils.data.Dataset):
             "nosebridge",
             "paw",
             "whisker(c1)",
-            "whisker(d2)",
+            "whisker(c2)",  # "whisker(d2)",
             "whisker(d1)",
         ]
         # Set image and keypoints data
@@ -259,7 +259,6 @@ class FacemapDataset(torch.utils.data.Dataset):
             df = df.T[df.columns.get_level_values("coords") != "likelihood"].T
             df = self.fix_labels(df, scorer=self.scorer)
             landmarks = pd.concat([landmarks, df])
-
         landmarks = landmarks.to_numpy().reshape(-1, 15, 2)
         # Convert to tensor
         landmarks = torch.from_numpy(landmarks)
@@ -331,6 +330,7 @@ class FacemapDataset(torch.utils.data.Dataset):
         # Remove any labels not required
         for adjusted_label in pd.unique(df.columns.get_level_values("bodyparts")):
             if adjusted_label not in self.bodyparts:
+                print("remove %s" % adjusted_label)
                 df = df.drop(columns=[adjusted_label], level=1)
             df = df[sorted(df)]
         return df

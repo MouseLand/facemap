@@ -21,6 +21,7 @@ def main():
     ops = ops.item()
 
 
+# TODO: Add more description for the arguments
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Movie files")
     parser.add_argument("--ops", default=[], type=str, help="options")
