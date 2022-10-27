@@ -14,16 +14,6 @@ install_deps = [
     "pandas",
     "scikit-image",
 ]
-docs_deps = [
-    "sphinx>=3.0",
-    "sphinxcontrib-apidoc",
-    "sphinx_rtd_theme",
-]
-gui_deps = [
-    "pyqtgraph==0.12.0",
-    "pyqt5",
-    "pyqt5.sip",
-]
 
 try:
     import torch
@@ -44,7 +34,7 @@ setuptools.setup(
     version="0.2.0",
     author="Carsen Stringer & Atika Syeda & Renee Tung",
     author_email="carsen.stringer@gmail.com",
-    description="Pose estimation and processing SVDs of videos",
+    description="Processing motion SVDs of videos",
     long_description=long_description,
     long_description_content_type="text/markdown",
     url="https://github.com/MouseLand/FaceMap",
@@ -52,8 +42,11 @@ setuptools.setup(
     install_requires=install_deps,
     tests_require=["pytest", "tqdm"],
     extras_require={
-        "docs": docs_deps,
-        "gui": gui_deps,
+        "gui": [
+            "pyqtgraph==0.12.0",
+            "pyqt5",
+            "pyqt5.sip",
+        ]
     },
     include_package_data=True,
     classifiers=(
