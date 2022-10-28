@@ -9,29 +9,30 @@
 
 # Facemap <img src="facemap/mouse.png" width="200" title="lilmouse" alt="lilmouse" align="right" vspace = "50">
 
-Pose tracking of mouse face from different camera views (python only) and svd processing of videos (python and MATLAB). Includes GUI and CLI for easy use.
+Facemap is a single framework for predicting neural activity from mouse orofacial movements. It includes a pose estimation model for tracking distinct keypoints on the mouse face and a neural network model for predicting neural activity using the pose estimates. Facemap also supports singular value decomposition (SVD) of behavioral videos. 
 
 ## [Installation](https://github.com/MouseLand/facemap/blob/dev/docs/installation.md)
 
-- For latest released version (from PyPI) including svd processing only, run `pip install facemap` for headless version or `pip install facemap[gui]` for using GUI.
+- For the latest released version (from PyPI):
+    - `pip install facemap`
 
-- For using tracker and svd processing, follow the instructions below:
-1. `git clone https://github.com/MouseLand/facemap.git`
-2. Change directory to facemap folder containing environment.yml file
-3. `conda env create -f environment.yml`
-4. `conda activate facemap`
-5. `python -m facemap`
-This will install the latest development version on github.
+- For the latest development version on github, follow the instructions below:
+    1. `git clone https://github.com/MouseLand/facemap.git`
+    2. Change directory to facemap folder containing the `environment.yml` file
+    3. `conda env create -f environment.yml`
+    4. `conda activate facemap`
+    5. `python -m facemap`
 
-To upgrade Facemap ([PyPI package](https://pypi.org/project/facemap/)), within the environment run: `pip install facemap --upgrade`
+- Recommended installation instructions using the environment.yml:
 
-Facemap installation is recommended using the environment.yml:
+    1. Download the `environment.yml` file from the repository
+    2. Open an anaconda prompt / command prompt with `conda` for **python 3** in the path
+    3. Run `conda env create -f environment.yml`
+    4. To activate facemap environment, run `conda activate facemap`
+    5. You should see `(facemap)` on the left side of the terminal line. Next, run `python -m facemap` to launch facemap.
 
-1. Download the `environment.yml` file from the repository
-2. Open an anaconda prompt / command prompt with `conda` for **python 3** in the path
-3. Run `conda env create -f environment.yml`
-4. To activate this new environment, run `conda activate facemap`
-5. You should see `(facemap)` on the left side of the terminal line. Now run `python -m facemap` and you're all set.
+- To upgrade Facemap ([PyPI package](https://pypi.org/project/facemap/)), within the environment run:   
+    - `pip install facemap --upgrade`
 
 # Pose tracking
 
