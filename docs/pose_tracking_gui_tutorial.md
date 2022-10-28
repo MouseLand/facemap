@@ -9,27 +9,26 @@ The latest python version is integrated with Facemap network for tracking 14 dis
 <img src="../figs/mouse_face0_keypoints.png" width="310" height="290" title="View 2" alt="view2" algin="right" vspace = "10" style="border: 0.5px solid white">
 </p>
 
-For pose tracking using GUI after following the [installation instructions](installation.md), proceed with the following steps:
+## Generate keypoints
+
+Follow the steps below to generate keypoints for your videos:
 
 1. Load video 
     - Select `File` from the menu bar
-    - For processing single video, select `Load single movie file`
-    - Alternatively, for processing multiple videos, select `Open folder of movies` and then select the files you want to process. Please note multiple videos are processed sequentially.
-2. Select output folder
-    - Use the file menu to `Set output folder`. 
-    - The processed keypoints file will be saved in the selected output folder with an extension of `.h5` and corresponding metadata file with extension `.pkl`.
-3. Choose processing options 
-    - Check at least one of the following boxes:
-        - `Keypoints` for face pose tracking.
-        - `motSVD` for SVD processing of difference across frames over time.
-        - `movSVD` for SVD processing of raw movie frames.
-    - Click `process` button and monitor progress bar at the bottom of the window to see updates.
-4. Select ROI/bounding box for face
-    - Once you hit `process`, a dialog box will appear for selecting a bounding box for the face. The keypoints will be tracked in the selected bounding box. Please ensure that the bouding box is focused on the face where all the keypoints shown above will be visible. See example frames [here](figs/mouse_views.png). Once the bounding box is focused, click 'Done' to continue.
-    - Alternatively, if you wish to use the entire frame for the mouse then click 'Skip' to continue.
-    - If a 'Face (pose)' ROI has already been selected using the dropdown menu for ROIs the bounding box will be automatically selected and the keypoints will be tracked in the selected ROI.
+    - For processing single video, select `Load video`. Alternatively, for processing multiple videos, select `Load multiple videos` to select the folder containing the videos. (Note: Pose estimation for multipl videos is only supported for videos recorded simultaneously i.e. have the same time duration and frame rate).
 
-The videos will be processed in the order they are listed in the file list and output will be saved in the output folder. 
+    (Optional) Set output folder
+    - Use the file menu to `Set output folder`. 
+    - The processed keypoints (`*.h5`) and metadata (`*.pkl`) will be saved in the selected output folder or folder containing the video (default).
+2. Process video(s)
+    - Check `Keypoints` for pose tracking.
+    - Click `process`.
+3. Set ROI/bounding box for face region
+    - A dialog box for selecting a bounding box for the face will appear. Drag the red rectangle to select region of interest on the frame where the keypoints will be tracked. Please ensure that the bouding box is focused on the face where all the keypoints will be visible. See example frames [here](figs/mouse_views.png). If a 'Face (pose)' ROI has already been added then this step will be skipped.
+    - Click `Done` to process video. Alternatively, click `Skip` to use the entire frame region. Monitor progress bar at the bottom of the window for updates.
+4. View keypoints
+    - Keypoints will be automatically loaded after processing.
+    - Processed keypoints file will be saved as `[videoname]_FacemapPose.h5` in the selected output folder. 
 
 ## Visualize pose estimates 
 
@@ -41,5 +40,6 @@ For plotting pose estimates, generated using Facemap or other software that save
 
 Note: this feature currently only supports single video.
 
+## Finetune model to refine keypoints for a video
 
 

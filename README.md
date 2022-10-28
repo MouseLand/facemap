@@ -68,7 +68,7 @@ Facemap aims to provide a simple and easy-to-use tool for tracking mouse orofaci
 
 ### Support
 
-For any issues or questions about Facemap, please [open an issue here](https://github.com/MouseLand/facemap/issues).
+For any issues or questions about Facemap, please [open an issue](https://github.com/MouseLand/facemap/issues).
 
 # II. SVD processing
 
@@ -98,5 +98,13 @@ To start the GUI, run the command `MovieGUI` in this folder. The following windo
 <img src="figs/GUIscreenshot.png" width="80%" alt="gui screenshot" >
 </div>
 
-# II. Neural activity prediction
+# III. Neural activity prediction
 
+Facemap includes a deep neural network encoder for predicting neural activity or principal components of neural activity from mouse orofacial pose estimates extracted using the tracker. The process for neural activity prediction is as follows:
+ 1. Load video. (Optional) Use the file menu to set output folder.
+ 2. Load or process keypoints for the video.
+ 3. Load neural activity data (optional) and timestamps for behavioral and neural data.
+ 4. Run neural activity prediction (Note: Use help section to set training parameters for the model).
+ 5. The predicted neural activity `*.npy` file will be saved in the selected output folder.
+
+ Please see neural activity prediction [tutorial](docs/neural_activity_prediction_tutorial.md) for more details.

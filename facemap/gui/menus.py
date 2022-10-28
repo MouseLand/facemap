@@ -6,32 +6,33 @@ from . import help_windows, io
 def mainmenu(parent):
     # --------------- MENU BAR --------------------------
     # run suite2p from scratch
-    open_file = QAction("Load single movie file", parent)
+    open_file = QAction("Load video", parent)
+    open_file.setShortcut("Ctrl+L")
     open_file.triggered.connect(lambda: io.open_file(parent))
     parent.addAction(open_file)
 
-    open_folder = QAction("Open folder of movies", parent)
-    open_folder.setShortcut("Ctrl+O")
+    open_folder = QAction("Load multiple videos", parent)
     open_folder.triggered.connect(lambda: io.open_folder(parent))
     parent.addAction(open_folder)
 
     # load processed data
-    load_proc = QAction("&Load processed data", parent)
-    load_proc.setShortcut("Ctrl+L")
+    load_proc = QAction("Load SVD data", parent)
     load_proc.triggered.connect(lambda: io.open_proc(parent))
     parent.addAction(load_proc)
 
     # Set output folder
     set_output_folder = QAction("Set output folder", parent)
+    set_output_folder.setShortcut("Ctrl+S")
     set_output_folder.triggered.connect(lambda: io.save_folder(parent))
     parent.addAction(set_output_folder)
 
     load_pose = QAction("Load keypoints", parent)
+    load_pose.setShortcut("Ctrl+K")
     load_pose.triggered.connect(lambda: io.get_pose_file(parent))
     parent.addAction(load_pose)
 
-    train_model = QAction("&Train model", parent)
-    train_model.setShortcut("Ctrl+T")
+    train_model = QAction("Finetune model", parent)
+    train_model.setShortcut("Ctrl+F")
     train_model.triggered.connect(lambda: parent.show_model_training_popup())
     parent.addAction(train_model)
 
