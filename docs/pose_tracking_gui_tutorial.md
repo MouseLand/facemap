@@ -30,16 +30,52 @@ Follow the steps below to generate keypoints for your videos:
     - Keypoints will be automatically loaded after processing.
     - Processed keypoints file will be saved as `[videoname]_FacemapPose.h5` in the selected output folder. 
 
-## Visualize pose estimates 
+## Visualize keypoints
 
-For plotting pose estimates, generated using Facemap or other software that save output (*.h5) in the same format as DeepLabCut, follow the following steps:
+To load keypoints (*.h5) for a video generated using Facemap or other software in the same format (such as DeepLabCut and SLEAP), follow the steps below:
 
-1. Load video: Select `File` from the menu bar and select `Load single movie file`
-2. Load data: From the file menu options, select `Load pose data`
-3. Select the `Keypoints` checkbox on GUI to plot the keypoints on the loaded video. Toggle the checkbox to change visibility of the points.
+1. Load video 
+    - Select `File` from the menu bar
+    - Select `Load video`
+2. Load keypoints
+    - Select `Pose` from the menu bar
+    - Select `Load keypoints`
+    - Select the keypoints (*.h5) file 
+3. View keypoints
+    - Use the "Keypoints" checkbox to toggle the visibility of keypoints. 
+    - Change value of "Threshold (%)" under pose settings to filter keypoints with lower confidence estimates. Higher threshold will show keypoints with higher confidence estimates.
 
-Note: this feature currently only supports single video.
+Note: this feature is currently only supported for single video. Please see [CLI instructions](pose_tracking_cli_tutorial.md) for viewing keypoints for multiple videos.
 
 ## Finetune model to refine keypoints for a video
 
+To improve keypoints predictions for a video, follow the steps below:
 
+1. Load video 
+    - Select `File` from the menu bar
+    - Select `Load video`
+2. Set finetuned model's output folder
+    - Select `Pose` from the menu bar
+    - Select `Finetune model`
+    - Set output folder path for finetuned model
+3. Select training data and set training parameters
+    - Set `Initial model` to use for training. By default, Facemap's base model trained on our dataset will be used for fine-tuning. Alternatively, you can select a model previously finetuned on your own dataset.
+    - Set `Output model name` for the finetuned model.
+    - Choose `Yes/No` to refine keypoints prediction for the video loaded and set `# Frames` to use for training. You can also choose proportion of random vs. outlier frames to use for training. The outlier frames are selected using the `Difficulty threshold (percentile)`, which determines the percentile of confidence scores to use as the threshold for selecting frames with the highest error.
+    - Choose `Yes/No` to add previously refined keypoints to the  training set.
+    - `Set training parameters` or use default values.
+    - Click `Next`.
+4. Refine keypoints 
+    - If a ROI/bounding box was not added, then a dialog box for selecting a bounding box for the face will appear. Drag the red rectangle to select region of interest on the frame where the keypoints will be tracked.
+    - Click `Done` to process video. Alternatively, click `Skip` to use the entire frame region. Monitor progress bar at the bottom of the window for updates.
+    - Drag keypoints to refine predictions. Use `Shift+D` to delete a keypoint. Right click to add a deleted keypoint. Use `Previous` and `Next` buttons to change frame. Click `Help` for more details.
+    - Click `Train model` to start training. A progress bar will appear for training updates.
+5. Evaluate training
+    - View predicted keypoints for test frames from the video loaded. For further refinement, Click `Continue training` that will repeat steps 3-5. 
+    - Click `Save model` to save the finetuned model. The finetuned model will be saved as `*.pt` in the selected output folder.
+6. Generate keypoints using the finetuned model
+    - Use the `Pose model` dropdown menu to set the finetuned model to use for generating keypoints predictions.
+    - (Optional) Change "Batch size" under pose settings.
+    - Click `Process` to generate keypoints predictions. See [Generate keypoints](#generate-keypoints) for more details.
+
+## 
