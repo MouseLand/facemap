@@ -34,6 +34,14 @@ Facemap is a single framework for predicting neural activity from mouse orofacia
 - To upgrade Facemap ([PyPI package](https://pypi.org/project/facemap/)), within the environment run:   
     - `pip install facemap --upgrade`
 
+## Supported videos
+Facemap supports grayscale and RGB movies. The software can process multi-camera videos for pose tracking and SVD analysis. Please see [example movies](https://drive.google.com/open?id=1cRWCDl8jxWToz50dCX1Op-dHcAC-ttto) for testing the GUI. Movie file extensions supported include:
+
+'.mj2','.mp4','.mkv','.avi','.mpeg','.mpg','.asf'
+
+For more details, please refer to the [data acquisition page](docs/data_acquisition.md).
+
+
 # I. Pose tracking
 
 <img src="figs/tracker.gif" width="100%" height="500" title="Tracker" alt="tracker" algin="middle" vspace = "10">
@@ -60,34 +68,16 @@ Facemap aims to provide a simple and easy-to-use tool for tracking mouse orofaci
 
 ### Support
 
-For any issues using the software and questions, please [open an issue here](https://github.com/MouseLand/facemap/issues).
+For any issues or questions about Facemap, please [open an issue here](https://github.com/MouseLand/facemap/issues).
 
-# II. Neural prediction model
+# II. SVD processing
 
-# III. SVD processing
+Facemap provides options for singular value decomposition (SVD) of single and multi-camera videos. SVD analysis can be performed across static frames called movie SVD (`movSVD`) to extract the spatial components or over the difference between consecutive frames called motion SVD (`motSVD`) to extract the temporal components of the video. The first 500 principal components from SVD analysis are saved as output along with other variables. For more details, see [python tutorial](docs/svd_python_tutorial.md). The process for SVD analysis is as follows:
+ 1. Load video. (Optional) Use the file menu to set output folder.
+ 2. Click `process` (Note: check `motSVD`  or `movSVD` for this step).
+ 3. The processed SVD `*_proc.npy` (and `*_proc.mat`) file will be saved in the output folder selected.
 
-Works for grayscale and RGB movies. Can process multi-camera videos. Some example movies to test the GUI on are located [here](https://drive.google.com/open?id=1cRWCDl8jxWToz50dCX1Op-dHcAC-ttto). You can save the output from both the python and matlab versions as a matlab file with a checkbox in the GUI (if you'd like to use the python version - it has a better GUI).
-
-Supported movie files:
-
-'.mj2','.mp4','.mkv','.avi','.mpeg','.mpg','.asf'
-
-### Data acquisition info
-
-IR ILLUMINATION:
-
-For recording in darkness we use [IR illumination](https://www.amazon.com/Logisaf-Invisible-Infrared-Security-Cameras/dp/B01MQW8K7Z/ref=sr_1_12?s=security-surveillance&ie=UTF8&qid=1505507302&sr=1-12&keywords=ir+light) at 850nm, which works well with 2p imaging at 970nm and even 920nm. Depending on your needs, you might want to choose a different wavelength, which changes all the filters below as well. 950nm works just as well, and probably so does 750nm, which still outside of the visible range for rodents.  
-
-If you want to focus the illumination on the mouse eye or face, you will need a different, more expensive system. Here is an example, courtesy of Michael Krumin from the Carandini lab: [driver](https://www.thorlabs.com/thorproduct.cfm?partnumber=LEDD1B), [power supply](https://www.thorlabs.com/newgrouppage9.cfm?objectgroup_id=1710&pn=KPS101#8865), [LED](https://www.thorlabs.com/newgrouppage9.cfm?objectgroup_id=2692&pn=M850L3#4426), [lens](https://www.thorlabs.com/newgrouppage9.cfm?objectgroup_id=259&pn=AC254-030-B#2231), and [lens tube](https://www.thorlabs.com/newgrouppage9.cfm?objectgroup_id=4109&pn=SM1V10#3389), and another [lens tube](https://www.thorlabs.com/thorproduct.cfm?partnumber=SM1L10).
-
-CAMERAS:
-
-We use [ptgrey cameras](https://www.ptgrey.com/flea3-13-mp-mono-usb3-vision-vita-1300-camera). The software we use for simultaneous acquisition from multiple cameras is [BIAS](http://public.iorodeo.com/notes/bias/) software. A basic lens that works for zoomed out views [here](https://www.bhphotovideo.com/c/product/414195-REG/Tamron_12VM412ASIR_12VM412ASIR_1_2_4_12_F_1_2.html). To see the pupil well you might need a better zoom lens [10x here](https://www.edmundoptics.com/imaging-lenses/zoom-lenses/10x-13-130mm-fl-c-mount-close-focus-zoom-lens/#specs).
-
-For 2p imaging, you'll need a tighter filter around 850nm so you don't see the laser shining through the mouse's eye/head, for example [this](https://www.thorlabs.de/thorproduct.cfm?partnumber=FB850-40). Depending on your lenses you'll need to figure out the right adapter(s) for such a filter. For our 10x lens above, you might need all of these:  [adapter1](https://www.edmundoptics.com/optics/optical-filters/optical-filter-accessories/M52-to-M46-Filter-Thread-Adapter/), [adapter2](https://www.thorlabs.de/thorproduct.cfm?partnumber=SM2A53), [adapter3](https://www.thorlabs.de/thorproduct.cfm?partnumber=SM2A6), [adapter4](https://www.thorlabs.de/thorproduct.cfm?partnumber=SM1L03).
-
-
-## [*HOW TO GUI* (Python)](docs/svd_python_tutorial.md)
+### [*HOW TO GUI* (Python)](docs/svd_python_tutorial.md)
 
 ([video](https://www.youtube.com/watch?v=Rq8fEQ-DOm4) with old install instructions)
 
@@ -100,7 +90,7 @@ python -m facemap
 Default starting folder is set to wherever you run `python -m FaceMap`
 
 
-## [*HOW TO GUI* (MATLAB)](docs/svd_matlab_tutorial.md)
+### [*HOW TO GUI* (MATLAB)](docs/svd_matlab_tutorial.md)
 
 To start the GUI, run the command `MovieGUI` in this folder. The following window should appear. After you click an ROI button and draw an area, you have to **double-click** inside the drawn box to confirm it. To compute the SVD across multiple simultaneously acquired videos you need to use the "multivideo SVD" options to draw ROI's on each video one at a time.
 
@@ -108,4 +98,5 @@ To start the GUI, run the command `MovieGUI` in this folder. The following windo
 <img src="figs/GUIscreenshot.png" width="80%" alt="gui screenshot" >
 </div>
 
+# II. Neural activity prediction
 
