@@ -393,7 +393,7 @@ class MainW(QtWidgets.QMainWindow):
             self.load_neural_predictions_file(neural_predictions_file)
 
     def make_buttons(self):
-        facemap_label = QLabel("Facemap - SVDs & Tracker")
+        facemap_label = QLabel("Facemap")
         facemap_label.setStyleSheet("color: white;")
         facemap_label.setAlignment(QtCore.Qt.AlignCenter)
         facemap_label.setFont(QFont("Arial", 16, QFont.Bold))
@@ -1319,15 +1319,12 @@ class MainW(QtWidgets.QMainWindow):
         for video_name in self.filenames[0]:
             # Get current working directory
             video_dir = os.path.dirname(video_name)
-            print("video_dir", video_dir)
             # Get all files in current working directory
             files = os.listdir(video_dir)
             # Get all files with .h5 extension
             h5_files = [f for f in files if f.endswith(".h5")]
-            print("h5 files in current working directory: ", h5_files)
             # Check if video name in the list of h5 files
             video_name = os.path.splitext(os.path.basename(video_name))[0]
-            print("video_name", video_name)
             # Get index of video name in list of h5 files
             video_h5_index = [
                 i for i, filename in enumerate(h5_files) if video_name in filename
@@ -1348,10 +1345,14 @@ class MainW(QtWidgets.QMainWindow):
         for video_id in range(len(self.poseFilepath)):
             print("Loading keypoints:", self.poseFilepath[video_id])
             pose_data = pd.read_hdf(self.poseFilepath[video_id], "df_with_missing")
+            # Remove nosebridge and paw keypoints
+            pose_data = pose_data.T[pose_data.columns.get_level_values("bodyparts") != "nosebridge"].T
+            pose_data = pose_data.T[pose_data.columns.get_level_values("bodyparts") != "paw"].T
             # Append pose data to list for each video_id
             self.keypoints_labels.append(
                 pd.unique(pose_data.columns.get_level_values("bodyparts"))
             )
+            
             self.pose_x_coord.append(
                 pose_data.T[
                     pose_data.columns.get_level_values("coords").values == "x"

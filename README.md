@@ -34,31 +34,37 @@ Facemap is a single framework for predicting neural activity from mouse orofacia
 - To upgrade Facemap ([PyPI package](https://pypi.org/project/facemap/)), within the environment run:   
     - `pip install facemap --upgrade`
 
-# Pose tracking
+# I. Pose tracking
 
 <img src="figs/tracker.gif" width="100%" height="500" title="Tracker" alt="tracker" algin="middle" vspace = "10">
 
-The latest python version is integrated with Facemap network for tracking 14 distinct keypoints on mouse face and an additional point for tracking paw. The keypoints can be tracked from different camera views (some examples shown below). 
+Facemap provides a trained network for tracking distinct keypoints on the mouse face from different camera views (some examples shown below). The process for tracking keypoints is as follows:
+ 1. Load video. (Optional) Use the file menu to set output folder.
+ 2. Click `process` (Note: check `keypoints` for this step).
+ 3. Select bounding box.
+ 4. The processed keypoints `*.h5` file will be saved in the output folder along with the corresponding metadata file `*.pkl`.
+
+Keypoints will be predicted in the selected bounding box region so please ensure the bounding box focuses on the face. See example frames [here](figs/mouse_views.png). 
+
+
+For more details on using the tracker, please refer to the [GUI Instructions](docs/pose_tracking_gui_tutorial.md). See  [command line interface (CLI) instructions](docs/pose_tracking_cli_tutorial.md) and for more examples, please see [tutorial notebooks](https://github.com/MouseLand/facemap/tree/dev/notebooks).
 
 <p float="middle">
 <img src="figs/mouse_face1_keypoints.png"  width="310" height="290" title="View 1" alt="view1" align="left" vspace = "10" hspace="30" style="border: 0.5px solid white"  />
 <img src="figs/mouse_face0_keypoints.png" width="310" height="290" title="View 2" alt="view2" algin="right" vspace = "10" style="border: 0.5px solid white">
 </p>
-  
-## [GUI Instructions](docs/pose_tracking_gui_tutorial.md)
-For pose tracking, load video and check `keypoints` then click `process` button. A dialog box will appear for selecting a bounding box for the face. The keypoints will be tracked in the selected bounding box. Please ensure that the bouding box is focused on the face where all the keypoints shown above will be visible. See example frames [here](figs/mouse_views.png). 
-
-Use the file menu to set path of output folder. The processed keypoints file will be saved in the output folder with an extension of `.h5` and corresponding metadata file with extension `.pkl`.
-
-## [CLI Instructions](docs/pose_tracking_cli_tutorial.md)
-
-For more examples, please see [tutorial notebooks](https://github.com/MouseLand/facemap/tree/dev/notebooks).
-
-## :mega: User contributions :video_camera: :camera: 
-Facemap's goal is to provide a simple way to generate keypoints for rodent face tracking. However, we need a large dataset of images from different camera views to reduce any errors on new mice videos. Hence, we would like to get your help to further expand our dataset. You can contribute by sending us a video or few frames of your mouse on following email address(es): `syedaa[at]janelia.hhmi.org` or `stringerc[at]janelia.hhmi.org`. Please let us know of any issues using the software by sending us an email or [opening an issue on GitHub](https://github.com/MouseLand/facemap/issues).
 
 
-# SVD processing
+### :mega: User contributions :video_camera: :camera: 
+Facemap aims to provide a simple and easy-to-use tool for tracking mouse orofacial movements. The tracker's performance for new datasets could be further improved by expand our training set. You can contribute to the model by sharing videos/frames on the following email address(es): `asyeda1[at]jh.edu` or `stringerc[at]janelia.hhmi.org`.
+
+### Support
+
+For any issues using the software and questions, please [open an issue here](https://github.com/MouseLand/facemap/issues).
+
+# II. Neural prediction model
+
+# III. SVD processing
 
 Works for grayscale and RGB movies. Can process multi-camera videos. Some example movies to test the GUI on are located [here](https://drive.google.com/open?id=1cRWCDl8jxWToz50dCX1Op-dHcAC-ttto). You can save the output from both the python and matlab versions as a matlab file with a checkbox in the GUI (if you'd like to use the python version - it has a better GUI).
 
