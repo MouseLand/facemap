@@ -285,7 +285,7 @@ def roi_to_dict(ROIs, rROI=None):
 
 
 def get_reflector(yrange, xrange, rROI=None, rdict=None):
-    reflectors = np.zeros((yrange.size, xrange.size), np.bool)
+    reflectors = np.zeros((yrange.size, xrange.size), bool)
     if rROI is not None and len(rROI) > 0:
         for r in rROI:
             ellipse, ryrange, rxrange = (
@@ -324,7 +324,7 @@ def get_reflector(yrange, xrange, rROI=None, rdict=None):
 def video_placement(Ly, Lx):
     """Ly and Lx are lists of video sizes"""
     npix = Ly * Lx
-    picked = np.zeros((Ly.size,), np.bool)
+    picked = np.zeros((Ly.size,), bool)
     ly = 0
     lx = 0
     sy = np.zeros(Ly.shape, int)

@@ -7,32 +7,31 @@ from numpy.lib.npyio import save
 
 from facemap import process
 
-r_tol, a_tol = 1e-2, 1e-2
+r_tol, a_tol = 1, 1  # 1e-2, 1e-2
 
 
 def test_output_single_video(data_dir, video_names, expected_output_dir):
     clear_output(data_dir, video_names)
     v1, _ = video_names
-    test_filenames = [
-        [str(data_dir.joinpath("cam1").joinpath(v1))]
-    ]  # [[data_dir+video for video in v1]]
+    test_filenames = [[str(data_dir.joinpath("cam1").joinpath(v1))]]
     save_path = str(data_dir.joinpath("cam1"))
     output_filename, _ = v1.split(".")
-    test_proc_filename = os.path.join(save_path, output_filename + "_proc.npy")
     # Process video
     process.run(test_filenames, sbin=7, motSVD=True, movSVD=True, savepath=save_path)
-
-    # Compare output
+    test_proc_filename = os.path.join(save_path, output_filename + "_proc.npy")
+    # Compare outputs
     output = np.load(test_proc_filename, allow_pickle=True).item()
-    expected_proc_filename = expected_output_dir.joinpath("singlevideo_proc.npy")
+    expected_proc_filename = expected_output_dir.joinpath("single_video_proc.npy")
     expected_output = np.load(expected_proc_filename, allow_pickle=True).item()
+    print("test_proc_filename", test_proc_filename)
+    print("expected_proc_filename", expected_proc_filename)
     clear_output(data_dir, video_names)
 
     assert is_output_correct(output, expected_output)
 
 
 def test_output_multivideo(data_dir, video_names, expected_output_dir):
-    clear_output(data_dir, video_names)
+    # clear_output(data_dir, video_names)
     v1, v2 = video_names
     test1 = str(data_dir.joinpath("cam1").joinpath(v1))
     test2 = str(data_dir.joinpath("cam2").joinpath(v2))
@@ -40,17 +39,18 @@ def test_output_multivideo(data_dir, video_names, expected_output_dir):
     # For videos recorded simultaneously from multiple cams
     test_filenames = [[test1, test2]]
     save_path = str(data_dir.joinpath("cam2"))
-    output_filename, _ = v1.split(".")
-    test_proc_filename = os.path.join(save_path, output_filename + "_proc.npy")
-    print(test_proc_filename)
     # Process videos
     process.run(test_filenames, sbin=12, motSVD=True, movSVD=True, savepath=save_path)
+    output_filename, _ = v1.split(".")
+    test_proc_filename = os.path.join(save_path, output_filename + "_proc.npy")
+    print("test_proc_filename", test_proc_filename)
 
     # Compare output
     output = np.load(test_proc_filename, allow_pickle=True).item()
-    expected_proc_filename = expected_output_dir.joinpath("multivideo_proc.npy")
+    expected_proc_filename = expected_output_dir.joinpath("multi_video_proc.npy")
+    print("expected_proc_filename", expected_proc_filename)
     expected_output = np.load(expected_proc_filename, allow_pickle=True).item()
-    clear_output(data_dir, video_names)
+    # clear_output(data_dir, video_names)
 
     assert is_output_correct(output, expected_output)
     clear_expected_output(expected_output_dir)
