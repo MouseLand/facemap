@@ -32,6 +32,7 @@ class Pose:
         gui=None,
         GUIobject=None,
         net=None,
+        model_name=None,
     ):
         self.gui = gui
         self.GUIobject = GUIobject
@@ -52,7 +53,7 @@ class Pose:
         self.resize = resize
         self.add_padding = add_padding
         self.net = net
-        self.model_name = None
+        self.model_name = model_name
         self.bodyparts = [
             "eye(back)",
             "eye(bottom)",

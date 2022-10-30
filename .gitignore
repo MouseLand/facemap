@@ -34,6 +34,8 @@ FaceMap/ops_user.npy
 *.pth
 *.pt
 *.sh
+*.pkl
+*.h5
 
 #
 # =========================

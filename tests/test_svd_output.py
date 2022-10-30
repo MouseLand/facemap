@@ -1,4 +1,4 @@
-"Test facemap pipeline by comparing outputs"
+"Test facemap SVD processing outputs for single and multiple videos"
 import os
 from pathlib import Path
 
