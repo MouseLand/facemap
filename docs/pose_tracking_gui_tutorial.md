@@ -64,7 +64,7 @@ To improve keypoints predictions for a video, follow the steps below:
     - Choose `Yes/No` to refine keypoints prediction for the video loaded and set `# Frames` to use for training. You can also choose proportion of random vs. outlier frames to use for training. The outlier frames are selected using the `Difficulty threshold (percentile)`, which determines the percentile of confidence scores to use as the threshold for selecting frames with the highest error.
     - Choose `Yes/No` to add previously refined keypoints to the  training set.
     - `Set training parameters` or use default values.
-    - Click `Next`.
+    - Click `Next`
 4. Refine keypoints 
     - If a ROI/bounding box was not added, then a dialog box for selecting a bounding box for the face will appear. Drag the red rectangle to select region of interest on the frame where the keypoints will be tracked.
     - Click `Done` to process video. Alternatively, click `Skip` to use the entire frame region. Monitor progress bar at the bottom of the window for updates.
@@ -77,5 +77,3 @@ To improve keypoints predictions for a video, follow the steps below:
     - Use the `Pose model` dropdown menu to set the finetuned model to use for generating keypoints predictions.
     - (Optional) Change "Batch size" under pose settings.
     - Click `Process` to generate keypoints predictions. See [Generate keypoints](#generate-keypoints) for more details.
-
-## 
