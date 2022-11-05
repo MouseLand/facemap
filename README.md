@@ -13,7 +13,7 @@ Pose tracking of mouse face from different camera views (python only) and svd pr
 
 ## [Installation](https://github.com/MouseLand/facemap/blob/dev/docs/installation.md)
 
-- For latest released version (from PyPI) including svd processing only, run `pip install facemap` for headless version or `pip install facemap[gui]` for using GUI.
+- For latest released version (from PyPI) including svd processing only, run `pip install facemap` for headless version or `pip install facemap[gui]` for using GUI. Note: `pip install facemap` not yet available for latest tracker and neural model, stay tuned.
 
 - For using tracker and svd processing, follow the instructions below:
 1. `git clone https://github.com/MouseLand/facemap.git`
