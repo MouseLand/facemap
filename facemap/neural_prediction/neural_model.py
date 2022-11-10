@@ -230,7 +230,8 @@ class KeypointsNetwork(nn.Module):
                 pstr += f"time {time.time()-tic:.1f}s"
                 if verbose:
                     print(pstr)
-            progress_bar.update_progress_bar(progress_output, GUIobject)
+            if gui is not None and GUIobject is not None:
+                progress_bar.update_progress_bar(progress_output, GUIobject)
         if gui is not None and GUIobject is not None:
             progress_bar.close()
 
