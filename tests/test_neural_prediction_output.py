@@ -1,5 +1,5 @@
 " Test Facemap neural prediction output "
 
 import os
-import numpy as np
 
+import numpy as np
