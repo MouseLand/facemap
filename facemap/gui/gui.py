@@ -1346,12 +1346,14 @@ class MainW(QtWidgets.QMainWindow):
             print("Loading keypoints:", self.poseFilepath[video_id])
             pose_data = pd.read_hdf(self.poseFilepath[video_id], "df_with_missing")
             # Remove nosebridge and paw keypoints
+            """
             pose_data = pose_data.T[
                 pose_data.columns.get_level_values("bodyparts") != "nosebridge"
             ].T
             pose_data = pose_data.T[
                 pose_data.columns.get_level_values("bodyparts") != "paw"
             ].T
+            """
             # Append pose data to list for each video_id
             self.keypoints_labels.append(
                 pd.unique(pose_data.columns.get_level_values("bodyparts"))

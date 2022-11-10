@@ -58,7 +58,7 @@ def normalize99(X, device=None):
 
 def get_rmse(predictions, gt):
     """
-    Compute RMSE between predictions and ground truth
+    Compute Euclidean distance between predictions and ground truth
     Parameters
     ----------
     predictions : ND-array of shape (n_samples, n_joints, 2)

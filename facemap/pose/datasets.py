@@ -161,6 +161,7 @@ class FacemapDataset(torch.utils.data.Dataset):
             preprocessed image of size [1 x Ly x Lx]
         """
         # 1. Crop image
+        #if self.augmentation: #randomize bbox/cropping during training
         bbox = transforms.randomize_bbox_coordinates(bbox, image.shape[-2:])
         image = transforms.crop_image(image, bbox)
         y1, _, x1, _ = bbox

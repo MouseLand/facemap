@@ -54,7 +54,7 @@ class FMnet(nn.Module):
                 nn.Conv2d(channels[-2 - k], output_ch, kernel_size=1, padding=0),
             )
 
-    def forward(self, x, smooth_confidence=False, verbose=False):
+    def forward(self, x, normalize=False, smooth_confidence=False, verbose=False):
         # encoding path
         xout = []
         x = self.Conv[0](x)
@@ -72,7 +72,7 @@ class FMnet(nn.Module):
         locy = self.Conv2_1x1[2](x)
         hm = self.Conv2_1x1[0](x)
         hm = F.relu(hm)
-        if self.training:
+        if self.training or normalize:
             hm = (
                 10 * hm / (1e-4 + hm.sum(axis=(-2, -1)).unsqueeze(-1).unsqueeze(-1))
             )  # Normalize

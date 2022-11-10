@@ -7,8 +7,6 @@ import pandas as pd
 
 from facemap.pose import pose
 
-r_tol, a_tol = 1e-1, 1e-1
-
 
 def test_pose_model_initialization(video_names):
     video, _ = video_names
