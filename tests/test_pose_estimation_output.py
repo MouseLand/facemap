@@ -7,6 +7,7 @@ import pandas as pd
 
 from facemap.pose import pose
 
+r_tol = 5e-3
 
 def test_pose_model_initialization(video_names):
     video, _ = video_names
@@ -14,7 +15,6 @@ def test_pose_model_initialization(video_names):
     pose_object.load_model()
 
     assert pose_object is not None
-
 
 def test_pose_estimation_output(data_dir, video_names, expected_output_dir):
 
@@ -37,4 +37,5 @@ def test_pose_estimation_output(data_dir, video_names, expected_output_dir):
     # Compare outputs
     test_output = pd.read_hdf(test_h5_path)
     expected_output = pd.read_hdf(expected_h5_path)
-    assert test_output.equals(expected_output)
+    match = np.median(np.abs(test_output.values - expected_output.values))
+    assert match < r_tol

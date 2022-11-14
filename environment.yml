@@ -2,7 +2,7 @@ name: facemap2
 channels:
   - conda-forge
 dependencies:
-  - python>=3.8.5
+  - python=3.8.13
   - pip
   - pip:
     - numpy>=1.16
