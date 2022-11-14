@@ -2,6 +2,7 @@ import numpy as np
 import pyqtgraph as pg
 from PyQt5 import QtCore, QtGui, QtWidgets
 from PyQt5.QtWidgets import (
+    QGraphicsPathItem,
     QAbstractItemView,
     QButtonGroup,
     QDialog,
@@ -19,7 +20,7 @@ from pyqtgraph import Point
 
 
 ## Following is adapted from https://stackoverflow.com/a/17108463 for a faster implementation of the multiline plot for neural activity
-class MultiLine(pg.QtGui.QGraphicsPathItem):
+class MultiLine(QGraphicsPathItem):
     def __init__(self, x, y):
         """
         Multiline class for plotting 2D data as a series of lines.
@@ -33,11 +34,11 @@ class MultiLine(pg.QtGui.QGraphicsPathItem):
         connect = np.ones(x.shape, dtype=bool)
         connect[:, -1] = 0  # don't draw the segment between each trace
         self.path = pg.arrayToQPath(x.flatten(), y.flatten(), connect.flatten())
-        pg.QtGui.QGraphicsPathItem.__init__(self, self.path)
+        QGraphicsPathItem.__init__(self, self.path)
         self.setPen(pg.mkPen("w"))
 
     def shape(self):  # override because QGraphicsPathItem.shape is too expensive.
-        return pg.QtGui.QGraphicsItem.shape(self)
+        return QGraphicsItem.shape(self)
 
     def boundingRect(self):
         return self.path.boundingRect()
@@ -226,7 +227,7 @@ class ImageDraw(pg.ImageItem):
     for controlling the levels and lookup table used to display the image.
     """
 
-    sigImageChanged = QtCore.Signal()
+    sigImageChanged = QtCore.pyqtSignal()
 
     def __init__(self, image=None, viewbox=None, parent=None, **kargs):
         super(ImageDraw, self).__init__()

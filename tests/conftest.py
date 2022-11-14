@@ -47,12 +47,16 @@ def expected_output_dir(data_dir):
     # Download expected output files
     # TODO: Update to single_video_proc and multi_video_proc files once they are available!
     download_url_to_file(
-        "https://www.facemappy.org/test_data/singlevideo_proc.npy",
-        expected_output_dir.joinpath("singlevideo_proc.npy"),
+        "https://www.facemappy.org/test_data/single_video_proc.npy",
+        expected_output_dir.joinpath("single_video_proc.npy"),
     )
     download_url_to_file(
-        "https://www.facemappy.org/test_data/multivideo_proc.npy",
-        expected_output_dir.joinpath("multivideo_proc.npy"),
+        "https://www.facemappy.org/test_data/multi_video_proc.npy",
+        expected_output_dir.joinpath("multi_video_proc.npy"),
+    )
+    download_url_to_file(
+        "https://www.facemappy.org/test_data/cam1_test_FacemapPose.h5",
+        expected_output_dir.joinpath("cam1_test_FacemapPose.h5"),
     )
     return expected_output_dir
 

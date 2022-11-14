@@ -3,16 +3,14 @@ import setuptools
 install_deps = [
     "numpy>=1.16",
     "scipy",
-    "matplotlib",
     "natsort",
     "tqdm",
     "numba>=0.43.1",
     "opencv-python-headless",
     "torch>=1.9",
-    "torchvision==0.12.0",
-    "umap-learn",
     "pandas",
-    "scikit-image",
+    "scikit-learn",
+    "tables==3.6.1"
 ]
 docs_deps = [
     "sphinx>=3.0",
@@ -20,9 +18,11 @@ docs_deps = [
     "sphinx_rtd_theme",
 ]
 gui_deps = [
-    "pyqtgraph==0.12.0",
+    "pyqtgraph>=0.12.0",
     "pyqt5",
     "pyqt5.sip",
+    "matplotlib",
+    "umap-learn",
 ]
 
 try:
@@ -47,7 +47,7 @@ setuptools.setup(
     description="Pose estimation and processing SVDs of videos",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    url="https://github.com/MouseLand/FaceMap",
+    url="https://github.com/mouseland/facemap",
     packages=setuptools.find_packages(),
     install_requires=install_deps,
     tests_require=["pytest", "tqdm"],

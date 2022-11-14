@@ -9,30 +9,71 @@
 
 # Facemap <img src="facemap/mouse.png" width="200" title="lilmouse" alt="lilmouse" align="right" vspace = "50">
 
-Facemap is a single framework for predicting neural activity from mouse orofacial movements. It includes a pose estimation model for tracking distinct keypoints on the mouse face and a neural network model for predicting neural activity using the pose estimates. Facemap also supports singular value decomposition (SVD) of behavioral videos. 
+Facemap is a framework for predicting neural activity from mouse orofacial movements. It includes a pose estimation model for tracking distinct keypoints on the mouse face, a neural network model for predicting neural activity using the pose estimates, and also can be used compute the singular value decomposition (SVD) of behavioral videos.
 
-## [Installation](https://github.com/MouseLand/facemap/blob/dev/docs/installation.md)
+To learn about Facemap, read the [paper](https://www.biorxiv.org/content/10.1101/2022.11.03.515121v1) or check out the tweet [thread](https://twitter.com/Atika_Ibrahim/status/1588885329951367168?s=20&t=AhE3vBTnCvW36QiTyhu0qQ). For support, please open an [issue](https://github.com/MouseLand/cellpose/issues).
 
-- For the latest released version (from PyPI):
-    - `pip install facemap`
+### CITATION
 
-- For the latest development version on github, follow the instructions below:
-    1. `git clone https://github.com/MouseLand/facemap.git`
-    2. Change directory to facemap folder containing the `environment.yml` file
-    3. `conda env create -f environment.yml`
-    4. `conda activate facemap`
-    5. `python -m facemap`
+**If you use Facemap, please cite the Facemap [paper](https://www.biorxiv.org/content/10.1101/2022.11.03.515121v1):**  
+Syeda, A., Zhong, L., Tung, R., Long, W., Pachitariu, M.\*, & Stringer, C.\* (2022). Facemap: a framework for modeling neural activity based on orofacial tracking. <em>bioRxiv</em>.
+[[bibtex](https://scholar.googleusercontent.com/scholar.bib?q=info:ckbIvC5D_FsJ:scholar.google.com/&output=citation&scisdr=CgXHFLYtEMb9qP1BWD0:AAGBfm0AAAAAY3JHQD2D6ewMN1lsoTB4rVT_uLVYr8DU&scisig=AAGBfm0AAAAAY3JHQOtGw17323ZXomLmlJoieZSXitl2&scisf=4&ct=citation&cd=-1&hl=en&scfhb=1)]
 
-- Recommended installation instructions using the environment.yml:
+**If you use the SVD computation or pupil tracking components, please also cite our previous [paper](https://www.nature.com/articles/s41592-022-01663-4):**  
+Stringer, C.\*, Pachitariu, M.\*, Steinmetz, N., Reddy, C. B., Carandini, M., & Harris, K. D. (2019). Spontaneous behaviors drive multidimensional, brainwide activity. <em>Science, 364</em>(6437), eaav7893.
+[[bibtex](https://scholar.googleusercontent.com/scholar.bib?q=info:DNVOkEas4K8J:scholar.google.com/&output=citation&scisdr=CgXHFLYtEMb9qP1Bt0Q:AAGBfm0AAAAAY3JHr0TJourtY6W2vbjy7opKXX2jOX9Z&scisig=AAGBfm0AAAAAY3JHryiZnvgWM1ySwd_xQ9brvQxH71UM&scisf=4&ct=citation&cd=-1&hl=en&scfhb=1)]
 
-    1. Download the `environment.yml` file from the repository
-    2. Open an anaconda prompt / command prompt with `conda` for **python 3** in the path
-    3. Run `conda env create -f environment.yml`
-    4. To activate facemap environment, run `conda activate facemap`
-    5. You should see `(facemap)` on the left side of the terminal line. Next, run `python -m facemap` to launch facemap.
+## Installation
 
-- To upgrade Facemap ([PyPI package](https://pypi.org/project/facemap/)), within the environment run:   
-    - `pip install facemap --upgrade`
+If you have an older `facemap` environment you can remove it with `conda env remove -n facemap` before creating a new one.
+
+If you are using a GPU, make sure its drivers and the cuda libraries are correctly installed.
+
+1. Install an [Anaconda](https://www.anaconda.com/products/distribution) distribution of Python. Note you might need to use an anaconda prompt if you did not add anaconda to the path.
+2. Open an anaconda prompt / command prompt which has `conda` for **python 3** in the path
+3. Create a new environment with `conda create --name facemap python=3.8`. We recommend python 3.8, but python 3.9 and 3.10 will likely work as well.
+4. To activate this new environment, run `conda activate facemap`
+5. To install the minimal version of facemap, run `python -m pip install facemap`.  
+6. To install facemap and the GUI, run `python -m pip install facemap[gui]`. If you're on a zsh server, you may need to use ' ' around the facemap[gui] call: `python -m pip install 'facemap[gui]'.
+
+To upgrade facemap (package [here](https://pypi.org/project/facemap/)), run the following in the environment:
+
+~~~sh
+python -m pip install facemap --upgrade
+~~~
+
+Note you will always have to run `conda activate facemap` before you run facemap. If you want to run jupyter notebooks in this environment, then also `pip install notebook` and `python -m pip install matplotlib`.
+
+You can also try to install facemap and the GUI dependencies from your base environment using the command
+
+~~~~sh
+python -m pip install facemap[gui]
+~~~~
+
+If you have **issues** with installation, see the [docs](https://github.com/MouseLand/facemap/blob/dev/docs/installation.md) for more details. You can also use the facemap environment file included in the repository and create a facemap environment with `conda env create -f environment.yml` which may solve certain dependency issues.
+
+If these suggestions fail, open an issue.
+
+### GPU version (CUDA) on Windows or Linux
+
+If you plan on running many images, you may want to install a GPU version of *torch* (if it isn't already installed).
+
+Before installing the GPU version, remove the CPU version:
+~~~
+pip uninstall torch
+~~~
+
+Follow the instructions [here](https://pytorch.org/get-started/locally/) to determine what version to install. The Anaconda install is strongly recommended, and then choose the CUDA version that is supported by your GPU (newer GPUs may need newer CUDA versions > 10.2). For instance this command will install the 11.3 version on Linux and Windows (note the `torchvision` and `torchaudio` commands are removed because cellpose doesn't require them):
+
+~~~
+conda install pytorch==1.12.1 cudatoolkit=11.3 -c pytorch
+~~~~
+
+and this will install the 11.7 toolkit
+
+~~~
+conda install pytorch pytorch-cuda=11.7 -c pytorch
+~~~
 
 ## Supported videos
 Facemap supports grayscale and RGB movies. The software can process multi-camera videos for pose tracking and SVD analysis. Please see [example movies](https://drive.google.com/open?id=1cRWCDl8jxWToz50dCX1Op-dHcAC-ttto) for testing the GUI. Movie file extensions supported include:

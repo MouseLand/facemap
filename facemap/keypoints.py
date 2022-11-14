@@ -14,7 +14,7 @@ def get_confidence_threshold(conf, baseline_window=200):
 
     """
     conf_baseline = conf - gaussian_filter1d(conf, baseline_window, axis=0)
-    threshold = -6 * conf_baseline.std(axis=0)
+    threshold = -8 * conf_baseline.std(axis=0)
     return conf_baseline, threshold
 
 
