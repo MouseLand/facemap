@@ -32,6 +32,9 @@ def test_pose_estimation_output(data_dir, video_names, expected_output_dir):
     pose_object.run_all(plot=False)
     # Get output
     test_h5_path = video_abs_path.split(video_extension)[0] + "_FacemapPose.h5"
+    test_pkl_path = (
+        video_abs_path.split(video_extension)[0] + "_FacemapPose_metadata.pkl"
+    )
     # Expected output path
     h5_filename = os.path.basename(test_h5_path)
     expected_h5_path = expected_output_dir.joinpath(h5_filename)

@@ -11,7 +11,6 @@ r_tol, a_tol = 1e-2, 1
 
 
 def test_output_single_video(data_dir, video_names, expected_output_dir):
-    clear_output(data_dir, video_names)
     v1, _ = video_names
     test_filenames = [[str(data_dir.joinpath("cam1").joinpath(v1))]]
     save_path = str(data_dir.joinpath("cam1"))
@@ -25,13 +24,11 @@ def test_output_single_video(data_dir, video_names, expected_output_dir):
     expected_output = np.load(expected_proc_filename, allow_pickle=True).item()
     print("test_proc_filename", test_proc_filename)
     print("expected_proc_filename", expected_proc_filename)
-    clear_output(data_dir, video_names)
 
     assert is_output_correct(output, expected_output)
 
 
 def test_output_multivideo(data_dir, video_names, expected_output_dir):
-    # clear_output(data_dir, video_names)
     v1, v2 = video_names
     test1 = str(data_dir.joinpath("cam1").joinpath(v1))
     test2 = str(data_dir.joinpath("cam2").joinpath(v2))
@@ -50,10 +47,8 @@ def test_output_multivideo(data_dir, video_names, expected_output_dir):
     expected_proc_filename = expected_output_dir.joinpath("multi_video_proc.npy")
     print("expected_proc_filename", expected_proc_filename)
     expected_output = np.load(expected_proc_filename, allow_pickle=True).item()
-    # clear_output(data_dir, video_names)
 
     assert is_output_correct(output, expected_output)
-    clear_expected_output(expected_output_dir)
 
 
 def is_output_correct(test_output, expected_output):
@@ -152,26 +147,3 @@ def check_V(test_output, expected_output):
 
 def check_motion(test_output, expected_output):
     return (test_output["motion"][0] == expected_output["motion"][0]).all()
-
-
-def clear_output(data_dir, video_names):
-    data_dir_cam1 = data_dir.joinpath("cam1")
-    data_dir_cam2 = data_dir.joinpath("cam2")
-    for video_name in video_names:
-        if "1" in video_name:
-            cached_file = str(data_dir_cam1.joinpath(video_name))
-            name, ext = os.path.splitext(cached_file)
-            output = name + "_proc.npy"
-        else:
-            cached_file = str(data_dir_cam2.joinpath(video_name))
-            name, ext = os.path.splitext(cached_file)
-            output = name + "_proc.npy"
-        if os.path.exists(output):
-            os.remove(output)
-
-
-def clear_expected_output(expected_output_dir):
-    files = ["singlevideo_proc.npy", "multivideo_proc.npy"]
-    for f in files:
-        if os.path.exists(expected_output_dir.joinpath(f)):
-            os.remove(expected_output_dir.joinpath(f))

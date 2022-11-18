@@ -16,6 +16,8 @@ Facemap dataset for training the Facemap model.
 A dataset object to load image and keypoints data
 """
 
+# TODO: Change whisker labels !!
+
 
 class FacemapDataset(torch.utils.data.Dataset):
     """

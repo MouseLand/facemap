@@ -122,7 +122,7 @@ class Pose:
             )
             print("Saved pose prediction outputs to:", savepath)
             # Save metadata to a pickle file
-            metadata_file = os.path.splitext(savepath)[0] + "_Facemap_metadata.pkl"
+            metadata_file = os.path.splitext(savepath)[0] + "_metadata.pkl"
             with open(metadata_file, "wb") as f:
                 pickle.dump(metadata, f, pickle.HIGHEST_PROTOCOL)
             if self.gui is not None:

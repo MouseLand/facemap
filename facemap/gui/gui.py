@@ -31,7 +31,7 @@ from PyQt5.QtWidgets import (
 from scipy.stats import skew, zscore
 
 from facemap import process, roi, utils
-from facemap.gui import guiparts, help_windows, io, menus, cluster
+from facemap.gui import cluster, guiparts, help_windows, io, menus
 from facemap.neural_prediction import neural_activity, prediction_utils
 from facemap.pose import model_loader, pose, pose_gui, refine_pose
 
