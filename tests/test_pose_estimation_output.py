@@ -9,12 +9,14 @@ from facemap.pose import pose
 
 r_tol = 5e-3
 
+
 def test_pose_model_initialization(video_names):
     video, _ = video_names
     pose_object = pose.Pose(filenames=[[video]], model_name="facemap_model_state")
     pose_object.load_model()
 
     assert pose_object is not None
+
 
 def test_pose_estimation_output(data_dir, video_names, expected_output_dir):
 

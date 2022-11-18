@@ -10,7 +10,7 @@ install_deps = [
     "torch>=1.9",
     "pandas",
     "scikit-learn",
-    "tables==3.6.1"
+    "tables==3.6.1",
 ]
 docs_deps = [
     "sphinx>=3.0",

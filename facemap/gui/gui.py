@@ -31,13 +31,11 @@ from PyQt5.QtWidgets import (
 from scipy.stats import skew, zscore
 
 from facemap import process, roi, utils
+from facemap.gui import guiparts, help_windows, io, menus, cluster
 from facemap.neural_prediction import neural_activity, prediction_utils
 from facemap.pose import model_loader, pose, pose_gui, refine_pose
-from facemap.gui import guiparts, help_windows, io, menus
 
 istr = ["pupil", "motSVD", "blink", "running", "movSVD"]
-
-# TODO: make the savepath editable. use lineedit instead
 
 
 class MainW(QtWidgets.QMainWindow):

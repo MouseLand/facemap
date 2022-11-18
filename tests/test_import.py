@@ -3,18 +3,11 @@
 
 def test_facemap_imports():
     import facemap
-    from facemap import (
-        keypoints,
-        process,
-        pupil,
-        roi,
-        running,
-        utils,
-    )
+    from facemap import keypoints, process, pupil, roi, running, utils
 
 
 def test_gui_imports():
-    from facemap.gui import gui, guiparts, help_windows, io, menus, cluster
+    from facemap.gui import cluster, gui, guiparts, help_windows, io, menus
 
 
 def test_neural_prediction_imports():

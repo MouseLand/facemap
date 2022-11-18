@@ -45,7 +45,7 @@ def preprocess_img(im, bbox, add_padding, resize, device=None):
     # Convert numpy array to tensor
     if device is not None:
         im = torch.from_numpy(im)
-        if device.type != 'cpu':
+        if device.type != "cpu":
             im = im.pin_memory()
         im = im.to(device, dtype=torch.float32)
 

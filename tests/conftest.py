@@ -45,7 +45,6 @@ def expected_output_dir(data_dir):
     expected_output_dir = data_dir.joinpath("expected_output")
     expected_output_dir.mkdir(exist_ok=True)
     # Download expected output files
-    # TODO: Update to single_video_proc and multi_video_proc files once they are available!
     download_url_to_file(
         "https://www.facemappy.org/test_data/single_video_proc.npy",
         expected_output_dir.joinpath("single_video_proc.npy"),

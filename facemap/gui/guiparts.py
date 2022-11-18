@@ -2,10 +2,10 @@ import numpy as np
 import pyqtgraph as pg
 from PyQt5 import QtCore, QtGui, QtWidgets
 from PyQt5.QtWidgets import (
-    QGraphicsPathItem,
     QAbstractItemView,
     QButtonGroup,
     QDialog,
+    QGraphicsPathItem,
     QGridLayout,
     QLabel,
     QLineEdit,
