@@ -231,7 +231,11 @@ class MainW(QtWidgets.QMainWindow):
         self.keypoints_subgroups = [
             ["eye(back)", "eye(bottom)", "eye(front)", "eye(top)"],
             ["nose(bottom)", "nose(r)", "nose(tip)", "nose(top)", "nosebridge"],
-            ["whisker(c1)", "whisker(d1)", "whisker(d2)"],
+            [
+                "whisker(I)",
+                "whisker(II)",
+                "whisker(III)",
+            ],  # ["whisker(c1)", "whisker(d1)", "whisker(d2)"],
             ["lowerlip", "mouth"],
             ["paw"],
         ]

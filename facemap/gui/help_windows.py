@@ -286,15 +286,15 @@ class RefinementHelpWindow(QDialog):
             </ul>
              <h3>Whiskers</h3>
             To label whiskers, find a set of 3 whiskers in the triangular configuration as shown above. The easiest way to do this is to identify most prominent whiskers that are easily identifiable across frames. Whiskers are labeled in clockwise order (C1->D1-C3) when viewed from the right side and in counterclockwise order (C1->D1-C3) when viewed from the top/left view.
-            <ul>
+            <ul> 
                 <li>
-                WHISKER(C1): First whisker in the third row from top.
+                WHISKER(I): First whisker in the third row from top.
                 </li>
                 <li>
-                WHISKER(D1): First whisker in the fourth row from top.
+                WHISKER(II): First whisker in the fourth row from top.
                 </li>
                 <li>
-                WHISKER(D2): Second whisker in the fourth row from top.
+                WHISKER(III): Second whisker in the fourth row from top.
                 </li>
             </ul>
             <h3>Paw</h3>
@@ -332,7 +332,7 @@ class RefinementHelpWindow(QDialog):
         self.show()
 
 
-# TODO: Update help button with correct rectification instructions
+# TODO: Update help button with correct instructions about keypoints labels (specially whiskers)
 
 
 class NeuralModelTrainingWindow(QDialog):

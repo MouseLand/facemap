@@ -116,7 +116,11 @@ def panel_benchmark_error(ax, data_path):
         ["eye(back)", "eye(bottom)", "eye(front)", "eye(top)"],
         ["lowerlip", "mouth"],
         ["nose(bottom)", "nose(r)", "nose(tip)", "nose(top)"],  # 'nosebridge'],
-        ["whisker(c1)", "whisker(c2)", "whisker(d1)"],
+        [
+            "whisker(I)",
+            "whisker(III)",
+            "whisker(II)",
+        ],  # ["whisker(c1)", "whisker(c2)", "whisker(d1)"],
         ["paw"],
     ]
     order = ["test", "human"]
@@ -405,7 +409,9 @@ def panel_ex_behaviors(grid0, data_path, db, il):
     twin = 200
     selected_keypoints = [
         ["eye(top)", "eye(back)", "eye(front)", "eye(bottom)"],
-        ["whisker(c1)", "whisker(d1)", "whisker(d2)"][::-1],
+        ["whisker(I)", "whisker(II)", "whisker(III)"][
+            ::-1
+        ],  # ["whisker(c1)", "whisker(d1)", "whisker(d2)"][::-1],
         ["nose(top)", "nose(tip)", "nose(bottom)"][::-1],
     ]
     dy = [30, 50, 40]

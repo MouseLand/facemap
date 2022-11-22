@@ -16,8 +16,6 @@ Facemap dataset for training the Facemap model.
 A dataset object to load image and keypoints data
 """
 
-# TODO: Change whisker labels !!
-
 
 class FacemapDataset(torch.utils.data.Dataset):
     """
@@ -52,9 +50,9 @@ class FacemapDataset(torch.utils.data.Dataset):
             "nose(top)",
             "nosebridge",
             "paw",
-            "whisker(c1)",
-            "whisker(c2)",  # "whisker(d2)",
-            "whisker(d1)",
+            "whisker(I)"  # "whisker(c1)",
+            "whisker(III)"  # "whisker(c2)",  # "whisker(d2)",
+            "whisker(II)",  # "whisker(d1)",
         ]
         # Set image and keypoints data
         if datadir is None:
@@ -318,11 +316,11 @@ class FacemapDataset(torch.utils.data.Dataset):
                         df = df.rename(columns={label: label_lower})
             elif "whisker" in label_lower:  # ~~~ Whisker points ~~~
                 if "c1" in label_lower or "u1" in label_lower:
-                    df = df.rename(columns={label: "whisker(c1)"})
+                    df = df.rename(columns={label: "whisker(I)"})  # "whisker(c1)"})
                 elif "c2" in label_lower or "u2" in label_lower:
-                    df = df.rename(columns={label: "whisker(c2)"})
+                    df = df.rename(columns={label: "whisker(III)"})  # "whisker(c2)"})
                 elif "d1" in label_lower:
-                    df = df.rename(columns={label: "whisker(d1)"})
+                    df = df.rename(columns={label: "whisker(II)"})  # "whisker(d1)"})
             elif "mouth" in label_lower:  # ~~~ Mouth points ~~~~
                 df = df.rename(columns={label: "mouth"})
             elif "lowerlip" in label_lower:

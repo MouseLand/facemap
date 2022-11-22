@@ -30,10 +30,10 @@ kp_labels = [
     "nose(top)",
     "nosebridge",
     "paw",
-    "whisker(c1)",
-    "whisker(c2)",
-    "whisker(d1)",
-    "whisker(d2)",
+    "whisker(I)",  # "whisker(c1)",
+    "whisker(III)",  # "whisker(c2)",
+    "whisker(II)",  # "whisker(d1)",
+    # "whisker(d2)",
 ]
 
 
