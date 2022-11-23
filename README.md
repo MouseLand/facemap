@@ -85,12 +85,12 @@ For more details, please refer to the [data acquisition page](docs/data_acquisit
 
 # I. Pose tracking
 
-<img src="figs/tracker.gif" width="100%" height="500" title="Tracker" alt="tracker" algin="middle" vspace = "10">
+<img src="figs/facemap.gif" width="100%" height="500" title="Tracker" alt="tracker" algin="middle" vspace = "10">
 
 Facemap provides a trained network for tracking distinct keypoints on the mouse face from different camera views (some examples shown below). The process for tracking keypoints is as follows:
  1. Load video. (Optional) Use the file menu to set output folder.
  2. Click `process` (Note: check `keypoints` for this step).
- 3. Select bounding box.
+ 3. Select bounding box to focus on the face as shown below.
  4. The processed keypoints `*.h5` file will be saved in the output folder along with the corresponding metadata file `*.pkl`.
 
 Keypoints will be predicted in the selected bounding box region so please ensure the bounding box focuses on the face. See example frames [here](figs/mouse_views.png). 

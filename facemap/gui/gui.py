@@ -37,6 +37,7 @@ from facemap.pose import model_loader, pose, pose_gui, refine_pose
 
 istr = ["pupil", "motSVD", "blink", "running", "movSVD"]
 
+# TODO: Add pose instructions for CLI commands
 
 class MainW(QtWidgets.QMainWindow):
     def __init__(
