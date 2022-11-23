@@ -82,6 +82,9 @@ Facemap supports grayscale and RGB movies. The software can process multi-camera
 
 For more details, please refer to the [data acquisition page](docs/data_acquisition.md).
 
+## Support
+
+For any issues or questions about Facemap, please [open an issue](https://github.com/MouseLand/facemap/issues).
 
 # I. Pose tracking
 
@@ -107,21 +110,17 @@ For more details on using the tracker, please refer to the [GUI Instructions](do
 ### :mega: User contributions :video_camera: :camera: 
 Facemap aims to provide a simple and easy-to-use tool for tracking mouse orofacial movements. The tracker's performance for new datasets could be further improved by expand our training set. You can contribute to the model by sharing videos/frames on the following email address(es): `asyeda1[at]jh.edu` or `stringerc[at]janelia.hhmi.org`.
 
-### Support
-
-For any issues or questions about Facemap, please [open an issue](https://github.com/MouseLand/facemap/issues).
-
 
 # II. Neural activity prediction
 
-Facemap includes a deep neural network encoder for predicting neural activity or principal components of neural activity from mouse orofacial pose estimates extracted using the tracker. The process for neural activity prediction is as follows:
- 1. Load video. (Optional) Use the file menu to set output folder.
- 2. Load or process keypoints for the video.
- 3. Load neural activity data (optional) and timestamps for behavioral and neural data.
- 4. Run neural activity prediction (Note: Use help section to set training parameters for the model).
- 5. The predicted neural activity `*.npy` file will be saved in the selected output folder.
+Facemap includes a deep neural network encoding model for predicting neural activity or principal components of neural activity from mouse orofacial pose estimates extracted using the tracker or SVDs. 
 
- Please see neural activity prediction [tutorial](docs/neural_activity_prediction_tutorial.md) for more details.
+The encoding model used for prediction is described as follows:
+<p float="middle">
+<img src="figs/encoding_model.png"  width="510" height="290" title="View 1" alt="view1" align="left" vspace = "10" hspace="30" style="border: 0.5px solid white"  />
+</p>
+
+Please see neural activity prediction [tutorial](docs/neural_activity_prediction_tutorial.md) for more details.
 
 
 # III. SVD processing

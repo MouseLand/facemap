@@ -16,6 +16,8 @@ To process neural activity prediction using pose estimates extracted using the t
 1. Load or process SVDs for the video. ([see SVD tutorial](docs/svd_tutorial.md)).
 2. Follow steps 2-5 above.
 
+Note: a linear model is used for prediction using SVDs.
+
 Predicted neural activity will be plotted in the bottom-right window of the GUI. You can highlight test data by selecting `Highlight test data` from the `Neural activity` file menu. Further information about neural prediction, including variance explained can be found in the saved neural prediction file.
 
 
