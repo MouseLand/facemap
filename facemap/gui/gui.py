@@ -39,6 +39,7 @@ istr = ["pupil", "motSVD", "blink", "running", "movSVD"]
 
 # TODO: Add pose instructions for CLI commands
 
+
 class MainW(QtWidgets.QMainWindow):
     def __init__(
         self,

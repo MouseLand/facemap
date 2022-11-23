@@ -111,6 +111,19 @@ Facemap aims to provide a simple and easy-to-use tool for tracking mouse orofaci
 
 For any issues or questions about Facemap, please [open an issue](https://github.com/MouseLand/facemap/issues).
 
+
+# III. Neural activity prediction
+
+Facemap includes a deep neural network encoder for predicting neural activity or principal components of neural activity from mouse orofacial pose estimates extracted using the tracker. The process for neural activity prediction is as follows:
+ 1. Load video. (Optional) Use the file menu to set output folder.
+ 2. Load or process keypoints for the video.
+ 3. Load neural activity data (optional) and timestamps for behavioral and neural data.
+ 4. Run neural activity prediction (Note: Use help section to set training parameters for the model).
+ 5. The predicted neural activity `*.npy` file will be saved in the selected output folder.
+
+ Please see neural activity prediction [tutorial](docs/neural_activity_prediction_tutorial.md) for more details.
+
+ 
 # II. SVD processing
 
 Facemap provides options for singular value decomposition (SVD) of single and multi-camera videos. SVD analysis can be performed across static frames called movie SVD (`movSVD`) to extract the spatial components or over the difference between consecutive frames called motion SVD (`motSVD`) to extract the temporal components of the video. The first 500 principal components from SVD analysis are saved as output along with other variables. For more details, see [python tutorial](docs/svd_python_tutorial.md). The process for SVD analysis is as follows:
@@ -139,13 +152,3 @@ To start the GUI, run the command `MovieGUI` in this folder. The following windo
 <img src="figs/GUIscreenshot.png" width="80%" alt="gui screenshot" >
 </div>
 
-# III. Neural activity prediction
-
-Facemap includes a deep neural network encoder for predicting neural activity or principal components of neural activity from mouse orofacial pose estimates extracted using the tracker. The process for neural activity prediction is as follows:
- 1. Load video. (Optional) Use the file menu to set output folder.
- 2. Load or process keypoints for the video.
- 3. Load neural activity data (optional) and timestamps for behavioral and neural data.
- 4. Run neural activity prediction (Note: Use help section to set training parameters for the model).
- 5. The predicted neural activity `*.npy` file will be saved in the selected output folder.
-
- Please see neural activity prediction [tutorial](docs/neural_activity_prediction_tutorial.md) for more details.
