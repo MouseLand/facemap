@@ -117,7 +117,7 @@ Facemap includes a deep neural network encoding model for predicting neural acti
 
 The encoding model used for prediction is described as follows:
 <p float="middle">
-<img src="figs/encoding_model.png"  width="510" height="290" title="View 1" alt="view1" align="left" vspace = "10" hspace="30" style="border: 0.5px solid white"  />
+<img src="figs/encoding_model.png"  width="100%" height="300" title="View 1" alt="view1" align="center" vspace = "10" hspace="30" style="border: 0.5px solid white"  />
 </p>
 
 Please see neural activity prediction [tutorial](docs/neural_activity_prediction_tutorial.md) for more details.
