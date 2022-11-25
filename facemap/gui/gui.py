@@ -66,7 +66,7 @@ class MainW(QtWidgets.QMainWindow):
         self.setWindowIcon(app_icon)
 
         pg.setConfigOptions(imageAxisOrder="row-major")
-        self.setGeometry(15, 15, 1470, 1000)
+        self.setGeometry(55, 5, 1470, 800)
         self.setWindowTitle("Facemap")
         self.setStyleSheet("QMainWindow {background: 'black';}")
         self.styleUnpressed = (
@@ -396,11 +396,7 @@ class MainW(QtWidgets.QMainWindow):
             self.load_neural_predictions_file(neural_predictions_file)
 
     def make_buttons(self):
-        facemap_label = QLabel("Facemap")
-        facemap_label.setStyleSheet("color: white;")
-        facemap_label.setAlignment(QtCore.Qt.AlignCenter)
-        facemap_label.setFont(QFont("Arial", 16, QFont.Bold))
-
+        
         # ~~~~~~~~~~~~~~~~~~~~~~~~ SVD variables ~~~~~~~~~~~~~~~~~~~~~~~~
         self.svd_groupbox = QGroupBox("ROI settings:")
         self.svd_groupbox.setStyleSheet(
@@ -702,25 +698,24 @@ class MainW(QtWidgets.QMainWindow):
 
         # Add features to window
         # ~~~~~~~~~~ motsvd/movsvd options ~~~~~~~~~~
-        self.scene_grid_layout.addWidget(facemap_label, 0, 0, 1, 2)
-        self.scene_grid_layout.addWidget(self.svd_groupbox, 1, 0, 1, 2)
+        self.scene_grid_layout.addWidget(self.svd_groupbox, 1-1, 0, 1, 2)
         # ~~~~~~~~~~ Pose features ~~~~~~~~~~
-        self.scene_grid_layout.addWidget(self.pose_groupbox, 2, 0, 3, 2)
+        self.scene_grid_layout.addWidget(self.pose_groupbox, 2-1, 0, 3, 2)
         # ~~~~~~~~~~ Process features ~~~~~~~~~~
-        self.scene_grid_layout.addWidget(self.process_groupbox, 6, 0, 1, 2)
+        self.scene_grid_layout.addWidget(self.process_groupbox, 6-1, 0, 1, 2)
         # ~~~~~~~~~~ Process buttons features ~~~~~~~~~~
-        self.scene_grid_layout.addWidget(self.process_buttons_groupbox, 7, 0, 1, 2)
+        self.scene_grid_layout.addWidget(self.process_buttons_groupbox, 7-1, 0, 1, 2)
         # ~~~~~~~~~~ Save/file IO ~~~~~~~~~~
-        self.scene_grid_layout.addWidget(self.labels_groupbox, 8, 0, 1, 2)
+        self.scene_grid_layout.addWidget(self.labels_groupbox, 8-1, 0, 1, 2)
         # ~~~~~~~~~~ Saturation ~~~~~~~~~~
         self.scene_grid_layout.addWidget(self.saturation_groupbox, 0, 3, 1, 2)
         # ~~~~~~~~~~ embedding & ROI visualization window features
-        self.scene_grid_layout.addWidget(self.roi_saturation_groupbox, 8, 3, 1, 2)
-        self.scene_grid_layout.addWidget(self.roi_embed_combobox, 8, 5, 1, 1)
-        self.scene_grid_layout.addWidget(self.zoom_in_button, 8, 6, 1, 1)
-        self.scene_grid_layout.addWidget(self.zoom_out_button, 8, 7, 1, 1)
-        self.scene_grid_layout.addWidget(self.roi_display_combobox, 8, 6, 1, 1)
-        self.scene_grid_layout.addWidget(self.save_clustering_button, 9, 6, 1, 1)
+        self.scene_grid_layout.addWidget(self.roi_saturation_groupbox, 8-1, 3, 1, 2)
+        self.scene_grid_layout.addWidget(self.roi_embed_combobox, 8-1, 5, 1, 1)
+        self.scene_grid_layout.addWidget(self.zoom_in_button, 8-1, 6, 1, 1)
+        self.scene_grid_layout.addWidget(self.zoom_out_button, 8-1, 7, 1, 1)
+        self.scene_grid_layout.addWidget(self.roi_display_combobox, 8-1, 6, 1, 1)
+        self.scene_grid_layout.addWidget(self.save_clustering_button, 9-1, 6, 1, 1)
         #   ~~~~~~~~~~ Video playback ~~~~~~~~~~
         self.scene_grid_layout.addWidget(self.video_playback_groupbox, iplay, 0, 1, 1)
         self.playButton.setEnabled(False)
