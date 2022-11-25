@@ -9,78 +9,130 @@
 
 # Facemap <img src="facemap/mouse.png" width="200" title="lilmouse" alt="lilmouse" align="right" vspace = "50">
 
-Pose tracking of mouse face from different camera views (python only) and svd processing of videos (python and MATLAB). Includes GUI and CLI for easy use.
+Facemap is a framework for predicting neural activity from mouse orofacial movements. It includes a pose estimation model for tracking distinct keypoints on the mouse face, a neural network model for predicting neural activity using the pose estimates, and also can be used compute the singular value decomposition (SVD) of behavioral videos.
 
-## [Installation](https://github.com/MouseLand/facemap/blob/dev/docs/installation.md)
+To learn about Facemap, read the [paper](https://www.biorxiv.org/content/10.1101/2022.11.03.515121v1) or check out the tweet [thread](https://twitter.com/Atika_Ibrahim/status/1588885329951367168?s=20&t=AhE3vBTnCvW36QiTyhu0qQ). For support, please open an [issue](https://github.com/MouseLand/facemap/issues).
 
-- For latest released version (from PyPI) including svd processing only, run `pip install facemap` for headless version or `pip install facemap[gui]` for using GUI. Note: `pip install facemap` not yet available for latest tracker and neural model, stay tuned.
+- For latest released version (from PyPI) including svd processing only, run `pip install facemap` for headless version or `pip install facemap[gui]` for using GUI. Note: `pip install facemap` not yet available for latest tracker and neural model, instead install with `pip install git+https://github.com/mouseland/facemap.git`
 
-- For using tracker and svd processing, follow the instructions below:
-1. `git clone https://github.com/MouseLand/facemap.git`
-2. Change directory to facemap folder containing environment.yml file
-3. `conda env create -f environment.yml`
-4. `conda activate facemap`
-5. `python -m facemap`
-This will install the latest development version on github.
+### CITATION
 
-To upgrade Facemap ([PyPI package](https://pypi.org/project/facemap/)), within the environment run: `pip install facemap --upgrade`
+**If you use Facemap, please cite the Facemap [paper](https://www.biorxiv.org/content/10.1101/2022.11.03.515121v1):**  
+Syeda, A., Zhong, L., Tung, R., Long, W., Pachitariu, M.\*, & Stringer, C.\* (2022). Facemap: a framework for modeling neural activity based on orofacial tracking. <em>bioRxiv</em>.
+[[bibtex](https://scholar.googleusercontent.com/scholar.bib?q=info:ckbIvC5D_FsJ:scholar.google.com/&output=citation&scisdr=CgXHFLYtEMb9qP1BWD0:AAGBfm0AAAAAY3JHQD2D6ewMN1lsoTB4rVT_uLVYr8DU&scisig=AAGBfm0AAAAAY3JHQOtGw17323ZXomLmlJoieZSXitl2&scisf=4&ct=citation&cd=-1&hl=en&scfhb=1)]
 
-Facemap installation is recommended using the environment.yml:
+**If you use the SVD computation or pupil tracking components, please also cite our previous [paper](https://www.nature.com/articles/s41592-022-01663-4):**  
+Stringer, C.\*, Pachitariu, M.\*, Steinmetz, N., Reddy, C. B., Carandini, M., & Harris, K. D. (2019). Spontaneous behaviors drive multidimensional, brainwide activity. <em>Science, 364</em>(6437), eaav7893.
+[[bibtex](https://scholar.googleusercontent.com/scholar.bib?q=info:DNVOkEas4K8J:scholar.google.com/&output=citation&scisdr=CgXHFLYtEMb9qP1Bt0Q:AAGBfm0AAAAAY3JHr0TJourtY6W2vbjy7opKXX2jOX9Z&scisig=AAGBfm0AAAAAY3JHryiZnvgWM1ySwd_xQ9brvQxH71UM&scisf=4&ct=citation&cd=-1&hl=en&scfhb=1)]
 
-1. Download the `environment.yml` file from the repository
-2. Open an anaconda prompt / command prompt with `conda` for **python 3** in the path
-3. Run `conda env create -f environment.yml`
+## Installation
+
+If you have an older `facemap` environment you can remove it with `conda env remove -n facemap` before creating a new one.
+
+If you are using a GPU, make sure its drivers and the cuda libraries are correctly installed.
+
+1. Install an [Anaconda](https://www.anaconda.com/products/distribution) distribution of Python. Note you might need to use an anaconda prompt if you did not add anaconda to the path.
+2. Open an anaconda prompt / command prompt which has `conda` for **python 3** in the path
+3. Create a new environment with `conda create --name facemap python=3.8`. We recommend python 3.8, but python 3.9 and 3.10 will likely work as well.
 4. To activate this new environment, run `conda activate facemap`
-5. You should see `(facemap)` on the left side of the terminal line. Now run `python -m facemap` and you're all set.
+5. To install the minimal version of facemap, run `python -m pip install facemap`.  
+6. To install facemap and the GUI, run `python -m pip install facemap[gui]`. If you're on a zsh server, you may need to use ' ' around the facemap[gui] call: `python -m pip install 'facemap[gui]'.
 
-# Pose tracking
+To upgrade facemap (package [here](https://pypi.org/project/facemap/)), run the following in the environment:
 
-<img src="figs/tracker.gif" width="100%" height="500" title="Tracker" alt="tracker" algin="middle" vspace = "10">
+~~~sh
+python -m pip install facemap --upgrade
+~~~
 
-The latest python version is integrated with Facemap network for tracking 14 distinct keypoints on mouse face and an additional point for tracking paw. The keypoints can be tracked from different camera views (some examples shown below). 
+Note you will always have to run `conda activate facemap` before you run facemap. If you want to run jupyter notebooks in this environment, then also `pip install notebook` and `python -m pip install matplotlib`.
+
+You can also try to install facemap and the GUI dependencies from your base environment using the command
+
+~~~~sh
+python -m pip install facemap[gui]
+~~~~
+
+If you have **issues** with installation, see the [docs](https://github.com/MouseLand/facemap/blob/dev/docs/installation.md) for more details. You can also use the facemap environment file included in the repository and create a facemap environment with `conda env create -f environment.yml` which may solve certain dependency issues.
+
+If these suggestions fail, open an issue.
+
+### GPU version (CUDA) on Windows or Linux
+
+If you plan on running many images, you may want to install a GPU version of *torch* (if it isn't already installed).
+
+Before installing the GPU version, remove the CPU version:
+~~~
+pip uninstall torch
+~~~
+
+Follow the instructions [here](https://pytorch.org/get-started/locally/) to determine what version to install. The Anaconda install is strongly recommended, and then choose the CUDA version that is supported by your GPU (newer GPUs may need newer CUDA versions > 10.2). For instance this command will install the 11.3 version on Linux and Windows (note the `torchvision` and `torchaudio` commands are removed because facemap doesn't require them):
+
+~~~
+conda install pytorch==1.12.1 cudatoolkit=11.3 -c pytorch
+~~~~
+
+and this will install the 11.7 toolkit
+
+~~~
+conda install pytorch pytorch-cuda=11.7 -c pytorch
+~~~
+
+## Supported videos
+Facemap supports grayscale and RGB movies. The software can process multi-camera videos for pose tracking and SVD analysis. Please see [example movies](https://drive.google.com/open?id=1cRWCDl8jxWToz50dCX1Op-dHcAC-ttto) for testing the GUI. Movie file extensions supported include:
+
+'.mj2','.mp4','.mkv','.avi','.mpeg','.mpg','.asf'
+
+For more details, please refer to the [data acquisition page](docs/data_acquisition.md).
+
+## Support
+
+For any issues or questions about Facemap, please [open an issue](https://github.com/MouseLand/facemap/issues).
+
+# I. Pose tracking
+
+<img src="figs/facemap.gif" width="100%" height="500" title="Tracker" alt="tracker" algin="middle" vspace = "10">
+
+Facemap provides a trained network for tracking distinct keypoints on the mouse face from different camera views (some examples shown below). The process for tracking keypoints is as follows:
+ 1. Load video. (Optional) Use the file menu to set output folder.
+ 2. Click `process` (Note: check `keypoints` for this step).
+ 3. Select bounding box to focus on the face as shown below.
+ 4. The processed keypoints `*.h5` file will be saved in the output folder along with the corresponding metadata file `*.pkl`.
+
+Keypoints will be predicted in the selected bounding box region so please ensure the bounding box focuses on the face. See example frames [here](figs/mouse_views.png). 
+
+
+For more details on using the tracker, please refer to the [GUI Instructions](docs/pose_tracking_gui_tutorial.md). See  [command line interface (CLI) instructions](docs/pose_tracking_cli_tutorial.md) and for more examples, please see [tutorial notebooks](https://github.com/MouseLand/facemap/tree/dev/notebooks).
 
 <p float="middle">
 <img src="figs/mouse_face1_keypoints.png"  width="310" height="290" title="View 1" alt="view1" align="left" vspace = "10" hspace="30" style="border: 0.5px solid white"  />
 <img src="figs/mouse_face0_keypoints.png" width="310" height="290" title="View 2" alt="view2" algin="right" vspace = "10" style="border: 0.5px solid white">
 </p>
-  
-## [GUI Instructions](docs/pose_tracking_gui_tutorial.md)
-For pose tracking, load video and check `keypoints` then click `process` button. A dialog box will appear for selecting a bounding box for the face. The keypoints will be tracked in the selected bounding box. Please ensure that the bouding box is focused on the face where all the keypoints shown above will be visible. See example frames [here](figs/mouse_views.png). 
-
-Use the file menu to set path of output folder. The processed keypoints file will be saved in the output folder with an extension of `.h5` and corresponding metadata file with extension `.pkl`.
-
-## [CLI Instructions](docs/pose_tracking_cli_tutorial.md)
-
-For more examples, please see [tutorial notebooks](https://github.com/MouseLand/facemap/tree/dev/notebooks).
-
-## :mega: User contributions :video_camera: :camera: 
-Facemap's goal is to provide a simple way to generate keypoints for rodent face tracking. However, we need a large dataset of images from different camera views to reduce any errors on new mice videos. Hence, we would like to get your help to further expand our dataset. You can contribute by sending us a video or few frames of your mouse on following email address(es): `syedaa[at]janelia.hhmi.org` or `stringerc[at]janelia.hhmi.org`. Please let us know of any issues using the software by sending us an email or [opening an issue on GitHub](https://github.com/MouseLand/facemap/issues).
 
 
-# SVD processing
-
-Works for grayscale and RGB movies. Can process multi-camera videos. Some example movies to test the GUI on are located [here](https://drive.google.com/open?id=1cRWCDl8jxWToz50dCX1Op-dHcAC-ttto). You can save the output from both the python and matlab versions as a matlab file with a checkbox in the GUI (if you'd like to use the python version - it has a better GUI).
-
-Supported movie files:
-
-'.mj2','.mp4','.mkv','.avi','.mpeg','.mpg','.asf'
-
-### Data acquisition info
-
-IR ILLUMINATION:
-
-For recording in darkness we use [IR illumination](https://www.amazon.com/Logisaf-Invisible-Infrared-Security-Cameras/dp/B01MQW8K7Z/ref=sr_1_12?s=security-surveillance&ie=UTF8&qid=1505507302&sr=1-12&keywords=ir+light) at 850nm, which works well with 2p imaging at 970nm and even 920nm. Depending on your needs, you might want to choose a different wavelength, which changes all the filters below as well. 950nm works just as well, and probably so does 750nm, which still outside of the visible range for rodents.  
-
-If you want to focus the illumination on the mouse eye or face, you will need a different, more expensive system. Here is an example, courtesy of Michael Krumin from the Carandini lab: [driver](https://www.thorlabs.com/thorproduct.cfm?partnumber=LEDD1B), [power supply](https://www.thorlabs.com/newgrouppage9.cfm?objectgroup_id=1710&pn=KPS101#8865), [LED](https://www.thorlabs.com/newgrouppage9.cfm?objectgroup_id=2692&pn=M850L3#4426), [lens](https://www.thorlabs.com/newgrouppage9.cfm?objectgroup_id=259&pn=AC254-030-B#2231), and [lens tube](https://www.thorlabs.com/newgrouppage9.cfm?objectgroup_id=4109&pn=SM1V10#3389), and another [lens tube](https://www.thorlabs.com/thorproduct.cfm?partnumber=SM1L10).
-
-CAMERAS:
-
-We use [ptgrey cameras](https://www.ptgrey.com/flea3-13-mp-mono-usb3-vision-vita-1300-camera). The software we use for simultaneous acquisition from multiple cameras is [BIAS](http://public.iorodeo.com/notes/bias/) software. A basic lens that works for zoomed out views [here](https://www.bhphotovideo.com/c/product/414195-REG/Tamron_12VM412ASIR_12VM412ASIR_1_2_4_12_F_1_2.html). To see the pupil well you might need a better zoom lens [10x here](https://www.edmundoptics.com/imaging-lenses/zoom-lenses/10x-13-130mm-fl-c-mount-close-focus-zoom-lens/#specs).
-
-For 2p imaging, you'll need a tighter filter around 850nm so you don't see the laser shining through the mouse's eye/head, for example [this](https://www.thorlabs.de/thorproduct.cfm?partnumber=FB850-40). Depending on your lenses you'll need to figure out the right adapter(s) for such a filter. For our 10x lens above, you might need all of these:  [adapter1](https://www.edmundoptics.com/optics/optical-filters/optical-filter-accessories/M52-to-M46-Filter-Thread-Adapter/), [adapter2](https://www.thorlabs.de/thorproduct.cfm?partnumber=SM2A53), [adapter3](https://www.thorlabs.de/thorproduct.cfm?partnumber=SM2A6), [adapter4](https://www.thorlabs.de/thorproduct.cfm?partnumber=SM1L03).
+### :mega: User contributions :video_camera: :camera: 
+Facemap aims to provide a simple and easy-to-use tool for tracking mouse orofacial movements. The tracker's performance for new datasets could be further improved by expand our training set. You can contribute to the model by sharing videos/frames on the following email address(es): `asyeda1[at]jh.edu` or `stringerc[at]janelia.hhmi.org`.
 
 
-## [*HOW TO GUI* (Python)](docs/svd_python_tutorial.md)
+# II. Neural activity prediction
+
+Facemap includes a deep neural network encoding model for predicting neural activity or principal components of neural activity from mouse orofacial pose estimates extracted using the tracker or SVDs. 
+
+The encoding model used for prediction is described as follows:
+<p float="middle">
+<img src="figs/encoding_model.png"  width="70%" height="300" title="View 1" alt="view1" align="center" vspace = "10" hspace="30" style="border: 0.5px solid white"  />
+</p>
+
+Please see neural activity prediction [tutorial](docs/neural_activity_prediction_tutorial.md) for more details.
+
+
+# III. SVD processing
+
+Facemap provides options for singular value decomposition (SVD) of single and multi-camera videos. SVD analysis can be performed across static frames called movie SVD (`movSVD`) to extract the spatial components or over the difference between consecutive frames called motion SVD (`motSVD`) to extract the temporal components of the video. The first 500 principal components from SVD analysis are saved as output along with other variables. For more details, see [python tutorial](docs/svd_python_tutorial.md). The process for SVD analysis is as follows:
+ 1. Load video. (Optional) Use the file menu to set output folder.
+ 2. Click `process` (Note: check `motSVD`  or `movSVD` for this step).
+ 3. The processed SVD `*_proc.npy` (and `*_proc.mat`) file will be saved in the output folder selected.
+
+### [*HOW TO GUI* (Python)](docs/svd_python_tutorial.md)
 
 ([video](https://www.youtube.com/watch?v=Rq8fEQ-DOm4) with old install instructions)
 
@@ -93,12 +145,11 @@ python -m facemap
 Default starting folder is set to wherever you run `python -m FaceMap`
 
 
-## [*HOW TO GUI* (MATLAB)](docs/svd_matlab_tutorial.md)
+### [*HOW TO GUI* (MATLAB)](docs/svd_matlab_tutorial.md)
 
 To start the GUI, run the command `MovieGUI` in this folder. The following window should appear. After you click an ROI button and draw an area, you have to **double-click** inside the drawn box to confirm it. To compute the SVD across multiple simultaneously acquired videos you need to use the "multivideo SVD" options to draw ROI's on each video one at a time.
 
 <div align="center">
 <img src="figs/GUIscreenshot.png" width="80%" alt="gui screenshot" >
 </div>
-
 

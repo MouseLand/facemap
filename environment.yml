@@ -1,24 +1,23 @@
-name: facemap
+name: facemap2
 channels:
   - conda-forge
 dependencies:
-  - python>=3.6
+  - python=3.8.13
   - pip
-  - numpy>=1.16
-  - numba>=0.43.1
-  - scipy
-  - pyqt
-  - hdbscan
-  - pytables
   - pip:
-    - pyqtgraph==0.12.0
-    - pyqt5
-    - torch>=1.9
-    - torchvision==0.12.0
+    - numpy>=1.16
+    - scipy
+    - scikit-learn
+    - tables==3.6.1
     - matplotlib
     - natsort
-    - opencv_python_headless
     - tqdm
-    - umap-learn
+    - numba>=0.43.1
+    - opencv-python-headless
+    - torch>=1.9
     - pandas
+    - pyqtgraph>=0.12.0
+    - pyqt5
+    - pyqt5.sip
+    - umap-learn
 

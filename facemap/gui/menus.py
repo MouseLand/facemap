@@ -1,97 +1,106 @@
-from PyQt5 import QtGui, QtCore, QtWidgets
-import pyqtgraph as pg
-import os
-from . import guiparts, io
-from PyQt5.QtGui import QPixmap, QFont, QPainterPath, QPainter, QBrush
-from PyQt5.QtWidgets import QAction, QLabel
+from PyQt5.QtWidgets import QAction, QDesktopWidget
 
-def mainmenu(parent):    
+from . import help_windows, io
+
+
+def mainmenu(parent):
     # --------------- MENU BAR --------------------------
     # run suite2p from scratch
-    openFile = QAction("&Load single movie file", parent)
-    openFile.setShortcut("Ctrl+L")
-    openFile.triggered.connect(lambda: io.open_file(parent))
-    parent.addAction(openFile)
+    open_file = QAction("Load video", parent)
+    open_file.setShortcut("Ctrl+L")
+    open_file.triggered.connect(lambda: io.open_file(parent))
+    parent.addAction(open_file)
 
-    openFolder = QAction("Open &Folder of movies", parent)
-    openFolder.setShortcut("Ctrl+F")
-    openFolder.triggered.connect(lambda: io.open_folder(parent))
-    parent.addAction(openFolder)
+    open_folder = QAction("Load multiple videos", parent)
+    open_folder.triggered.connect(lambda: io.open_folder(parent))
+    parent.addAction(open_folder)
 
     # load processed data
-    loadProc = QAction("Load &Processed data", parent)
-    loadProc.setShortcut("Ctrl+P")
-    loadProc.triggered.connect(lambda: io.open_proc(parent))
-    parent.addAction(loadProc)
+    load_proc = QAction("Load SVD data", parent)
+    load_proc.triggered.connect(lambda: io.open_proc(parent))
+    parent.addAction(load_proc)
 
     # Set output folder
-    setOutputFolder = QAction("Set &output folder", parent)
-    setOutputFolder.setShortcut("Ctrl+O")
-    setOutputFolder.triggered.connect(lambda: io.save_folder(parent))
-    parent.addAction(setOutputFolder)
+    set_output_folder = QAction("Set output folder", parent)
+    set_output_folder.setShortcut("Ctrl+S")
+    set_output_folder.triggered.connect(lambda: io.save_folder(parent))
+    parent.addAction(set_output_folder)
 
-    loadPose = QAction("Load &pose data", parent)
-    loadPose.triggered.connect(lambda: io.get_pose_file(parent))
-    parent.addAction(loadPose)
+    load_pose = QAction("Load keypoints", parent)
+    load_pose.setShortcut("Ctrl+K")
+    load_pose.triggered.connect(lambda: io.get_pose_file(parent))
+    parent.addAction(load_pose)
 
-    # Help menu actions
-    helpContent = QAction("Help Content", parent)
-    helpContent.setShortcut("Ctrl+H")
-    helpContent.triggered.connect(lambda: launch_user_manual(parent))
-    parent.addAction(helpContent)
+    train_model = QAction("Finetune model", parent)
+    train_model.setShortcut("Ctrl+F")
+    train_model.triggered.connect(lambda: parent.show_model_training_popup())
+    parent.addAction(train_model)
+
+    # Load neural data
+    load_neural = QAction("Load neural data", parent)
+    load_neural.triggered.connect(lambda: parent.load_neural_data())
+    parent.addAction(load_neural)
+
+    # Load neural predictions
+    load_neural_predictions = QAction("Load neural predictions", parent)
+    load_neural_predictions.triggered.connect(
+        lambda: parent.load_neural_predictions_file()
+    )
+    parent.addAction(load_neural_predictions)
+
+    # Run neural predictions
+    run_neural_prediction = QAction("Run neural predictions", parent)
+    run_neural_prediction.triggered.connect(
+        lambda: parent.show_run_neural_predictions_dialog()
+    )
+    parent.addAction(run_neural_prediction)
+
+    # Add a checkable action to toggle the visibility of test data in the predictions plot
+    toggle_test_data = QAction("Highlight test data", parent)
+    toggle_test_data.setCheckable(True)
+    toggle_test_data.setChecked(True)
+    toggle_test_data.triggered.connect(
+        lambda: parent.toggle_testdata_display(toggle_test_data)
+    )
+    parent.addAction(toggle_test_data)
+
+    user_manual = QAction("User manual", parent)
+    user_manual.setShortcut("Ctrl+H")
+    user_manual.triggered.connect(lambda: launch_user_manual(parent))
+    parent.addAction(user_manual)
+
+    about_option = QAction("About", parent)
+    about_option.triggered.connect(lambda: show_about(parent))
+    parent.addAction(about_option)
 
     # make mainmenu!
     main_menu = parent.menuBar()
+
     file_menu = main_menu.addMenu("&File")
-    file_menu.addAction(openFile)
-    file_menu.addAction(openFolder)
-    file_menu.addAction(loadProc)
-    file_menu.addAction(loadPose)
-    file_menu.addAction(setOutputFolder)
+    file_menu.grabShortcut("Ctrl+F")
+    file_menu.addAction(open_file)
+    file_menu.addAction(open_folder)
+    file_menu.addAction(load_proc)
+    file_menu.addAction(set_output_folder)
+
+    pose_menu = main_menu.addMenu("Pose")
+    pose_menu.addAction(load_pose)
+    pose_menu.addAction(train_model)
+
+    neural_activity_menu = main_menu.addMenu("Neural activity")
+    neural_activity_menu.addAction(load_neural)
+    neural_activity_menu.addAction(load_neural_predictions)
+    neural_activity_menu.addAction(run_neural_prediction)
+    neural_activity_menu.addAction(toggle_test_data)
+
     help_menu = main_menu.addMenu("&Help")
-    help_menu.addAction(helpContent)
+    help_menu.addAction(user_manual)
+    help_menu.addAction(about_option)
+
 
 def launch_user_manual(parent):
-    w = Dialog(parent)
-    w.resize(640, 480)
-    w.show()
-
-class DrawWidget(QtWidgets.QWidget):
-    def __init__(self, *args, **kwargs):
-        super(DrawWidget, self).__init__(*args, **kwargs)
-        self.setFixedSize(630, 470)
-        icon_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "mouse.png")
-        self.logo = QPixmap(icon_path).scaled(120, 90, QtCore.Qt.KeepAspectRatio, QtCore.Qt.SmoothTransformation)
-        self.logoLabel = QLabel(self) 
-        self.logoLabel.setPixmap(self.logo) 
-        self.logoLabel.setScaledContents(True)
-        self.logoLabel.move(240,10)
-        self.logoLabel.setAlignment(QtCore.Qt.AlignCenter)
-        self.helpText = QtWidgets.QPlainTextEdit(self)
-        self.helpText.move(10,160)
-        self.helpText.insertPlainText("The motion SVDs (small ROIs / multivideo) are computed on the movie downsampled in space by the spatial downsampling input box in the GUI (default 4 pixels). Note the saturation set in this window is NOT used for any processing.")
-        self.helpText.appendPlainText("\nThe motion M is defined as the abs(current_frame - previous_frame), and the average motion energy across frames is computed using a subset of frames (avgmot) (at least 1000 frames - set at line 45 in subsampledMean.m or line 183 in process.py). Then the singular vectors of the motion energy are computed on chunks of data, also from a subset of frames (15 chunks of 1000 frames each). Let F be the chunk of frames [pixels x time]. Then")
-        self.helpText.appendPlainText("\nuMot = []; \nfor j = 1:nchunks \n  M = abs(diff(F,1,2)); \n   [u,~,~] = svd(M - avgmot);\n  uMot = cat(2, uMot, u);\nend\nuMot,~,~] = svd(uMot);\nuMotMask = normc(uMot(:, 1:500)); % keep 500 components")
-        self.helpText.resize(580,400)
-        self.helpText.setReadOnly(True)
-
-    def paintEvent(self, event):
-        painter = QPainter(self)
-        painter.setRenderHint(QPainter.Antialiasing)
-        painter.setBrush(QBrush(QtCore.Qt.black))
-        painter.setPen(QtCore.Qt.NoPen)
-        path = QPainterPath()
-        path.addText(QtCore.QPoint(235, 130), QFont("Times", 30, QFont.Bold), "Facemap")
-        help_text = "Help content"
-        path.addText(QtCore.QPoint(10, 150), QFont("Times", 20), help_text)
-        painter.drawPath(path)
+    help_windows.MainWindowHelp(parent, QDesktopWidget().screenGeometry(-1))
 
 
-class Dialog(QtWidgets.QDialog):
-    def __init__(self, parent):
-        super(Dialog, self).__init__(parent)
-        scroll_area = QtWidgets.QScrollArea(widgetResizable=True)
-        draw_widget = DrawWidget()
-        scroll_area.setWidget(draw_widget)
-        lay = QtWidgets.QVBoxLayout(self)
-        lay.addWidget(scroll_area)
+def show_about(parent):
+    help_windows.AboutWindow(parent, QDesktopWidget().screenGeometry(-1))

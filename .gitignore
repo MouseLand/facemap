@@ -13,6 +13,9 @@ $RECYCLE.BIN/
 *.mexw64
 *.asv
 
+# Sphinx documentation
+docs/_build/
+
 # Windows shortcuts
 *.lnk
 
@@ -28,10 +31,11 @@ dist/
 suite2p.egg-info/
 build/
 FaceMap/ops_user.npy
-*.ipynb
 *.pth
 *.pt
-*.gif
+*.sh
+*.pkl
+*.h5
 
 #
 # =========================

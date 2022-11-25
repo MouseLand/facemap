@@ -1,30 +1,35 @@
-from genericpath import exists
-import pytest
-import os, sys, tempfile, shutil
-from tqdm import tqdm
+import os
+import shutil
+import sys
+import tempfile
 from pathlib import Path
 from urllib.request import urlopen
 
-@pytest.fixture()
+import pytest
+from tqdm import tqdm
+
+
+@pytest.fixture(scope="session")
 def video_names():
-    video1_name = 'cam1_test.avi'
-    video2_name = 'cam2_test.avi'
+    video1_name = "cam1_test.avi"
+    video2_name = "cam2_test.avi"
     return video1_name, video2_name
 
-@pytest.fixture()
+
+@pytest.fixture(scope="session")
 def data_dir(video_names):
-    fm_dir = Path.home().joinpath('.facemap')
+    fm_dir = Path.home().joinpath(".facemap")
     fm_dir.mkdir(exist_ok=True)
-    data_dir = fm_dir.joinpath('data')
+    data_dir = fm_dir.joinpath("data")
     data_dir.mkdir(exist_ok=True)
-    data_dir_cam1 = data_dir.joinpath('cam1')
+    data_dir_cam1 = data_dir.joinpath("cam1")
     data_dir_cam1.mkdir(exist_ok=True)
-    data_dir_cam2 = data_dir.joinpath('cam2')
+    data_dir_cam2 = data_dir.joinpath("cam2")
     data_dir_cam2.mkdir(exist_ok=True)
 
-    for i,video_name in enumerate(video_names):
-        url = 'https://www.facemappy.org/test_data/' + video_name
-        if '1' in video_name:
+    for i, video_name in enumerate(video_names):
+        url = "https://www.facemappy.org/test_data/" + video_name
+        if "1" in video_name:
             cached_file = str(data_dir_cam1.joinpath(video_name))
         else:
             cached_file = str(data_dir_cam2.joinpath(video_name))
@@ -33,19 +38,27 @@ def data_dir(video_names):
 
     return data_dir
 
-@pytest.fixture()
+
+@pytest.fixture(scope="session")
 def expected_output_dir(data_dir):
-    expected_output_dir = data_dir.joinpath('expected_output')
+    expected_output_dir = data_dir.joinpath("expected_output")
     expected_output_dir.mkdir(exist_ok=True)
     # Download expected output files
-    """
-    download_url_to_file('https://www.facemappy.org/test_data/singlevideo_proc.npy', 
-                        expected_output_dir.joinpath('singlevideo_proc.npy'))
-    download_url_to_file('https://www.facemappy.org/test_data/multivideo_proc.npy', 
-                        expected_output_dir.joinpath('multivideo_proc.npy'))
-    """
+    download_url_to_file(
+        "https://www.facemappy.org/test_data/single_video_proc.npy",
+        expected_output_dir.joinpath("single_video_proc.npy"),
+    )
+    download_url_to_file(
+        "https://www.facemappy.org/test_data/multi_video_proc.npy",
+        expected_output_dir.joinpath("multi_video_proc.npy"),
+    )
+    download_url_to_file(
+        "https://www.facemappy.org/test_data/cam1_test_FacemapPose.h5",
+        expected_output_dir.joinpath("cam1_test_FacemapPose.h5"),
+    )
     return expected_output_dir
-    
+
+
 def download_url_to_file(url, dst, progress=True):
     # Following adapted from https://github.com/MouseLand/cellpose/blob/35c16c94e285a4ec2fa17f148f06bbd414deb5b8/cellpose/utils.py#L45
     """Download object at the given URL to a local path.
@@ -59,7 +72,7 @@ def download_url_to_file(url, dst, progress=True):
     file_size = None
     u = urlopen(url)
     meta = u.info()
-    if hasattr(meta, 'getheaders'):
+    if hasattr(meta, "getheaders"):
         content_length = meta.getheaders("Content-Length")
     else:
         content_length = meta.get_all("Content-Length")
@@ -70,8 +83,13 @@ def download_url_to_file(url, dst, progress=True):
     dst_dir = os.path.dirname(dst)
     f = tempfile.NamedTemporaryFile(delete=False, dir=dst_dir)
     try:
-        with tqdm(total=file_size, disable=not progress,
-                  unit='B', unit_scale=True, unit_divisor=1024) as pbar:
+        with tqdm(
+            total=file_size,
+            disable=not progress,
+            unit="B",
+            unit_scale=True,
+            unit_divisor=1024,
+        ) as pbar:
             while True:
                 buffer = u.read(8192)
                 if len(buffer) == 0:
@@ -84,3 +102,24 @@ def download_url_to_file(url, dst, progress=True):
         f.close()
         if os.path.exists(f.name):
             os.remove(f.name)
+
+
+@pytest.fixture(autouse=True, scope="session")
+def test_suite_cleanup(data_dir):
+    # setup
+    yield
+    # teardown - put your command here
+    clear_dir_outputs(data_dir)
+
+
+def clear_dir_outputs(data_dir):
+    # Delete all files in data_dir
+    for file in os.listdir(data_dir):
+        file_path = os.path.join(data_dir, file)
+        try:
+            if os.path.isfile(file_path):
+                os.remove(file_path)
+            elif os.path.isdir(file_path):
+                shutil.rmtree(file_path)
+        except Exception as e:
+            print(e)

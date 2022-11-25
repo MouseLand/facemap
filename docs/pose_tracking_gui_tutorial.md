@@ -9,26 +9,71 @@ The latest python version is integrated with Facemap network for tracking 14 dis
 <img src="../figs/mouse_face0_keypoints.png" width="310" height="290" title="View 2" alt="view2" algin="right" vspace = "10" style="border: 0.5px solid white">
 </p>
 
-For pose tracking using GUI after following the [installation instructions](installation.md), proceed with the following steps:
+## Generate keypoints
+
+Follow the steps below to generate keypoints for your videos:
 
 1. Load video 
     - Select `File` from the menu bar
-    - For processing single video, select `Load single movie file`
-    - Alternatively, for processing multiple videos, select `Open folder of movies` and then select the files you want to process. Please note multiple videos are processed sequentially.
-2. Select output folder
+    - For processing single video, select `Load video`. Alternatively, for processing multiple videos, select `Load multiple videos` to select the folder containing the videos. (Note: Pose estimation for multipl videos is only supported for videos recorded simultaneously i.e. have the same time duration and frame rate).
+
+    (Optional) Set output folder
     - Use the file menu to `Set output folder`. 
-    - The processed keypoints file will be saved in the selected output folder with an extension of `.h5` and corresponding metadata file with extension `.pkl`.
-3. Choose processing options 
-    - Check at least one of the following boxes:
-        - `Keypoints` for face pose tracking.
-        - `motSVD` for SVD processing of difference across frames over time.
-        - `movSVD` for SVD processing of raw movie frames.
-    - Click `process` button and monitor progress bar at the bottom of the window to see updates.
-4. Select ROI/bounding box for face
-    - Once you hit `process`, a dialog box will appear for selecting a bounding box for the face. The keypoints will be tracked in the selected bounding box. Please ensure that the bouding box is focused on the face where all the keypoints shown above will be visible. See example frames [here](figs/mouse_views.png). Once the bounding box is focused, click 'Done' to continue.
-    - Alternatively, if you wish to use the entire frame for the mouse then click 'Skip' to continue.
-    - If a 'Face (pose)' ROI has already been selected using the dropdown menu for ROIs the bounding box will be automatically selected and the keypoints will be tracked in the selected ROI.
+    - The processed keypoints (`*.h5`) and metadata (`*.pkl`) will be saved in the selected output folder or folder containing the video (default).
+2. Process video(s)
+    - Check `Keypoints` for pose tracking.
+    - Click `process`.
+3. Set ROI/bounding box for face region
+    - A dialog box for selecting a bounding box for the face will appear. Drag the red rectangle to select region of interest on the frame where the keypoints will be tracked. Please ensure that the bouding box is focused on the face where all the keypoints will be visible. See example frames [here](figs/mouse_views.png). If a 'Face (pose)' ROI has already been added then this step will be skipped.
+    - Click `Done` to process video. Alternatively, click `Skip` to use the entire frame region. Monitor progress bar at the bottom of the window for updates.
+4. View keypoints
+    - Keypoints will be automatically loaded after processing.
+    - Processed keypoints file will be saved as `[videoname]_FacemapPose.h5` in the selected output folder. 
 
-The videos will be processed in the order they are listed in the file list and output will be saved in the output folder. Following is an example gif demonstrating the above mentioned steps for tracking keypoints in a video.
+## Visualize keypoints
 
+To load keypoints (*.h5) for a video generated using Facemap or other software in the same format (such as DeepLabCut and SLEAP), follow the steps below:
 
+1. Load video 
+    - Select `File` from the menu bar
+    - Select `Load video`
+2. Load keypoints
+    - Select `Pose` from the menu bar
+    - Select `Load keypoints`
+    - Select the keypoints (*.h5) file 
+3. View keypoints
+    - Use the "Keypoints" checkbox to toggle the visibility of keypoints. 
+    - Change value of "Threshold (%)" under pose settings to filter keypoints with lower confidence estimates. Higher threshold will show keypoints with higher confidence estimates.
+
+Note: this feature is currently only supported for single video. Please see [CLI instructions](pose_tracking_cli_tutorial.md) for viewing keypoints for multiple videos.
+
+## Finetune model to refine keypoints for a video
+
+To improve keypoints predictions for a video, follow the steps below:
+
+1. Load video 
+    - Select `File` from the menu bar
+    - Select `Load video`
+2. Set finetuned model's output folder
+    - Select `Pose` from the menu bar
+    - Select `Finetune model`
+    - Set output folder path for finetuned model
+3. Select training data and set training parameters
+    - Set `Initial model` to use for training. By default, Facemap's base model trained on our dataset will be used for fine-tuning. Alternatively, you can select a model previously finetuned on your own dataset.
+    - Set `Output model name` for the finetuned model.
+    - Choose `Yes/No` to refine keypoints prediction for the video loaded and set `# Frames` to use for training. You can also choose proportion of random vs. outlier frames to use for training. The outlier frames are selected using the `Difficulty threshold (percentile)`, which determines the percentile of confidence scores to use as the threshold for selecting frames with the highest error.
+    - Choose `Yes/No` to add previously refined keypoints to the  training set.
+    - `Set training parameters` or use default values.
+    - Click `Next`
+4. Refine keypoints 
+    - If a ROI/bounding box was not added, then a dialog box for selecting a bounding box for the face will appear. Drag the red rectangle to select region of interest on the frame where the keypoints will be tracked.
+    - Click `Done` to process video. Alternatively, click `Skip` to use the entire frame region. Monitor progress bar at the bottom of the window for updates.
+    - Drag keypoints to refine predictions. Use `Shift+D` to delete a keypoint. Right click to add a deleted keypoint. Use `Previous` and `Next` buttons to change frame. Click `Help` for more details.
+    - Click `Train model` to start training. A progress bar will appear for training updates.
+5. Evaluate training
+    - View predicted keypoints for test frames from the video loaded. For further refinement, Click `Continue training` that will repeat steps 3-5. 
+    - Click `Save model` to save the finetuned model. The finetuned model will be saved as `*.pt` in the selected output folder.
+6. Generate keypoints using the finetuned model
+    - Use the `Pose model` dropdown menu to set the finetuned model to use for generating keypoints predictions.
+    - (Optional) Change "Batch size" under pose settings.
+    - Click `Process` to generate keypoints predictions. See [Generate keypoints](#generate-keypoints) for more details.
