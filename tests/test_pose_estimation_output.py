@@ -29,7 +29,7 @@ def test_pose_estimation_output(data_dir, video_names, expected_output_dir):
         filenames=[[video_abs_path]], model_name="facemap_model_state"
     )
     # Run prediction
-    pose_object.run_all(plot=False)
+    pose_object.run_all()
     # Get output
     test_h5_path = video_abs_path.split(video_extension)[0] + "_FacemapPose.h5"
     test_pkl_path = (

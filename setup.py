@@ -48,8 +48,8 @@ setuptools.setup(
     long_description_content_type="text/markdown",
     url="https://github.com/mouseland/facemap",
     setup_requires=[
-      'pytest-runner',
-      'setuptools_scm',
+        "pytest-runner",
+        "setuptools_scm",
     ],
     packages=setuptools.find_packages(),
     use_scm_version=True,
@@ -65,8 +65,5 @@ setuptools.setup(
         "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
         "Operating System :: OS Independent",
     ),
-    entry_points = {
-        'console_scripts': [
-          'facemap = facemap.__main__:main']
-     }
+    entry_points={"console_scripts": ["facemap = facemap.__main__:main"]},
 )

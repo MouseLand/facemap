@@ -148,9 +148,15 @@ def open_proc(parent, file_name=None):
                     k += 1
                 parent.motSVDs = proc["motSVD"]
                 parent.movSVDs = proc["movSVD"]
-                parent.running = proc["running"]
-                parent.pupil = proc["pupil"]
-                parent.blink = proc["blink"]
+                if "pupil" in proc.keys():
+                    parent.pupil = proc["pupil"]
+                if "blink" in proc.keys():
+                    parent.blink = proc["blink"]
+                if "running" in proc.keys():
+                    parent.running = proc["running"]
+                # parent.running = proc["running"]
+                # parent.pupil = proc["pupil"]
+                # parent.blink = proc["blink"]
             else:
                 k = 0
 
@@ -192,6 +198,8 @@ def open_proc(parent, file_name=None):
                             ivid=roi["ivid"],
                         )
                     )
+                    parent.ROIs[-1].position(parent)
+
                     if "reflector" in roi:
                         for i, reflector_roi in enumerate(roi["reflector"]):
                             pos = [
@@ -324,7 +332,9 @@ def load_movies(parent, filelist=None):
             parent.imgs.append(np.zeros((parent.Ly[i], parent.Lx[i], 3, 3)))
             parent.img.append(np.zeros((parent.Ly[i], parent.Lx[i], 3)))
         # parent.movieLabel.setText(os.path.dirname(parent.filenames[0][0]))
-        parent.save_path = os.path.dirname(parent.filenames[0][0])
+        if not parent.output_folder_set:
+            parent.save_path = os.path.dirname(parent.filenames[0][0])
+            parent.savelabel.setText("same as video")
         parent.frameDelta = int(np.maximum(5, parent.nframes / 200))
         parent.frame_slider.setSingleStep(parent.frameDelta)
         if parent.nframes > 0:
@@ -365,6 +375,7 @@ def save_folder(parent):
     # load ops in same folder
     if folderName:
         parent.save_path = folderName
+        parent.output_folder_set = True
         if len(folderName) > 30:
             parent.savelabel.setText("..." + folderName[-30:])
         else:

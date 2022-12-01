@@ -99,10 +99,12 @@ class Pose:
                 )
             self.bbox_set = True
 
-    def run_all(self, plot=True):
+    def run_all(self):
         print("Using {} for pose estimation".format(self.model_name))
         start_time = time.time()
         self.pose_prediction_setup()
+        print("Len filenames: {}".format(len(self.filenames)))
+        print("filename: {}".format(self.filenames))
         for video_id in range(len(self.filenames[0])):
             utils.update_mainwindow_message(
                 MainWindow=self.gui,
@@ -126,9 +128,7 @@ class Pose:
             with open(metadata_file, "wb") as f:
                 pickle.dump(metadata, f, pickle.HIGHEST_PROTOCOL)
             if self.gui is not None:
-                self.update_gui_pose(savepath, video_id)
-        if plot and self.gui is not None:
-            self.plot_pose_estimates()
+                self.gui.poseFilepath.append(savepath)
         end_time = time.time()
         print("Pose estimation time elapsed:", end_time - start_time, "seconds")
         utils.update_mainwindow_message(
@@ -139,13 +139,6 @@ class Pose:
             ),
             hide_progress=True,
         )
-
-    def update_gui_pose(self, savepath, video_id):
-        self.gui.poseFilepath.append(savepath)
-        self.gui.load_keypoints()
-        self.gui.keypoints_checkbox.setChecked(False)
-        self.gui.keypoints_checkbox.setChecked(True)
-        self.gui.start()
 
     def run_subset(self, subset_ind=None):
         """
@@ -390,6 +383,7 @@ class Pose:
         self.gui.is_pose_loaded = True
         self.gui.load_keypoints()
         self.gui.keypoints_checkbox.setChecked(True)
+        self.gui.start()
 
     def set_model(self, model_selected=None):
         if model_selected is None:
