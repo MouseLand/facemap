@@ -3,6 +3,7 @@ import pickle
 import time
 from io import StringIO
 
+import h5py
 import numpy as np
 import pandas as pd
 import torch
@@ -112,9 +113,12 @@ class Pose:
                 prompt="Processing video: {}".format(self.filenames[0][video_id]),
                 hide_progress=True,
             )
-            print("video id", video_id)
             pred_data, metadata = self.predict_landmarks(video_id)
             dataFrame = self.write_dataframe(pred_data.cpu().numpy())
+
+            # Save the data using h5py
+            self.save_data_to_hdf5(pred_data.cpu().numpy(), video_id)
+
             savepath = self.save_pose_prediction(dataFrame, video_id)
             utils.update_mainwindow_message(
                 MainWindow=self.gui,
@@ -253,6 +257,102 @@ class Pose:
         dataFrame.iloc[:, 2::3] = data[:, :, 2]
 
         return dataFrame
+
+    def save_data_to_hdf5(self, data, video_id, selected_frame_idx=None):
+        """save_data_to_hdf5: Save data to an HDF5 file
+
+        Args:
+            data (2D-array): Data to save (nframes x nbodyparts x 3)
+            selected_frame_idx (list): Indices of selected frames
+        """
+        # Create a multi-index dict to store data in HDF5 file. First index is the scorer name, second index is the bodypart names, and third index is the coordinates (x, y, likelihood)
+        scorer = "Facemap"
+        bodyparts = self.bodyparts
+        data_dict = {}
+        data_dict[scorer] = {}
+        for index, bodypart in enumerate(bodyparts):
+            data_dict[scorer][bodypart] = {}
+            data_dict[scorer][bodypart]["x"] = data[:, index, 0]
+            data_dict[scorer][bodypart]["y"] = data[:, index, 1]
+            data_dict[scorer][bodypart]["likelihood"] = data[:, index, 2]
+
+            # data_dict[scorer, bodypart, "x"] = data[:, index, 0]
+            # data_dict[scorer, bodypart, "y"] = data[:, index, 1]
+            # data_dict[scorer, bodypart, "likelihood"] = data[:, index, 2]
+
+        if self.gui is not None:
+            basename = self.gui.save_path
+            _, filename = os.path.split(self.filenames[0][video_id])
+            videoname, _ = os.path.splitext(filename)
+        else:
+            basename, filename = os.path.split(self.filenames[0][video_id])
+            videoname, _ = os.path.splitext(filename)
+
+        hdf5_filepath = os.path.join(basename, videoname + "_FacemapPose_hdf.h5")
+        with h5py.File(hdf5_filepath, "w") as f:
+            self.save_dict_to_hdf5(f, "", data_dict)
+        # Save data to pandas dataframe
+        # dataFrame = pd.DataFrame.from_dict(data_dict)
+        """
+        # Create dataset using h5py
+        with h5py.File(hdf5_filepath, "w") as f:
+            # Create a dataset for each bodypart
+            for index, bodypart in enumerate(bodyparts):
+                # Create a dataset for each coordinate (x, y, likelihood)
+                for i, coord in enumerate(["x", "y", "likelihood"]):
+                    # Create a dataset for the current bodypart and coordinate
+                    dataset_name = scorer + "_" + bodypart + "_" + coord
+                    dataset = f.create_dataset(
+                        dataset_name,
+                        data=data[:, index, i],
+                        maxshape=(None,),
+                        dtype="float32",
+                    )
+            f.close()
+        """
+
+    def save_dict_to_hdf5(self, h5file, path, data_dict):
+        """
+        Saves dictionary to an HDF5 file.
+        Calls itself recursively if items in dictionary are not
+        `np.ndarray`, `np.int64`, `np.float64`, `str`, or bytes.
+        Objects must be iterable.
+        Args:
+            h5file: The HDF5 filename object to save the data to.
+                Assume it is open.
+            path: The path to group save the dict under.
+            data_dict: The dict containing data to save.
+        Raises:
+            ValueError: If type for item in dict cannot be saved.
+        Returns:
+            None
+        """
+        for key, item in list(data_dict.items()):
+            if item is None:
+                h5file[path + key] = ""
+            elif isinstance(item, bool):
+                h5file[path + key] = int(item)
+            elif isinstance(item, list):
+                items_encoded = []
+                for it in item:
+                    if isinstance(it, str):
+                        items_encoded.append(it.encode("utf8"))
+                    else:
+                        items_encoded.append(it)
+
+                h5file[path + key] = np.asarray(items_encoded)
+            elif isinstance(item, (str)):
+                h5file[path + key] = item.encode("utf8")
+            elif isinstance(
+                item, (np.ndarray, np.int64, np.float64, str, bytes, float)
+            ):
+                h5file[path + key] = item
+            elif isinstance(item, dict):
+                self.save_dict_to_hdf5(h5file, path + key + "/", item)
+            elif isinstance(item, int):
+                h5file[path + key] = item
+            else:
+                raise ValueError("Cannot save %s type" % type(item))
 
     def predict_landmarks(self, video_id, frame_ind=None):
         """
