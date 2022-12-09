@@ -1,4 +1,4 @@
-name: facemap2
+name: facemap
 channels:
   - conda-forge
 dependencies:

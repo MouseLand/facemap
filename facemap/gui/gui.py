@@ -1,10 +1,10 @@
 import os
 import sys
 
+import h5py
 import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
-import pandas as pd
 import pyqtgraph as pg
 import scipy.io as sio
 from matplotlib import cm
@@ -33,7 +33,7 @@ from scipy.stats import skew, zscore
 from facemap import process, roi, utils
 from facemap.gui import cluster, guiparts, help_windows, io, menus
 from facemap.neural_prediction import neural_activity, prediction_utils
-from facemap.pose import model_loader, pose, pose_gui, refine_pose
+from facemap.pose import datasets, model_loader, pose, pose_gui, refine_pose
 
 istr = ["pupil", "motSVD", "blink", "running", "movSVD"]
 
@@ -1364,49 +1364,42 @@ class MainW(QtWidgets.QMainWindow):
             if len(video_h5_index) > 0:
                 video_h5.append(os.path.join(video_dir, h5_files[video_h5_index[0]]))
         self.poseFilepath = video_h5
-        print("poseFilepath", self.poseFilepath)
         if len(self.poseFilepath) > 0:
             self.load_keypoints()
 
     def load_keypoints(self):
-        # Read Pose file
+        """
+        Load keypoints from h5py file using h5py
+        """
         self.keypoints_labels = []
         self.pose_x_coord = []
         self.pose_y_coord = []
         self.pose_likelihood = []
         for video_id in range(len(self.poseFilepath)):
             print("Loading keypoints:", self.poseFilepath[video_id])
-            pose_data = pd.read_hdf(self.poseFilepath[video_id], "df_with_missing")
-            # Remove nosebridge and paw keypoints
-            """
-            pose_data = pose_data.T[
-                pose_data.columns.get_level_values("bodyparts") != "nosebridge"
-            ].T
-            pose_data = pose_data.T[
-                pose_data.columns.get_level_values("bodyparts") != "paw"
-            ].T
-            """
-            # Append pose data to list for each video_id
-            self.keypoints_labels.append(
-                pd.unique(pose_data.columns.get_level_values("bodyparts"))
-            )
+            pose_data = h5py.File(self.poseFilepath[video_id], "r")["Facemap"]
+            bodyparts = np.array([])
+            for (
+                bodypart
+            ) in (
+                refine_pose.BODYPARTS
+            ):  # Load bodyparts in the same order as in FacemapDataset
+                bodyparts = np.append(bodyparts, bodypart)
+                self.pose_x_coord.append(pose_data[bodypart]["x"][:])
+                self.pose_y_coord.append(pose_data[bodypart]["y"][:])
+                self.pose_likelihood.append(pose_data[bodypart]["likelihood"][:])
 
-            self.pose_x_coord.append(
-                pose_data.T[
-                    pose_data.columns.get_level_values("coords").values == "x"
-                ].values
+            self.keypoints_labels.append(bodyparts)
+            self.pose_x_coord = np.array(
+                [self.pose_x_coord]
             )  # size: key points x frames
-            self.pose_y_coord.append(
-                pose_data.T[
-                    pose_data.columns.get_level_values("coords").values == "y"
-                ].values
+            self.pose_y_coord = np.array(
+                [self.pose_y_coord]
             )  # size: key points x frames
-            self.pose_likelihood.append(
-                pose_data.T[
-                    pose_data.columns.get_level_values("coords").values == "likelihood"
-                ].values
+            self.pose_likelihood = np.array(
+                [self.pose_likelihood]
             )  # size: key points x frames
-            # Choose colors for each label: provide option for paltter that is color-blindness friendly
+            # TODO: Choose colors for each label: provide option for palette that is color-blind friendly
             colors = cm.get_cmap("jet")(
                 np.linspace(0, 1.0, len(self.keypoints_labels[video_id]))
             )

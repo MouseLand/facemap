@@ -5,7 +5,6 @@ from io import StringIO
 
 import h5py
 import numpy as np
-import pandas as pd
 import torch
 from tqdm import tqdm
 
@@ -104,8 +103,6 @@ class Pose:
         print("Using {} for pose estimation".format(self.model_name))
         start_time = time.time()
         self.pose_prediction_setup()
-        print("Len filenames: {}".format(len(self.filenames)))
-        print("filename: {}".format(self.filenames))
         for video_id in range(len(self.filenames[0])):
             utils.update_mainwindow_message(
                 MainWindow=self.gui,
@@ -114,12 +111,10 @@ class Pose:
                 hide_progress=True,
             )
             pred_data, metadata = self.predict_landmarks(video_id)
-            dataFrame = self.write_dataframe(pred_data.cpu().numpy())
 
             # Save the data using h5py
-            self.save_data_to_hdf5(pred_data.cpu().numpy(), video_id)
+            savepath = self.save_data_to_hdf5(pred_data.cpu().numpy(), video_id)
 
-            savepath = self.save_pose_prediction(dataFrame, video_id)
             utils.update_mainwindow_message(
                 MainWindow=self.gui,
                 GUIobject=self.GUIobject,
@@ -229,56 +224,27 @@ class Pose:
         model_loader.copy_to_models_dir(model_filepath)
         return model_filepath
 
-    def write_dataframe(self, data, selected_frame_ind=None):
-        scorer = "Facemap"
-        bodyparts = self.bodyparts
-        # Create an empty dataframe
-        for index, bodypart in enumerate(bodyparts):
-            columnindex = pd.MultiIndex.from_product(
-                [[scorer], [bodypart], ["x", "y", "likelihood"]],
-                names=["scorer", "bodyparts", "coords"],
-            )
-            if selected_frame_ind is None:
-                frame = pd.DataFrame(
-                    np.nan, columns=columnindex, index=np.arange(self.cumframes[-1])
-                )
-            else:
-                frame = pd.DataFrame(
-                    np.nan, columns=columnindex, index=selected_frame_ind
-                )
-            if index == 0:
-                dataFrame = frame
-            else:
-                dataFrame = pd.concat([dataFrame, frame], axis=1)
-
-        # Fill dataframe with data
-        dataFrame.iloc[:, ::3] = data[:, :, 0]
-        dataFrame.iloc[:, 1::3] = data[:, :, 1]
-        dataFrame.iloc[:, 2::3] = data[:, :, 2]
-
-        return dataFrame
-
-    def save_data_to_hdf5(self, data, video_id, selected_frame_idx=None):
+    def save_data_to_hdf5(self, data, video_id, selected_frame_ind=None):
         """save_data_to_hdf5: Save data to an HDF5 file
 
         Args:
             data (2D-array): Data to save (nframes x nbodyparts x 3)
-            selected_frame_idx (list): Indices of selected frames
+            selected_frame_ind (list): Indices of selected frames
         """
         # Create a multi-index dict to store data in HDF5 file. First index is the scorer name, second index is the bodypart names, and third index is the coordinates (x, y, likelihood)
         scorer = "Facemap"
         bodyparts = self.bodyparts
         data_dict = {}
         data_dict[scorer] = {}
+        if selected_frame_ind is None:
+            indices = np.arange(self.cumframes[-1])
+        else:
+            indices = selected_frame_ind
         for index, bodypart in enumerate(bodyparts):
             data_dict[scorer][bodypart] = {}
-            data_dict[scorer][bodypart]["x"] = data[:, index, 0]
-            data_dict[scorer][bodypart]["y"] = data[:, index, 1]
-            data_dict[scorer][bodypart]["likelihood"] = data[:, index, 2]
-
-            # data_dict[scorer, bodypart, "x"] = data[:, index, 0]
-            # data_dict[scorer, bodypart, "y"] = data[:, index, 1]
-            # data_dict[scorer, bodypart, "likelihood"] = data[:, index, 2]
+            data_dict[scorer][bodypart]["x"] = data[:, index, 0][indices]
+            data_dict[scorer][bodypart]["y"] = data[:, index, 1][indices]
+            data_dict[scorer][bodypart]["likelihood"] = data[:, index, 2][indices]
 
         if self.gui is not None:
             basename = self.gui.save_path
@@ -288,28 +254,10 @@ class Pose:
             basename, filename = os.path.split(self.filenames[0][video_id])
             videoname, _ = os.path.splitext(filename)
 
-        hdf5_filepath = os.path.join(basename, videoname + "_FacemapPose_hdf.h5")
+        hdf5_filepath = os.path.join(basename, videoname + "_FacemapPose.h5")
         with h5py.File(hdf5_filepath, "w") as f:
             self.save_dict_to_hdf5(f, "", data_dict)
-        # Save data to pandas dataframe
-        # dataFrame = pd.DataFrame.from_dict(data_dict)
-        """
-        # Create dataset using h5py
-        with h5py.File(hdf5_filepath, "w") as f:
-            # Create a dataset for each bodypart
-            for index, bodypart in enumerate(bodyparts):
-                # Create a dataset for each coordinate (x, y, likelihood)
-                for i, coord in enumerate(["x", "y", "likelihood"]):
-                    # Create a dataset for the current bodypart and coordinate
-                    dataset_name = scorer + "_" + bodypart + "_" + coord
-                    dataset = f.create_dataset(
-                        dataset_name,
-                        data=data[:, index, i],
-                        maxshape=(None,),
-                        dtype="float32",
-                    )
-            f.close()
-        """
+        return hdf5_filepath
 
     def save_dict_to_hdf5(self, h5file, path, data_dict):
         """

@@ -135,7 +135,6 @@ def keypoint_labels_per_cam(cam_type=0):
 def load_keypoints(
     kp_file,
     outlier_filter=True,
-    median_filter=False,
     keypoint_labels=[],
     confidence_threshold=False,
 ):
