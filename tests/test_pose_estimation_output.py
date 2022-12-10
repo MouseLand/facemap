@@ -31,7 +31,7 @@ def test_pose_estimation_output(data_dir, video_names, bodyparts, expected_outpu
     pose_object.run_all()
     # Get output
     test_h5_path = (
-        video_abs_path.split(video_extension)[0] + "_FacemapPose_hdf.h5"
+        video_abs_path.split(video_extension)[0] + "_FacemapPose.h5"
     )  # change to remove _hdf
     test_pkl_path = (
         video_abs_path.split(video_extension)[0] + "_FacemapPose_metadata.pkl"
