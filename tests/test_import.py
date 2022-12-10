@@ -3,7 +3,7 @@
 
 def test_facemap_imports():
     import facemap
-    from facemap import keypoints, process, pupil, roi, running, utils
+    from facemap import process, pupil, roi, running, utils
 
 
 def test_gui_imports():
@@ -20,7 +20,6 @@ def test_neural_prediction_imports():
 
 def test_pose_imports():
     from facemap.pose import (
-        datasets,
         facemap_network,
         model_loader,
         model_training,

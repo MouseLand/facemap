@@ -8,7 +8,7 @@ install_deps = [
     "numba>=0.43.1",
     "opencv-python-headless",
     "torch>=1.9",
-    "pandas",
+    "h5py",
     "scikit-learn",
     "tables==3.6.1",
 ]

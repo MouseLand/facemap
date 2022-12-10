@@ -33,7 +33,6 @@ Facemap python relies on these awesome packages:
 - [Matplotlib](https://matplotlib.org)
 - [SciPy](https://scipy.org)
 - [tqdm](https://tqdm.github.io)
-- [pandas](https://pandas.pydata.org)
 - [UMAP](https://umap-learn.readthedocs.io/en/latest/)
 
 
