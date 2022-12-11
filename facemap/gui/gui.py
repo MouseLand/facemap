@@ -1,10 +1,10 @@
 import os
 import sys
 
+import h5py
 import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
-import pandas as pd
 import pyqtgraph as pg
 import scipy.io as sio
 from matplotlib import cm
@@ -33,7 +33,7 @@ from scipy.stats import skew, zscore
 from facemap import process, roi, utils
 from facemap.gui import cluster, guiparts, help_windows, io, menus
 from facemap.neural_prediction import neural_activity, prediction_utils
-from facemap.pose import model_loader, pose, pose_gui, refine_pose
+from facemap.pose import datasets, model_loader, pose, pose_gui, refine_pose
 
 istr = ["pupil", "motSVD", "blink", "running", "movSVD"]
 
@@ -101,6 +101,7 @@ class MainW(QtWidgets.QMainWindow):
             }
 
         self.save_path = self.ops["save_path"]
+        self.output_folder_set = False
 
         menus.mainmenu(self)
         self.online_mode = False
@@ -375,7 +376,11 @@ class MainW(QtWidgets.QMainWindow):
             self.behavior_timestamps = None
         if savedir is not None:
             self.save_path = savedir
-            self.savelabel.setText("..." + savedir[-20:])
+            self.output_folder_set = True
+            if len(savedir) > 20:
+                self.savelabel.setText("..." + savedir[-20:])
+            else:
+                self.savelabel.setText(savedir)
         if keypoints_file is not None:
             self.poseFilepath = keypoints_file
             self.load_keypoints()
@@ -396,7 +401,7 @@ class MainW(QtWidgets.QMainWindow):
             self.load_neural_predictions_file(neural_predictions_file)
 
     def make_buttons(self):
-        
+
         # ~~~~~~~~~~~~~~~~~~~~~~~~ SVD variables ~~~~~~~~~~~~~~~~~~~~~~~~
         self.svd_groupbox = QGroupBox("ROI settings:")
         self.svd_groupbox.setStyleSheet(
@@ -580,11 +585,12 @@ class MainW(QtWidgets.QMainWindow):
 
         self.batchlist = []
         self.batchname = []
+        # TODO: Change batchname to span 2 columns
         for k in range(5):
             self.batchname.append(QLabel(""))
             self.batchname[-1].setStyleSheet("color: white;")
             self.batchname[-1].setAlignment(QtCore.Qt.AlignCenter)
-            self.labels_groupbox.layout().addWidget(self.batchname[-1], k + 1, 0)
+            self.labels_groupbox.layout().addWidget(self.batchname[-1], k + 1, 0, 1, 2)
             # self.scene_grid_layout.addWidget(self.batchname[-1], 6 + k, 0, 1, 4)
 
         # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Video playback options ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -698,24 +704,24 @@ class MainW(QtWidgets.QMainWindow):
 
         # Add features to window
         # ~~~~~~~~~~ motsvd/movsvd options ~~~~~~~~~~
-        self.scene_grid_layout.addWidget(self.svd_groupbox, 1-1, 0, 1, 2)
+        self.scene_grid_layout.addWidget(self.svd_groupbox, 1 - 1, 0, 1, 2)
         # ~~~~~~~~~~ Pose features ~~~~~~~~~~
-        self.scene_grid_layout.addWidget(self.pose_groupbox, 2-1, 0, 3, 2)
+        self.scene_grid_layout.addWidget(self.pose_groupbox, 2 - 1, 0, 3, 2)
         # ~~~~~~~~~~ Process features ~~~~~~~~~~
-        self.scene_grid_layout.addWidget(self.process_groupbox, 6-1, 0, 1, 2)
+        self.scene_grid_layout.addWidget(self.process_groupbox, 6 - 1, 0, 1, 2)
         # ~~~~~~~~~~ Process buttons features ~~~~~~~~~~
-        self.scene_grid_layout.addWidget(self.process_buttons_groupbox, 7-1, 0, 1, 2)
+        self.scene_grid_layout.addWidget(self.process_buttons_groupbox, 7 - 1, 0, 1, 2)
         # ~~~~~~~~~~ Save/file IO ~~~~~~~~~~
-        self.scene_grid_layout.addWidget(self.labels_groupbox, 8-1, 0, 1, 2)
+        self.scene_grid_layout.addWidget(self.labels_groupbox, 8 - 1, 0, 1, 2)
         # ~~~~~~~~~~ Saturation ~~~~~~~~~~
         self.scene_grid_layout.addWidget(self.saturation_groupbox, 0, 3, 1, 2)
         # ~~~~~~~~~~ embedding & ROI visualization window features
-        self.scene_grid_layout.addWidget(self.roi_saturation_groupbox, 8-1, 3, 1, 2)
-        self.scene_grid_layout.addWidget(self.roi_embed_combobox, 8-1, 5, 1, 1)
-        self.scene_grid_layout.addWidget(self.zoom_in_button, 8-1, 6, 1, 1)
-        self.scene_grid_layout.addWidget(self.zoom_out_button, 8-1, 7, 1, 1)
-        self.scene_grid_layout.addWidget(self.roi_display_combobox, 8-1, 6, 1, 1)
-        self.scene_grid_layout.addWidget(self.save_clustering_button, 9-1, 6, 1, 1)
+        self.scene_grid_layout.addWidget(self.roi_saturation_groupbox, 8 - 1, 3, 1, 2)
+        self.scene_grid_layout.addWidget(self.roi_embed_combobox, 8 - 1, 5, 1, 1)
+        self.scene_grid_layout.addWidget(self.zoom_in_button, 8 - 1, 6, 1, 1)
+        self.scene_grid_layout.addWidget(self.zoom_out_button, 8 - 1, 7, 1, 1)
+        self.scene_grid_layout.addWidget(self.roi_display_combobox, 8 - 1, 6, 1, 1)
+        self.scene_grid_layout.addWidget(self.save_clustering_button, 9 - 1, 6, 1, 1)
         #   ~~~~~~~~~~ Video playback ~~~~~~~~~~
         self.scene_grid_layout.addWidget(self.video_playback_groupbox, iplay, 0, 1, 1)
         self.playButton.setEnabled(False)
@@ -927,7 +933,7 @@ class MainW(QtWidgets.QMainWindow):
             self.update_ROI_vis_comboBox()
             self.ROIs[-1].position(self)
         else:
-            self.select_roi_popup()
+            self.show_roi_selection_error()
             return
 
     def update_status_bar(self, message, update_progress=False, hide_progress=False):
@@ -1149,6 +1155,12 @@ class MainW(QtWidgets.QMainWindow):
             "save_path": ops["save_path"],
             "filenames": self.filenames,
         }
+        if hasattr(self, "pupil"):
+            proc["pupil"] = self.pupil
+        if hasattr(self, "blink"):
+            proc["blink"] = self.blink
+        if hasattr(self, "running"):
+            proc["running"] = self.running
         savename = process.save(proc, savepath=savepath)
         self.update_status_bar("ROIs saved in " + savepath)
         self.batchlist.append(savename)
@@ -1159,7 +1171,8 @@ class MainW(QtWidgets.QMainWindow):
 
     def process_batch(self):
         files = self.batchlist
-        for f in files:
+        print(files)
+        for file_idx, f in enumerate(files):
             proc = np.load(f, allow_pickle=True).item()
             if proc["motSVD"] or proc["movSVD"]:
                 savename = process.run(
@@ -1171,15 +1184,34 @@ class MainW(QtWidgets.QMainWindow):
                     savepath=proc["save_path"],
                 )
                 self.update_status_bar("Processed " + savename)
+            if self.keypoints_checkbox.isChecked():
+                self.filenames = proc["filenames"]
+                self.bbox = proc["pose_settings"]["bbox"]
+                self.bbox_set = proc["pose_settings"]["bbox_set"]
+                self.resize_img = proc["pose_settings"]["resize_img"]
+                self.add_padding = proc["pose_settings"]["add_padding"]
+                """
+                pose.Pose(
+                    gui=None,
+                    filenames=proc["filenames"],
+                    bbox=proc["pose_settings"]["bbox"],
+                    bbox_set=proc["pose_settings"]["bbox_set"],
+                    resize=proc["pose_settings"]["resize_img"],
+                    add_padding=proc["pose_settings"]["add_padding"],
+                )
+                """
+                self.setup_pose_model()
+                if not self.pose_gui.cancel_bbox_selection:
+                    self.pose_model.run_all()
+                    self.update_status_bar("Pose labels saved in " + self.save_path)
+                    if file_idx == len(files) - 1:
+                        self.update_status_bar("All files processed")
+                        self.pose_model.plot_pose_estimates()
+                    else:
+                        self.poseFilepath = []  # reset poseFilepath for next file
+                else:
+                    self.update_status_bar("Pose estimation cancelled")
 
-            pose.Pose(
-                gui=None,
-                filenames=proc["filenames"],
-                bbox=proc["pose_settings"]["bbox"],
-                bbox_set=proc["pose_settings"]["bbox_set"],
-                resize=proc["pose_settings"]["resize_img"],
-                add_padding=proc["pose_settings"]["add_padding"],
-            ).run(plot=False)
         if len(files) == 1 and (proc["motSVD"] or proc["movSVD"]):
             io.open_proc(self, file_name=savename)
 
@@ -1199,10 +1231,12 @@ class MainW(QtWidgets.QMainWindow):
             print("Output saved in", savepath)
             self.update_status_bar("Output saved in " + savepath)
         if self.keypoints_checkbox.isChecked():
-            self.setup_pose_model()
+            if self.pose_model is None:
+                self.setup_pose_model()
             if not self.pose_gui.cancel_bbox_selection:
                 self.pose_model.run_all()
                 self.update_status_bar("Pose labels saved in " + savepath)
+                self.pose_model.plot_pose_estimates()
             else:
                 self.update_status_bar("Pose estimation cancelled")
 
@@ -1272,7 +1306,7 @@ class MainW(QtWidgets.QMainWindow):
                 self.resize_img,
                 self.add_padding,
             ) = self.set_pose_bbox()
-        if self.pose_model is None and not self.pose_gui.cancel_bbox_selection:
+        if not self.pose_gui.cancel_bbox_selection:
             self.pose_model = pose.Pose(
                 gui=self,
                 GUIobject=QtWidgets,
@@ -1330,49 +1364,42 @@ class MainW(QtWidgets.QMainWindow):
             if len(video_h5_index) > 0:
                 video_h5.append(os.path.join(video_dir, h5_files[video_h5_index[0]]))
         self.poseFilepath = video_h5
-        print("poseFilepath", self.poseFilepath)
         if len(self.poseFilepath) > 0:
             self.load_keypoints()
 
     def load_keypoints(self):
-        # Read Pose file
+        """
+        Load keypoints from h5py file using h5py
+        """
         self.keypoints_labels = []
         self.pose_x_coord = []
         self.pose_y_coord = []
         self.pose_likelihood = []
         for video_id in range(len(self.poseFilepath)):
             print("Loading keypoints:", self.poseFilepath[video_id])
-            pose_data = pd.read_hdf(self.poseFilepath[video_id], "df_with_missing")
-            # Remove nosebridge and paw keypoints
-            """
-            pose_data = pose_data.T[
-                pose_data.columns.get_level_values("bodyparts") != "nosebridge"
-            ].T
-            pose_data = pose_data.T[
-                pose_data.columns.get_level_values("bodyparts") != "paw"
-            ].T
-            """
-            # Append pose data to list for each video_id
-            self.keypoints_labels.append(
-                pd.unique(pose_data.columns.get_level_values("bodyparts"))
-            )
+            pose_data = h5py.File(self.poseFilepath[video_id], "r")["Facemap"]
+            bodyparts = np.array([])
+            for (
+                bodypart
+            ) in (
+                refine_pose.BODYPARTS
+            ):  # Load bodyparts in the same order as in FacemapDataset
+                bodyparts = np.append(bodyparts, bodypart)
+                self.pose_x_coord.append(pose_data[bodypart]["x"][:])
+                self.pose_y_coord.append(pose_data[bodypart]["y"][:])
+                self.pose_likelihood.append(pose_data[bodypart]["likelihood"][:])
 
-            self.pose_x_coord.append(
-                pose_data.T[
-                    pose_data.columns.get_level_values("coords").values == "x"
-                ].values
+            self.keypoints_labels.append(bodyparts)
+            self.pose_x_coord = np.array(
+                [self.pose_x_coord]
             )  # size: key points x frames
-            self.pose_y_coord.append(
-                pose_data.T[
-                    pose_data.columns.get_level_values("coords").values == "y"
-                ].values
+            self.pose_y_coord = np.array(
+                [self.pose_y_coord]
             )  # size: key points x frames
-            self.pose_likelihood.append(
-                pose_data.T[
-                    pose_data.columns.get_level_values("coords").values == "likelihood"
-                ].values
+            self.pose_likelihood = np.array(
+                [self.pose_likelihood]
             )  # size: key points x frames
-            # Choose colors for each label: provide option for paltter that is color-blindness friendly
+            # TODO: Choose colors for each label: provide option for palette that is color-blind friendly
             colors = cm.get_cmap("jet")(
                 np.linspace(0, 1.0, len(self.keypoints_labels[video_id]))
             )
@@ -3089,7 +3116,7 @@ class MainW(QtWidgets.QMainWindow):
         msg.setStandardButtons(QMessageBox.Ok)
         msg.exec_()
 
-    def select_roi_popup(self):
+    def show_roi_selection_error(self):
         msg = QMessageBox(self)
         msg.setIcon(QMessageBox.Warning)
         msg.setText("Please select a ROI")

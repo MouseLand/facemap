@@ -711,7 +711,6 @@ class ModelTrainingPopup(QDialog):
                 ) = self.split_frames_idx_by_category(pose_pred)
                 self.difficult_frames_idx = frames_indices[difficult_frames_idx]
                 self.easy_frames_idx = frames_indices[easy_frames_idx]
-                print("len frame indices", len(frames_indices))
                 num_easy_frames = int(
                     np.floor(
                         self.num_video_frames[self.current_video_idx]
@@ -734,8 +733,6 @@ class ModelTrainingPopup(QDialog):
                         num_difficult_frames,
                     )
                 )
-                print("len easy frames", len(easy_frames_idx))
-                print("len difficult frames", len(difficult_frames_idx))
                 easy_frames_idx = easy_frames_idx[:num_easy_frames]
                 difficult_frames_idx = difficult_frames_idx[:num_difficult_frames]
                 self.easy_frames_idx = self.easy_frames_idx[num_easy_frames:]

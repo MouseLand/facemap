@@ -16,7 +16,7 @@ def mainmenu(parent):
     parent.addAction(open_folder)
 
     # load processed data
-    load_proc = QAction("Load SVD data", parent)
+    load_proc = QAction("Load *_proc.npy", parent)
     load_proc.triggered.connect(lambda: io.open_proc(parent))
     parent.addAction(load_proc)
 

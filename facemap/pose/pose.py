@@ -3,8 +3,8 @@ import pickle
 import time
 from io import StringIO
 
+import h5py
 import numpy as np
-import pandas as pd
 import torch
 from tqdm import tqdm
 
@@ -99,7 +99,7 @@ class Pose:
                 )
             self.bbox_set = True
 
-    def run_all(self, plot=True):
+    def run_all(self):
         print("Using {} for pose estimation".format(self.model_name))
         start_time = time.time()
         self.pose_prediction_setup()
@@ -110,10 +110,11 @@ class Pose:
                 prompt="Processing video: {}".format(self.filenames[0][video_id]),
                 hide_progress=True,
             )
-            print("video id", video_id)
             pred_data, metadata = self.predict_landmarks(video_id)
-            dataFrame = self.write_dataframe(pred_data.cpu().numpy())
-            savepath = self.save_pose_prediction(dataFrame, video_id)
+
+            # Save the data using h5py
+            savepath = self.save_data_to_hdf5(pred_data.cpu().numpy(), video_id)
+
             utils.update_mainwindow_message(
                 MainWindow=self.gui,
                 GUIobject=self.GUIobject,
@@ -126,9 +127,7 @@ class Pose:
             with open(metadata_file, "wb") as f:
                 pickle.dump(metadata, f, pickle.HIGHEST_PROTOCOL)
             if self.gui is not None:
-                self.update_gui_pose(savepath, video_id)
-        if plot and self.gui is not None:
-            self.plot_pose_estimates()
+                self.gui.poseFilepath.append(savepath)
         end_time = time.time()
         print("Pose estimation time elapsed:", end_time - start_time, "seconds")
         utils.update_mainwindow_message(
@@ -139,13 +138,6 @@ class Pose:
             ),
             hide_progress=True,
         )
-
-    def update_gui_pose(self, savepath, video_id):
-        self.gui.poseFilepath.append(savepath)
-        self.gui.load_keypoints()
-        self.gui.keypoints_checkbox.setChecked(False)
-        self.gui.keypoints_checkbox.setChecked(True)
-        self.gui.start()
 
     def run_subset(self, subset_ind=None):
         """
@@ -232,34 +224,83 @@ class Pose:
         model_loader.copy_to_models_dir(model_filepath)
         return model_filepath
 
-    def write_dataframe(self, data, selected_frame_ind=None):
+    def save_data_to_hdf5(self, data, video_id, selected_frame_ind=None):
+        """save_data_to_hdf5: Save data to an HDF5 file
+
+        Args:
+            data (2D-array): Data to save (nframes x nbodyparts x 3)
+            selected_frame_ind (list): Indices of selected frames
+        """
+        # Create a multi-index dict to store data in HDF5 file. First index is the scorer name, second index is the bodypart names, and third index is the coordinates (x, y, likelihood)
         scorer = "Facemap"
         bodyparts = self.bodyparts
-        # Create an empty dataframe
+        data_dict = {}
+        data_dict[scorer] = {}
+        if selected_frame_ind is None:
+            indices = np.arange(self.cumframes[-1])
+        else:
+            indices = selected_frame_ind
         for index, bodypart in enumerate(bodyparts):
-            columnindex = pd.MultiIndex.from_product(
-                [[scorer], [bodypart], ["x", "y", "likelihood"]],
-                names=["scorer", "bodyparts", "coords"],
-            )
-            if selected_frame_ind is None:
-                frame = pd.DataFrame(
-                    np.nan, columns=columnindex, index=np.arange(self.cumframes[-1])
-                )
-            else:
-                frame = pd.DataFrame(
-                    np.nan, columns=columnindex, index=selected_frame_ind
-                )
-            if index == 0:
-                dataFrame = frame
-            else:
-                dataFrame = pd.concat([dataFrame, frame], axis=1)
+            data_dict[scorer][bodypart] = {}
+            data_dict[scorer][bodypart]["x"] = data[:, index, 0][indices]
+            data_dict[scorer][bodypart]["y"] = data[:, index, 1][indices]
+            data_dict[scorer][bodypart]["likelihood"] = data[:, index, 2][indices]
 
-        # Fill dataframe with data
-        dataFrame.iloc[:, ::3] = data[:, :, 0]
-        dataFrame.iloc[:, 1::3] = data[:, :, 1]
-        dataFrame.iloc[:, 2::3] = data[:, :, 2]
+        if self.gui is not None:
+            basename = self.gui.save_path
+            _, filename = os.path.split(self.filenames[0][video_id])
+            videoname, _ = os.path.splitext(filename)
+        else:
+            basename, filename = os.path.split(self.filenames[0][video_id])
+            videoname, _ = os.path.splitext(filename)
 
-        return dataFrame
+        hdf5_filepath = os.path.join(basename, videoname + "_FacemapPose.h5")
+        with h5py.File(hdf5_filepath, "w") as f:
+            self.save_dict_to_hdf5(f, "", data_dict)
+        return hdf5_filepath
+
+    def save_dict_to_hdf5(self, h5file, path, data_dict):
+        """
+        Saves dictionary to an HDF5 file.
+        Calls itself recursively if items in dictionary are not
+        `np.ndarray`, `np.int64`, `np.float64`, `str`, or bytes.
+        Objects must be iterable.
+        Args:
+            h5file: The HDF5 filename object to save the data to.
+                Assume it is open.
+            path: The path to group save the dict under.
+            data_dict: The dict containing data to save.
+        Raises:
+            ValueError: If type for item in dict cannot be saved.
+        Returns:
+            None
+        """
+        for key, item in list(data_dict.items()):
+            if item is None:
+                h5file[path + key] = ""
+            elif isinstance(item, bool):
+                h5file[path + key] = int(item)
+            elif isinstance(item, list):
+                items_encoded = []
+                for it in item:
+                    if isinstance(it, str):
+                        items_encoded.append(it.encode("utf8"))
+                    else:
+                        items_encoded.append(it)
+
+                h5file[path + key] = np.asarray(items_encoded)
+            elif isinstance(item, (str)):
+                h5file[path + key] = item.encode("utf8")
+            elif isinstance(
+                item, (np.ndarray, np.int64, np.float64, str, bytes, float)
+            ):
+                h5file[path + key] = item
+            elif isinstance(item, dict):
+                self.save_dict_to_hdf5(h5file, path + key + "/", item)
+            elif isinstance(item, int):
+                h5file[path + key] = item
+            else:
+                raise ValueError("Cannot save %s type" % type(item))
 
     def predict_landmarks(self, video_id, frame_ind=None):
         """
@@ -390,6 +431,7 @@ class Pose:
         self.gui.is_pose_loaded = True
         self.gui.load_keypoints()
         self.gui.keypoints_checkbox.setChecked(True)
+        self.gui.start()
 
     def set_model(self, model_selected=None):
         if model_selected is None:

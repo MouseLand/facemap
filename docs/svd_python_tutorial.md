@@ -56,7 +56,7 @@ You will be able to see all the videos that were simultaneously collected at onc
 
 ##### Batch processing (python only)
 
-Load a video or a set of videos and draw your ROIs and choose your processing settings. Then click `save ROIs`. This will save a *_proc.npy file in the folder in the specified `save folder`. The name of this proc file will be listed below `process batch` (this button will also activate). You can then repeat this process: load the video(s), draw ROIs, choose settings, and click `save ROIs`. Then to process all the listed *_proc.npy files click `process batch`.
+Load a video or a set of videos and draw your ROIs and choose your processing settings. Then click `save ROIs`. This will save a *_proc.npy file in the output folder. Default output folder is the same folder as the video. Use file menu to change path of the output folder. The name of saved proc file will be listed below `process batch` (this button will also activate). You can then repeat this process: load the video(s), draw ROIs, choose settings, and click `save ROIs`. Then to process all the listed *_proc.npy files click `process batch`.
 
 #### Multivideo SVD ROIs
 

@@ -17,6 +17,28 @@ def video_names():
 
 
 @pytest.fixture(scope="session")
+def bodyparts():
+    BODYPARTS = [
+        "eye(back)",
+        "eye(bottom)",
+        "eye(front)",
+        "eye(top)",
+        "lowerlip",
+        "mouth",
+        "nose(bottom)",
+        "nose(r)",
+        "nose(tip)",
+        "nose(top)",
+        "nosebridge",
+        "paw",
+        "whisker(I)",
+        "whisker(III)",
+        "whisker(II)",
+    ]
+    return BODYPARTS
+
+
+@pytest.fixture(scope="session")
 def data_dir(video_names):
     fm_dir = Path.home().joinpath(".facemap")
     fm_dir.mkdir(exist_ok=True)

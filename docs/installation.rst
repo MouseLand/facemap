@@ -79,7 +79,6 @@ Facemap python relies on these awesome packages:
 - `pytorch`_
 - `matplotlib`_
 - `tqdm`_
-- `pandas`_
 - `UMAP`_
 
 .. _pyqtgraph: http://pyqtgraph.org/
@@ -92,7 +91,6 @@ Facemap python relies on these awesome packages:
 .. _pytorch: https://pytorch.org
 .. _matplotlib: https://matplotlib.org
 .. _tqdm: https://tqdm.github.io
-.. _pandas: https://pandas.pydata.org
 .. _UMAP: https://umap-learn.readthedocs.io/en/latest/
 
 MATLAB package installation
