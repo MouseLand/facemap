@@ -33,7 +33,7 @@ from scipy.stats import skew, zscore
 from facemap import process, roi, utils
 from facemap.gui import cluster, guiparts, help_windows, io, menus
 from facemap.neural_prediction import neural_activity, prediction_utils
-from facemap.pose import datasets, model_loader, pose, pose_gui, refine_pose
+from facemap.pose import model_loader, pose, pose_gui, refine_pose
 
 istr = ["pupil", "motSVD", "blink", "running", "movSVD"]
 
