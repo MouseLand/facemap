@@ -29,6 +29,7 @@ jupyter/__pycache__/
 __pycache__/
 dist/
 .eggs/
+.vscode/
 build/
 FaceMap/ops_user.npy
 *.pth
