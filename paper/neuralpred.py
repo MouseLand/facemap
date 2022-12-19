@@ -41,13 +41,13 @@ def model_complexity(data_path, dbs, n_layers_test=5, device=torch.device("cuda"
 
         # z-score neural activity
         spks -= spks.mean(axis=1)[:, np.newaxis]
-        std = ((spks**2).mean(axis=1) ** 0.5)[:, np.newaxis]
+        std = ((spks ** 2).mean(axis=1) ** 0.5)[:, np.newaxis]
         std[std == 0] = 1
         spks /= std
 
         Y = PCA(n_components=128).fit_transform(spks.T)
         U = spks @ Y
-        U /= (U**2).sum(axis=0) ** 0.5
+        U /= (U ** 2).sum(axis=0) ** 0.5
 
         d = np.load(kp_path0, allow_pickle=True).item()
         xy, keypoint_labels = d["xy"], d["keypoint_labels"]
@@ -272,14 +272,14 @@ def kp_svd_analyses(data_path, dbs, running=False):
 
         # z-score neural activity
         spks -= spks.mean(axis=1)[:, np.newaxis]
-        std = ((spks**2).mean(axis=1) ** 0.5)[:, np.newaxis]
+        std = ((spks ** 2).mean(axis=1) ** 0.5)[:, np.newaxis]
         std[std == 0] = 1
         spks /= std
 
         Y = PCA(n_components=128).fit_transform(spks.T)
         U = spks @ Y
-        sv = (Y**2).sum(axis=0) ** 0.5
-        U /= (U**2).sum(axis=0) ** 0.5
+        sv = (Y ** 2).sum(axis=0) ** 0.5
+        U /= (U ** 2).sum(axis=0) ** 0.5
 
         x_kp = keypoints_utils.get_normalized_keypoints(
             kp_path0, exclude_keypoints="paw", running=run_cam
@@ -426,8 +426,8 @@ def compute_varexp_small(
     if spks_small.shape[0] > nmin:
         Ya = PCA(n_components=128).fit_transform(spks_small.T)
         U = spks_small @ Ya
-        sv = (Ya**2).sum(axis=0) ** 0.5
-        U /= (U**2).sum(axis=0) ** 0.5
+        sv = (Ya ** 2).sum(axis=0) ** 0.5
+        U /= (U ** 2).sum(axis=0) ** 0.5
         Y = spks[ineurons].T @ U if ineurons is not None else spks.T @ U
         Ui = U
         spksi = spks[ineurons] if ineurons is not None else spks
@@ -465,7 +465,7 @@ def compute_varexp_small(
         weight_decay=weight_decay,
         itrain=itrain,
         itest=itest,
-        device=torch.device("cuda"),
+        device=device,
         verbose=verbose,
     )
     Y_pred_tests.append(y_pred_test)
@@ -533,7 +533,7 @@ def varexp_scaling(data_path, dbs, device=torch.device("cuda")):
 
         # z-score neural activity
         spks -= spks.mean(axis=1)[:, np.newaxis]
-        std = ((spks**2).mean(axis=1) ** 0.5)[:, np.newaxis]
+        std = ((spks ** 2).mean(axis=1) ** 0.5)[:, np.newaxis]
         std[std == 0] = 1
         spks /= std
         x_kp = keypoints_utils.get_normalized_keypoints(

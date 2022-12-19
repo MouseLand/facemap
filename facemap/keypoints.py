@@ -129,7 +129,7 @@ def get_gabor_transform(data, freqs=np.geomspace(1, 10, 5)):
             filt0 = np.convolve(zscore(data[:, j]), gw0, mode="same")
             filt1 = np.convolve(zscore(data[:, j]), gw1, mode="same")
             gabor_transform[:, 2 * k, j] = filt0
-            gabor_transform[:, 2 * k + 1, j] = (filt0**2 + filt1**2) ** 0.5
+            gabor_transform[:, 2 * k + 1, j] = (filt0 ** 2 + filt1 ** 2) ** 0.5
     return gabor_transform
 
 

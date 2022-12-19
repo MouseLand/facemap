@@ -45,5 +45,3 @@ def test_pose_estimation_output(data_dir, video_names, bodyparts, expected_outpu
     expected_output = load_keypoints(bodyparts, expected_h5_path)
     match = np.median(np.abs(test_output - expected_output))
     assert match < r_tol
-
-

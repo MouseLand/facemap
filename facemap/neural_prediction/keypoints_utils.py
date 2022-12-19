@@ -3,6 +3,7 @@ from .prediction_utils import resample_data, rrr_prediction
 from .. import keypoints
 import numpy as np
 import os
+import torch
 
 
 def get_normalized_keypoints(keypoints_path, exclude_keypoints=None, running=None):
@@ -45,7 +46,18 @@ def get_normalized_keypoints(keypoints_path, exclude_keypoints=None, running=Non
     return x
 
 
-def rrr_varexp_kps(kp_path, tcam, tneural, Y, U, spks, delay=-1, tbin=4, rank=32):
+def rrr_varexp_kps(
+    kp_path,
+    tcam,
+    tneural,
+    Y,
+    U,
+    spks,
+    delay=-1,
+    tbin=4,
+    rank=32,
+    device=torch.device("cuda"),
+):
     """predict neural PCs with keypoint wavelets Y and compute varexp for PCs and spks"""
     varexp_neurons = np.nan * np.zeros((len(spks), 2))
     xy, keypoint_labels = keypoints.load_keypoints(kp_path, keypoint_labels=None)
@@ -64,7 +76,7 @@ def rrr_varexp_kps(kp_path, tcam, tneural, Y, U, spks, delay=-1, tbin=4, rank=32
         Ys = Y
 
     Y_pred_test, varexp, itest, A, B = rrr_prediction(
-        X_ds, Ys, rank=Y.shape[-1], lam=1e-3, tbin=tbin
+        X_ds, Ys, rank=Y.shape[-1], lam=1e-3, tbin=tbin, device=device
     )[:5]
     # return Y_pred_test at specified rank
     Y_pred_test = X_ds[itest] @ B[:, :rank] @ A[:, :rank].T
@@ -79,4 +91,3 @@ def rrr_varexp_kps(kp_path, tcam, tneural, Y, U, spks, delay=-1, tbin=4, rank=32
     varexp_neurons[:, 1] = compute_varexp(spks_test_bin, spks_pred_test_bin)
 
     return varexp, varexp_neurons, spks_pred_test, itest
-    

@@ -8,6 +8,7 @@ import h5py
 import torch
 from facemap.pose import refine_pose
 
+
 def update_mainwindow_progressbar(MainWindow, GUIobject, s, prompt):
     if MainWindow is not None and GUIobject is not None:
         message = s.getvalue().split("\x1b[A\n\r")[0].split("\r")[-1]
@@ -393,9 +394,9 @@ def gabor_wavelet(sigma, f, ph, n_pts=201, is_torch=False):
     exp = np.exp
     xc = x - x.mean()
     cosine = cos(ph + f * xc)
-    gaussian = exp(-(xc**2) / (2 * sigma**2))
+    gaussian = exp(-(xc ** 2) / (2 * sigma ** 2))
     G = gaussian * cosine
-    G /= (G**2).sum() ** 0.5
+    G /= (G ** 2).sum() ** 0.5
     return G
 
 
@@ -694,7 +695,7 @@ def video_placement(Ly, Lx):
         gridy = 1
         gridx = 2
     else:
-        gridy = int(np.round(Ly.size**0.5 * 0.75))
+        gridy = int(np.round(Ly.size ** 0.5 * 0.75))
         gridx = int(np.ceil(Ly.size / gridy))
     LY = 0
     LX = 0

@@ -221,9 +221,7 @@ class KeypointsNetwork(nn.Module):
                                 if spks[i] is not None
                                 else y_test
                             )
-                            ven = compute_varexp(
-                                spks_test, spks_pred_test
-                            )
+                            ven = compute_varexp(spks_test, spks_pred_test)
                             ve_neurons.append(ven)
                             spks_pred_all.append(spks_pred_test.T)
                 pstr += f"time {time.time()-tic:.1f}s"
@@ -252,9 +250,7 @@ class KeypointsNetwork(nn.Module):
         device=torch.device("cuda"),
     ):
         """compute readout layer with ridge regression"""
-        dsplits = split_data(
-            X, Y, tcam, tneural, delay=delay, device=device
-        )
+        dsplits = split_data(X, Y, tcam, tneural, delay=delay, device=device)
         (
             X_train,
             X_test,
@@ -300,7 +296,7 @@ class KeypointsNetwork(nn.Module):
             )
             y_pred = latents_test @ A
             tl = ((y_pred - Y_test) ** 2).mean()
-            ve = 1 - tl / (Y_test**2).mean()
+            ve = 1 - tl / (Y_test ** 2).mean()
             self.readout.features.linear0.weight.data = (
                 torch.from_numpy(A[:n_latents].T).float().to(device)
             )

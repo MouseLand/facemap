@@ -5,7 +5,6 @@ import h5py
 import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
-import pandas as pd
 import pyqtgraph as pg
 import scipy.io as sio
 from matplotlib import cm
@@ -33,12 +32,14 @@ from scipy.stats import skew, zscore
 
 from facemap import process, roi, utils
 from facemap.gui import cluster, guiparts, help_windows, io, menus
-from facemap.neural_prediction import neural_activity, prediction_utils, keypoints_utils
+from facemap.neural_prediction import neural_activity, prediction_utils
 from facemap.pose import model_loader, pose, pose_gui, refine_pose
+import torch
 
 istr = ["pupil", "motSVD", "blink", "running", "movSVD"]
 
 # TODO: Add pose instructions for CLI commands
+# TODO: Add GPU checkbox to add on GUI
 
 
 class MainW(QtWidgets.QMainWindow):
@@ -543,6 +544,12 @@ class MainW(QtWidgets.QMainWindow):
         if self.ops["fullSVD"]:
             self.multivideo_svd_checkbox.toggle()
         self.process_groupbox.layout().addWidget(self.multivideo_svd_checkbox, 1, 1)
+        # Add a checkbox to check if GPU is enabled
+        self.gpu_checkbox = QCheckBox("GPU")
+        self.gpu_checkbox.setStyleSheet("color: gray;")
+        self.gpu_checkbox.toggled.connect(self.update_gpu)
+        self.gpu_checkbox.toggle()
+        self.process_groupbox.layout().addWidget(self.gpu_checkbox, 1, 2)
 
         # ~~~~~~~~~~~~~~~~~~~~~~~~ Process buttons ~~~~~~~~~~~~~~~~~~~~~~~~
         self.process_buttons_groupbox = QGroupBox("Process buttons:")
@@ -793,6 +800,25 @@ class MainW(QtWidgets.QMainWindow):
 
     def set_saturation_label(self):
         self.saturation_level_label.setText(str(self.saturation_sliders[0].value()))
+
+    def update_gpu(self):
+        """
+        _summary_: Toggle checkbox to use GPU or CPU. If GPU is selected, check if it is available. If not, use CPU instead.
+        """
+        if self.gpu_checkbox.isChecked():
+            self.device = torch.device("cuda")
+            try:
+                _ = torch.zeros([1, 2, 3]).to(self.device)
+                self.gpu_checkbox.setChecked(True)
+                print("** TORCH CUDA version installed and working. **")
+            except:
+                self.gpu_checkbox.setChecked(False)
+                self.device = torch.device("cpu")
+                print("TORCH CUDA version not installed/working. Using CPU version.")
+        else:
+            self.device = torch.device("cpu")
+            self.gpu_checkbox.setChecked(False)
+            print("** Using CPU version. **")
 
     def set_ROI_saturation_label(self, val=None):
         if val is None:
@@ -1377,7 +1403,6 @@ class MainW(QtWidgets.QMainWindow):
         self.pose_x_coord = []
         self.pose_y_coord = []
         self.pose_likelihood = []
-
 
         for video_id in range(len(self.poseFilepath)):
             """
@@ -2568,7 +2593,7 @@ class MainW(QtWidgets.QMainWindow):
                 msg.setWindowTitle("Error")
                 msg.exec_()
                 return
-            #keypoints = keypoints_utils.get_normalized_keypoints(self.poseFilepath[0]) 
+            # keypoints = keypoints_utils.get_normalized_keypoints(self.poseFilepath[0])
             keypoints = utils.get_keypoints_for_neuralpred(self.poseFilepath[0])
             # If the number of timestamps is not equal to the number of frames, then interpolate
             if len(self.behavior_timestamps) != self.nframes:
@@ -2607,10 +2632,15 @@ class MainW(QtWidgets.QMainWindow):
                 weight_decay=float(dialog.weight_decay_line_edit.text()),
                 gui=dialog,
                 GUIobject=QtWidgets,
+                device=self.device,
             )
             # TODO: Use num neurons input provided by the user
             predictions, _ = prediction_utils.get_trained_model_predictions(
-                keypoints, model, self.behavior_timestamps, self.neural_timestamps
+                keypoints,
+                model,
+                self.behavior_timestamps,
+                self.neural_timestamps,
+                device=self.device,
             )
 
             if dialog.neural_pcs_yes_radio_button.isChecked():
@@ -2667,6 +2697,7 @@ class MainW(QtWidgets.QMainWindow):
                 neural_target,
                 tbin=dialog.tbin_spinbox.value(),
                 lam=float(dialog.lambda_line_edit.text()),
+                device=self.device,
             )
             ranks = np.argmax(varexp)
             print(

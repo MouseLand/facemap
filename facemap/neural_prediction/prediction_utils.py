@@ -9,7 +9,6 @@ from scipy.ndimage import gaussian_filter1d
 from sklearn.decomposition import PCA
 from torch.nn.functional import conv1d
 
-from facemap import keypoints
 from facemap.utils import bin1d, split_traintest, compute_varexp
 
 from .neural_model import KeypointsNetwork
@@ -247,7 +246,7 @@ def rrr_prediction(
         corrf[r] = (
             (
                 (Y[itest] * Y_pred_test).mean(axis=0)
-                / (Y_test_var**0.5 * Y_pred_test.std(axis=0))
+                / (Y_test_var ** 0.5 * Y_pred_test.std(axis=0))
             )
             .cpu()
             .numpy()
@@ -350,7 +349,7 @@ def get_neural_pcs(neural_activity, n_comps=128):
         neural PCs of shape [n_comps x time]
     """
     neural_activity -= neural_activity.mean(axis=1)[:, np.newaxis]
-    std = ((neural_activity**2).mean(axis=1) ** 0.5)[:, np.newaxis]
+    std = ((neural_activity ** 2).mean(axis=1) ** 0.5)[:, np.newaxis]
     std = np.where(std == 0, 1, std)  # don't scale when std==0
     neural_activity /= std
     model = PCA(n_components=n_comps, copy=False).fit(neural_activity)
@@ -465,7 +464,7 @@ def get_keypoints_to_neural_varexp(
     )
     if compute_latents:
         latents = get_trained_model_predictions(
-            x, model, behavior_timestamps, neural_timestamps
+            x, model, behavior_timestamps, neural_timestamps, device=device
         )[-1]
     else:
         latents = None
@@ -582,7 +581,7 @@ def peer_prediction(spks, xpos, ypos, dum=400):
         )[:3]
         varexp += varexpk[-1]
         U = spks[ineu] @ Vn[k]
-        U /= (U**2).sum(axis=0) ** 0.5
+        U /= (U ** 2).sum(axis=0) ** 0.5
         spks_pred_test = V_pred_test @ U.T
         spks_test = spks[ineu][:, itest].T
         varexp_neurons[ineu] = compute_varexp(spks_test, spks_pred_test)
@@ -653,7 +652,7 @@ def fit_causal_prediction(
 ):
     """predict X in the future with exponential filters"""
     # fit on train data
-    Xfilt = causal_filter(X_train, swave, tlag)
+    Xfilt = causal_filter(X_train, swave, tlag, device=device)
     Xfilt = Xfilt.reshape(Xfilt.shape[0], -1)
     NT = X_train.shape[1] * X_train.shape[2]
     nff = Xfilt.shape[0]
@@ -662,7 +661,7 @@ def fit_causal_prediction(
     B = torch.linalg.solve(CC, CX)
 
     # performance on test data
-    Xfilt = causal_filter(X_test, swave, tlag, remove_start=True)
+    Xfilt = causal_filter(X_test, swave, tlag, remove_start=True, device=device)
     Xfilt = Xfilt.reshape(Xfilt.shape[0], -1)
     ypred = B.T @ Xfilt
     nt = swave.shape[1]
@@ -673,7 +672,7 @@ def fit_causal_prediction(
 def future_prediction(X, Ball, swave, device=torch.device("cuda")):
     """create future prediction"""
     tlag = Ball.shape[-1]
-    Xfilt = causal_filter(X, swave, tlag, remove_start=True)
+    Xfilt = causal_filter(X, swave, tlag, remove_start=True, device=device)
     vef = np.zeros((X.shape[0], tlag))
     nt = swave.shape[1]
     Xpred = np.zeros((X.shape[0], X.shape[1], X.shape[2] - nt, tlag))
@@ -702,7 +701,7 @@ def predict_future(
     sigs = torch.FloatTensor(2 ** np.arange(0, 8, 1)).unsqueeze(-1)
     swave = torch.exp(-torch.arange(nt) / sigs).to(device)
     swave = torch.flip(swave, [1])
-    swave = swave / (swave**2).sum(1, keepdim=True) ** 0.5
+    swave = swave / (swave ** 2).sum(1, keepdim=True) ** 0.5
 
     tlags = np.arange(1, 501, 1)
     tlags = np.append(tlags, np.arange(525, 2000, 25))
@@ -719,12 +718,14 @@ def predict_future(
     vet = np.zeros((n_kp, n_tlags), "float32")
     Ball = np.zeros((swave.shape[0] * n_kp, n_kp, n_tlags), "float32")
     for k, tlag in enumerate(tlags):
-        ve, ypred, B = fit_causal_prediction(X_train, X_test, swave, tlag=tlag, lam=lam)
+        ve, ypred, B = fit_causal_prediction(
+            X_train, X_test, swave, tlag=tlag, lam=lam, device=device
+        )
         vet[:, k] = ve.cpu().numpy()
         Ball[:, :, k] = B.cpu().numpy()
 
     if get_future:
-        vef, ypred = future_prediction(X_test, Ball[:, :, :500], swave)
+        vef, ypred = future_prediction(X_test, Ball[:, :, :500], swave, device=device)
     else:
         ypred = None
 

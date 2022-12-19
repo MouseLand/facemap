@@ -8,7 +8,6 @@ import torch
 from . import pose_helper_functions as pose_utils
 from . import transforms
 
-DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 """
 Facemap dataset for training the Facemap model. 
 ----------
