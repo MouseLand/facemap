@@ -7,9 +7,8 @@ from torch import nn
 from torch.nn import functional as F
 from tqdm import tqdm
 
-from .. import keypoints, utils
+from ..utils import gabor_wavelet, split_data, compute_varexp
 from ..gui import help_windows
-from . import prediction_utils
 
 
 class KeypointsNetwork(nn.Module):
@@ -116,7 +115,7 @@ class KeypointsNetwork(nn.Module):
         for i, (X, Y, tcam, tneural) in enumerate(
             zip(X_dat, Y_dat, tcam_list, tneural_list)
         ):
-            dsplits = prediction_utils.split_data(
+            dsplits = split_data(
                 X,
                 Y,
                 tcam,
@@ -222,7 +221,7 @@ class KeypointsNetwork(nn.Module):
                                 if spks[i] is not None
                                 else y_test
                             )
-                            ven = prediction_utils.compute_varexp(
+                            ven = compute_varexp(
                                 spks_test, spks_pred_test
                             )
                             ve_neurons.append(ven)
@@ -253,7 +252,7 @@ class KeypointsNetwork(nn.Module):
         device=torch.device("cuda"),
     ):
         """compute readout layer with ridge regression"""
-        dsplits = prediction_utils.split_data(
+        dsplits = split_data(
             X, Y, tcam, tneural, delay=delay, device=device
         )
         (
@@ -311,7 +310,7 @@ class KeypointsNetwork(nn.Module):
 
             spks_pred_test = y_pred @ U.T if spks is not None else y_pred
             spks_test = spks[:, itest.flatten()].T if spks is not None else Y_test
-            ven = prediction_utils.compute_varexp(spks_test, spks_pred_test)
+            ven = compute_varexp(spks_test, spks_pred_test)
 
         return y_pred, ve, spks_pred_test, ven, itest
 
@@ -358,8 +357,8 @@ class Core(nn.Module):
             )
         # initialize filters with gabors
         f = np.geomspace(1, 10, self.n_filt // 2).astype("float32")
-        gw0 = keypoints.gabor_wavelet(1, f[:, np.newaxis], 0, n_pts=kernel_size)
-        gw1 = keypoints.gabor_wavelet(1, f[:, np.newaxis], np.pi / 2, n_pts=kernel_size)
+        gw0 = gabor_wavelet(1, f[:, np.newaxis], 0, n_pts=kernel_size)
+        gw1 = gabor_wavelet(1, f[:, np.newaxis], np.pi / 2, n_pts=kernel_size)
         wav_init = np.vstack((gw0, gw1))
         # compute n_filt wavelet features of each one => n_filt * n_kp features
         self.features.add_module(

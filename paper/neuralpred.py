@@ -12,8 +12,8 @@ from torch import nn
 from torch.nn import functional as F
 
 from facemap import keypoints
-from facemap.neural_prediction import neural_model, prediction_utils
-from facemap.utils import bin1d
+from facemap.neural_prediction import neural_model, prediction_utils, keypoints_utils
+from facemap.utils import bin1d, split_traintest, compute_varexp
 
 sys.path.insert(0, "/github/rastermap/")
 from rastermap import clustering, mapping
@@ -281,7 +281,7 @@ def kp_svd_analyses(data_path, dbs, running=False):
         sv = (Y**2).sum(axis=0) ** 0.5
         U /= (U**2).sum(axis=0) ** 0.5
 
-        x_kp = prediction_utils.get_normalized_keypoints(
+        x_kp = keypoints_utils.get_normalized_keypoints(
             kp_path0, exclude_keypoints="paw", running=run_cam
         )
 
@@ -375,7 +375,7 @@ def kp_svd_analyses(data_path, dbs, running=False):
             )
             clust_test[:, i] = spks_test[iclust].mean(axis=0)
             clust_pred_test[:, i] = spks_pred_test[iclust].mean(axis=0)
-        varexp_clust = prediction_utils.compute_varexp(clust_test, clust_pred_test)
+        varexp_clust = compute_varexp(clust_test, clust_pred_test)
 
         np.savez(
             f"{data_path}proc/neuralpred/{mname}_{datexp}_{blk}_clust_kl_ve.npz",
@@ -496,7 +496,7 @@ def compute_varexp_small(
             if spksi is not None
             else Y[itest.flatten() - delay]
         )
-        ves[:, k + 1] = prediction_utils.compute_varexp(spks_test, spks_pred_test)
+        ves[:, k + 1] = compute_varexp(spks_test, spks_pred_test)
         Y_pred_tests.append(Y_pred_test)
     return ves, Y[itest.flatten() - delay], Y_pred_tests, Ui
 
@@ -536,7 +536,7 @@ def varexp_scaling(data_path, dbs, device=torch.device("cuda")):
         std = ((spks**2).mean(axis=1) ** 0.5)[:, np.newaxis]
         std[std == 0] = 1
         spks /= std
-        x_kp = prediction_utils.get_normalized_keypoints(
+        x_kp = keypoints_utils.get_normalized_keypoints(
             kp_path0, exclude_keypoints="paw"
         )
 
@@ -553,7 +553,7 @@ def varexp_scaling(data_path, dbs, device=torch.device("cuda")):
         nmin = 200
 
         # fit full model once
-        itrain, itest = prediction_utils.split_traintest(len(tneural) - 1)
+        itrain, itest = split_traintest(len(tneural) - 1)
         vefull = compute_varexp_small(
             spks, x_kp, svds, tcam, tneural, nmin, delay, device, itrain, itest
         )[0]
