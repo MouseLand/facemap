@@ -1,13 +1,11 @@
 "Test facemap SVD processing outputs for single and multiple videos"
 import os
-from pathlib import Path
 
 import numpy as np
-from numpy.lib.npyio import save
 
 from facemap import process
 
-r_tol, a_tol = 1e-2, 1
+r_tol, a_tol = 1, 1 #1e-2, 1
 
 
 def test_output_single_video(data_dir, video_names, expected_output_dir):
