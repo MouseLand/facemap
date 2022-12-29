@@ -1,2 +1,0 @@
-[console_scripts]
-facemap = facemap.__main__:main
