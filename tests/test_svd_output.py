@@ -130,6 +130,10 @@ def check_U(test_output, expected_output):
         rtol=r_tol,
         atol=a_tol,
     )
+    print("motionMask", motionMask)
+    print("movieMask", movieMask)
+    print("motionMask_reshape", motionMask_reshape)
+    print("movMask_reshape", movMask_reshape)                                               
     return motionMask and movieMask and motionMask_reshape and movMask_reshape
 
 
