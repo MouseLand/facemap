@@ -28,7 +28,8 @@ jupyter/__pycache__/
 .ipynb_checkpoints/
 __pycache__/
 dist/
-suite2p.egg-info/
+.eggs/
+.vscode/
 build/
 FaceMap/ops_user.npy
 *.pth

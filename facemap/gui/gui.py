@@ -33,11 +33,13 @@ from scipy.stats import skew, zscore
 from facemap import process, roi, utils
 from facemap.gui import cluster, guiparts, help_windows, io, menus
 from facemap.neural_prediction import neural_activity, prediction_utils
-from facemap.pose import datasets, model_loader, pose, pose_gui, refine_pose
+from facemap.pose import model_loader, pose, pose_gui, refine_pose
+import torch
 
 istr = ["pupil", "motSVD", "blink", "running", "movSVD"]
 
 # TODO: Add pose instructions for CLI commands
+# TODO: Add GPU checkbox to add on GUI
 
 
 class MainW(QtWidgets.QMainWindow):
@@ -542,6 +544,12 @@ class MainW(QtWidgets.QMainWindow):
         if self.ops["fullSVD"]:
             self.multivideo_svd_checkbox.toggle()
         self.process_groupbox.layout().addWidget(self.multivideo_svd_checkbox, 1, 1)
+        # Add a checkbox to check if GPU is enabled
+        self.gpu_checkbox = QCheckBox("GPU")
+        self.gpu_checkbox.setStyleSheet("color: gray;")
+        self.gpu_checkbox.toggled.connect(self.update_gpu)
+        self.gpu_checkbox.toggle()
+        self.process_groupbox.layout().addWidget(self.gpu_checkbox, 1, 2)
 
         # ~~~~~~~~~~~~~~~~~~~~~~~~ Process buttons ~~~~~~~~~~~~~~~~~~~~~~~~
         self.process_buttons_groupbox = QGroupBox("Process buttons:")
@@ -792,6 +800,25 @@ class MainW(QtWidgets.QMainWindow):
 
     def set_saturation_label(self):
         self.saturation_level_label.setText(str(self.saturation_sliders[0].value()))
+
+    def update_gpu(self):
+        """
+        _summary_: Toggle checkbox to use GPU or CPU. If GPU is selected, check if it is available. If not, use CPU instead.
+        """
+        if self.gpu_checkbox.isChecked():
+            self.device = torch.device("cuda")
+            try:
+                _ = torch.zeros([1, 2, 3]).to(self.device)
+                self.gpu_checkbox.setChecked(True)
+                print("** TORCH CUDA version installed and working. **")
+            except:
+                self.gpu_checkbox.setChecked(False)
+                self.device = torch.device("cpu")
+                print("TORCH CUDA version not installed/working. Using CPU version.")
+        else:
+            self.device = torch.device("cpu")
+            self.gpu_checkbox.setChecked(False)
+            print("** Using CPU version. **")
 
     def set_ROI_saturation_label(self, val=None):
         if val is None:
@@ -1371,11 +1398,60 @@ class MainW(QtWidgets.QMainWindow):
         """
         Load keypoints from h5py file using h5py
         """
+        # Read Pose file
         self.keypoints_labels = []
         self.pose_x_coord = []
         self.pose_y_coord = []
         self.pose_likelihood = []
+
         for video_id in range(len(self.poseFilepath)):
+            """
+            try:
+                print("Using old method to load keypoints")
+                print("Loading keypoints:", self.poseFilepath[video_id])
+                pose_data = pd.read_hdf(self.poseFilepath[video_id], "df_with_missing")
+                # Append pose data to list for each video_id
+                self.keypoints_labels.append(
+                    pd.unique(pose_data.columns.get_level_values("bodyparts"))
+                )
+
+                self.pose_x_coord.append(
+                    pose_data.T[
+                        pose_data.columns.get_level_values("coords").values == "x"
+                    ].values
+                )  # size: key points x frames
+                self.pose_y_coord.append(
+                    pose_data.T[
+                        pose_data.columns.get_level_values("coords").values == "y"
+                    ].values
+                )  # size: key points x frames
+                self.pose_likelihood.append(
+                    pose_data.T[
+                        pose_data.columns.get_level_values("coords").values == "likelihood"
+                    ].values
+                )  # size: key points x frames
+                # Choose colors for each label: provide option for paltter that is color-blindness friendly
+                colors = cm.get_cmap("jet")(
+                    np.linspace(0, 1.0, len(self.keypoints_labels[video_id]))
+                )
+                colors *= 255
+                colors = colors.astype(int)
+                self.keypoints_brushes.append(
+                    np.array([pg.mkBrush(color=c) for c in colors])
+                )
+                self.is_pose_loaded = True
+                self.keypoints_checkbox.setChecked(True)
+                self.plot_trace(
+                    wplot=1,
+                    proctype=5,
+                    wroi=None,
+                    color=None,
+                    keypoints_group_selected=["Eye"],
+                )
+
+            except Exception as e:
+            print("Using new method to load keypoints")
+            """
             print("Loading keypoints:", self.poseFilepath[video_id])
             pose_data = h5py.File(self.poseFilepath[video_id], "r")["Facemap"]
             bodyparts = np.array([])
@@ -1392,13 +1468,13 @@ class MainW(QtWidgets.QMainWindow):
             self.keypoints_labels.append(bodyparts)
             self.pose_x_coord = np.array(
                 [self.pose_x_coord]
-            )  # size: key points x frames
+            )  # size: keypoints x frames
             self.pose_y_coord = np.array(
                 [self.pose_y_coord]
-            )  # size: key points x frames
+            )  # size: keypoints x frames
             self.pose_likelihood = np.array(
                 [self.pose_likelihood]
-            )  # size: key points x frames
+            )  # size: keypoints x frames
             # TODO: Choose colors for each label: provide option for palette that is color-blind friendly
             colors = cm.get_cmap("jet")(
                 np.linspace(0, 1.0, len(self.keypoints_labels[video_id]))
@@ -2517,7 +2593,8 @@ class MainW(QtWidgets.QMainWindow):
                 msg.setWindowTitle("Error")
                 msg.exec_()
                 return
-            keypoints = prediction_utils.get_normalized_keypoints(self.poseFilepath[0])
+            # keypoints = keypoints_utils.get_normalized_keypoints(self.poseFilepath[0])
+            keypoints = utils.get_keypoints_for_neuralpred(self.poseFilepath[0])
             # If the number of timestamps is not equal to the number of frames, then interpolate
             if len(self.behavior_timestamps) != self.nframes:
                 keypoints = keypoints[
@@ -2534,6 +2611,8 @@ class MainW(QtWidgets.QMainWindow):
                 print("Vt shape: ", Vt.shape)
             else:
                 neural_target = self.neural_activity.data.T.copy()
+            print("Neural target shape: ", neural_target.shape)
+            print("Keypoints shape: ", keypoints.shape)
             (
                 varexp,
                 varexp_neurons,
@@ -2553,10 +2632,15 @@ class MainW(QtWidgets.QMainWindow):
                 weight_decay=float(dialog.weight_decay_line_edit.text()),
                 gui=dialog,
                 GUIobject=QtWidgets,
+                device=self.device,
             )
             # TODO: Use num neurons input provided by the user
             predictions, _ = prediction_utils.get_trained_model_predictions(
-                keypoints, model, self.behavior_timestamps, self.neural_timestamps
+                keypoints,
+                model,
+                self.behavior_timestamps,
+                self.neural_timestamps,
+                device=self.device,
             )
 
             if dialog.neural_pcs_yes_radio_button.isChecked():
@@ -2613,6 +2697,7 @@ class MainW(QtWidgets.QMainWindow):
                 neural_target,
                 tbin=dialog.tbin_spinbox.value(),
                 lam=float(dialog.lambda_line_edit.text()),
+                device=self.device,
             )
             ranks = np.argmax(varexp)
             print(

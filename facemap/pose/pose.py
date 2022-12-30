@@ -47,7 +47,10 @@ class Pose:
         )
         self.nframes = self.cumframes[-1]
         self.pose_labels = None
-        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        if gui is not None:
+            self.device = self.gui.device
+        else:
+            self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.bbox = bbox
         self.bbox_set = bbox_set
         self.resize = resize
@@ -329,9 +332,6 @@ class Pose:
         print("resize:", self.resize)
         print("padding:", self.add_padding)
         print("Batch size:", self.batch_size)
-        print("cumframes:", self.cumframes)
-        print("containers", self.containers)
-        print("video_id", video_id)
         # FIXME: Plotting keypoints after batch processing is not working properly
         progress_output = StringIO()
         with tqdm(
@@ -457,10 +457,7 @@ class Pose:
         Load pre-trained model for keypoints prediction
         """
         model_params_file = model_loader.get_model_params_path()
-        if torch.cuda.is_available():
-            print("Using cuda as device")
-        else:
-            print("Using cpu as device")
+        print("Using {} as device".format(self.device))
         print("Using model parameters from:", model_params_file)
         utils.update_mainwindow_message(
             MainWindow=self.gui,

@@ -5,7 +5,7 @@ from rastermap import sorting
 from scipy.stats import wilcoxon, zscore
 
 from facemap.neural_prediction import prediction_utils
-from facemap.utils import bin1d
+from facemap.utils import bin1d, compute_varexp
 
 yratio = 12 / 7.8
 colors = [[0.5, 0.5, 0.5], [0.75, 0.75, 0.25], [0.9, 0.6, 0.25]]
@@ -70,7 +70,7 @@ def panels_varexp(
                         f"{data_path}/proc/neuralpred/{mstr}_svd_pred_test.npz"
                     )["spks_pred_test"][1 - j]
                 spks_pred_test_bin = bin1d(spks_pred_test, bin_size, axis=0)
-                ve_binned[iexp, j] = prediction_utils.compute_varexp(
+                ve_binned[iexp, j] = compute_varexp(
                     spks_test_bin, spks_pred_test_bin
                 ).mean()
 

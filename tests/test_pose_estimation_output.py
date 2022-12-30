@@ -1,7 +1,7 @@
 "Test Facemap's pose estimation output "
 import os
 
-import h5py
+from facemap.utils import load_keypoints
 import numpy as np
 
 from facemap.pose import pose
@@ -45,29 +45,3 @@ def test_pose_estimation_output(data_dir, video_names, bodyparts, expected_outpu
     expected_output = load_keypoints(bodyparts, expected_h5_path)
     match = np.median(np.abs(test_output - expected_output))
     assert match < r_tol
-
-
-def load_keypoints(bodyparts, h5_path):
-    """Load keypoints using h5py
-
-    Args:
-        h5_path (hdf filepath): Path to hdf file containing keypoints
-    """
-    pose_x_coord = []
-    pose_y_coord = []
-    pose_likelihood = []
-    pose_data = h5py.File(h5_path, "r")["Facemap"]
-    for bodypart in bodyparts:  # Load bodyparts in the same order as in FacemapDataset
-        pose_x_coord.append(pose_data[bodypart]["x"][:])
-        pose_y_coord.append(pose_data[bodypart]["y"][:])
-        pose_likelihood.append(pose_data[bodypart]["likelihood"][:])
-
-    pose_x_coord = np.array([pose_x_coord])  # size: key points x frames
-    pose_y_coord = np.array([pose_y_coord])  # size: key points x frames
-    pose_likelihood = np.array([pose_likelihood])  # size: key points x frames
-
-    pose_data = np.concatenate(
-        (pose_x_coord, pose_y_coord, pose_likelihood), axis=0
-    )  # size: 3 x key points x frames
-
-    return pose_data

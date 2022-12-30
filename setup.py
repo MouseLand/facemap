@@ -10,7 +10,6 @@ install_deps = [
     "torch>=1.9",
     "h5py",
     "scikit-learn",
-    "tables==3.6.1",
 ]
 docs_deps = [
     "sphinx>=3.0",

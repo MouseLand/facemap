@@ -3,13 +3,11 @@ from glob import glob
 
 import cv2
 import numpy as np
-import pandas as pd
 import torch
 
 from . import pose_helper_functions as pose_utils
 from . import transforms
 
-DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 """
 Facemap dataset for training the Facemap model. 
 ----------
@@ -50,8 +48,8 @@ class FacemapDataset(torch.utils.data.Dataset):
             "nose(top)",
             "nosebridge",
             "paw",
-            "whisker(I)"  # "whisker(c1)",
-            "whisker(III)"  # "whisker(c2)",  # "whisker(d2)",
+            "whisker(I)",  # "whisker(c1)",
+            "whisker(III)",  # "whisker(c2)",  # "whisker(d2)",
             "whisker(II)",  # "whisker(d1)",
         ]
         # Set image and keypoints data
@@ -61,9 +59,9 @@ class FacemapDataset(torch.utils.data.Dataset):
                 self.keypoints = None
             else:
                 self.keypoints = torch.from_numpy(keypoints_data)
-        else:
+        else:  # Load data from directory - not used for GUI
             self.images = self.load_images()
-            self.keypoints = self.load_keypoints_h5()
+            # self.keypoints = self.load_keypoints_h5()
         if self.keypoints is not None:
             self.num_keypoints = self.keypoints.shape[1]
         self.num_images = self.__len__()
@@ -221,8 +219,9 @@ class FacemapDataset(torch.utils.data.Dataset):
 
         return imgs
 
+    """
     def load_keypoints_h5(self):
-        """
+        """ """
         Load landmarks/keypoints from the directory provided containing .h5 files.
         Returns
         -------
@@ -236,7 +235,7 @@ class FacemapDataset(torch.utils.data.Dataset):
                     x-coordinate of the landmark.
                 y-coord: float
                     y-coordinate of the landmark.
-        """
+        """ """
         # Landmarks/key points info
         annotation_files = sorted(
             glob(os.path.join(self.datadir, "CollectedData_{}.h5".format(self.scorer)))
@@ -264,6 +263,7 @@ class FacemapDataset(torch.utils.data.Dataset):
         # Convert to tensor
         landmarks = torch.from_numpy(landmarks)
         return landmarks
+    """
 
     def estimate_bbox_from_keypoints(self):
         """
@@ -284,6 +284,7 @@ class FacemapDataset(torch.utils.data.Dataset):
         bbox = torch.from_numpy(np.array(bbox))
         return bbox
 
+    """
     def fix_labels(self, df, scorer):
         # Change scorer label to All
         df = df.rename(columns=dict(zip(df.columns.levels[0], [scorer])), level=0)
@@ -335,3 +336,4 @@ class FacemapDataset(torch.utils.data.Dataset):
                 df = df.drop(columns=[adjusted_label], level=1)
             df = df[sorted(df)]
         return df
+    """
