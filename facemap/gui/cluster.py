@@ -736,8 +736,12 @@ class Cluster:
         cumframes, Ly, Lx, capture = utils.get_frame_details(parent.filenames)
         capture = capture[0][0]
         num_clusters = len(np.unique(self.cluster_labels))
-        filename, ext = parent.filenames[0][0].split(".")
-        filename = filename.split("/")[-1]  # Use video filename
+        filename, ext = os.path.splitext(
+            parent.filenames[0][0]
+        )  # parent.filenames[0][0].split(".")
+        filename = os.path.basename(
+            filename
+        )  # filename.split("/")[-1]  # Use video filename
 
         # Create 2D list of random frames selected from each cluster
         cluster_frames_2D_list = np.zeros((num_clusters, num_frames_gif))

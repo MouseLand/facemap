@@ -7,6 +7,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pyqtgraph as pg
 import scipy.io as sio
+from pathlib import Path
 from matplotlib import cm
 from PyQt5 import QtCore, QtWidgets
 from PyQt5.QtGui import QFont, QIcon, QPainterPath
@@ -793,7 +794,7 @@ class MainW(QtWidgets.QMainWindow):
         models = model_loader.get_model_states_paths()
         models.append(model_loader.get_basemodel_state_path())
         for m in models:
-            model_name = m.split("/")[-1].split(".")[0]
+            model_name = Path(m).stem  # m.split("/")[-1].split(".")[0]
             if model_name == "facemap_model_state":
                 continue
             self.pose_model_combobox.addItem(model_name)
