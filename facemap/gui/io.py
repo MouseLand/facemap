@@ -179,7 +179,7 @@ def open_proc(parent, file_name=None):
                     if "pupil_sigma" in roi:
                         psig = roi["pupil_sigma"]
                         parent.pupil_sigma = psig
-                        parent.sigmaBox.setText(str(roi["pupil_sigma"]))
+                        parent.sigma_box.setText(str(roi["pupil_sigma"]))
                     else:
                         psig = None
                     parent.ROIs.append(
@@ -484,8 +484,12 @@ def load_trace_data(parent):
 
 
 def save_clustering_output(output, parent):
-    filename, ext = parent.filenames[0][0].split(".")
-    filename = filename.split("/")[-1]  # Use video filename
+    filename, ext = os.path.splitext(
+        parent.filenames[0][0]
+    )  # parent.filenames[0][0].split(".")
+    filename = os.path.basename(
+        filename
+    )  # filename.split("/")[-1]  # Use video filename
     savename = os.path.join(parent.save_path, ("%s_facemap_clusters.npy" % filename))
     np.save(savename, output)
     parent.update_status_bar("Clustering output saved: " + savename)
