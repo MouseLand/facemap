@@ -164,44 +164,44 @@ def open_proc(parent, file_name=None):
             # whether or not you can move the ROIs
             moveable = not parent.processed
             if proc["rois"] is not None:
-                for roi in proc["rois"]:
-                    dy = roi["yrange"][-1] - roi["yrange"][0]
-                    dx = roi["xrange"][-1] - roi["xrange"][0]
+                for r in proc["rois"]:
+                    dy = r["yrange"][-1] - r["yrange"][0]
+                    dx = r["xrange"][-1] - r["xrange"][0]
                     pos = [
-                        roi["yrange"][0] + parent.sy[roi["ivid"]],
-                        roi["xrange"][0] + parent.sx[roi["ivid"]],
+                        r["yrange"][0] + parent.sy[r["ivid"]],
+                        r["xrange"][0] + parent.sx[r["ivid"]],
                         dy,
                         dx,
                     ]
-                    parent.saturation.append(roi["saturation"])
+                    parent.saturation.append(r["saturation"])
                     parent.rROI.append([])
                     parent.reflectors.append([])
-                    if "pupil_sigma" in roi:
-                        psig = roi["pupil_sigma"]
+                    if "pupil_sigma" in r:
+                        psig = r["pupil_sigma"]
                         parent.pupil_sigma = psig
-                        parent.sigma_box.setText(str(roi["pupil_sigma"]))
+                        parent.sigma_box.setText(str(r["pupil_sigma"]))
                     else:
                         psig = None
                     parent.ROIs.append(
                         roi.sROI(
-                            rind=roi["rind"],
-                            rtype=roi["rtype"],
-                            iROI=roi["iROI"],
-                            color=roi["color"],
+                            rind=r["rind"],
+                            rtype=r["rtype"],
+                            iROI=r["iROI"],
+                            color=r["color"],
                             moveable=moveable,
                             parent=parent,
-                            saturation=roi["saturation"],
+                            saturation=r["saturation"],
                             pupil_sigma=psig,
-                            yrange=roi["yrange"],
-                            xrange=roi["xrange"],
+                            yrange=r["yrange"],
+                            xrange=r["xrange"],
                             pos=pos,
-                            ivid=roi["ivid"],
+                            ivid=r["ivid"],
                         )
                     )
                     parent.ROIs[-1].position(parent)
 
-                    if "reflector" in roi:
-                        for i, reflector_roi in enumerate(roi["reflector"]):
+                    if "reflector" in r:
+                        for i, reflector_roi in enumerate(r["reflector"]):
                             pos = [
                                 reflector_roi["yrange"][0],
                                 reflector_roi["xrange"][0],
@@ -212,7 +212,7 @@ def open_proc(parent, file_name=None):
                             ]
                             parent.rROI[-1].append(
                                 roi.reflectROI(
-                                    iROI=roi["iROI"],
+                                    iROI=r["iROI"],
                                     wROI=i,
                                     pos=pos,
                                     parent=parent,
@@ -225,30 +225,30 @@ def open_proc(parent, file_name=None):
                         parent.iROI = k - 1
                     else:
                         parent.iROI = k
-                    parent.ROIs[-1].ellipse = roi["ellipse"]
+                    parent.ROIs[-1].ellipse = r["ellipse"]
                     parent.saturation_sliders[1].setValue(
                         int(parent.saturation[parent.iROI] * 100 / 255)
                     )
                     parent.ROIs[parent.iROI].plot(parent)
                     if parent.processed and k < 5:
                         parent.plot2_checkboxes[k].setText(
-                            "%s%d" % (parent.typestr[roi["rind"]], kt[roi["rind"]])
+                            "%s%d" % (parent.typestr[r["rind"]], kt[r["rind"]])
                         )
                         parent.lbls[k].setText(
-                            "%s%d" % (parent.typestr[roi["rind"]], kt[roi["rind"]])
+                            "%s%d" % (parent.typestr[r["rind"]], kt[r["rind"]])
                         )
                         parent.lbls[k].setStyleSheet(
                             "color: rgb(%s,%s,%s);"
                             % (
-                                str(int(roi["color"][0])),
-                                str(int(roi["color"][1])),
-                                str(int(roi["color"][2])),
+                                str(int(r["color"][0])),
+                                str(int(r["color"][1])),
+                                str(int(r["color"][2])),
                             )
                         )
-                        parent.wroi[k] = kt[roi["rind"]]
-                        kt[roi["rind"]] += 1
-                        parent.proctype[k] = roi["rind"] + 1
-                        parent.col.append(roi["color"])
+                        parent.wroi[k] = kt[r["rind"]]
+                        kt[r["rind"]] += 1
+                        parent.proctype[k] = r["rind"] + 1
+                        parent.col.append(r["color"])
                     k += 1
             parent.kroi = k
 
