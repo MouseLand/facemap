@@ -22,6 +22,29 @@ Currently supports single video processing, whereas multi-view videos recorded s
 
 
 class Pose:
+    """_summary_: Pose estimation class for single video processing
+
+    Parameters
+    ----------
+    filenames: list
+        List of filenames to be processed 
+    bbox: list
+        Bounding box for the video [x1, x2, y1, y2]
+    bbox_set: bool
+        Flag to indicate if the bounding box has been set
+    resize: bool
+        Flag to indicate if the video needs to be resized
+    add_padding: bool
+        Flag to indicate if the video needs to be padded
+    gui: object
+        GUI object
+    GUIobject: object
+        GUI object
+    net: object
+        PyTorch model object
+    model_name: str
+        Name of the model to be used for pose estimation. Default is None which uses the default model
+    """
     def __init__(
         self,
         filenames=None,

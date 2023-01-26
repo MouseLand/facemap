@@ -8,3 +8,9 @@ This is an example file with default values.
     :caption: Basics:
 
     installation
+
+
+.. toctree::
+   :caption: API Reference:
+
+   api
