@@ -394,12 +394,48 @@ def adjust_keypoints(xlabels, ylabels, crop_xy, padding, current_size, desired_s
 
 
 def rescale_keypoints(xlabels, ylabels, current_size, desired_size):
+    """
+    Rescale keypoints to original image size
+    Parameters
+    -------------
+    xlabels: ND-array
+        x coordinates of keypoints
+    ylabels: ND-array
+        y coordinates of keypoints
+    current_size: tuple of size (2,)
+        current size of image (h,w)
+    desired_size: tuple of size (2,)
+        desired size of image (h,w)
+    Returns
+    --------------
+    xlabels: ND-array
+        x coordinates of keypoints
+    ylabels: ND-array
+        y coordinates of keypoints
+    """
     xlabels *= desired_size[1] / current_size[1]  # x_scale
     ylabels *= desired_size[0] / current_size[0]  # y_scale
     return xlabels, ylabels
 
 
 def adjust_keypoints_for_padding(xlabels, ylabels, pads):
+    """
+    Adjust keypoints for padding. Adds padding to the top and left of the image only.
+    Parameters
+    -------------
+    xlabels: ND-array
+        x coordinates of keypoints
+    ylabels: ND-array
+        y coordinates of keypoints
+    pads: tuple of size (4,)
+        padding values for bounding box (y1,y2,x1,x2)
+    Returns
+    --------------
+    xlabels: ND-array
+        x coordinates of keypoints after padding
+    ylabels: ND-array
+        y coordinates of keypoints after padding
+    """
     pad_y_top, pad_y_bottom, pad_x_left, pad_x_right = pads
     xlabels -= pad_y_top
     ylabels -= pad_x_left
@@ -502,7 +538,7 @@ def augment_data(
         theta = np.random.rand() * rotation_range - rotation_range / 2
         print("rotating by {}".format(theta))
         image = ndimage.rotate(image, theta, axes=(-2, -1), reshape=True)
-        keypoints = rotate_points(keypoints, theta)
+        keypoints = rotate_points(keypoints, theta)  # TODO: Add rotation function
     if flip and np.random.rand() > 0.5:
         keypoints[:, 0] = 256 - keypoints[:, 0]
         image = ndimage.rotate(image, 180, axes=(-1, 0), reshape=True)
