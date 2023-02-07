@@ -8,3 +8,12 @@ This is an example file with default values.
     :caption: Basics:
 
     installation
+    pose_tracking_gui_tutorial
+    neural_activity_prediction_tutorial
+
+
+.. toctree::
+   :caption: API Reference:
+
+   api
+   

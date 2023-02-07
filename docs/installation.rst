@@ -30,7 +30,7 @@ or the following for using GUI:
     pip install facemap[gui]
 
 
-To upgrade Facemap (package [here](https://pypi.org/project/facemap/)), within the environment run:
+To upgrade Facemap package (https://pypi.org/project/facemap/), within the environment run:
 ::
 
     pip install facemap --upgrade

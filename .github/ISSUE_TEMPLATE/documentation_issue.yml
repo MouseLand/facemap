@@ -1,0 +1,20 @@
+name: Documentation
+description: Report an issue related to facemap's documentation.
+title: "DOC: <Enter comprehensive title here>"
+
+body:
+- type: textarea
+  attributes: 
+    label: "Issue with current documentation:"
+    description: >
+      Please make sure to leave a reference to the document/code you're
+      referring to. Please report where in https://facemap.readthedocs.io/ you see this issue. 
+  validations:
+    required: true
+
+- type: textarea
+  attributes:
+    label: "Idea or request for content:"
+    description: >
+      Please describe as clearly as possible what topics you think are missing
+      from the current documentation.

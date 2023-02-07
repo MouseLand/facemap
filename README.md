@@ -13,6 +13,8 @@ Facemap is a framework for predicting neural activity from mouse orofacial movem
 
 To learn about Facemap, read the [paper](https://www.biorxiv.org/content/10.1101/2022.11.03.515121v1) or check out the tweet [thread](https://twitter.com/Atika_Ibrahim/status/1588885329951367168?s=20&t=AhE3vBTnCvW36QiTyhu0qQ). For support, please open an [issue](https://github.com/MouseLand/facemap/issues).
 
+- For latest released version (from PyPI) including svd processing only, run `pip install facemap` for headless version or `pip install facemap[gui]` for using GUI. Note: `pip install facemap` not yet available for latest tracker and neural model, instead install with `pip install git+https://github.com/mouseland/facemap.git`
+
 ### CITATION
 
 **If you use Facemap, please cite the Facemap [paper](https://www.biorxiv.org/content/10.1101/2022.11.03.515121v1):**  
