@@ -1,0 +1,35 @@
+name: Bug report
+description: Report a bug.
+title: "BUG: <Enter comprehensive title here>"
+
+body:
+- type: markdown
+  attributes:
+    value: >
+      Thank you for taking the time to file a bug report. Before creating a new
+      issue, please make sure to take a few minutes to check if this issue has been 
+      brought up before.
+
+- type: textarea
+  attributes:
+    label: "Version information:"
+    description: >
+      Output printed in your command line after running `python -m facemap`.
+  validations:
+    required: true
+
+- type: textarea
+  attributes: 
+    label: "Describe the issue:"
+  validations:
+    required: true
+
+- type: textarea
+  attributes:
+    label: "Error message:"
+    description: >
+      Please include full error message, if any.
+    placeholder: |
+      << Full traceback starting from `Traceback: ...` >>
+    render: shell
+
