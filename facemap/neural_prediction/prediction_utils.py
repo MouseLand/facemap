@@ -200,7 +200,7 @@ def rrr_prediction(
     itest: 1D int array (optional, default None)
         times in test set
 
-    tbin: int (optional, default 0)
+    tbin: int (optional, default None)
         also compute variance explained in bins of tbin
 
     Returns
@@ -254,7 +254,7 @@ def rrr_prediction(
         residual = ((Y[itest] - Y_pred_test) ** 2).mean(axis=0)
         varexpf[r] = (1 - residual / Y_test_var).cpu().numpy()
         varexp[r, 0] = (1 - residual.mean() / Y_test_var.mean()).cpu().numpy()
-        if tbin != 0 and tbin > 1:
+        if tbin is not None and tbin > 1:
             varexp[r, 1] = (
                 compute_varexp(
                     bin1d(Y[itest], tbin).flatten(), bin1d(Y_pred_test, tbin).flatten()
