@@ -3,7 +3,14 @@ import os
 import cv2
 import numpy as np
 import pyqtgraph as pg
-import umap
+try:
+    import umap
+    UMAP_INSTALLED = True 
+except:
+    UMAP_INSTALLED = False
+
+# todo: use opentsne for embedding
+TSNE_INSTALLED = True 
 
 # import hdbscan
 from matplotlib import cm
@@ -199,9 +206,9 @@ class Cluster:
             parent.run_clustering_button.show()
 
         embed_method = parent.roi_embed_combobox.currentText()  ######
-        if embed_method == "UMAP":
+        if embed_method == "UMAP" and UMAP_INSTALLED:
             self.show_umap_param(parent)
-        elif embed_method == "tSNE":
+        elif embed_method == "tSNE" and TSNE_INSTALLED:
             self.hide_umap_param(parent)
             self.show_tsne_options(parent)
         else:

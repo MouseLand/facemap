@@ -198,6 +198,7 @@ def open_proc(parent, file_name=None):
                             ivid=r["ivid"],
                         )
                     )
+                    parent.update_ROI_vis_comboBox()
                     parent.ROIs[-1].position(parent)
 
                     if "reflector" in r:

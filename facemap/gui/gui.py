@@ -1824,7 +1824,6 @@ class MainW(QtWidgets.QMainWindow):
                 pen=pg.mkPen(color=(255, 255, 255), width=2, movable=True),
             )
             self.svd_traces_plot.addItem(self.svd_plot_vtick)
-            print("Added vtick")
         self.svd_traces_plot.setRange(xRange=(0, self.nframes))
         self.svd_traces_plot.setLimits(xMin=0, xMax=self.nframes)
         self.svd_traces_plot.show()
