@@ -147,7 +147,7 @@ def reduced_rank_regression(X, Y, rank=None, lam=0, device=torch.device("cuda"))
 
     # compute inverse square root of matrix
     # s, u = eigh(CXX.cpu().numpy())
-    u, s = torch.svd(CXX)[:2]
+    u, s = torch.svd_lowrank(CXX, q=rank)[:2]
     CXXMH = (u * (s + lam) ** -0.5) @ u.T
 
     # project into prediction space
@@ -156,7 +156,7 @@ def reduced_rank_regression(X, Y, rank=None, lam=0, device=torch.device("cuda"))
     # model = PCA(n_components=rank).fit(M)
     # c = model.components_.T
     # s = model.singular_values_
-    s, c = torch.svd(M)[1:]
+    s, c = torch.svd_lowrank(M, q=rank)[1:]
     A = M @ c
     B = CXXMH @ c
     return A, B
@@ -226,8 +226,8 @@ def rrr_prediction(
     if itrain is None and itest is None:
         itrain, itest = split_traintest(n_t)
     itrain, itest = itrain.flatten(), itest.flatten()
-    X = torch.from_numpy(X).to(device, dtype=torch.float64)
-    Y = torch.from_numpy(Y).to(device, dtype=torch.float64)
+    X = torch.from_numpy(X).to(device)
+    Y = torch.from_numpy(Y).to(device)
     A, B = reduced_rank_regression(
         X[itrain], Y[itrain], rank=rank, lam=lam, device=device
     )
