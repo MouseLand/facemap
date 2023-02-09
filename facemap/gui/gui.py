@@ -54,6 +54,7 @@ class MainW(QtWidgets.QMainWindow):
         tneural_activity_file=None,
         tbehavior_file=None,
         autoload_keypoints=True,
+        autoload_proc=True,
     ):
         super(MainW, self).__init__()
         icon_path = os.path.join(
@@ -3235,6 +3236,7 @@ def run(
     tneural_activity_file=None,
     tbehavior_file=None,
     autoload_keypoints=True,
+    autoload_proc=True,
 ):
     # Always start by initializing Qt (only once per application)
     app = QtWidgets.QApplication(sys.argv)
@@ -3258,6 +3260,7 @@ def run(
         tneural_activity_file,
         tbehavior_file,
         autoload_keypoints,
+        autoload_proc,
     )
     ret = app.exec_()
     sys.exit(ret)
