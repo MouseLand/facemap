@@ -40,7 +40,6 @@ import torch
 istr = ["pupil", "motSVD", "blink", "running", "movSVD"]
 
 # TODO: Add pose instructions for CLI commands
-# TODO: Add GPU checkbox to add on GUI
 
 
 class MainW(QtWidgets.QMainWindow):
@@ -122,17 +121,17 @@ class MainW(QtWidgets.QMainWindow):
         self.video_window = pg.GraphicsLayoutWidget()
         self.video_window.move(self.sizeObject.height(), self.sizeObject.width())
         self.video_window.resize(self.sizeObject.height(), self.sizeObject.width())
-        self.scene_grid_layout.addWidget(self.video_window, 0, 2, 8, 7)
+        self.scene_grid_layout.addWidget(self.video_window, 1, 2, 10, 7)
 
         # Create a window for embedding and ROI plot
         self.roi_embed_window = pg.GraphicsLayoutWidget()
         self.roi_embed_window.move(self.sizeObject.height(), 0)
         self.roi_embed_window.resize(self.sizeObject.height(), self.sizeObject.width())
-        self.scene_grid_layout.addWidget(self.roi_embed_window, 13, 2, 12, 7)
+        self.scene_grid_layout.addWidget(self.roi_embed_window, 14, 2, 7, 7)
 
         # Create a window for plots
         self.plots_window = pg.GraphicsLayoutWidget()
-        self.scene_grid_layout.addWidget(self.plots_window, 1, 9, 24, 8)
+        self.scene_grid_layout.addWidget(self.plots_window, 0, 9, 24, 8)
 
         # Add logo
         # icon_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "mouse.png")
@@ -181,10 +180,12 @@ class MainW(QtWidgets.QMainWindow):
 
         qlabel = QLabel("Saturation:")
         qlabel.setStyleSheet("color: white;")
-        self.saturation_groupbox.layout().addWidget(qlabel, 0, 0)
+        self.saturation_groupbox.layout().addWidget(qlabel, 0, 0, 1, 1)
         video_saturation_slider = guiparts.Slider(0, self)
         self.saturation_sliders.append(video_saturation_slider)
-        self.saturation_groupbox.layout().addWidget(self.saturation_sliders[0], 1, 0)
+        self.saturation_groupbox.layout().addWidget(
+            self.saturation_sliders[0], 0, 1, 1, 4
+        )
 
         # Add label to indicate saturation level
         self.saturation_level_label = QLabel(str(self.saturation_sliders[0].value()))
@@ -192,7 +193,7 @@ class MainW(QtWidgets.QMainWindow):
         # self.scene_grid_layout.addWidget(self.saturation_level_label, 0, 5, 1, 1)
 
         # Reflector
-        self.reflector = QPushButton("Add corneal reflection")
+        self.reflector = QPushButton("Add corneal reflector")
         self.reflector.setEnabled(False)
         self.reflector.clicked.connect(self.add_reflectROI)
         self.rROI = []
@@ -208,11 +209,11 @@ class MainW(QtWidgets.QMainWindow):
 
         qlabel = QLabel("ROI Saturation:")
         qlabel.setStyleSheet("color: white;")
-        self.roi_saturation_groupbox.layout().addWidget(qlabel, 0, 0)
+        self.roi_saturation_groupbox.layout().addWidget(qlabel, 0, 0, 1, 1)
         roi_saturation_slider = guiparts.Slider(1, self)
         self.saturation_sliders.append(roi_saturation_slider)
         self.roi_saturation_groupbox.layout().addWidget(
-            self.saturation_sliders[1], 1, 0
+            self.saturation_sliders[1], 0, 1, 1, 4
         )
 
         self.roi_saturation_label = QLabel(str(self.saturation_sliders[1].value()))
@@ -255,7 +256,7 @@ class MainW(QtWidgets.QMainWindow):
         self.svd_traces_plot.setMenuEnabled(False)
         self.svd_traces_plot.hideAxis("left")
         self.scatter2 = pg.ScatterPlotItem()
-        self.svd_traces_plot.addItem(self.scatter1)
+        self.svd_traces_plot.addItem(self.scatter2)
         self.svd_traces_plot.setXLink(self.keypoints_traces_plot)
         self.svd_plot_vtick = None
 
@@ -714,24 +715,24 @@ class MainW(QtWidgets.QMainWindow):
 
         # Add features to window
         # ~~~~~~~~~~ motsvd/movsvd options ~~~~~~~~~~
-        self.scene_grid_layout.addWidget(self.svd_groupbox, 1 - 1, 0, 1, 2)
+        self.scene_grid_layout.addWidget(self.svd_groupbox, 0, 0, 1, 2)
         # ~~~~~~~~~~ Pose features ~~~~~~~~~~
-        self.scene_grid_layout.addWidget(self.pose_groupbox, 2 - 1, 0, 3, 2)
+        self.scene_grid_layout.addWidget(self.pose_groupbox, 1, 0, 3, 2)
         # ~~~~~~~~~~ Process features ~~~~~~~~~~
-        self.scene_grid_layout.addWidget(self.process_groupbox, 6 - 1, 0, 1, 2)
+        self.scene_grid_layout.addWidget(self.process_groupbox, 5, 0, 1, 2)
         # ~~~~~~~~~~ Process buttons features ~~~~~~~~~~
-        self.scene_grid_layout.addWidget(self.process_buttons_groupbox, 7 - 1, 0, 1, 2)
+        self.scene_grid_layout.addWidget(self.process_buttons_groupbox, 6, 0, 1, 2)
         # ~~~~~~~~~~ Save/file IO ~~~~~~~~~~
-        self.scene_grid_layout.addWidget(self.labels_groupbox, 8 - 1, 0, 1, 2)
+        self.scene_grid_layout.addWidget(self.labels_groupbox, 7, 0, 1, 2)
         # ~~~~~~~~~~ Saturation ~~~~~~~~~~
-        self.scene_grid_layout.addWidget(self.saturation_groupbox, 0, 3, 1, 2)
+        self.scene_grid_layout.addWidget(self.saturation_groupbox, 0, 2, 1, 3)
         # ~~~~~~~~~~ embedding & ROI visualization window features
-        self.scene_grid_layout.addWidget(self.roi_saturation_groupbox, 8 - 1, 3, 1, 2)
-        self.scene_grid_layout.addWidget(self.roi_embed_combobox, 8 - 1, 5, 1, 1)
-        self.scene_grid_layout.addWidget(self.zoom_in_button, 8 - 1, 6, 1, 1)
-        self.scene_grid_layout.addWidget(self.zoom_out_button, 8 - 1, 7, 1, 1)
-        self.scene_grid_layout.addWidget(self.roi_display_combobox, 8 - 1, 6, 1, 1)
-        self.scene_grid_layout.addWidget(self.save_clustering_button, 9 - 1, 6, 1, 1)
+        self.scene_grid_layout.addWidget(self.roi_saturation_groupbox, 11, 2, 1, 3)
+        self.scene_grid_layout.addWidget(self.roi_embed_combobox, 11, 6, 1, 1)
+        self.scene_grid_layout.addWidget(self.zoom_in_button, 11, 7, 1, 1)
+        self.scene_grid_layout.addWidget(self.zoom_out_button, 11, 8, 1, 1)
+        self.scene_grid_layout.addWidget(self.roi_display_combobox, 11, 7, 1, 1)
+        self.scene_grid_layout.addWidget(self.save_clustering_button, 12, 7, 1, 1)
         #   ~~~~~~~~~~ Video playback ~~~~~~~~~~
         self.scene_grid_layout.addWidget(self.video_playback_groupbox, iplay, 0, 1, 1)
         self.playButton.setEnabled(False)
@@ -1863,7 +1864,7 @@ class MainW(QtWidgets.QMainWindow):
                     angle=90,
                     pen=pg.mkPen(color=(255, 255, 255), width=2, movable=True),
                 )
-                selected_plot.addItem(self.svd_plot_vtick)
+            selected_plot.addItem(self.svd_plot_vtick)
         elif proctype == 1:  # Pupil
             pup = self.pupil[wroi]
             pen = pg.mkPen(color, width=2)

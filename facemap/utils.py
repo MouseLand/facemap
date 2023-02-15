@@ -415,6 +415,7 @@ def get_frame(cframe, nframes, cumframes, containers):
             capture.set(cv2.CAP_PROP_POS_FRAMES, frame_ind)
         ret, frame = capture.read()
         if ret:
+            frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)[np.newaxis, ...]
             img.append(frame)
         else:
             print("Error reading frame")
