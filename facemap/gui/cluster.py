@@ -3,14 +3,16 @@ import os
 import cv2
 import numpy as np
 import pyqtgraph as pg
+
 try:
     import umap
-    UMAP_INSTALLED = True 
+
+    UMAP_INSTALLED = True
 except:
     UMAP_INSTALLED = False
 
 # todo: use opentsne for embedding
-TSNE_INSTALLED = True 
+TSNE_INSTALLED = True
 
 # import hdbscan
 from matplotlib import cm
