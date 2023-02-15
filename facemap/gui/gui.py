@@ -48,6 +48,7 @@ class MainW(QtWidgets.QMainWindow):
         movie_file=None,
         savedir=None,
         keypoints_file=None,
+        proc_file=None,
         neural_activity_file=None,
         neural_predictions_file=None,
         tneural_activity_file=None,
@@ -371,6 +372,11 @@ class MainW(QtWidgets.QMainWindow):
                     io.load_movies(self, [movie_file])
             else:
                 io.load_movies(self, [[movie_file]])
+        if proc_file is not None:
+            io.open_proc(self, proc_file)
+        elif autoload_proc:
+            if hasattr(self, "filenames"):
+                self.load_proc_from_cwd()
         if tneural_activity_file is not None:
             self.neural_timestamps = np.load(tneural_activity_file)
         else:
@@ -1372,6 +1378,24 @@ class MainW(QtWidgets.QMainWindow):
             self.keypoints_threshold = np.nanpercentile(
                 self.pose_likelihood, value
             )  # percentile value
+
+    def load_proc_from_cwd(self):
+        """
+        Load processed data from current working directory
+        """
+        for video_name in self.filenames[0]:
+            video_dir = os.path.dirname(video_name)
+            files = os.listdir(video_dir)
+            proc_files = [f for f in files if f.endswith("_proc.npy")]
+            video_name = os.path.splitext(os.path.basename(video_name))[0]
+            proc_file_index = [
+                i for i, filename in enumerate(proc_files) if video_name in filename
+            ]
+            if len(proc_file_index) > 0:
+                io.open_proc(
+                    self,
+                    file_name=os.path.join(video_dir, proc_files[proc_file_index[0]]),
+                )
 
     def load_keypoints_from_videodir(self):
         """
@@ -3231,6 +3255,7 @@ def run(
     moviefile=None,
     savedir=None,
     keypoints_file=None,
+    proc_file=None,
     neural_activity_file=None,
     neural_predictions_file=None,
     tneural_activity_file=None,
@@ -3255,6 +3280,7 @@ def run(
         moviefile,
         savedir,
         keypoints_file,
+        proc_file,
         neural_activity_file,
         neural_predictions_file,
         tneural_activity_file,

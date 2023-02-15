@@ -21,7 +21,6 @@ def main():
     ops = ops.item()
 
 
-# TODO: Add more description for the arguments
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Movie files")
     parser.add_argument("--ops", default=[], type=str, help="options")
@@ -35,6 +34,12 @@ if __name__ == "__main__":
         nargs="+",
         type=str,
         help="Absolute path to keypoints file (*.h5)",
+    )
+    parser.add_argument(
+        "--proc_npy",
+        default=None,
+        type=str,
+        help="Absolute path to proc file (*_proc.npy)",
     )
     parser.add_argument(
         "--neural_activity",
@@ -69,6 +74,7 @@ if __name__ == "__main__":
         help="Automatically load keypoints in the same directory as the movie",
     )
     parser.set_defaults(autoload_keypoints=True)
+
     # Add a flag to autoload proc in the same directory as the movie
     parser.add_argument(
         "--autoload_proc",
@@ -90,6 +96,7 @@ if __name__ == "__main__":
             args.movie,
             args.savedir,
             args.keypoints,
+            args.proc_npy,
             args.neural_activity,
             args.neural_prediction,
             args.tneural,
