@@ -1,5 +1,12 @@
 Pose tracking **(GUI)** 
 ===============================
+.. image:: https://github.com/MouseLand/facemap/blob/main/figs/tracker.gif
+:width: 100%
+:height: 500
+:alt: tracker
+:align: middle
+:vspace: 10
+:title: Tracker
 
 The latest python version is integrated with Facemap network for
 tracking 14 distinct keypoints on mouse face and an additional point for
