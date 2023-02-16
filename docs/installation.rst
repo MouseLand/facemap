@@ -1,49 +1,8 @@
 Installation
 ===================================
 
-This package only supports python 3. We recommend installing python 3 with `Anaconda <https://www.anaconda.com/download/>`_.
+Please see the github readme for full install instructions.
 
-
-Pose tracker and SVD processing
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-For using tracker and svd processing, follow the instructions below:
-
-1. ``git clone https://github.com/MouseLand/facemap.git``
-2. Change directory to facemap folder containing ``environment.yml`` file
-3. ``conda env create -f environment.yml``
-4. ``conda activate facemap``
-5. ``python -m facemap``
-
-This will install and run the latest development version on github.
-
-SVD processing only
-~~~~~~~~~~~~~~~~~~~~
-
-Run the following for command line interface (CLI) i.e. headless version:
-::
-
-    pip install facemap
-
-or the following for using GUI:
-::
-
-    pip install facemap[gui]
-
-
-To upgrade Facemap package (https://pypi.org/project/facemap/), within the environment run:
-::
-
-    pip install facemap --upgrade
-
-
-Using the environment.yml file (recommended installation method):
-
-1. Download the ``environment.yml`` file from the repository or clone the github repository: ``git clone https://www.github.com/mouseland/facemap.git``
-2. Open an anaconda prompt / command prompt with ``conda`` for **python 3** in the path
-3. Change directory to facemap folder ``cd facemap``
-4. Run ``conda env create -f environment.yml``
-5. To activate this new environment, run ``conda activate facemap``
-6. You should see ``(facemap)`` on the left side of the terminal line. Now run ``python -m facemap`` and you're all set.
 
 Common installation issues
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -96,4 +55,4 @@ Facemap python relies on these awesome packages:
 MATLAB package installation
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-The matlab version supports SVD processing only and does not include face tracker. The package can be downloaded/cloned from github (no install required). It works in Matlab 2014b and above - please submit issues if it's not working. The Image Processing Toolbox is necessary to use the GUI. For GPU functionality, the Parallel Processing Toolbox is required. If you don't have the Parallel Processing Toolbox, uncheck the box next to "use GPU" in the GUI before processing.
+The matlab version supports SVD processing only and does not include face tracker. The package can be downloaded/cloned from github (no install required). It works in Matlab 2014b and above. The Image Processing Toolbox is necessary to use the GUI. For GPU functionality, the Parallel Processing Toolbox is required. If you don't have the Parallel Processing Toolbox, uncheck the box next to "use GPU" in the GUI before processing. Note this version is no longer supported.

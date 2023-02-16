@@ -11,6 +11,8 @@
 
 Facemap is a framework for predicting neural activity from mouse orofacial movements. It includes a pose estimation model for tracking distinct keypoints on the mouse face, a neural network model for predicting neural activity using the pose estimates, and also can be used compute the singular value decomposition (SVD) of behavioral videos.
 
+Please find the detailed documentation at **[facemap.readthedocs.io](https://facemap.readthedocs.io/en/latest/index.html)**.
+
 To learn about Facemap, read the [paper](https://www.biorxiv.org/content/10.1101/2022.11.03.515121v1) or check out the tweet [thread](https://twitter.com/Atika_Ibrahim/status/1588885329951367168?s=20&t=AhE3vBTnCvW36QiTyhu0qQ). For support, please open an [issue](https://github.com/MouseLand/facemap/issues).
 
 - For latest released version (from PyPI) including svd processing only, run `pip install facemap` for headless version or `pip install facemap[gui]` for using GUI. Note: `pip install facemap` not yet available for latest tracker and neural model, instead install with `pip install git+https://github.com/mouseland/facemap.git`
@@ -113,19 +115,7 @@ For more details on using the tracker, please refer to the [GUI Instructions](do
 Facemap aims to provide a simple and easy-to-use tool for tracking mouse orofacial movements. The tracker's performance for new datasets could be further improved by expand our training set. You can contribute to the model by sharing videos/frames on the following email address(es): `asyeda1[at]jh.edu` or `stringerc[at]janelia.hhmi.org`.
 
 
-# II. Neural activity prediction
-
-Facemap includes a deep neural network encoding model for predicting neural activity or principal components of neural activity from mouse orofacial pose estimates extracted using the tracker or SVDs. 
-
-The encoding model used for prediction is described as follows:
-<p float="middle">
-<img src="figs/encoding_model.png"  width="70%" height="300" title="View 1" alt="view1" align="center" vspace = "10" hspace="30" style="border: 0.5px solid white"  />
-</p>
-
-Please see neural activity prediction [tutorial](docs/neural_activity_prediction_tutorial.md) for more details.
-
-
-# III. SVD processing
+# II. SVD processing
 
 Facemap provides options for singular value decomposition (SVD) of single and multi-camera videos. SVD analysis can be performed across static frames called movie SVD (`movSVD`) to extract the spatial components or over the difference between consecutive frames called motion SVD (`motSVD`) to extract the temporal components of the video. The first 500 principal components from SVD analysis are saved as output along with other variables. For more details, see [python tutorial](docs/svd_python_tutorial.md). The process for SVD analysis is as follows:
  1. Load video. (Optional) Use the file menu to set output folder.
@@ -144,6 +134,16 @@ python -m facemap
 ```
 Default starting folder is set to wherever you run `python -m FaceMap`
 
+# III. Neural activity prediction
+
+Facemap includes a deep neural network encoding model for predicting neural activity or principal components of neural activity from mouse orofacial pose estimates extracted using the tracker or SVDs. 
+
+The encoding model used for prediction is described as follows:
+<p float="middle">
+<img src="figs/encoding_model.png"  width="70%" height="300" title="View 1" alt="view1" align="center" vspace = "10" hspace="30" style="border: 0.5px solid white"  />
+</p>
+
+Please see neural activity prediction [tutorial](docs/neural_activity_prediction_tutorial.md) for more details.
 
 ### [*HOW TO GUI* (MATLAB)](docs/svd_matlab_tutorial.md)
 
