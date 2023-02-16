@@ -78,6 +78,9 @@ npy file has name “videofile_proc.npy” and the mat file has name
 
     - xrange_bin: binned indices in x (if motion SVD)
 
+Loading outputs
+''''''''''''''''''''
+
 Note this is a dict, e.g. to load in python:
 
 ::
