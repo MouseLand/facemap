@@ -8,7 +8,10 @@ This is an example file with default values.
     :caption: Basics:
 
     installation
+    inputs
     pose_tracking_gui_tutorial
+    roi_proc
+    outputs
     neural_activity_prediction_tutorial
 
 
