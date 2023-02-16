@@ -27,6 +27,8 @@ Syeda, A., Zhong, L., Tung, R., Long, W., Pachitariu, M.\*, & Stringer, C.\* (20
 Stringer, C.\*, Pachitariu, M.\*, Steinmetz, N., Reddy, C. B., Carandini, M., & Harris, K. D. (2019). Spontaneous behaviors drive multidimensional, brainwide activity. <em>Science, 364</em>(6437), eaav7893.
 [[bibtex](https://scholar.googleusercontent.com/scholar.bib?q=info:DNVOkEas4K8J:scholar.google.com/&output=citation&scisdr=CgXHFLYtEMb9qP1Bt0Q:AAGBfm0AAAAAY3JHr0TJourtY6W2vbjy7opKXX2jOX9Z&scisig=AAGBfm0AAAAAY3JHryiZnvgWM1ySwd_xQ9brvQxH71UM&scisf=4&ct=citation&cd=-1&hl=en&scfhb=1)]
 
+The MATLAB version of the GUI is no longer supported (old [documentation](docs/svd_matlab_tutorial.md)).
+
 ## Installation
 
 If you have an older `facemap` environment you can remove it with `conda env remove -n facemap` before creating a new one.
@@ -90,18 +92,25 @@ For more details, please refer to the [data acquisition page](docs/data_acquisit
 
 For any issues or questions about Facemap, please [open an issue](https://github.com/MouseLand/facemap/issues).
 
-# I. Pose tracking
+# Running Facemap
+
+To get started Run the following command in a terminal to open the GUI:
+
+```
+python -m facemap
+```
+
+Click "File" and load a single video file ("Load video"), or click "Load multiple videos" to choose a folder from which you can select movies to run. The video(s) will pop up in the left side of the GUI. You can zoom in and out with the mouse wheel, and you can drag by holding down the mouse. Double-click to return to the original, full view.
+
+Next you can extract information from the videos like track keypoints, compute movie SVDs, track pupil size etc. Also you can load in neural activity and predict it from these extracted features.
+
+## I. Pose tracking
 
 <img src="figs/facemap.gif" width="100%" height="500" title="Tracker" alt="tracker" algin="middle" vspace = "10">
 
-Facemap provides a trained network for tracking distinct keypoints on the mouse face from different camera views (some examples shown below). The process for tracking keypoints is as follows:
- 1. Load video. (Optional) Use the file menu to set output folder.
- 2. Click `process` (Note: check `keypoints` for this step).
- 3. Select bounding box to focus on the face as shown below.
- 4. The processed keypoints `*.h5` file will be saved in the output folder along with the corresponding metadata file `*.pkl`.
+Facemap provides a trained network for tracking distinct keypoints on the mouse face from different camera views (some examples shown below). Check the `keypoints` box then click `process`. Next a bounding box will appear -- focus this on the face as shown below. Then the processed keypoints `*.h5` file will be saved in the output folder along with the corresponding metadata file `*.pkl`.
 
 Keypoints will be predicted in the selected bounding box region so please ensure the bounding box focuses on the face. See example frames [here](figs/mouse_views.png). 
-
 
 For more details on using the tracker, please refer to the [GUI Instructions](docs/pose_tracking_gui_tutorial.md). See  [command line interface (CLI) instructions](docs/pose_tracking_cli_tutorial.md) and for more examples, please see [tutorial notebooks](https://github.com/MouseLand/facemap/tree/dev/notebooks).
 
@@ -110,31 +119,20 @@ For more details on using the tracker, please refer to the [GUI Instructions](do
 <img src="figs/mouse_face0_keypoints.png" width="310" height="290" title="View 2" alt="view2" algin="right" vspace = "10" style="border: 0.5px solid white">
 </p>
 
-
 ### :mega: User contributions :video_camera: :camera: 
 Facemap aims to provide a simple and easy-to-use tool for tracking mouse orofacial movements. The tracker's performance for new datasets could be further improved by expand our training set. You can contribute to the model by sharing videos/frames on the following email address(es): `asyeda1[at]jh.edu` or `stringerc[at]janelia.hhmi.org`.
 
+## II. ROI and SVD processing
 
-# II. SVD processing
+Facemap allows pupil tracking, blink tracking and running estimation, see more details **here**. Also, Facemap can compute the singular value decomposition (SVD) of ROIs on single and multi-camera videos. SVD analysis can be performed across static frames called movie SVD (`movSVD`) to extract the spatial components or over the difference between consecutive frames called motion SVD (`motSVD`) to extract the temporal components of the video. The first 500 principal components from SVD analysis are saved as output along with other variables.
 
-Facemap provides options for singular value decomposition (SVD) of single and multi-camera videos. SVD analysis can be performed across static frames called movie SVD (`movSVD`) to extract the spatial components or over the difference between consecutive frames called motion SVD (`motSVD`) to extract the temporal components of the video. The first 500 principal components from SVD analysis are saved as output along with other variables. For more details, see [python tutorial](docs/svd_python_tutorial.md). The process for SVD analysis is as follows:
- 1. Load video. (Optional) Use the file menu to set output folder.
- 2. Click `process` (Note: check `motSVD`  or `movSVD` for this step).
- 3. The processed SVD `*_proc.npy` (and `*_proc.mat`) file will be saved in the output folder selected.
-
-### [*HOW TO GUI* (Python)](docs/svd_python_tutorial.md)
+You can draw ROIs to compute the motion/movie SVD within the ROI, and/or compute the full video SVD by checking `multivideo`. Then check `motSVD`  and/or `movSVD` and click `process`. The processed SVD `*_proc.npy` (and optionally `*_proc.mat`) file will be saved in the output folder selected.
 
 ([video](https://www.youtube.com/watch?v=Rq8fEQ-DOm4) with old install instructions)
 
 <img src="figs/face_fast.gif" width="100%" alt="face gif">
 
-Run the following command in a terminal
-```
-python -m facemap
-```
-Default starting folder is set to wherever you run `python -m FaceMap`
-
-# III. Neural activity prediction
+## III. Neural activity prediction
 
 Facemap includes a deep neural network encoding model for predicting neural activity or principal components of neural activity from mouse orofacial pose estimates extracted using the tracker or SVDs. 
 
@@ -144,12 +142,4 @@ The encoding model used for prediction is described as follows:
 </p>
 
 Please see neural activity prediction [tutorial](docs/neural_activity_prediction_tutorial.md) for more details.
-
-### [*HOW TO GUI* (MATLAB)](docs/svd_matlab_tutorial.md)
-
-To start the GUI, run the command `MovieGUI` in this folder. The following window should appear. After you click an ROI button and draw an area, you have to **double-click** inside the drawn box to confirm it. To compute the SVD across multiple simultaneously acquired videos you need to use the "multivideo SVD" options to draw ROI's on each video one at a time.
-
-<div align="center">
-<img src="figs/GUIscreenshot.png" width="80%" alt="gui screenshot" >
-</div>
 
