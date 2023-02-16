@@ -96,7 +96,7 @@ as many of these per pupil ROI as needed. The algorithm fills in these
 areas of the image with the predicted values, which allows for smooth
 transitions between big and small pupils.
 
-.. figure:: https://github.com/MouseLand/facemap/blob/main/out.gif?raw=true
+.. figure:: https://github.com/MouseLand/facemap/blob/main/figs/out.gif?raw=true
    :alt: pupil tracking zoom
 
 This raw pupil area trace is post-processed. The trace is median filtered
