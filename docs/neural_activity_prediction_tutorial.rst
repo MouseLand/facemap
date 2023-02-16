@@ -8,7 +8,7 @@ To process neural activity prediction using pose estimates extracted
 using the tracker:
 
 1. Load or process keypoints (`see pose tracking
-   tutorial <docs/pose_tracking_gui_tutorial.md>`__).
+   tutorial <https://github.com/MouseLand/facemap/blob/main/docs/pose_tracking_gui_tutorial.md>`__).
 2. Select ``Neural activity`` from file menu to ``Load neural data``.
 3. Load neural activity data (2D-array stored in *.npy) and (optionally)
    timestamps for neural and behavioral data (1D-array stored in*.npy)
@@ -25,7 +25,7 @@ To process neural activity prediction using pose estimates extracted
 using the tracker:
 
 1. Load or process SVDs for the video. (`see SVD
-   tutorial <docs/svd_tutorial.md>`__).
+   tutorial <https://github.com/MouseLand/facemap/blob/main/docs/svd_python_tutorial.md>`__).
 2. Follow steps 2-5 above.
 
 Note: a linear model is used for prediction using SVDs.

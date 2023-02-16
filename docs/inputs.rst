@@ -6,7 +6,7 @@ Movie file extensions supported include:
 
 '.mj2','.mp4','.mkv','.avi','.mpeg','.mpg','.asf'
 
-Here are some `example movies<https://drive.google.com/open?id=1cRWCDl8jxWToz50dCX1Op-dHcAC-ttto>`__.
+Here are some `example movies <https://drive.google.com/open?id=1cRWCDl8jxWToz50dCX1Op-dHcAC-ttto>`__.
 
 Processing multiple movies
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -35,14 +35,12 @@ You will be able to see all the videos that were simultaneously collected at onc
 Batch processing
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Load a video or a set of videos and draw your ROIs and choose your processing settings. 
-Then click `save ROIs`. This will save a *_proc.npy file in the output folder. 
-Default output folder is the same folder as the video. Use file menu to change path of the output folder. The name of saved proc file will be listed below `process batch` (this button will also activate). You can then repeat this process: load the video(s), draw ROIs, choose settings, and click `save ROIs`. Then to process all the listed *_proc.npy files click `process batch`.
+Load a video or a set of videos and draw your ROIs and choose your processing settings. Then click "save ROIs". This will save a `\*_proc.npy` file in the output folder. Default output folder is the same folder as the video. Use file menu to change path of the output folder. The name of saved proc file will be listed below "process batch" (this button will also activate). You can then repeat this process: load the video(s), draw ROIs, choose settings, and click "save ROIs". Then to process all the listed `\*_proc.npy` files click "process batch".
 
 Data acquisition info
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 
-IR ILLUMINATION:
+IR ILLUMINATION
 ---------------------
 
 For recording in darkness we use `IR
@@ -66,7 +64,7 @@ tube <https://www.thorlabs.com/newgrouppage9.cfm?objectgroup_id=4109&pn=SM1V10#3
 and another `lens
 tube <https://www.thorlabs.com/thorproduct.cfm?partnumber=SM1L10>`__.
 
-CAMERAS:
+CAMERAS
 ---------------------
 
 We use `ptgrey

@@ -26,7 +26,7 @@ npy file has name “videofile_proc.npy” and the mat file has name
 
 - **fullSVD**: whether or not “multivideo SVD” is computed 
 
-- **save_mat**: whether or not to save proc as *.mat file 
+- **save_mat**: whether or not to save proc as `\*.mat` file 
 
 - **avgframe**: list of average frames for each video from a subset of frames (binned by sbin)
 

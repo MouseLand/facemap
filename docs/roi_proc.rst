@@ -79,7 +79,7 @@ Next it finds the pixel with the largest magnitude. It draws a box
 around that area (1/2 the size of the ROI) and then finds the
 center-of-mass of that region. It then centers the box on that area. It
 fits a multivariate gaussian to the pixels in the box using maximum
-likelihood (see `pupil.py <facemap/pupil.py>`__).
+likelihood (see `pupil.py <https://github.com/MouseLand/facemap/blob/main/facemap/pupil.py>`__).
 
 After a Gaussian is fit, it zeros out pixels whose squared distance from
 the center (normalized by the standard deviation of the Gaussian fit) is
@@ -108,8 +108,6 @@ raw trace, then the raw value is replaced by the median filtered value.
 .. figure:: https://github.com/MouseLand/facemap/blob/main/figs/pupilfilter.png?raw=true
    :alt: pupil filtering
 
-   pupil
-
 Blink computation
 ^^^^^^^^^^^^^^^^^
 
@@ -122,7 +120,7 @@ Running computation
 ^^^^^^^^^^^^^^^^^^^
 
 The phase-correlation between consecutive frames (in running ROI) are
-computed in the fourier domain (see `running.py </facemap/running.py>`__). The XY
+computed in the fourier domain (see `running.py <https://github.com/MouseLand/facemap/blob/main/facemap/running.py>`__). The XY
 position of maximal correlation gives the amount of shift between the
 two consecutive frames. Depending on how fast the movement is
 frame-to-frame you may want at least a 50x50 pixel ROI to compute this.
