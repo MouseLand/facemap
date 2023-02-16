@@ -1,7 +1,7 @@
 Inputs
 ~~~~~~~~~~~~~~~~~~~
 
-Processing movies captured simultaneously 
+Processing multiple movies
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 If you load multiple videos, the GUI will ask *"are you processing multiple videos taken simultaneously?"*. If you say yes, then the script will look if across movies the **FIRST FOUR** letters of the filename vary. If the first four letters of two movies are the same, then the GUI assumed that they were acquired *sequentially* not *simultaneously*.
