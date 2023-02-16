@@ -784,7 +784,7 @@ class MainW(QtWidgets.QMainWindow):
                 self.plot1_checkboxes[-1], istretch + 1 + i, 0, 1, 1
             )
         # Set plot 2 checkboxes
-        for k in range(4):
+        for k in range(7):
             self.plot2_checkboxes.append(QCheckBox(""))
             self.scene_grid_layout.addWidget(
                 self.plot2_checkboxes[-1], istretch + 2 + k, 1, 1, 1
