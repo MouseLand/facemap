@@ -112,7 +112,7 @@ class ROI_popup(QDialog):
             int(np.floor(window_max_size.height() * fraction * aspect_ratio)),
         )
         self.gui = gui
-        self.frame = frame
+        self.frame = frame.squeeze()
         self.pose = pose
         self.last_video = last_video
         self.setWindowTitle("Select face ROI for video: " + str(video_id))

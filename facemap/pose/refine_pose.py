@@ -999,7 +999,7 @@ class ModelTrainingPopup(QDialog):
         for i, index in enumerate(indices):
             frame = utils.get_frame(
                 index, self.gui.nframes, self.gui.cumframes, self.gui.video
-            )[0]
+            )[0].squeeze()
             # Convert to grayscale
             imall[i] = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
             # Convert to int

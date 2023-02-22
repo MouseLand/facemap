@@ -128,6 +128,8 @@ Facemap allows pupil tracking, blink tracking and running estimation, see more d
 
 You can draw ROIs to compute the motion/movie SVD within the ROI, and/or compute the full video SVD by checking `multivideo`. Then check `motSVD`  and/or `movSVD` and click `process`. The processed SVD `*_proc.npy` (and optionally `*_proc.mat`) file will be saved in the output folder selected.
 
+For more details see [SVD python tutorial](docs/svd_python_tutorial.md) or [SVD MATLAB tutorial](docs/svd_matlab_tutorial.md).
+
 ([video](https://www.youtube.com/watch?v=Rq8fEQ-DOm4) with old install instructions)
 
 <img src="figs/face_fast.gif" width="100%" alt="face gif">
