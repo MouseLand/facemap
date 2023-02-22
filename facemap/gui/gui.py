@@ -68,6 +68,7 @@ class MainW(QtWidgets.QMainWindow):
         app_icon.addFile(icon_path, QtCore.QSize(96, 96))
         app_icon.addFile(icon_path, QtCore.QSize(256, 256))
         self.setWindowIcon(app_icon)
+        QtCore.QCoreApplication.setApplicationName("Facemap")
 
         pg.setConfigOptions(imageAxisOrder="row-major")
         self.setGeometry(55, 5, 1470, 800)
@@ -747,9 +748,9 @@ class MainW(QtWidgets.QMainWindow):
         self.scene_grid_layout.addWidget(QLabel(""), istretch, 0, 1, 3)
         self.scene_grid_layout.setRowStretch(istretch, 1)
         self.scene_grid_layout.addWidget(
-            self.current_frame_lineedit, istretch + 7, 0, 1, 1
+            self.current_frame_lineedit, istretch + 9, 0, 1, 1
         )
-        self.scene_grid_layout.addWidget(self.total_frames_label, istretch + 7, 1, 1, 1)
+        self.scene_grid_layout.addWidget(self.total_frames_label, istretch + 9, 1, 1, 1)
         self.scene_grid_layout.addWidget(self.frame_slider, istretch + 10, 1, 1, 16)
 
         # Plot 1 and 2 features
