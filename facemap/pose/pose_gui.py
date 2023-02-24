@@ -1,5 +1,6 @@
 import numpy as np
 import pyqtgraph as pg
+from PyQt5 import QtCore
 from matplotlib import cm
 from PyQt5.QtWidgets import (
     QDesktopWidget,
@@ -53,21 +54,21 @@ class PoseGUI(pose.Pose):
     def plot_bbox_roi(self):
         # Plot bbox on GUI
         for i, bbox in enumerate(self.bbox):
-            x1, x2, y1, y2 = bbox
+            y1, y2, x1, x2 = bbox
             dy, dx = y2 - y1, x2 - x1
-            xrange = np.arange(y1 + self.gui.sx[i], y2 + self.gui.sx[i]).astype(
+            xrange = np.arange(x1 + self.gui.sx[i], x2 + self.gui.sx[i]).astype(
                 np.int32
             )
-            yrange = np.arange(x1 + self.gui.sy[i], x2 + self.gui.sy[i]).astype(
+            yrange = np.arange(y1 + self.gui.sy[i], y2 + self.gui.sy[i]).astype(
                 np.int32
             )
-            x1, y1 = yrange[0], xrange[0]
+            y1, x1 = yrange[0], xrange[0]
             self.gui.add_ROI(
                 roitype=4 + 1,
                 roistr="bbox_{}".format(i),
                 moveable=False,
                 resizable=False,
-                pos=(x1, y1, dx, dy),
+                pos=(y1, x1, dy, dx),
                 ivid=i,
                 yrange=yrange,
                 xrange=xrange,
@@ -82,6 +83,10 @@ class PoseGUI(pose.Pose):
             dy, dx = y2 - y1, x2 - x1
             if dx != dy:  # If bbox is not square then add padding to image
                 self.add_padding = True
+            if dy != 256 or dx != 256:  # If bbox is not 256, 256 then resize image
+                self.resize = True
+            self.bbox[i] = x1, x2, y1, y2
+            """
             larger_dim = max(dx, dy)
             if larger_dim < self.img_xy[0] or larger_dim < self.img_xy[1]:
                 # If the largest dimension of the image is smaller than the minimum required dimension,
@@ -96,6 +101,7 @@ class PoseGUI(pose.Pose):
                     y_dims=(y1, y2),
                 )
                 self.bbox[i] = x1, x2, y1, y2
+            """
             print("BBOX after adjustment:", self.bbox)
             print("RESIZE:", self.resize)
             print("PADDING:", self.add_padding)
@@ -105,7 +111,7 @@ class ROI_popup(QDialog):
     def __init__(self, frame, video_id, gui, pose, last_video):
         super().__init__()
         window_max_size = QDesktopWidget().screenGeometry(-1)
-        fraction = 0.3
+        fraction = 0.5
         aspect_ratio = 1.5
         self.resize(
             int(np.floor(window_max_size.width() * fraction)),
@@ -121,11 +127,19 @@ class ROI_popup(QDialog):
         self.verticalLayout = QVBoxLayout(self)
         self.win = pg.GraphicsLayoutWidget()
         self.win.setObjectName("Dialog " + str(video_id + 1))
-        ROI_win = self.win.addViewBox(invertY=True)
+        # fix image in ROI window
+        ROI_win = self.win.addViewBox(invertY=True, lockAspect=True, enableMouse=False)
         self.img = pg.ImageItem(self.frame)
         ROI_win.addItem(self.img)
+        shape_y, shape_x = self.frame.shape[0], self.frame.shape[1]
+        ROI_win.setRange(xRange=[0, shape_x], yRange=[0, shape_y])
         self.roi = pg.RectROI(
-            [0, 0], [100, 100], pen=pg.mkPen("r", width=2), movable=True, resizable=True
+            [0, 0],
+            [int(np.floor(0.6 * shape_x)), int(np.floor(0.5 * shape_y))],
+            pen=pg.mkPen("r", width=2),
+            movable=True,
+            resizable=True,
+            maxBounds=QtCore.QRectF(0, 0, shape_x, shape_y),
         )
         ROI_win.addItem(self.roi)
         self.win.show()
@@ -162,7 +176,10 @@ class ROI_popup(QDialog):
         self.exec_()
 
     def get_coordinates(self):
+        print("self.frame shape:", self.frame.shape)
+        print("self.img shape:", self.img.shape)
         roi_tuple, _ = self.roi.getArraySlice(self.frame, self.img, returnSlice=False)
+        print("roi_tuple:", roi_tuple)
         (x1, x2), (y1, y2) = roi_tuple[0], roi_tuple[1]
         return (x1, x2), (y1, y2)
 
@@ -172,8 +189,8 @@ class ROI_popup(QDialog):
         self.close()
 
     def next_exec(self):
-        (x1, x2), (y1, y2) = self.get_coordinates()
-        self.pose.bbox.append([x1, x2, y1, y2])
+        (y1, y2), (x1, x2) = self.get_coordinates()
+        self.pose.bbox.append([y1, y2, x1, x2])
         self.resize = False
         self.add_padding = False
         self.pose.adjust_bbox()
@@ -185,8 +202,8 @@ class ROI_popup(QDialog):
 
     def done_exec(self):
         # User finished drawing ROI
-        (x1, x2), (y1, y2) = self.get_coordinates()
-        self.pose.bbox.append([x1, x2, y1, y2])
+        (y1, y2), (x1, x2) = self.get_coordinates()
+        self.pose.bbox.append([y1, y2, x1, x2])
         self.resize = False
         self.add_padding = False
         self.pose.plot_bbox_roi()
