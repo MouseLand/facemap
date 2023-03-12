@@ -238,7 +238,7 @@ def rrr_prediction(
         rank = min(min_dim, rank)
     corrf = np.zeros((rank, n_feats))
     varexpf = np.zeros((rank, n_feats))
-    varexp = np.zeros((rank, 2)) if tbin != 0 else np.zeros((rank, 1))
+    varexp = np.zeros((rank, 2)) if (tbin is not None and tbin > 1) else np.zeros((rank, 1))
     Y_pred_test = np.zeros((len(itest), n_feats))
     for r in range(rank):
         Y_pred_test = X[itest] @ B[:, : r + 1] @ A[:, : r + 1].T
@@ -268,8 +268,8 @@ def rrr_prediction(
         itest,
         A.cpu().numpy(),
         B.cpu().numpy(),
-        varexpf,
-        corrf,
+        varexpf.squeeze(),
+        corrf.squeeze(),
     )
 
 
