@@ -109,9 +109,9 @@ class Pose:
                 self.bbox.append([x1, x2, y1, y2])
 
                 # Update resize and add padding flags
-                if x2 - x1 != y2 - y1:
+                if x2 - x1 != y2 - y1:  # if not a square frame view then add padding
                     self.add_padding = True
-                if x2 - x1 != 256 or y2 - y1 != 256:
+                if x2 - x1 != 256 or y2 - y1 != 256:  # if not 256x256 then resize
                     self.resize = True
                 prompt = (
                     "No bbox set. Using entire frame view: {} and resize={}".format(
