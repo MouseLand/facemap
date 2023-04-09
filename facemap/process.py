@@ -140,11 +140,11 @@ def compute_SVD(
     # binned Ly and Lx and their relative inds in concatenated movies
     Lyb, Lxb, ir = binned_inds(Ly, Lx, sbin)
     if fullSVD:
-        U_mot = [np.zeros(((Lyb * Lxb).sum(), nsegs * nc), np.float32)]
-        U_mov = [np.zeros(((Lyb * Lxb).sum(), nsegs * nc), np.float32)]
+        U_mot = [np.zeros(((Lyb * Lxb).sum(), nsegs * nc), np.float32)] if motSVD else []
+        U_mov = [np.zeros(((Lyb * Lxb).sum(), nsegs * nc), np.float32)] if movSVD else []
     else:
-        U_mot = [np.zeros((0, 1), np.float32)]
-        U_mov = [np.zeros((0, 1), np.float32)]
+        U_mot = [np.zeros((0, 1), np.float32)] if motSVD else []
+        U_mov = [np.zeros((0, 1), np.float32)] if movSVD else []
     nroi = 0
     motind = []
     ivid = []
@@ -250,10 +250,9 @@ def compute_SVD(
                 U_mov[0][:, ni_mov[0] : ni_mov[0] + ncb] = usv[0] * usv[1]
                 ni_mov[0] += ncb
         ns += 1
-    utils.update_mainwindow_message(MainWindow, GUIobject, "Finished computing svd")
 
-    S_mot = np.zeros(500)
-    S_mov = np.zeros(500)
+    S_mot = np.zeros(500, 'float32')
+    S_mov = np.zeros(500, 'float32')
     # take SVD of concatenated spatial PCs
     if ns > 1:
         for nr in range(len(U_mot)):
@@ -287,6 +286,9 @@ def compute_SVD(
                     )
                     U_mov[nr] = usv[0] * usv[1]
                     S_mov = usv[1]
+
+    utils.update_mainwindow_message(MainWindow, GUIobject, "Finished computing svd")
+
     return U_mot, U_mov, S_mot, S_mov
 
 
@@ -332,12 +334,12 @@ def process_ROIs(
     if fullSVD:
         ncomps_mot = U_mot[0].shape[-1]
         ncomps_mov = U_mov[0].shape[-1]
-        V_mot = [np.zeros((nframes, ncomps_mot), np.float32)]
-        V_mov = [np.zeros((nframes, ncomps_mov), np.float32)]
+        V_mot = [np.zeros((nframes, ncomps_mot), np.float32)] if motSVD else []
+        V_mov = [np.zeros((nframes, ncomps_mov), np.float32)] if movSVD else []
         M = [np.zeros((nframes), np.float32)]
     else:
-        V_mot = [np.zeros((0, 1), np.float32)]
-        V_mov = [np.zeros((0, 1), np.float32)]
+        V_mot = [np.zeros((0, 1), np.float32)] if motSVD else []
+        V_mov = [np.zeros((0, 1), np.float32)] if movSVD else []
         M = [np.zeros((0,), np.float32)]
 
     if rois is not None:
@@ -364,8 +366,10 @@ def process_ROIs(
             elif r["rind"] == 1:
                 motind.append(i)
                 nroi += 1
-                V_mot.append(np.zeros((nframes, U_mot[nroi].shape[1]), np.float32))
-                V_mov.append(np.zeros((nframes, U_mov[nroi].shape[1]), np.float32))
+                if motSVD:
+                    V_mot.append(np.zeros((nframes, U_mot[nroi].shape[1]), np.float32))
+                if movSVD:
+                    V_mov.append(np.zeros((nframes, U_mov[nroi].shape[1]), np.float32))
                 M.append(np.zeros((nframes,), np.float32))
             elif r["rind"] == 2:
                 blind.append(i)
@@ -503,15 +507,15 @@ def process_ROIs(
 
             if n % 10 == 0:
                 print(
-                    f"computed projection chunk {n} / {nsegs}, time {time.time()-tic: .2f}sec"
+                    f"computed video chunk {n} / {nsegs}, time {time.time()-tic: .2f}sec"
                 )
 
             utils.update_mainwindow_progressbar(
-                MainWindow, GUIobject, s, "Computing projection "
+                MainWindow, GUIobject, s, "Computing ROIs and/or motSVD/movSVD "
             )
 
     utils.update_mainwindow_message(
-        MainWindow, GUIobject, "Finished computing projection "
+        MainWindow, GUIobject, "Finished computing ROIs and/or motSVD/movSVD "
     )
 
     return V_mot, V_mov, M, pups, blinks, runs
@@ -596,6 +600,8 @@ def save(proc, savepath=None):
     if savepath is not None:
         basename = savepath
     savename = os.path.join(basename, ("%s_proc.npy" % filename))
+    # TODO: use npz
+    # np.savez(savename, **proc)
     np.save(savename, proc)
     if proc["save_mat"]:
         if "save_path" in proc and proc["save_path"] is None:
@@ -690,6 +696,7 @@ def run(
             rois = proc["rois"]
             sy = proc["sy"]
             sx = proc["sx"]
+            savepath = proc["savepath"] if savepath is not None else savepath
 
     Lybin, Lxbin, iinds = binned_inds(Ly, Lx, sbin)
     LYbin, LXbin, sybin, sxbin = utils.video_placement(Lybin, Lxbin)
@@ -798,7 +805,7 @@ def run(
 
     # Add V_mot and/or V_mov calculation: project U onto all movie frames ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     # and compute pupil (if selected)
-    tqdm.write("Computing projection for motSVD...")
+    tqdm.write("Computing ROIs and/or motSVD/movSVD")
     V_mot, V_mov, M, pups, blinks, runs = process_ROIs(
         containers,
         cumframes,
@@ -817,7 +824,7 @@ def run(
         GUIobject=GUIobject,
         MainWindow=parent,
     )
-    tqdm.write("Computed motSVD projection at %0.2fs" % (time.time() - tic))
+    tqdm.write("Computed ROIS and/or motSVD/movSVD at %0.2fs" % (time.time() - tic))
 
     # smooth pupil and blinks and running  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     for p in pups:

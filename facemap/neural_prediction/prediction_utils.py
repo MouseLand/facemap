@@ -436,7 +436,7 @@ def get_keypoints_to_neural_varexp(
     model = KeypointsNetwork(n_in=x.shape[-1], n_out=y.shape[-1]).to(device)
 
     # Train model and get predictions
-    print("Keypoints: ", x.shape)
+    print("Inputs: ", x.shape)
     print("Neural: ", y.shape)
     print("Using lr, n_iter, weight_decay: ", learning_rate, n_iter, weight_decay)
 
