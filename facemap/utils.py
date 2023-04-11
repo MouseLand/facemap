@@ -1,11 +1,12 @@
 import cv2
+import h5py
 import numpy as np
+import torch
 from scipy.interpolate import interp1d
 from scipy.linalg import eigh
 from scipy.ndimage import gaussian_filter1d
 from sklearn.decomposition import PCA
-import h5py
-import torch
+
 from facemap.pose import refine_pose
 
 
@@ -324,7 +325,6 @@ def nanmedian_filter(x, win=7):
 def filter_outliers(
     x, y, filter_window=15, baseline_window=50, max_spike=25, max_diff=25
 ):
-
     # remove frames with large jumps
     x_diff = np.abs(
         np.append(
@@ -394,9 +394,9 @@ def gabor_wavelet(sigma, f, ph, n_pts=201, is_torch=False):
     exp = np.exp
     xc = x - x.mean()
     cosine = cos(ph + f * xc)
-    gaussian = exp(-(xc ** 2) / (2 * sigma ** 2))
+    gaussian = exp(-(xc**2) / (2 * sigma**2))
     G = gaussian * cosine
-    G /= (G ** 2).sum() ** 0.5
+    G /= (G**2).sum() ** 0.5
     return G
 
 
@@ -696,7 +696,7 @@ def video_placement(Ly, Lx):
         gridy = 1
         gridx = 2
     else:
-        gridy = int(np.round(Ly.size ** 0.5 * 0.75))
+        gridy = int(np.round(Ly.size**0.5 * 0.75))
         gridx = int(np.ceil(Ly.size / gridy))
     LY = 0
     LX = 0

@@ -2,9 +2,9 @@ import os
 import shutil
 import sys
 import tempfile
+from glob import glob
 from pathlib import Path
 from urllib.request import urlopen
-from glob import glob
 
 import pytest
 from tqdm import tqdm
@@ -142,5 +142,5 @@ def clear_dir_outputs(data_dir):
         files = glob(os.path.join(data_dir, folder, "*"))
         for filename in files:
             ext = os.path.splitext(filename)[1]
-            if ext!='.avi':
+            if ext != ".avi":
                 os.remove(filename)

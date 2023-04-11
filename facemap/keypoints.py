@@ -5,7 +5,8 @@ import pandas as pd
 from scipy.ndimage import gaussian_filter1d, uniform_filter1d
 from scipy.stats import zscore
 from sklearn.decomposition import PCA
-from .utils import gabor_wavelet, filter_outliers
+
+from .utils import filter_outliers, gabor_wavelet
 
 
 def get_confidence_threshold(conf, baseline_window=200):
@@ -60,7 +61,6 @@ def load_keypoints(
     keypoint_labels=[],
     confidence_threshold=False,
 ):
-
     use_all = False
     if keypoint_labels is None:
         cam_type = int(os.path.split(kp_file)[1][3])
@@ -129,7 +129,7 @@ def get_gabor_transform(data, freqs=np.geomspace(1, 10, 5)):
             filt0 = np.convolve(zscore(data[:, j]), gw0, mode="same")
             filt1 = np.convolve(zscore(data[:, j]), gw1, mode="same")
             gabor_transform[:, 2 * k, j] = filt0
-            gabor_transform[:, 2 * k + 1, j] = (filt0 ** 2 + filt1 ** 2) ** 0.5
+            gabor_transform[:, 2 * k + 1, j] = (filt0**2 + filt1**2) ** 0.5
     return gabor_transform
 
 

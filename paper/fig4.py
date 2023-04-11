@@ -157,7 +157,6 @@ def panels_activity(data_path, db, grid1, trans, il, tmin=0, running=False):
 
 
 def panels_kl_cc(data_path, dbs, grid2, trans, il, subsample=1):
-
     mstrs = [f"{db['mname']}_{db['datexp']}_{db['blk']}" for db in dbs]
     kls = np.zeros(0)
     ves = np.zeros(0)

@@ -8,57 +8,6 @@ from scipy.stats import wilcoxon, zscore
 from facemap.utils import bin1d
 
 
-def varexp_complexity(data_path, dbs, save_fig=False):
-    mstrs = [f"{db['mname']}_{db['datexp']}_{db['blk']}" for db in dbs]
-    ve_overall = np.zeros((len(dbs), 3, 128))
-    nbins = 5
-    improvement = np.zeros((len(dbs), nbins))
-    ve_all = np.zeros((len(dbs), nbins))
-    xposs = []
-    yposs = []
-    ccol = []
-    for iexp, mstr in enumerate(mstrs):
-        dat = np.load(f"{data_path}/neural_data/spont_{mstr}.npz")
-        inds = dat["xpos"].argsort()
-        nneus = np.linspace(0, len(inds), nbins + 1).astype(int)
-        ve_kp = np.load(f"{data_path}/proc/neuralpred/{mstr}_kp_pred_test.npz")[
-            "varexp_neurons"
-        ]
-        ve_svd = np.load(f"{data_path}/proc/neuralpred/{mstr}_svd_pred_test.npz")[
-            "varexp_neurons"
-        ]
-        for i in range(nbins):
-            ineu = inds[nneus[i] : nneus[i + 1]]
-            ve0 = ve_kp[ineu].mean()
-            ve1 = ve_svd[ineu, 1].mean()
-            improvement[iexp, i] = ((ve0 - ve1) / ve1) * 100
-
-        if iexp == 2 or iexp == 10:
-            cc = ((ve_kp - ve_svd[:, 1]) / (ve_svd[:, 1])) * 100
-            igood = ve_svd[:, 1] > 1e-2
-            xposs.append(dat["xpos"][igood])
-            yposs.append(dat["ypos"][igood])
-            ccol.append(cc[igood])
-    fig = plt.figure(figsize=(9.5, 3))
-    yratio = 9.5 / 3
-    trans = mtransforms.ScaledTranslation(-25 / 72, 20 / 72, fig.dpi_scale_trans)
-    grid = plt.GridSpec(
-        1,
-        6,
-        figure=fig,
-        left=0.05,
-        right=0.95,
-        top=0.8,
-        bottom=0.1,
-        wspace=0.75,
-        hspace=0.75,
-    )
-    il = 0
-    for i in range(2):
-        xpos, ypos, c = xposs[i], -1 * yposs[i], ccol[i]
-        ax = plt.subplot(grid[0, i * 2 : (i + 1) * 2])
-
-
 def varexp_AP(data_path, dbs, save_fig=False):
     mstrs = [f"{db['mname']}_{db['datexp']}_{db['blk']}" for db in dbs]
     ve_overall = np.zeros((len(dbs), 3, 128))
@@ -72,31 +21,35 @@ def varexp_AP(data_path, dbs, save_fig=False):
         dat = np.load(f"{data_path}/neural_data/spont_{mstr}.npz")
         inds = dat["xpos"].argsort()
         nneus = np.linspace(0, len(inds), nbins + 1).astype(int)
-        ve_kp = np.load(f"{data_path}/proc/neuralpred/{mstr}_kp_pred_test.npz")[
+        ve_net = np.load(f"{data_path}/proc/neuralpred/{mstr}_net_pred_test.npz")[
             "varexp_neurons"
-        ]
-        ve_svd = np.load(f"{data_path}/proc/neuralpred/{mstr}_svd_pred_test.npz")[
+        ][:, 1]
+        ve_lin = np.load(f"{data_path}/proc/neuralpred/{mstr}_rrr_pred_test.npz")[
             "varexp_neurons"
-        ]
+        ][1]
+
+        # ve_svd = np.load(f"{data_path}/proc/neuralpred/{mstr}_svd_pred_test.npz")[
+        #    "varexp_neurons"
+        # ]
         for i in range(nbins):
             ineu = inds[nneus[i] : nneus[i + 1]]
-            ve0 = ve_kp[ineu].mean()
-            ve1 = ve_svd[ineu, 1].mean()
+            ve0 = ve_net[ineu].mean()
+            ve1 = ve_lin[ineu].mean()
             improvement[iexp, i] = ((ve0 - ve1) / ve1) * 100
 
         if iexp == 2 or iexp == 10:
-            cc = ((ve_kp - ve_svd[:, 1]) / (ve_svd[:, 1])) * 100
-            igood = ve_svd[:, 1] > 1e-2
+            cc = ((ve_net - ve_lin) / (ve_lin)) * 100
+            igood = ve_lin > 1e-2
             xposs.append(dat["xpos"][igood])
             yposs.append(dat["ypos"][igood])
             ccol.append(cc[igood])
 
-    fig = plt.figure(figsize=(9.5, 3))
-    yratio = 9.5 / 3
+    fig = plt.figure(figsize=(10.5, 3))
+    yratio = 10.5 / 3
     trans = mtransforms.ScaledTranslation(-25 / 72, 20 / 72, fig.dpi_scale_trans)
     grid = plt.GridSpec(
         1,
-        6,
+        7,
         figure=fig,
         left=0.05,
         right=0.95,
@@ -115,12 +68,10 @@ def varexp_AP(data_path, dbs, save_fig=False):
             ax.axis("off")
             pos = [pos.x0, pos.y0, pos.width, pos.height]
             ax = fig.add_axes(
-                [pos[0] + 0.0, pos[1] - 0.02, pos[2] + 0.06, pos[3] + 0.06]
+                [pos[0] - 0.025, pos[1] - 0.02, pos[2] + 0.06, pos[3] + 0.06]
             )
         else:
-            ax.set_title(
-                "keypoints prediction improvement\nover movie PCs", fontsize="medium"
-            )
+            ax.set_title("net prediction improvement\nover linear", fontsize="medium")
 
             pos = ax.get_position()
             ax.axis("off")
@@ -133,8 +84,8 @@ def varexp_AP(data_path, dbs, save_fig=False):
             ypos,
             xpos,
             c=c,
-            vmin=-200,
-            vmax=200,
+            vmin=-300,
+            vmax=300,
             cmap="bwr",
             s=1,
             alpha=1,
@@ -150,6 +101,10 @@ def varexp_AP(data_path, dbs, save_fig=False):
     trans = mtransforms.ScaledTranslation(-50 / 72, 20 / 72, fig.dpi_scale_trans)
     for i, inds in enumerate([vis, ~vis]):
         ax = plt.subplot(grid[0, 4 + i])
+        pos = ax.get_position()
+        ax.axis("off")
+        pos = [pos.x0, pos.y0, pos.width, pos.height]
+        ax = fig.add_axes([pos[0] - 0.07, pos[1], pos[2], pos[3]])
         impr = improvement[inds]
         plt.plot(impr.T, color=colors[i], alpha=0.5)
         plt.errorbar(
@@ -159,22 +114,59 @@ def varexp_AP(data_path, dbs, save_fig=False):
             color=colors[i],
             lw=3,
         )
-        plt.ylim([-50, 200])
+        plt.ylim([0, 300])
         ax.set_xticks([0, 4])
         ax.set_xticklabels(["posterior", "anterior"])
         if i == 0:
             il = plot_label(ltr, il, ax, trans, fs_title)
             ax.set_ylabel("% improvement")
-            ax.set_title("visual")
+            ax.set_title("visual", fontsize="medium")
         else:
-            ax.set_title("sensorimotor")
+            ax.set_title("sensorimotor", fontsize="medium")
+
+    ax = plt.subplot(grid[6])
+    pos = ax.get_position()
+    ax.axis("off")
+    pos = [pos.x0, pos.y0, pos.width, pos.height]
+    ax = fig.add_axes([pos[0] - 0.03, pos[1], pos[2] + 0.06, pos[3]])
+    mstrs = [f"{db['mname']}_{db['datexp']}_{db['blk']}" for db in dbs]
+    ve_all = []
+    for j, mstr in enumerate(mstrs):
+        d = np.load(f"{data_path}/proc/neuralpred/{mstr}_kpareas_pred_test.npz")
+        ve_expl = np.load(f"{data_path}/proc/neuralpred/{mstr}_spks_test.npz")[
+            "varexp_expl_neurons"
+        ].mean()
+        kpa = d["varexp_neurons"].mean(axis=0)
+        kpareas = d["kpareas"]
+        vef = np.load(f"{data_path}/proc/neuralpred/{mstr}_net_pred_test.npz")[
+            "varexp_neurons"
+        ][:, 1]
+        kpf = np.array([vef.mean(), *kpa]) / ve_expl * 100
+        ve_all.append(kpf)
+    ve_all = np.array(ve_all)
+    for i, inds in enumerate([vis, ~vis]):
+        ax.plot(ve_all[inds].T, color=viscol if i == 0 else smcol, lw=1, alpha=0.5)
+        plt.errorbar(
+            np.arange(0, 4),
+            ve_all[inds].mean(axis=0),
+            ve_all[inds].std(axis=0) / inds.sum() ** 0.5,
+            color=viscol if i == 0 else smcol,
+            lw=3,
+            zorder=5,
+        )
+
+    ax.set_title("Prediction from \nkeypoint groups", fontsize="medium")
+    ax.set_ylim([0, 72])
+    ax.set_xticks(np.arange(0, 4))
+    ax.set_xticklabels(["all", "eye  ", "whisker", "  nose"])
+    ax.set_ylabel("% normalized variance\nexplained (test data)")
+    il = plot_label(ltr, il, ax, trans, fs_title)
 
     if save_fig:
         fig.savefig(f"{data_path}figs/suppfig_varexpAP.pdf")
 
 
 def example_sm(data_path, db, save_fig=False):
-
     fig = plt.figure(figsize=(9.5 * 0.75, 7.8))
     trans = mtransforms.ScaledTranslation(-30 / 72, 7 / 72, fig.dpi_scale_trans)
     grid = plt.GridSpec(
@@ -297,7 +289,7 @@ def model_complexity(data_path, dbs, save_fig=False):
         right=0.95,
         top=0.8,
         bottom=0.4,
-        wspace=0.75,
+        wspace=0.5,
         hspace=1,
     )
     il = 0
@@ -383,6 +375,18 @@ def model_complexity(data_path, dbs, save_fig=False):
     ax.set_xlabel("# of convolution \nfilters")
     ax.set_xticks([2, 10, 50])
     ax.set_xticklabels(["2", "10", "50"])
+
+    for iexp, mstr in enumerate(mstrs):
+        d = np.load(f"{data_path}/proc/neuralpred/{mstr}_complexity.npz")
+        ve_expl = np.load(f"{data_path}/proc/neuralpred/{mstr}_spks_test.npz")[
+            "varexp_expl_neurons"
+        ].mean()
+        ve_no_param[iexp] = (
+            d["varexps_no_param_neurons"].mean(axis=-1) / ve_expl
+        ) * 100
+        ve_nl_all[iexp] = (d["varexps_nl_all_neurons"].mean(axis=1).T / ve_expl) * 100
+        ve_latents[iexp] = (d["varexps_latents_neurons"].mean(axis=0) / ve_expl) * 100
+        ve_filts[iexp] = (d["varexps_filts_neurons"].mean(axis=0) / ve_expl) * 100
 
     if save_fig:
         fig.savefig(f"{data_path}figs/suppfig_complexity.pdf")

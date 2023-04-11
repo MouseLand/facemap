@@ -1,7 +1,7 @@
 import numpy as np
 import pyqtgraph as pg
-from PyQt5 import QtCore
 from matplotlib import cm
+from PyQt5 import QtCore
 from PyQt5.QtWidgets import (
     QDesktopWidget,
     QDialog,

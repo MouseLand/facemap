@@ -170,7 +170,6 @@ class ModelTrainingPopup(QDialog):
     ### ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Step 2: Choose training files ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ ###
 
     def show_choose_training_files(self):
-
         self.update_window_size(0.4, aspect_ratio=0.5)
 
         self.output_folder_path = self.output_folder_path_box.text()
@@ -675,7 +674,6 @@ class ModelTrainingPopup(QDialog):
     def show_refinement_options(
         self, predict_frame_index=None, additional_frames=False
     ):
-
         self.clear_window()
         self.update_window_title("Step 3: Refine keypoints")
         self.update_window_size(0.6, aspect_ratio=1.3)
@@ -985,7 +983,10 @@ class ModelTrainingPopup(QDialog):
                 [-1 * val for val in pads],
             )
         if resize:
-            (keypoints[:, :, 0], keypoints[:, :, 1],) = transforms.rescale_keypoints(
+            (
+                keypoints[:, :, 0],
+                keypoints[:, :, 1],
+            ) = transforms.rescale_keypoints(
                 keypoints[:, :, 0],
                 keypoints[:, :, 1],
                 postpad_shape,
@@ -1233,7 +1234,6 @@ class ModelTrainingPopup(QDialog):
 
     ### ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Model Evaluation ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ ###
     def show_finetuned_model_predictions(self):
-
         self.clear_window()
         self.update_window_title("Final step: Evaluate model training")
         self.update_window_size(frac=0.5, aspect_ratio=1.5)
@@ -1416,6 +1416,7 @@ class KeypointsViewBox(pg.ViewBox):
 
 
 ### ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Keypoints graph features ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ ###
+
 
 # Following adatped from https://github.com/pyqtgraph/pyqtgraph/blob/develop/examples/CustomGraphItem.py
 class KeypointsGraph(pg.GraphItem):

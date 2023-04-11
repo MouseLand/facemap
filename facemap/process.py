@@ -140,8 +140,12 @@ def compute_SVD(
     # binned Ly and Lx and their relative inds in concatenated movies
     Lyb, Lxb, ir = binned_inds(Ly, Lx, sbin)
     if fullSVD:
-        U_mot = [np.zeros(((Lyb * Lxb).sum(), nsegs * nc), np.float32)] if motSVD else []
-        U_mov = [np.zeros(((Lyb * Lxb).sum(), nsegs * nc), np.float32)] if movSVD else []
+        U_mot = (
+            [np.zeros(((Lyb * Lxb).sum(), nsegs * nc), np.float32)] if motSVD else []
+        )
+        U_mov = (
+            [np.zeros(((Lyb * Lxb).sum(), nsegs * nc), np.float32)] if movSVD else []
+        )
     else:
         U_mot = [np.zeros((0, 1), np.float32)] if motSVD else []
         U_mov = [np.zeros((0, 1), np.float32)] if movSVD else []
@@ -251,8 +255,8 @@ def compute_SVD(
                 ni_mov[0] += ncb
         ns += 1
 
-    S_mot = np.zeros(500, 'float32')
-    S_mov = np.zeros(500, 'float32')
+    S_mot = np.zeros(500, "float32")
+    S_mov = np.zeros(500, "float32")
     # take SVD of concatenated spatial PCs
     if ns > 1:
         for nr in range(len(U_mot)):

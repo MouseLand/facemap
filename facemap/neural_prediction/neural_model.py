@@ -7,8 +7,8 @@ from torch import nn
 from torch.nn import functional as F
 from tqdm import tqdm
 
-from ..utils import gabor_wavelet, split_data, compute_varexp
 from ..gui import help_windows
+from ..utils import compute_varexp, gabor_wavelet, split_data
 
 
 class KeypointsNetwork(nn.Module):
@@ -296,7 +296,7 @@ class KeypointsNetwork(nn.Module):
             )
             y_pred = latents_test @ A
             tl = ((y_pred - Y_test) ** 2).mean()
-            ve = 1 - tl / (Y_test ** 2).mean()
+            ve = 1 - tl / (Y_test**2).mean()
             self.readout.features.linear0.weight.data = (
                 torch.from_numpy(A[:n_latents].T).float().to(device)
             )
