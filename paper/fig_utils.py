@@ -36,6 +36,24 @@ kp_labels = [
     # "whisker(d2)",
 ]
 
+kp_labels_old = [
+    "eye(back)",
+    "eye(bottom)",
+    "eye(front)",
+    "eye(top)",
+    "lowerlip",
+    "mouth",
+    "nose(bottom)",
+    "nose(r)",
+    "nose(tip)",
+    "nose(top)",
+    "nosebridge",
+    "paw",
+    "whisker(c1)",
+    "whisker(d2)",
+    "whisker(d1)",
+]
+
 
 viscol = [1.0, 100.0 / 255, 200.0 / 255.0]
 smcol = [100.0 / 255, 0, 100.0 / 255.0]

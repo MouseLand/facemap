@@ -282,7 +282,7 @@ def panels_scaling(data_path, dbs, grid, trans, il):
                     )
 
             if j == 0:
-                #il = plot_label(ltr, il, ax, trans, fs_title)
+                il = plot_label(ltr, il, ax, trans, fs_title)
                 ax.set_ylabel("% normalized variance\nexplained (test data)")
                 ax.set_title(
                     "visual", fontweight="bold", color=viscol, fontsize="medium"
