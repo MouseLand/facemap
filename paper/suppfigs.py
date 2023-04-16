@@ -7,6 +7,98 @@ from scipy.stats import wilcoxon, zscore
 
 from facemap.utils import bin1d
 
+def varexp_ranks(data_path, dbs, evals=None, save_fig=False):
+    colors = [[0.5, 0.5, 0.5], [0.75, 0.75, 0.25]]
+    lbls = ["keypoints", "movie PCs"]
+
+    fig = plt.figure(figsize=(9,3))
+    trans = mtransforms.ScaledTranslation(-50 / 72, 7 / 72, fig.dpi_scale_trans)
+    grid = plt.GridSpec(
+            1,
+            3,
+            figure=fig,
+            left=0.15,
+            right=0.95,
+            top=0.9,
+            bottom=0.2,
+            wspace=0.5,
+            hspace=0.25,
+    )
+        
+    mstrs = [f"{db['mname']}_{db['datexp']}_{db['blk']}" for db in dbs]
+    ve = np.zeros((len(dbs), 128, 2))
+    evals = np.zeros((len(dbs), 500)) if evals is None else evals
+    for iexp, mstr in enumerate(mstrs):
+        if evals[iexp].sum()==0:
+            svd_path = f"{data_path}cam/cam0_{mstr}_proc.npy"
+            svds = np.load(svd_path, allow_pickle=True).item()
+            ev = (svds["movSVD"][0]**2).sum(axis=0)
+            evals[iexp] = ev / ev.sum()
+        d = np.load(f"{data_path}/proc/neuralpred/{mstr}_rrr_pred_test.npz")
+        ve[iexp,:] = d['varexp'][:128, ::-1] * 100
+        #plt.semilogx(np.arange(1, len(d['varexp'])+1), )
+        
+    il = 0
+    ax = plt.subplot(grid[0,0])
+    il = plot_label(ltr, il, ax, trans, fs_title)
+    vem = evals.mean(axis=0)
+    ves = evals.std(axis=0) / (evals.shape[0]-1)**0.5
+    ax.loglog(np.arange(1,501), vem, color='k')
+    ax.fill_between(
+        np.arange(1, 501), vem + ves, vem - ves, color='k', alpha=0.25
+    )
+    ax.set_ylabel('fraction of variance')
+    ax.set_xlabel('PC dimension')
+    ax.set_title(
+        "face movie PCs", fontweight="bold", fontsize="medium"
+    )
+            
+    colors = [[0.5, 0.5, 0.5], [0.75, 0.75, 0.25]]
+    lbls = ["keypoints", "movie PCs"]
+
+    vis = np.array([db["visual"] for db in dbs])
+    ranks = np.arange(1,129)
+    for j, inds in enumerate([vis, ~vis]):
+        ax = plt.subplot(grid[0,j+1])
+        if j==0:
+            il = plot_label(ltr, il, ax, trans, fs_title)
+        for i in range(2):
+            vem = ve[inds,:,i].mean(axis=0)
+            ves = ve[inds,:,i].std(axis=0) / ((inds.sum()-1)**0.5)
+            #print(vem+ves - (vem-ves))
+            ax.plot(ranks, vem, color=colors[i])
+            ax.fill_between(
+                    ranks, vem + ves, vem - ves, color=colors[i], alpha=0.25
+                )
+            if j == 0:
+                x = 0.6
+                y = 0.1 + i * 0.12
+                ax.text(
+                    x, y, lbls[i], color=colors[i], transform=ax.transAxes
+                )
+                
+        if j == 0:
+            #il = plot_label(ltr, il, ax, trans, fs_title)
+            ax.set_ylabel("% variance explained, \ntop 128 PCs (test data)")
+            ax.set_title(
+                "visual", fontweight="bold", color=viscol, fontsize="medium"
+            )
+        else:
+            ax.set_title(
+                "sensorimotor", fontweight="bold", color=smcol, fontsize="medium"
+            )
+        ax.set_xlabel("ranks")
+        ax.set_xscale("log")
+        ax.set_xticks([1,4,16,64,128])
+        ax.set_xticklabels(["1", "4", "16", "32", "128"])
+        ax.set_xlim([1,128])
+        ax.set_ylim([0, 38])
+
+    if save_fig:
+        fig.savefig(f"{data_path}figs/suppfig_veranks.pdf")
+
+    return evals
+
 
 def varexp_AP(data_path, dbs, save_fig=False):
     mstrs = [f"{db['mname']}_{db['datexp']}_{db['blk']}" for db in dbs]
@@ -44,8 +136,8 @@ def varexp_AP(data_path, dbs, save_fig=False):
             yposs.append(dat["ypos"][igood])
             ccol.append(cc[igood])
 
-    fig = plt.figure(figsize=(10.5, 3))
-    yratio = 10.5 / 3
+    fig = plt.figure(figsize=(12, 3))
+    yratio = 12 / 3
     trans = mtransforms.ScaledTranslation(-25 / 72, 20 / 72, fig.dpi_scale_trans)
     grid = plt.GridSpec(
         1,
@@ -145,6 +237,7 @@ def varexp_AP(data_path, dbs, save_fig=False):
         ve_all.append(kpf)
     ve_all = np.array(ve_all)
     for i, inds in enumerate([vis, ~vis]):
+        print(ve_all[inds].mean(axis=0))
         ax.plot(ve_all[inds].T, color=viscol if i == 0 else smcol, lw=1, alpha=0.5)
         plt.errorbar(
             np.arange(0, 4),
@@ -195,9 +288,9 @@ def example_clusters(data_path, dbs, save_fig=False):
         2,
         1,
         figure=fig,
-        left=0.1,
+        left=0.05,
         right=0.97,
-        top=0.95,
+        top=0.97,
         bottom=0.03,
         wspace=0.75,
         hspace=0.25,
@@ -247,7 +340,7 @@ def example_clusters(data_path, dbs, save_fig=False):
                 rasterized=True,
             )
             ax.scatter(ypos[labels == ind], xpos[labels == ind], s=3, rasterized=True)
-            ax.set_title(f"LI={kl_clust[ind]:.2f}\nr={cc[ind]:.2f}", fontsize="small")
+            ax.set_title(f"LI={kl_clust[ind]:.2f}\nr={cc[ind]:.2f}", fontsize="medium")
             ax.set_xlim(ylim)
             ax.set_ylim(xlim)
             ax.axis("off")
@@ -278,7 +371,7 @@ def model_complexity(data_path, dbs, save_fig=False):
         ve_latents[iexp] = (d["varexps_latents_neurons"].mean(axis=0) / ve_expl) * 100
         ve_filts[iexp] = (d["varexps_filts_neurons"].mean(axis=0) / ve_expl) * 100
 
-    fig = plt.figure(figsize=(11, 4))
+    fig = plt.figure(figsize=(12, 4))
     yratio = 11 / 4
     trans = mtransforms.ScaledTranslation(-40 / 72, 20 / 72, fig.dpi_scale_trans)
     grid = plt.GridSpec(

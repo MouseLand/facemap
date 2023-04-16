@@ -254,8 +254,9 @@ def rrr_net_varexp(
 ):
     mtypes = ["rrr", "net"]
     svds = np.load(svd_path, allow_pickle=True).item()
+    movSVD = svds["movSVD"][0].copy()
     x_kp = keypoints_utils.get_normalized_keypoints(kp_path0, exclude_keypoints="paw")
-    X = [svds["movSVD"][0].copy(), x_kp]  # , svds["movSVD"][0].copy()]
+    X = [movSVD, x_kp]  # , svds["movSVD"][0].copy()]
     X[0] -= X[0].mean(axis=0)
     X[0] /= X[0][:, 0].std(axis=0)
 
@@ -289,6 +290,7 @@ def rrr_net_varexp(
                         latents,
                     )
             print(f"{mtype} varexp {varexp[0]:.3f}, {varexp[1]:.3f}")
+        
         np.savez(
             f"{data_path}proc/neuralpred/{mstr}_{mtype}_pred_test.npz",
             spks_pred_test=np.array(spks_pred_test),

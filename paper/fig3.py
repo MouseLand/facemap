@@ -8,8 +8,8 @@ from facemap.neural_prediction import prediction_utils
 from facemap.utils import bin1d, compute_varexp
 
 yratio = 12 / 7.8
-colors = [[0.5, 0.5, 0.5], [0.75, 0.75, 0.25], [0.9, 0.6, 0.25]]
-lbls = ["keypoints", "motion PCs", "movie PCs"]
+colors = [[0.5, 0.5, 0.5], [0.75, 0.75, 0.25]]
+lbls = ["keypoints", "movie PCs"]
 
 
 def panel_wavelets(data_path, db, ax):
@@ -30,7 +30,7 @@ def panel_wavelets(data_path, db, ax):
     ax.plot([0, 50], np.zeros(2) - 0.25, color="k")
     ax.text(0, 1, "convolution filters", transform=ax.transAxes, fontsize=12)
     ax.text(0, -0.02, "1 sec.", transform=ax.transAxes, fontsize="small")
-    ax.plot([100, 100], [-0.25, dyk + wv.max()], lw=0.5, ls="--")
+    ax.plot([100, 100], [-0.25, dyk + wv.max()], lw=0.5, ls="--", color='k')
     ax.text(0.55, 0.92, "t=0", transform=ax.transAxes, fontsize="small")
     ax.axis("off")
 
@@ -181,7 +181,9 @@ def panels_varexp(
             x = np.arange(0, 2) + (1 + pad) * j
             for i in inds.nonzero()[0]:
                 ax.plot(x, ve_overall[i, j], color=col, lw=0.5)
-            ax.plot(x, ve_overall[inds, j].mean(axis=0), color=col, lw=3)
+            vem = ve_overall[inds, j].mean(axis=0)
+            ves = ve_overall[inds, j].std(axis=0) / (inds.sum()-1)**0.5
+            ax.errorbar(x, vem, ves, color=col, lw=3)
         tx, ty = 0.03, 0.05 + k * 0.06
         ax.text(tx, ty, astr, color=col, transform=ax.transAxes, fontweight="bold")
         k += 1
@@ -229,20 +231,26 @@ def panels_varexp(
 
 def panels_scaling(data_path, dbs, grid, trans, il):
     mstrs = [f"{db['mname']}_{db['datexp']}_{db['blk']}" for db in dbs]
-    ves = [np.zeros((len(dbs), 6, 3)), np.zeros((len(dbs), 5, 3))]
+    ves = [np.zeros((2,len(dbs), 6, 2)), np.zeros((2,len(dbs), 5, 2))]
     nns = [np.zeros((len(dbs), 6)), np.zeros((len(dbs), 5))]
+
     for iexp, mstr in enumerate(mstrs):
-        d = np.load(f"{data_path}/proc/neuralpred/{mstr}_scaling.npz")
+        d = np.load(f"{data_path}/proc/neuralpred/{mstr}_kp_scaling.npz")
+        d1 = np.load(f"{data_path}/proc/neuralpred/{mstr}_svd_scaling.npz")
         ve_expl = np.load(f"{data_path}/proc/neuralpred/{mstr}_spks_test.npz")[
             "varexp_expl_neurons"
         ].mean()
-        ves[0][iexp] = (d["varexps_neurons"] / ve_expl) * 100
+        ves[0][1,iexp] = (d["varexps_neurons"] / ve_expl) * 100
+        ves[0][0,iexp] = (d1["varexps_neurons"] / ve_expl) * 100
         nns[0][iexp] = d["nlengths"]
-        ves[1][iexp] = (d["varexps_time"] / ve_expl) * 100
+        ves[1][1,iexp] = (d["varexps_time"] / ve_expl) * 100
+        ves[1][0,iexp] = (d1["varexps_time"] / ve_expl) * 100
         nns[1][iexp] = d["tlengths"] / 3 / 60
 
     vis = np.array([db["visual"] for db in dbs])
-
+    ls = ['-','--']
+    lstr = ['--', '-- ']
+    mstr = ['network', 'linear']
     for k in range(2):
         for j, inds in enumerate([vis, ~vis]):
             ax = plt.subplot(grid[k, j])
@@ -251,24 +259,30 @@ def panels_scaling(data_path, dbs, grid, trans, il):
                 pos = ax.get_position()
                 pos = [pos.x0, pos.y0, pos.width, pos.height]
                 ax = grid.figure.add_axes([pos[0] + 0.03, pos[1], pos[2], pos[3]])
-            vem = ves[k][inds].mean(axis=0)
-            # vem = vem0.copy() # swap movie and motion
-            # vem[:,1:] = vem0[:,[2,1]]
-            x = nns[k][inds].mean(axis=0)
-            for i in range(3):
-                ax.plot(x, vem[:, i], color=colors[i], zorder=3 - i)
-                if k == 0 and j == 1:
+            for ii in range(2):
+                vem = ves[k][ii,inds].mean(axis=0)
+                x = nns[k][inds].mean(axis=0)
+                for i in range(2):
+                    ax.plot(x, vem[:, i], linestyle=ls[i],
+                            color=colors[ii], zorder=3 - i)
+            if k == 0 and j == 0:
+                x = 0.6
+                for i in range(2):
+                    y = 0.48 + i * 0.12
                     ax.text(
-                        1.0,
-                        0.3 - i * 0.12,
-                        lbls[i],
-                        color=colors[i],
-                        transform=ax.transAxes,
-                        ha="right",
+                        x, y, lbls[i], color=colors[i], transform=ax.transAxes
                     )
-            # ax.set_xscale('log')
+                    y = 0.33 - i * 0.14
+                    ax.text(
+                        x, y, lstr[i], transform=ax.transAxes,
+                    )
+                    y = 0.33 - i * 0.14
+                    ax.text(
+                        x+0.08, y, mstr[i], transform=ax.transAxes,
+                    )
+
             if j == 0:
-                il = plot_label(ltr, il, ax, trans, fs_title)
+                #il = plot_label(ltr, il, ax, trans, fs_title)
                 ax.set_ylabel("% normalized variance\nexplained (test data)")
                 ax.set_title(
                     "visual", fontweight="bold", color=viscol, fontsize="medium"
@@ -283,11 +297,6 @@ def panels_scaling(data_path, dbs, grid, trans, il):
                 ax.set_xticks([100, 1000, 10000])
             else:
                 ax.set_xlabel("# of timepoints (minutes)")
-            ax.set_ylim([0, 52])
-            ax.set_yticks([0, 25, 50])
-
-    # ax = plt.subplot(grid[0,1])
-    # il = plot_label(ltr, il, ax, trans, fs_title)
 
     return il
 
@@ -320,23 +329,25 @@ def panels_cum_varexp(data_path, dbs, axs):
                     (Vvar - ((V - svd_pc[j]) ** 2).mean(axis=0)) / Vvar.sum() * 100
                 )
         ve = np.cumsum(ve_overall, axis=-1)
-        np.save(f"{data_path}proc/neuralpred/ve_cum.npy", ve)
+        
     vis = np.array([db["visual"] for db in dbs])
+    ls = ['--','-']
+    mstr = ['rrr', 'net']
     for k, ax in enumerate(axs):
         inds = vis if k == 0 else ~vis
 
-        for j in range(3):
+        for j in range(4):
             vem = ve[inds, j].mean(axis=0)
-            ves = ve[inds, j].std(axis=0) / (len(ve) ** 0.5)
-            ax.semilogx(np.arange(1, 129), vem.T, color=colors[j])
+            ves = ve[inds, j].std(axis=0) / ((inds.sum()-1) ** 0.5)
+            ax.semilogx(np.arange(1, 129), vem.T, color=colors[j//2], linestyle=ls[j%2])
             ax.fill_between(
-                np.arange(1, 129), vem + ves, vem - ves, color=colors[j], alpha=0.25
+                np.arange(1, 129), vem + ves, vem - ves, color=colors[j//2], alpha=0.25
             )
-            print(lbls[j], "1st pc= ", vem[0])
+            print(f"{lbls[j//2]}, {mstr[j%2]}, 1st pc= {vem[0]}")
         xt = 2 ** np.arange(0, 10, 2)
         ax.set_xticks(xt)
         ax.set_xticklabels([str(x) for x in xt])
-        ax.set_ylim([0, 45])
+        ax.set_ylim([0, 52])
         ax.set_xlim([1, 128])
         ax.set_title(
             f"{['visual','sensorimotor'][k]}",

@@ -20,15 +20,16 @@ def panels_activity(data_path, db, grid1, trans, il, tmin=0, running=False):
         f"{data_path}/proc/neuralpred/{db['mname']}_{db['datexp']}_{db['blk']}_spks_test.npz"
     )["itest"]
     run = run[itest]
-    spks_pred_test = np.load(
-        f"{data_path}/proc/neuralpred/{db['mname']}_{db['datexp']}_{db['blk']}_kp_pred_test.npz"
-    )["spks_pred_test"]
-    spks_pred_test_svd = np.load(
-        f"{data_path}/proc/neuralpred/{db['mname']}_{db['datexp']}_{db['blk']}_svd_pred_test.npz"
-    )["spks_pred_test"][1].T
+    spks_pred_test_net = np.load(
+        f"{data_path}/proc/neuralpred/{db['mname']}_{db['datexp']}_{db['blk']}_net_pred_test.npz"
+    )["spks_pred_test"][0]
+    spks_pred_test_lin = np.load(
+        f"{data_path}/proc/neuralpred/{db['mname']}_{db['datexp']}_{db['blk']}_rrr_pred_test.npz"
+    )["spks_pred_test"][0].T
     clust_kl_ve = np.load(
         f"{data_path}/proc/neuralpred/{db['mname']}_{db['datexp']}_{db['blk']}_clust_kl_ve.npz"
     )
+    
     isort = clust_kl_ve["isort"]
     ve_clust = clust_kl_ve["varexp_clust"]
     clust_test = clust_kl_ve["clust_test"]
@@ -40,12 +41,12 @@ def panels_activity(data_path, db, grid1, trans, il, tmin=0, running=False):
 
     nbin = 25
     spks_rm = bin1d(spks_test[isort], nbin)
-    spks_pred_rm = bin1d(spks_pred_test[isort], nbin)
-    spks_pred_svd_rm = bin1d(spks_pred_test_svd[isort], nbin)
+    spks_pred_rm = bin1d(spks_pred_test_net[isort], nbin)
+    spks_pred_lin_rm = bin1d(spks_pred_test_lin[isort], nbin)
     spks_pred_rm -= spks_rm.mean(axis=1, keepdims=True)
     spks_pred_rm /= spks_rm.std(axis=1, keepdims=True)
-    spks_pred_svd_rm -= spks_rm.mean(axis=1, keepdims=True)
-    spks_pred_svd_rm /= spks_rm.std(axis=1, keepdims=True)
+    spks_pred_lin_rm -= spks_rm.mean(axis=1, keepdims=True)
+    spks_pred_lin_rm /= spks_rm.std(axis=1, keepdims=True)
     spks_rm -= spks_rm.mean(axis=1, keepdims=True)
     spks_rm /= spks_rm.std(axis=1, keepdims=True)
 
@@ -53,11 +54,11 @@ def panels_activity(data_path, db, grid1, trans, il, tmin=0, running=False):
     trange = tmax - tmin
     titles = [
         f"activity in {['sensorimotor','visual'][db['visual']]} neurons (test data)",
-        "keypoints prediction",
-        "movie PC prediction",
+        "network prediction",
+        "linear prediction",
     ]
     for k, (sp, ttl) in enumerate(
-        zip([spks_rm, spks_pred_rm, spks_pred_svd_rm], titles)
+        zip([spks_rm, spks_pred_rm, spks_pred_lin_rm], titles)
     ):
         ax = plt.subplot(grid1[k, 0])
         ax.imshow(sp[:, tmin:tmax], vmin=0, vmax=1.5, cmap="gray_r", aspect="auto")
@@ -125,7 +126,7 @@ def panels_activity(data_path, db, grid1, trans, il, tmin=0, running=False):
     ax.text(
         0.75,
         1,
-        "keypoints prediction",
+        "network prediction",
         ha="right",
         va="bottom",
         transform=ax.transAxes,

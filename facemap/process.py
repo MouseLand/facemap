@@ -266,14 +266,14 @@ def compute_SVD(
                     usv = utils.svdecon(
                         U_mot[nr], k=min(ncomps, U_mot[nr].shape[0] - 1)
                     )
-                    U_mot[nr] = usv[0] * usv[1]
+                    U_mot[nr] = usv[0]
                     S_mot = usv[1]
                 if movSVD:
                     U_mov[nr] = U_mov[nr][:, : ni_mov[0]]
                     usv = utils.svdecon(
                         U_mov[nr], k=min(ncomps, U_mov[nr].shape[0] - 1)
                     )
-                    U_mov[nr] = usv[0] * usv[1]
+                    U_mov[nr] = usv[0]
                     S_mov = usv[1]
             elif nr > 0:
                 if motSVD:
@@ -281,14 +281,14 @@ def compute_SVD(
                     usv = utils.svdecon(
                         U_mot[nr], k=min(ncomps, U_mot[nr].shape[0] - 1)
                     )
-                    U_mot[nr] = usv[0] * usv[1]
+                    U_mot[nr] = usv[0]
                     S_mot = usv[1]
                 if movSVD:
                     U_mov[nr] = U_mov[nr][:, : ni_mov[nr]]
                     usv = utils.svdecon(
                         U_mov[nr], k=min(ncomps, U_mov[nr].shape[0] - 1)
                     )
-                    U_mov[nr] = usv[0] * usv[1]
+                    U_mov[nr] = usv[0]
                     S_mov = usv[1]
 
     utils.update_mainwindow_message(MainWindow, GUIobject, "Finished computing svd")
