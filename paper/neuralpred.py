@@ -7,6 +7,7 @@ import torch
 from scipy.interpolate import interp1d
 from scipy.linalg import eigh
 from scipy.ndimage import gaussian_filter1d
+from scipy.stats import zscore 
 from sklearn.decomposition import PCA
 from torch import nn
 from torch.nn import functional as F
@@ -344,20 +345,16 @@ def kpareas_varexp(kp_path0, mstr, Y, tcam, tneural, U, spks, delay=-1, save_pat
     x_kp = keypoints_utils.get_normalized_keypoints(kp_path0, exclude_keypoints="paw")
     d = np.load(kp_path0, allow_pickle=True).item()
     # remove some keypoints to make areas equal
-    inds = np.ones(11, "bool")
-    inds[0] = False
-    inds[10] = False
-    x_kp = x_kp[:, inds]
-    labels = d["keypoint_labels"][inds]
-    print(labels)
-    inds = [0, 3, 6]
-    kpareas = [labels[ind].split("(")[0] for ind in inds]
-    inds.append(9)
+    labels = d["keypoint_labels"][:-1]
+    kpall = np.array([l.split("(")[0] for l in labels])
+    kpareas = np.unique(kpall)
     varexp, varexp_neurons = [], []
     for j, area in enumerate(kpareas):
-        x = x_kp[:, 2 * inds[j] : 2 * inds[j + 1]]
+        inds = np.ones(11, "bool")
+        inds[kpall==area] = False
+        inds = np.tile(inds[:,np.newaxis], (1,2)).flatten()
         vout = prediction_utils.get_keypoints_to_neural_varexp(
-            x, Y, tcam, tneural, U=U, spks=spks, delay=delay
+            x_kp[:, inds], Y, tcam, tneural, U=U, spks=spks, delay=delay
         )
         itest = vout[4]
         varexp.append(vout[0])
@@ -466,7 +463,7 @@ def kp_svd_analyses(
                 spks, U * sv, xpos, ypos, spks_test, spks_pred_test, cluster_save_path
             )
 
-        kpareas_save_path = f"{data_path}proc/neuralpred/{mstr}_kpareas_pred_test.npz"
+        kpareas_save_path = f"{data_path}proc/neuralpred/{mstr}_kpwo_pred_test.npz"
         if compute_kpareas:
             kpareas_varexp(
                 kp_path0,
@@ -483,6 +480,54 @@ def kp_svd_analyses(
         print(f"processed in {time.time()-tic:.2f}s")
 
     return
+
+
+def compute_cluster_corr(data_path, dbs):
+    from rastermap.clustering import scaled_kmeans
+    n_clusters_range = np.array([2, 4, 10, 25, 50, 100, 250, 500])
+    ccs = np.zeros((len(dbs), len(n_clusters_range)))
+
+    for iexp, db in enumerate(dbs):
+        mname, datexp, blk, twocam = db["mname"], db["datexp"], db["blk"], db["2cam"]
+        neural_file = f"{data_path}neural_data/spont_{mname}_{datexp}_{blk}.npz"
+        print(f"{iexp} loading {neural_file}")
+        dat = np.load(neural_file)
+
+        xpos = dat["xpos"]
+        ypos = dat["ypos"]
+        spks = dat["spks"]
+        tcam = dat["tcam"]
+        tneural = dat["tneural"]
+
+        # z-score neural activity
+        spks -= spks.mean(axis=1)[:, np.newaxis]
+        std = ((spks**2).mean(axis=1) ** 0.5)[:, np.newaxis]
+        std[std == 0] = 1
+        spks /= std
+
+        # load explainable variance and PCs
+        ev_save_path = (
+            f"{data_path}proc/neuralpred/{mname}_{datexp}_{blk}_spks_test.npz"
+        )
+        U = np.load(ev_save_path)["U"]
+        sv = np.load(ev_save_path)["sv"]
+        Y = spks.T @ U
+        V = Y / sv
+        
+        for i, n_clusters in enumerate(n_clusters_range):
+            X_nodes, iclust = scaled_kmeans(U*sv, n_clusters=n_clusters)
+
+            #X_nodes_z = zscore(X_nodes, axis=1)
+            Xt = X_nodes @ V.T 
+            Xz = zscore(Xt, axis=1)
+
+            cc = (Xz[iclust] * spks).mean(axis=-1)
+            print(f"{n_clusters}, {cc.mean():.2f}")
+            ccs[iexp, i] = cc.mean()
+
+    np.savez(f"{data_path}proc/neuralpred/n_clusters_analysis.npz", 
+            n_clusters_range=n_clusters_range,
+            ccs=ccs)
 
 
 def compute_varexp_small(

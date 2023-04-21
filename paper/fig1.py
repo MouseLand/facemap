@@ -146,7 +146,7 @@ def panel_error_speed_comparison(ax, data_path):
         #ax.annotate(model_label, xy=(xpos, ypos), color=c,
         #            xytext=(xpos+adjust_pos[0], ypos+adjust_pos[1]),
         #            ha="center", fontname="Arial")
-    ax.set_xlabel("Inference speed (Hz)\n(batch size = 1)", fontsize=12)
+    ax.set_xlabel("processing speed (FPS)\n(batch size = 1)", fontsize=12)
     ax.set_ylabel("average error (px)", fontsize=12)
     ax.set_xlim(0, 400)
     ax.set_ylim(3.7, 6.)
