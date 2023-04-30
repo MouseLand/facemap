@@ -249,7 +249,7 @@ def panels_scaling(data_path, dbs, grid, trans, il):
 
     vis = np.array([db["visual"] for db in dbs])
     ls = ['-','--']
-    lstr = ['--', '-- ']
+    lstr = [' -', '--']
     mstr = ['network', 'linear']
     for k in range(2):
         for j, inds in enumerate([vis, ~vis]):
@@ -278,7 +278,7 @@ def panels_scaling(data_path, dbs, grid, trans, il):
                     )
                     y = 0.33 - i * 0.14
                     ax.text(
-                        x+0.08, y, mstr[i], transform=ax.transAxes,
+                        x+0.07, y, mstr[i], transform=ax.transAxes,
                     )
 
             if j == 0:
@@ -343,7 +343,8 @@ def panels_cum_varexp(data_path, dbs, axs):
             ax.fill_between(
                 np.arange(1, 129), vem + ves, vem - ves, color=colors[j//2], alpha=0.25
             )
-            print(f"{lbls[j//2]}, {mstr[j%2]}, 1st pc= {vem[0]}")
+            print(f"{k}, {lbls[j//2]}, {mstr[j%2]}, 1st pc= {vem[0]}")
+            print(f"{k}, {lbls[j//2]}, {mstr[j%2]}, 64th pc= {vem[63]}")
         xt = 2 ** np.arange(0, 10, 2)
         ax.set_xticks(xt)
         ax.set_xticklabels([str(x) for x in xt])
