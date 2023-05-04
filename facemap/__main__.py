@@ -21,7 +21,6 @@ def main():
     ops = ops.item()
 
 
-# TODO: Add more description for the arguments
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Movie files")
     parser.add_argument("--ops", default=[], type=str, help="options")
@@ -35,6 +34,12 @@ if __name__ == "__main__":
         nargs="+",
         type=str,
         help="Absolute path to keypoints file (*.h5)",
+    )
+    parser.add_argument(
+        "--proc_npy",
+        default=None,
+        type=str,
+        help="Absolute path to proc file (*_proc.npy)",
     )
     parser.add_argument(
         "--neural_activity",
@@ -69,20 +74,17 @@ if __name__ == "__main__":
         help="Automatically load keypoints in the same directory as the movie",
     )
     parser.set_defaults(autoload_keypoints=True)
+
+    # Add a flag to autoload proc in the same directory as the movie
     parser.add_argument(
-        "--poseGUI",
-        dest="poseGUI",
-        action="store_true",
-        help="Launch GUI w/ pose estimation",
+        "--autoload_proc",
+        dest="autoload_proc",
+        type=lambda x: bool(strtobool(x)),
+        help="Automatically load *_proc.npy in the same directory as the movie",
     )
-    parser.set_defaults(poseGUI=True)
+    parser.set_defaults(autoload_proc=True)
 
     args = parser.parse_args()
-    if args.poseGUI:
-        print("Running Facemap w/ pose estimation GUI")
-    else:
-        print("Running Facemap w/o pose estimation GUI")
-
     ops = {}
     if len(args.ops) > 0:
         ops = np.load(args.ops)
@@ -94,9 +96,11 @@ if __name__ == "__main__":
             args.movie,
             args.savedir,
             args.keypoints,
+            args.proc_npy,
             args.neural_activity,
             args.neural_prediction,
             args.tneural,
             args.tbehavior,
             args.autoload_keypoints,
+            args.autoload_proc,
         )

@@ -198,6 +198,7 @@ def open_proc(parent, file_name=None):
                             ivid=r["ivid"],
                         )
                     )
+                    parent.update_ROI_vis_comboBox()
                     parent.ROIs[-1].position(parent)
 
                     if "reflector" in r:
@@ -230,7 +231,7 @@ def open_proc(parent, file_name=None):
                         int(parent.saturation[parent.iROI] * 100 / 255)
                     )
                     parent.ROIs[parent.iROI].plot(parent)
-                    if parent.processed and k < 5:
+                    if parent.processed and k <= 7:
                         parent.plot2_checkboxes[k].setText(
                             "%s%d" % (parent.typestr[r["rind"]], kt[r["rind"]])
                         )

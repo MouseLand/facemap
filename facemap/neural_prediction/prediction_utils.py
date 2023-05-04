@@ -147,7 +147,7 @@ def reduced_rank_regression(X, Y, rank=None, lam=0, device=torch.device("cuda"))
 
     # compute inverse square root of matrix
     # s, u = eigh(CXX.cpu().numpy())
-    u, s = torch.svd(CXX)[:2]
+    u, s = torch.svd_lowrank(CXX, q=rank)[:2]
     CXXMH = (u * (s + lam) ** -0.5) @ u.T
 
     # project into prediction space
@@ -156,7 +156,7 @@ def reduced_rank_regression(X, Y, rank=None, lam=0, device=torch.device("cuda"))
     # model = PCA(n_components=rank).fit(M)
     # c = model.components_.T
     # s = model.singular_values_
-    s, c = torch.svd(M)[1:]
+    s, c = torch.svd_lowrank(M, q=rank)[1:]
     A = M @ c
     B = CXXMH @ c
     return A, B
@@ -200,7 +200,7 @@ def rrr_prediction(
     itest: 1D int array (optional, default None)
         times in test set
 
-    tbin: int (optional, default 0)
+    tbin: int (optional, default None)
         also compute variance explained in bins of tbin
 
     Returns
@@ -226,8 +226,8 @@ def rrr_prediction(
     if itrain is None and itest is None:
         itrain, itest = split_traintest(n_t)
     itrain, itest = itrain.flatten(), itest.flatten()
-    X = torch.from_numpy(X).to(device, dtype=torch.float64)
-    Y = torch.from_numpy(Y).to(device, dtype=torch.float64)
+    X = torch.from_numpy(X).to(device)
+    Y = torch.from_numpy(Y).to(device)
     A, B = reduced_rank_regression(
         X[itrain], Y[itrain], rank=rank, lam=lam, device=device
     )
@@ -254,7 +254,7 @@ def rrr_prediction(
         residual = ((Y[itest] - Y_pred_test) ** 2).mean(axis=0)
         varexpf[r] = (1 - residual / Y_test_var).cpu().numpy()
         varexp[r, 0] = (1 - residual.mean() / Y_test_var.mean()).cpu().numpy()
-        if tbin != 0 and tbin > 1:
+        if tbin is not None and tbin > 1:
             varexp[r, 1] = (
                 compute_varexp(
                     bin1d(Y[itest], tbin).flatten(), bin1d(Y_pred_test, tbin).flatten()

@@ -631,14 +631,31 @@ def run(
     savepath=None,
 ):
     """
+    Process video files using SVD computation of motion and/or raw movie data. See https://github.com/MouseLand/facemap/blob/main/notebooks/process.ipynb for example usage.
     Parameters
     ----------
-    filenames : list of names of video(s) to get
+    filenames: 2D-list
+        List of video files to process. Each element of the list is a list of
+        filenames for video(s) recorded simultaneously. For example, if two videos were recorded simultaneously, the list would be: [['video1.avi', 'video2.avi']], and if the videos were recorded sequentially, the list would be: [['video1.avi'], ['video2.avi']].
+    sbin: int
+        Spatial binning factor. If sbin > 1, the movie will be spatially binned by a factor of sbin.
+    motSVD: bool
+        If True, compute SVD of motion in the video i.e. the difference between consecutive frames.
+    movSVD: bool
+        If True, compute SVD of raw movie data.
+    GUIobject: GUI object
+        GUI object to update progress bar. If None, no progress bar will be updated.
+    parent: GUI object
+        Parent GUI object to update progress bar. If None, no progress bar will be updated.
+    proc: dict
+        Dictionary containing previously processed data. If provided, parameters from the saved data, such as sbin, rois, sy, sx, etc. will be used.
+    savepath: str
+        Path to save processed data. If None, the processed data will be saved in the same directory as the first video file.
+    Returns
+    -------
+    savename: str
+        Path to saved processed data.
     """
-    """ uses filenames and processes fullSVD if no roi's specified """
-    """ parent is from GUI """
-    """ proc can be a saved ROI file from GUI """
-    """ savepath is the folder in which to save _proc.npy """
     start = time.time()
     # grab files
     rois = None
