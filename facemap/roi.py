@@ -94,7 +94,7 @@ class reflectROI:
         yrange += int(sizey / 2)
         # what is ellipse circling?
         br = self.ROI.boundingRect()
-        ellipse = np.zeros((yrange.size, xrange.size), np.bool)
+        ellipse = np.zeros((yrange.size, xrange.size), bool)
         x, y = np.meshgrid(np.arange(0, xrange.size, 1), np.arange(0, yrange.size, 1))
         ellipse = (
             (y - br.center().y()) ** 2 / (br.height() / 2) ** 2
@@ -248,7 +248,7 @@ class sROI:
             yrange += int(sizey / 2)
         # what is ellipse circling?
         br = self.ROI.boundingRect()
-        ellipse = np.zeros((yrange.size, xrange.size), np.bool)
+        ellipse = np.zeros((yrange.size, xrange.size), bool)
         x, y = np.meshgrid(np.arange(0, xrange.size, 1), np.arange(0, yrange.size, 1))
         ellipse = (
             (y - br.center().y()) ** 2 / (br.height() / 2) ** 2
