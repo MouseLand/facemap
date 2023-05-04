@@ -6,6 +6,7 @@ import numpy as np
 
 from facemap import process
 from facemap.gui import gui
+from facemap.tongue import tongue_gui
 
 
 def tic():
@@ -84,6 +85,15 @@ if __name__ == "__main__":
     )
     parser.set_defaults(autoload_proc=True)
 
+    # Add a flag to indicate whether to start tongue GUI
+    parser.add_argument(
+        "--tongue-gui",
+        dest="tongue_gui",
+        type=lambda x: bool(strtobool(x)),
+        help="Start tongue GUI",
+    )
+    parser.set_defaults(tongue_gui=False)
+
     args = parser.parse_args()
     ops = {}
     if len(args.ops) > 0:
@@ -91,6 +101,8 @@ if __name__ == "__main__":
         ops = ops.item()
         if len(args.movie) > 0:
             process.run(args.movie, ops)
+    elif args.tongue_gui:
+        tongue_gui.run()
     else:
         gui.run(
             args.movie,
