@@ -255,8 +255,8 @@ def compute_SVD(
                 ni_mov[0] += ncb
         ns += 1
 
-    S_mot = np.zeros(500, "float32")
-    S_mov = np.zeros(500, "float32")
+    S_mot = []
+    S_mov = []
     # take SVD of concatenated spatial PCs
     if ns > 1:
         for nr in range(len(U_mot)):
@@ -267,14 +267,14 @@ def compute_SVD(
                         U_mot[nr], k=min(ncomps, U_mot[nr].shape[0] - 1)
                     )
                     U_mot[nr] = usv[0]
-                    S_mot = usv[1]
+                    S_mot.append(usv[1])
                 if movSVD:
                     U_mov[nr] = U_mov[nr][:, : ni_mov[0]]
                     usv = utils.svdecon(
                         U_mov[nr], k=min(ncomps, U_mov[nr].shape[0] - 1)
                     )
                     U_mov[nr] = usv[0]
-                    S_mov = usv[1]
+                    S_mov.append(usv[1])
             elif nr > 0:
                 if motSVD:
                     U_mot[nr] = U_mot[nr][:, : ni_mot[nr]]
@@ -282,14 +282,14 @@ def compute_SVD(
                         U_mot[nr], k=min(ncomps, U_mot[nr].shape[0] - 1)
                     )
                     U_mot[nr] = usv[0]
-                    S_mot = usv[1]
+                    S_mot.append(usv[1])
                 if movSVD:
                     U_mov[nr] = U_mov[nr][:, : ni_mov[nr]]
                     usv = utils.svdecon(
                         U_mov[nr], k=min(ncomps, U_mov[nr].shape[0] - 1)
                     )
                     U_mov[nr] = usv[0]
-                    S_mov = usv[1]
+                    S_mov.append(usv[1])
 
     utils.update_mainwindow_message(MainWindow, GUIobject, "Finished computing svd")
 
