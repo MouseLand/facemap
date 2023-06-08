@@ -784,19 +784,13 @@ def run(
         U_mot_reshape = U_mot.copy()
         U_mov_reshape = U_mov.copy()
         S_mot_reshape = S_mot.copy()
-        S_mov_reshape = S_mov_copy()
+        S_mov_reshape = S_mov.copy()
         if fullSVD:
             U_mot_reshape[0] = utils.multivideo_reshape(
                 U_mot_reshape[0], LYbin, LXbin, sybin, sxbin, Lybin, Lxbin, iinds
             )
             U_mov_reshape[0] = utils.multivideo_reshape(
                 U_mov_reshape[0], LYbin, LXbin, sybin, sxbin, Lybin, Lxbin, iinds
-            )
-            S_mot_reshape[0] = utils.multivideo_reshape(
-                S_mot_reshape[0], LYbin, LXbin, sybin, sxbin, Lybin, Lxbin, iinds
-            )
-            S_mov_reshape[0] = utils.multivideo_reshape(
-                S_mov_reshape[0], LYbin, LXbin, sybin, sxbin, Lybin, Lxbin, iinds
             )
         if nroi > 0:
             k = 1
