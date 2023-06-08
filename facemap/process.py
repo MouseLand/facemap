@@ -783,12 +783,20 @@ def run(
 
         U_mot_reshape = U_mot.copy()
         U_mov_reshape = U_mov.copy()
+        S_mot_reshape = S_mot.copy()
+        S_mov_reshape = S_mov_copy()
         if fullSVD:
             U_mot_reshape[0] = utils.multivideo_reshape(
                 U_mot_reshape[0], LYbin, LXbin, sybin, sxbin, Lybin, Lxbin, iinds
             )
             U_mov_reshape[0] = utils.multivideo_reshape(
                 U_mov_reshape[0], LYbin, LXbin, sybin, sxbin, Lybin, Lxbin, iinds
+            )
+            S_mot_reshape[0] = utils.multivideo_reshape(
+                S_mot_reshape[0], LYbin, LXbin, sybin, sxbin, Lybin, Lxbin, iinds
+            )
+            S_mov_reshape[0] = utils.multivideo_reshape(
+                S_mov_reshape[0], LYbin, LXbin, sybin, sxbin, Lybin, Lxbin, iinds
             )
         if nroi > 0:
             k = 1
@@ -802,10 +810,16 @@ def run(
                     U_mov_reshape[k] = np.reshape(
                         U_mov[k].copy(), (ly, lx, U_mov[k].shape[-1])
                     )
+                    S_mot_reshape[k] = np.reshape(
+                        S_mot[k].copy(), (ly, lx, S_mot[k].shape[-1])
+                    )
+                    S_mov_reshape[k] = np.reshape(
+                        S_mov[k].copy(), (ly, lx, S_mov[k].shape[-1])
+                    )
                     k += 1
     else:
         U_mot, U_mov, S_mot, S_mov = [], [], [], []
-        U_mot_reshape, U_mov_reshape = [], []
+        U_mot_reshape, U_mov_reshape, S_mot_reshape, S_mov_reshape = [], [], [], []
 
     # Add V_mot and/or V_mov calculation: project U onto all movie frames ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     # and compute pupil (if selected)
