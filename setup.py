@@ -24,7 +24,6 @@ gui_deps = [
     "pyqt5",
     "pyqt5.sip",
     "matplotlib",
-    "umap-learn",
 ]
 
 try:
