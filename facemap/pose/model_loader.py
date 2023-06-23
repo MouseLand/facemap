@@ -1,4 +1,7 @@
 """
+Copright © 2023 Howard Hughes Medical Institute, Authored by Carsen Stringer and Atika Syeda.
+"""
+"""
 Facemap model trained for generating pose estimates. Contains functions for: 
 - downloading pre-trained models
 - Model class 

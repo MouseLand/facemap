@@ -1,3 +1,6 @@
+"""
+Copright © 2023 Howard Hughes Medical Institute, Authored by Carsen Stringer and Atika Syeda.
+"""
 import setuptools
 
 install_deps = [
@@ -21,7 +24,6 @@ gui_deps = [
     "pyqt5",
     "pyqt5.sip",
     "matplotlib",
-    "umap-learn",
 ]
 
 try:
