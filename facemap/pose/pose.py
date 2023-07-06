@@ -133,7 +133,10 @@ class Pose:
             model_selected (str, optional): Path of trained model weights to use. Default value of None sets the model_name to Base model/facemap_model_state which uses pre-trained weights.
         """
         if model_selected is None:
-            model_selected = self.gui.pose_model_combobox.currentText()
+            if self.gui is None:
+                model_selected = "Base model"
+            else:
+                model_selected = self.gui.pose_model_combobox.currentText()
         # Get all model names
         model_paths = model_loader.get_model_states_paths()
         if len(model_paths) == 0:  # No models found, set default model
@@ -155,8 +158,8 @@ class Pose:
         Load model for keypoints prediction. Uses default model unless set_model is used to update the model name and load the model state.
         """
         model_params_file = model_loader.get_model_params_path()
-        print("Using {} as device".format(self.device))
-        print("Using model parameters from:", model_params_file)
+        print("{} set as device".format(self.device))
+        print("Loading model parameters from:", model_params_file)
         utils.update_mainwindow_message(
             MainWindow=self.gui,
             GUIobject=self.GUIobject,
@@ -263,10 +266,10 @@ class Pose:
         inference_time = 0
 
         print("Using params:")
-        print("BBOX:", self.bbox[video_id])
-        print("resize:", self.resize)
-        print("padding:", self.add_padding)
-        print("Batch size:", self.batch_size)
+        print("\tbbox:", self.bbox[video_id])
+        print("\tbatch size:", self.batch_size)
+        print("\tresize:", self.resize)
+        print("\tpadding:", self.add_padding)
         # FIXME: Plotting keypoints after batch processing is not working properly
         progress_output = StringIO()
         with tqdm(
@@ -438,8 +441,7 @@ class Pose:
             else:
                 raise ValueError("Cannot save %s type" % type(item))
 
-    def run_all(self):
-        print("Using {} for pose estimation".format(self.model_name))
+    def run(self):
         start_time = time.time()
         self.pose_prediction_setup()
         for video_id in range(len(self.filenames[0])):
@@ -449,6 +451,7 @@ class Pose:
                 prompt="Processing video: {}".format(self.filenames[0][video_id]),
                 hide_progress=True,
             )
+            print("\nProcessing video: {}".format(self.filenames[0][video_id]))
             pred_data, metadata = self.predict_landmarks(video_id)
 
             # Save the data using h5py
@@ -460,15 +463,15 @@ class Pose:
                 prompt="Saved pose prediction outputs to: {}".format(savepath),
                 hide_progress=True,
             )
-            print("Saved pose prediction outputs to:", savepath)
+            print("Saved keypoints:", savepath)
             # Save metadata to a pickle file
             metadata_file = os.path.splitext(savepath)[0] + "_metadata.pkl"
             with open(metadata_file, "wb") as f:
                 pickle.dump(metadata, f, pickle.HIGHEST_PROTOCOL)
+            print("Saved metadata:", metadata_file)
             if self.gui is not None:
                 self.gui.poseFilepath.append(savepath)
         end_time = time.time()
-        print("Pose estimation time elapsed:", end_time - start_time, "seconds")
         utils.update_mainwindow_message(
             MainWindow=self.gui,
             GUIobject=self.GUIobject,

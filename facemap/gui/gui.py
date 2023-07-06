@@ -1239,7 +1239,7 @@ class MainW(QtWidgets.QMainWindow):
                 """
                 self.setup_pose_model()
                 if not self.pose_gui.cancel_bbox_selection:
-                    self.pose_model.run_all()
+                    self.pose_model.run()
                     self.update_status_bar("Pose labels saved in " + self.save_path)
                     if file_idx == len(files) - 1:
                         self.update_status_bar("All files processed")
@@ -1271,7 +1271,7 @@ class MainW(QtWidgets.QMainWindow):
             if self.pose_model is None:
                 self.setup_pose_model()
             if not self.pose_gui.cancel_bbox_selection:
-                self.pose_model.run_all()
+                self.pose_model.run()
                 self.update_status_bar("Pose labels saved in " + savepath)
                 self.pose_model.plot_pose_estimates()
             else:

@@ -90,7 +90,7 @@ For more details, please refer to the [data acquisition page](docs/data_acquisit
 
 ## Support
 
-For any issues or questions about Facemap, please [open an issue](https://github.com/MouseLand/facemap/issues).Please find solutions to some common issues:
+For any issues or questions about Facemap, please [open an issue](https://github.com/MouseLand/facemap/issues). Please find solutions to some common issues below:
 
 ### Download of pretrained models
 The models will be downloaded automatically from our website when you first run Facemap for processing keypoints. If download of pretrained models fails, please try the following:
