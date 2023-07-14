@@ -28,6 +28,7 @@ from PyQt5.QtWidgets import (
     QStatusBar,
     QToolButton,
     QWidget,
+    QFileDialog
 )
 from scipy.stats import skew, zscore
 
@@ -797,6 +798,37 @@ class MainW(QtWidgets.QMainWindow):
             self.lbls[-1].setStyleSheet("color: white;")
         self.update_frame_slider()
 
+    def add_pose_model(self):
+        # Open a file dialog to browse and select a pose model
+        pose_model_path = QFileDialog.getOpenFileName(
+            self, "Select pose model", "", "Pose model (*.pt)"
+        )[0]
+        if pose_model_path:
+            model_loader.copy_to_models_dir(pose_model_path)
+            self.update_pose_model_combo_box()
+            # set index to the newly added model
+            pose_model_name = os.path.basename(pose_model_path).split(".")[0]
+            print(pose_model_name)
+            for i in range(self.pose_model_combobox.count()):
+                if self.pose_model_combobox.itemText(i) == pose_model_name:
+                    self.pose_model_combobox.setCurrentIndex(i)
+                    break
+            # Display QMessage box to inform user that the model was successfully added
+            msg = QMessageBox()
+            msg.setIcon(QMessageBox.Information)
+            msg.setText("Pose model successfully added.")
+            msg.setWindowTitle("Pose model added")
+            msg.setStandardButtons(QMessageBox.Ok)
+            msg.exec_()
+        else:
+            msg = QMessageBox()
+            msg.setIcon(QMessageBox.Warning)
+            msg.setText("Pose file not selected.")
+            msg.setWindowTitle("Pose file not selected")
+            msg.setStandardButtons(QMessageBox.Ok)
+            msg.exec_()
+
+        
     def update_pose_model_combo_box(self):
         self.pose_model_combobox.clear()
         self.pose_model_combobox.addItem("Base model")

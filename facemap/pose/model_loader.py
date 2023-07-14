@@ -45,8 +45,8 @@ def copy_to_models_dir(filename):
 
     # Copy file to hidden directory
     model_dir = get_models_dir()
-    print("Copying %s to %s" % (filename, model_dir))
     shutil.copy(filename, model_dir)
+    print("Copied %s to %s" % (filename, model_dir))
     return model_dir
 
 

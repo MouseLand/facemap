@@ -100,7 +100,7 @@ The models will be downloaded automatically from our website when you first run 
 
 # Running Facemap
 
-To get started Run the following command in a terminal to open the GUI:
+To get started, run the following command in terminal to open the GUI:
 
 ```
 python -m facemap

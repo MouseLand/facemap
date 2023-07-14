@@ -36,6 +36,10 @@ def mainmenu(parent):
     train_model.triggered.connect(lambda: parent.show_model_training_popup())
     parent.addAction(train_model)
 
+    add_pose_model = QAction("Add pose model", parent)
+    add_pose_model.triggered.connect(lambda: parent.add_pose_model())
+    parent.addAction(add_pose_model)
+
     # Load neural data
     load_neural = QAction("Load neural data", parent)
     load_neural.triggered.connect(lambda: parent.load_neural_data())
@@ -86,6 +90,7 @@ def mainmenu(parent):
     pose_menu = main_menu.addMenu("Pose")
     pose_menu.addAction(load_pose)
     pose_menu.addAction(train_model)
+    pose_menu.addAction(add_pose_model)
 
     neural_activity_menu = main_menu.addMenu("Neural activity")
     neural_activity_menu.addAction(load_neural)
