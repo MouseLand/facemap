@@ -1,3 +1,6 @@
+"""
+Copright © 2023 Howard Hughes Medical Institute, Authored by Carsen Stringer and Atika Syeda.
+"""
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Network ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 import numpy as np
 import torch
@@ -85,7 +88,7 @@ class FMnet(nn.Module):
 # Create a gaussian wavelet of a set bin size
 def gaussian_wavelet(bin_size, sigma):
     x = np.arange(-bin_size // 2, bin_size // 2 + 1)
-    gaussian = np.exp(-(x ** 2) / (2 * sigma ** 2))
+    gaussian = np.exp(-(x**2) / (2 * sigma**2))
     return gaussian / gaussian.sum()
 
 

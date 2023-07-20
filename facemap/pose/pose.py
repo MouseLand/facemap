@@ -1,3 +1,6 @@
+"""
+Copright © 2023 Howard Hughes Medical Institute, Authored by Carsen Stringer and Atika Syeda.
+"""
 import os
 import pickle
 import time
@@ -276,7 +279,6 @@ class Pose:
             total=total_frames, unit="frame", unit_scale=True, file=progress_output
         ) as pbar:
             while start != total_frames:  #  for analyzing entire video
-
                 # Pre-pocess images
                 imall = np.zeros(
                     (self.batch_size, nchannels, self.Ly[video_id], self.Lx[video_id])

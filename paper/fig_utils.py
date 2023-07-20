@@ -1,3 +1,6 @@
+"""
+Copright © 2023 Howard Hughes Medical Institute, Authored by Carsen Stringer and Atika Syeda.
+"""
 import string
 
 import matplotlib
@@ -34,6 +37,24 @@ kp_labels = [
     "whisker(III)",  # "whisker(c2)",
     "whisker(II)",  # "whisker(d1)",
     # "whisker(d2)",
+]
+
+kp_labels_old = [
+    "eye(back)",
+    "eye(bottom)",
+    "eye(front)",
+    "eye(top)",
+    "lowerlip",
+    "mouth",
+    "nose(bottom)",
+    "nose(r)",
+    "nose(tip)",
+    "nose(top)",
+    "nosebridge",
+    "paw",
+    "whisker(c1)",
+    "whisker(d2)",
+    "whisker(d1)",
 ]
 
 

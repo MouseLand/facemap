@@ -1,3 +1,6 @@
+"""
+Copright © 2023 Howard Hughes Medical Institute, Authored by Carsen Stringer and Atika Syeda.
+"""
 import setuptools
 
 install_deps = [
@@ -21,15 +24,15 @@ gui_deps = [
     "pyqt5",
     "pyqt5.sip",
     "matplotlib",
-    "umap-learn",
 ]
 
 try:
     import torch
 
     a = torch.ones(2, 3)
-    version = int(torch.__version__.split(".")[1])
-    if version >= 9:
+    version0, version1 = torch.__version__.split(".")[:2]
+    version0, version1 = int(version0), int(version1)
+    if version1 >= 9 or version0 >= 2:
         install_deps.remove("torch>=1.9")
 except:
     pass

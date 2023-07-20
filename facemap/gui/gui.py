@@ -1,5 +1,9 @@
+"""
+Copright © 2023 Howard Hughes Medical Institute, Authored by Carsen Stringer and Atika Syeda.
+"""
 import os
 import sys
+from pathlib import Path
 
 import h5py
 import matplotlib
@@ -7,7 +11,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pyqtgraph as pg
 import scipy.io as sio
-from pathlib import Path
+import torch
 from matplotlib import cm
 from PyQt5 import QtCore, QtWidgets
 from PyQt5.QtGui import QFont, QIcon, QPainterPath
@@ -36,7 +40,6 @@ from facemap import process, roi, utils
 from facemap.gui import cluster, guiparts, help_windows, io, menus
 from facemap.neural_prediction import neural_activity, prediction_utils
 from facemap.pose import model_loader, pose, pose_gui, refine_pose
-import torch
 
 istr = ["pupil", "motSVD", "blink", "running", "movSVD"]
 
@@ -414,7 +417,6 @@ class MainW(QtWidgets.QMainWindow):
             self.load_neural_predictions_file(neural_predictions_file)
 
     def make_buttons(self):
-
         # ~~~~~~~~~~~~~~~~~~~~~~~~ SVD variables ~~~~~~~~~~~~~~~~~~~~~~~~
         self.svd_groupbox = QGroupBox("ROI settings:")
         self.svd_groupbox.setStyleSheet(

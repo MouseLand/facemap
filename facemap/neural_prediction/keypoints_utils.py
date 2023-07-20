@@ -1,9 +1,14 @@
+"""
+Copright © 2023 Howard Hughes Medical Institute, Authored by Carsen Stringer and Atika Syeda.
+"""
+import os
+
+import numpy as np
+import torch
+
+from .. import keypoints
 from ..utils import bin1d, compute_varexp
 from .prediction_utils import resample_data, rrr_prediction
-from .. import keypoints
-import numpy as np
-import os
-import torch
 
 
 def get_normalized_keypoints(keypoints_path, exclude_keypoints=None, running=None):

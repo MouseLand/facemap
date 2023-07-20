@@ -1,3 +1,6 @@
+"""
+Copright © 2023 Howard Hughes Medical Institute, Authored by Carsen Stringer and Atika Syeda.
+"""
 ## Import packages
 import os
 from io import StringIO
@@ -58,7 +61,7 @@ def train(
         The gui object of the application.
     """
 
-    n_factor = 2 ** 4 // (2 ** net.n_upsample)
+    n_factor = 2**4 // (2**net.n_upsample)
     xmesh, ymesh = np.meshgrid(
         np.arange(train_dataloader.dataset.img_size[1] / n_factor),
         np.arange(train_dataloader.dataset.img_size[0] / n_factor),
@@ -120,7 +123,7 @@ def train(
             locy = xmesh - y_true.unsqueeze(-1).unsqueeze(-1)
 
             # normalize the true heatmaps
-            hm_true = torch.exp(-(locx ** 2 + locy ** 2) / (2 * sigma ** 2))
+            hm_true = torch.exp(-(locx**2 + locy**2) / (2 * sigma**2))
             hm_true = (
                 10
                 * hm_true
@@ -128,7 +131,7 @@ def train(
             )
 
             # mask over which to train the location graphs
-            mask = (locx ** 2 + locy ** 2) ** 0.5 <= sigma
+            mask = (locx**2 + locy**2) ** 0.5 <= sigma
 
             # normalize the location graphs for prediction
             locx = locx / (2 * sigma)
@@ -240,7 +243,6 @@ def train(
 
 
 def get_test_predictions(net, test_dataloader):
-
     net.eval()
 
     pred_keypoints = torch.zeros(
@@ -254,7 +256,6 @@ def get_test_predictions(net, test_dataloader):
     start_idx = 0
 
     for test_batch in test_dataloader:
-
         images = test_batch["image"].to(
             net.device, dtype=torch.float32
         )  # .cpu().numpy()

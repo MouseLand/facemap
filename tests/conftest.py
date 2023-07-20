@@ -1,7 +1,11 @@
+"""
+Copright © 2023 Howard Hughes Medical Institute, Authored by Carsen Stringer and Atika Syeda.
+"""
 import os
 import shutil
 import sys
 import tempfile
+from glob import glob
 from pathlib import Path
 from urllib.request import urlopen
 
@@ -135,13 +139,11 @@ def test_suite_cleanup(data_dir):
 
 
 def clear_dir_outputs(data_dir):
-    # Delete all files in data_dir
-    for file in os.listdir(data_dir):
-        file_path = os.path.join(data_dir, file)
-        try:
-            if os.path.isfile(file_path):
-                os.remove(file_path)
-            elif os.path.isdir(file_path):
-                shutil.rmtree(file_path)
-        except Exception as e:
-            print(e)
+    # Delete test outputs
+    folders = ["cam1", "cam2"]
+    for folder in folders:
+        files = glob(os.path.join(data_dir, folder, "*"))
+        for filename in files:
+            ext = os.path.splitext(filename)[1]
+            if ext != ".avi":
+                os.remove(filename)

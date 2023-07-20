@@ -1,3 +1,6 @@
+"""
+Copright © 2023 Howard Hughes Medical Institute, Authored by Carsen Stringer and Atika Syeda.
+"""
 import os
 
 import numpy as np
@@ -5,7 +8,8 @@ import pandas as pd
 from scipy.ndimage import gaussian_filter1d, uniform_filter1d
 from scipy.stats import zscore
 from sklearn.decomposition import PCA
-from .utils import gabor_wavelet, filter_outliers
+
+from .utils import filter_outliers, gabor_wavelet
 
 
 def get_confidence_threshold(conf, baseline_window=200):
@@ -19,7 +23,7 @@ def get_confidence_threshold(conf, baseline_window=200):
     return conf_baseline, threshold
 
 
-def keypoint_labels_per_cam(cam_type=0):
+def keypoint_labels_per_cam(cam_type=0, original=False):
     if cam_type == 0:
         keypoints_labels = [
             "eye(back)",
@@ -51,6 +55,7 @@ def keypoint_labels_per_cam(cam_type=0):
             "lowerlip",
             "paw",
         ]
+        
     return keypoints_labels
 
 
@@ -60,7 +65,6 @@ def load_keypoints(
     keypoint_labels=[],
     confidence_threshold=False,
 ):
-
     use_all = False
     if keypoint_labels is None:
         cam_type = int(os.path.split(kp_file)[1][3])
@@ -73,6 +77,8 @@ def load_keypoints(
         inds = np.arange(0, len(df.columns), 3)
         keypoint_labels = df.columns.get_level_values("bodyparts")[::3]
     else:
+        if "whisker(c1)" in list(df.columns.get_level_values("bodyparts")):
+            keypoint_labels[4:7] = ["whisker(c1)", "whisker(d2)", "whisker(d1)"]
         if "whisker(c2)" in list(df.columns.get_level_values("bodyparts")):
             keypoint_labels[5] = "whisker(c2)"
         inds = np.array(
@@ -83,6 +89,7 @@ def load_keypoints(
         )
         if "whisker(c2)" in list(df.columns.get_level_values("bodyparts")):
             keypoint_labels[5] = "whisker(d2)"
+        print(keypoint_labels)
     xy = np.stack((df.values[:, inds], df.values[:, inds + 1]), axis=-1)
     conf = df.values[:, inds + 2]
 
@@ -129,7 +136,7 @@ def get_gabor_transform(data, freqs=np.geomspace(1, 10, 5)):
             filt0 = np.convolve(zscore(data[:, j]), gw0, mode="same")
             filt1 = np.convolve(zscore(data[:, j]), gw1, mode="same")
             gabor_transform[:, 2 * k, j] = filt0
-            gabor_transform[:, 2 * k + 1, j] = (filt0 ** 2 + filt1 ** 2) ** 0.5
+            gabor_transform[:, 2 * k + 1, j] = (filt0**2 + filt1**2) ** 0.5
     return gabor_transform
 
 

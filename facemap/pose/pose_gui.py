@@ -1,7 +1,10 @@
+"""
+Copright © 2023 Howard Hughes Medical Institute, Authored by Carsen Stringer and Atika Syeda.
+"""
 import numpy as np
 import pyqtgraph as pg
-from PyQt5 import QtCore
 from matplotlib import cm
+from PyQt5 import QtCore
 from PyQt5.QtWidgets import (
     QDesktopWidget,
     QDialog,

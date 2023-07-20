@@ -1,3 +1,6 @@
+"""
+Copright © 2023 Howard Hughes Medical Institute, Authored by Carsen Stringer and Atika Syeda.
+"""
 import numpy as np
 from scipy.ndimage import gaussian_filter
 
@@ -11,7 +14,7 @@ def fit_gaussian(im, sigma=2.0, do_xy=False, missing=None):
         miss = np.isin(ix * im.shape[1] + iy, mx * im.shape[1] + my)
         miss = miss.flatten()
     else:
-        miss = np.zeros((ix.size,), bool)
+        miss = np.zeros((ix.size,), "bool")
 
     ix = ix[~miss].flatten()
     iy = iy[~miss].flatten()
@@ -31,9 +34,9 @@ def fit_gaussian(im, sigma=2.0, do_xy=False, missing=None):
         # fill in NaN's
         dd = ((xydist @ np.linalg.inv(sigxy)) * xydist).sum(axis=1)
         dd = dd.flatten()
-        glam = dd[: ix0.size] <= 2 * sigma ** 2
+        glam = dd[: ix0.size] <= 2 * sigma**2
         lam0[~glam] = 0
-        glam = dd[: ix0.size] <= sigma ** 2
+        glam = dd[: ix0.size] <= sigma**2
         immed0 = np.median(lam0[glam])
         lam = lam0.copy()
         # print(immed0, mu, sigxy)
@@ -45,7 +48,7 @@ def fit_gaussian(im, sigma=2.0, do_xy=False, missing=None):
             dd = ((mxy @ np.linalg.inv(sigxy)) * mxy).sum(axis=1)
             # within sigma?
             # im[mx,my] = np.exp(-dd) * 2 * immed0
-            ithr = dd <= 1.15 * sigma ** 2
+            ithr = dd <= 1.15 * sigma**2
             im[mx[ithr], my[ithr]] = immed0 * 1
             im[mx[~ithr], my[~ithr]] = 0
             ix = np.concatenate((ix0, mx), axis=0)
@@ -65,7 +68,7 @@ def fit_gaussian(im, sigma=2.0, do_xy=False, missing=None):
 
     mu = np.array(mu)
 
-    sv, u = np.linalg.eig(sigma ** 2 * sigxy)
+    sv, u = np.linalg.eig(sigma**2 * sigxy)
     sv = np.real(sv)
     # enforce some circularity on pupil
     # principal axis can only be 2x bigger than minor axis
@@ -78,7 +81,7 @@ def fit_gaussian(im, sigma=2.0, do_xy=False, missing=None):
         n = 100  # Number of points around ellipse
         p = np.linspace(0, 2 * np.pi, n)[:, np.newaxis]
         # Transformation
-        xy = np.concatenate((np.cos(p), np.sin(p)), axis=1) * (sv ** 0.5) @ u
+        xy = np.concatenate((np.cos(p), np.sin(p)), axis=1) * (sv**0.5) @ u
         xy += mu
     else:
         xy = []

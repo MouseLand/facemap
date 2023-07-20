@@ -1,3 +1,6 @@
+"""
+Copright © 2023 Howard Hughes Medical Institute, Authored by Carsen Stringer and Atika Syeda.
+"""
 import os
 import time
 
@@ -9,7 +12,7 @@ from scipy.ndimage import gaussian_filter1d
 from sklearn.decomposition import PCA
 from torch.nn.functional import conv1d
 
-from facemap.utils import bin1d, split_traintest, compute_varexp
+from facemap.utils import bin1d, compute_varexp, split_traintest
 
 from .neural_model import KeypointsNetwork
 
@@ -238,7 +241,9 @@ def rrr_prediction(
         rank = min(min_dim, rank)
     corrf = np.zeros((rank, n_feats))
     varexpf = np.zeros((rank, n_feats))
-    varexp = np.zeros((rank, 2)) if tbin != 0 else np.zeros((rank, 1))
+    varexp = (
+        np.zeros((rank, 2)) if (tbin is not None and tbin > 1) else np.zeros((rank, 1))
+    )
     Y_pred_test = np.zeros((len(itest), n_feats))
     for r in range(rank):
         Y_pred_test = X[itest] @ B[:, : r + 1] @ A[:, : r + 1].T
@@ -246,7 +251,7 @@ def rrr_prediction(
         corrf[r] = (
             (
                 (Y[itest] * Y_pred_test).mean(axis=0)
-                / (Y_test_var ** 0.5 * Y_pred_test.std(axis=0))
+                / (Y_test_var**0.5 * Y_pred_test.std(axis=0))
             )
             .cpu()
             .numpy()
@@ -268,51 +273,45 @@ def rrr_prediction(
         itest,
         A.cpu().numpy(),
         B.cpu().numpy(),
-        varexpf,
-        corrf,
+        varexpf.squeeze(),
+        corrf.squeeze(),
     )
 
 
-def rrr_varexp_svds(
-    svd_path,
-    tcam,
-    tneural,
-    Y,
-    U=None,
-    spks=None,
-    delay=-1,
-    running=None,
-    rank=32,
-    lam=1e-6,
-):
+def rrr_prediction_resample(X, Y, tcam, tneural, delay=-1, rank=32, lam=1e-6):
+    """predict neurons or neural PCs from behavior X at times tcam, tneural"""
+    X_ds = resample_data(X, tcam, tneural, crop="linspace")
+    if delay < 0:
+        Ys = np.vstack((Y[-delay:], np.tile(Y[[-1], :], (-delay, 1))))
+    else:
+        X_ds = np.vstack((X_ds[delay:], np.tile(X_ds[[-1], :], (delay, 1))))
+        Ys = Y
+    Y_pred_test, ve_test, itest, A, B = rrr_prediction(
+        X_ds.astype("float32"), Ys.astype("float32"), rank=rank, lam=lam
+    )[:5]
+    return Y_pred_test, ve_test, itest, A, B
+
+
+def rrr_varexp(X0, Y, tcam, tneural, U=None, spks=None, delay=-1, rank=32, lam=1e-6):
     """predict neural PCs Y and compute varexp for PCs and spks"""
-    varexp = np.nan * np.zeros((rank, 2))
+    varexp = np.nan * np.zeros((rank, len(X0)))
     varexp_neurons = (
-        np.nan * np.zeros((len(spks), 2))
+        np.nan * np.zeros((len(spks), len(X0)))
         if spks is not None
-        else np.nan * np.zeros((Y.shape[-1], 2))
+        else np.nan * np.zeros((Y.shape[-1], len(X0)))
     )
-    svds = np.load(svd_path, allow_pickle=True).item()
     spks_pred_test0 = []
     Y_pred_test0 = []
-    for k, key in enumerate(["motSVD", "movSVD"]):
-        X = svds[key][0].copy()
-        if running is not None:
-            X = np.concatenate((X, running[:, np.newaxis]), axis=-1)
+    for k in range(len(X0)):
+        X = X0[k]
 
         X -= X.mean(axis=0)
         X /= X[:, 0].std(axis=0)
 
-        X_ds = resample_data(X, tcam, tneural, crop="linspace")
-        if delay < 0:
-            Ys = np.vstack((Y[-delay:], np.tile(Y[[-1], :], (-delay, 1))))
-        else:
-            X_ds = np.vstack((X_ds[delay:], np.tile(X_ds[[-1], :], (delay, 1))))
-            Ys = Y
-        Y_pred_test, ve_test, itest, A, B = rrr_prediction(
-            X_ds.astype("float32"), Ys.astype("float32"), rank=rank, lam=lam
-        )[:5]
-        varexp[:, k] = ve_test
+        Y_pred_test, ve_test, itest, A, B = rrr_prediction_resample(
+            X, Y, tcam, tneural, delay=delay, rank=rank, lam=lam
+        )
+        varexp[: len(ve_test), k] = ve_test
 
         itest -= delay
         # single neuron prediction
@@ -322,10 +321,10 @@ def rrr_varexp_svds(
         spks_pred_test0.append(spks_pred_test)
         Y_pred_test0.append(Y_pred_test)
     return (
-        varexp,
-        varexp_neurons,
-        np.array(Y_pred_test0),
-        np.array(spks_pred_test0),
+        varexp.squeeze(),
+        varexp_neurons.squeeze(),
+        np.array(Y_pred_test0).squeeze(),
+        np.array(spks_pred_test0).squeeze(),
         itest,
     )
 
@@ -349,7 +348,7 @@ def get_neural_pcs(neural_activity, n_comps=128):
         neural PCs of shape [n_comps x time]
     """
     neural_activity -= neural_activity.mean(axis=1)[:, np.newaxis]
-    std = ((neural_activity ** 2).mean(axis=1) ** 0.5)[:, np.newaxis]
+    std = ((neural_activity**2).mean(axis=1) ** 0.5)[:, np.newaxis]
     std = np.where(std == 0, 1, std)  # don't scale when std==0
     neural_activity /= std
     model = PCA(n_components=n_comps, copy=False).fit(neural_activity)
@@ -436,7 +435,7 @@ def get_keypoints_to_neural_varexp(
     model = KeypointsNetwork(n_in=x.shape[-1], n_out=y.shape[-1]).to(device)
 
     # Train model and get predictions
-    print("Keypoints: ", x.shape)
+    print("Inputs: ", x.shape)
     print("Neural: ", y.shape)
     print("Using lr, n_iter, weight_decay: ", learning_rate, n_iter, weight_decay)
 
@@ -581,7 +580,7 @@ def peer_prediction(spks, xpos, ypos, dum=400):
         )[:3]
         varexp += varexpk[-1]
         U = spks[ineu] @ Vn[k]
-        U /= (U ** 2).sum(axis=0) ** 0.5
+        U /= (U**2).sum(axis=0) ** 0.5
         spks_pred_test = V_pred_test @ U.T
         spks_test = spks[ineu][:, itest].T
         varexp_neurons[ineu] = compute_varexp(spks_test, spks_pred_test)
@@ -701,7 +700,7 @@ def predict_future(
     sigs = torch.FloatTensor(2 ** np.arange(0, 8, 1)).unsqueeze(-1)
     swave = torch.exp(-torch.arange(nt) / sigs).to(device)
     swave = torch.flip(swave, [1])
-    swave = swave / (swave ** 2).sum(1, keepdim=True) ** 0.5
+    swave = swave / (swave**2).sum(1, keepdim=True) ** 0.5
 
     tlags = np.arange(1, 501, 1)
     tlags = np.append(tlags, np.arange(525, 2000, 25))

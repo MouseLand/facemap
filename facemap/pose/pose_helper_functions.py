@@ -1,3 +1,6 @@
+"""
+Copright © 2023 Howard Hughes Medical Institute, Authored by Carsen Stringer and Atika Syeda.
+"""
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Import packages ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 import numpy as np
 
@@ -17,9 +20,10 @@ from scipy.ndimage import gaussian_filter
 print("python version:", python_version())
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~Global variables~~~~~~~~~~~~~~~~~~~~~~~~~~~~~`
-N_FACTOR = 2 ** 4 // (2 ** 2)
+N_FACTOR = 2**4 // (2**2)
 SIGMA = 3 * 4 / N_FACTOR
 Lx = 64
+
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Helper functions ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 def set_seed(seed):
