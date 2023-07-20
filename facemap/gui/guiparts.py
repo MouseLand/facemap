@@ -48,20 +48,22 @@ class MultiLine(QGraphicsPathItem):
 class ListChooser(QDialog):
     def __init__(self, title, parent):
         super(ListChooser, self).__init__(parent)
-        self.setGeometry(300, 300, 320, 320)
+        self.setGeometry(300, 300, np.floor(parent.sizeObject.width() * 0.35).astype(int), np.floor(parent.sizeObject.height() * 0.22).astype(int))
+        self.setMinimumHeight(np.floor(parent.sizeObject.height() * 0.22).astype(int))
+        self.setMinimumWidth(np.floor(parent.sizeObject.width() * 0.35).astype(int))
         self.setWindowTitle(title)
         self.win = QWidget(self)
         layout = QGridLayout()
         self.win.setLayout(layout)
-        # self.setCentralWidget(self.win)
         layout.addWidget(
             QLabel("click to select videos (none selected => all used)"), 0, 0, 1, 1
         )
         self.list = QListWidget(parent)
+        self.list.setMinimumWidth(np.floor(parent.sizeObject.width() * 0.325).astype(int))
+        self.list.setMinimumHeight(np.floor(parent.sizeObject.height() * 0.15).astype(int))
         for f in parent.filelist:
             self.list.addItem(f)
-        layout.addWidget(self.list, 1, 0, 7, 4)
-        # self.list.resize(450,250)
+        layout.addWidget(self.list, 1, 0, 7, 1)
         self.list.setSelectionMode(QAbstractItemView.MultiSelection)
         done = QPushButton("done")
         done.clicked.connect(lambda: self.exit_list(parent))

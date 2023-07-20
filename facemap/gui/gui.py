@@ -500,8 +500,8 @@ class MainW(QtWidgets.QMainWindow):
         batch_size_label.setStyleSheet("color: gray;")
         self.pose_groupbox.layout().addWidget(batch_size_label, 1, 0)
         self.batch_size_spinbox = QSpinBox()
-        self.batch_size_spinbox.setRange(1, 100)
-        self.batch_size_spinbox.setValue(1)
+        self.batch_size_spinbox.setRange(1, 5000)
+        self.batch_size_spinbox.setValue(4)
         self.batch_size_spinbox.setFixedWidth(int(0.04 * self.sizeObject.width()))
         self.pose_groupbox.layout().addWidget(
             self.batch_size_spinbox, 1, 1, alignment=QtCore.Qt.AlignRight

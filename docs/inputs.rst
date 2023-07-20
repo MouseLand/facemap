@@ -10,6 +10,9 @@ Here are some `example movies <https://drive.google.com/open?id=1cRWCDl8jxWToz50
 
 Processing multiple movies
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Please note:
+   - simultaneous videos: user can load videos of different dimensions but must have the number of frames for each video
+   - sequential videos: user can load videos with varying number of frames but the dimensions of the frames/videos must match
 
 If you load multiple videos, the GUI will ask *"are you processing multiple videos taken simultaneously?"*. If you say yes, then the script will look if across movies the **FIRST FOUR** letters of the filename vary. If the first four letters of two movies are the same, then the GUI assumed that they were acquired *sequentially* not *simultaneously*.
 
