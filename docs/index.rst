@@ -13,6 +13,9 @@ Facemap is a framework for predicting neural activity from mouse orofacial movem
     outputs
     neural_activity_prediction_tutorial
 
+.. toctree::
+   :caption: Tutorials
+    notebooks/tutorials
 
 .. toctree::
    :caption: API Reference:
