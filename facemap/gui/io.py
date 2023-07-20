@@ -22,8 +22,8 @@ def open_file(parent, file_name=None):
             "",
             "Movie files (*.h5 *.mj2 *.mp4 *.mkv *.avi *.mpeg *.mpg *.asf *m4v)",
         )
-    # load ops in same folder
-    if file_name:
+    # check if file_name selected or cancelled
+    if file_name[0]:
         parent.filelist = [[file_name[0]]]
         load_movies(parent)
     else:

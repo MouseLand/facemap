@@ -32,6 +32,7 @@ from PyQt5.QtWidgets import (
     QStatusBar,
     QToolButton,
     QWidget,
+    QFileDialog
 )
 from scipy.stats import skew, zscore
 
@@ -501,8 +502,8 @@ class MainW(QtWidgets.QMainWindow):
         batch_size_label.setStyleSheet("color: gray;")
         self.pose_groupbox.layout().addWidget(batch_size_label, 1, 0)
         self.batch_size_spinbox = QSpinBox()
-        self.batch_size_spinbox.setRange(1, 100)
-        self.batch_size_spinbox.setValue(1)
+        self.batch_size_spinbox.setRange(1, 5000)
+        self.batch_size_spinbox.setValue(4)
         self.batch_size_spinbox.setFixedWidth(int(0.04 * self.sizeObject.width()))
         self.pose_groupbox.layout().addWidget(
             self.batch_size_spinbox, 1, 1, alignment=QtCore.Qt.AlignRight
@@ -799,6 +800,37 @@ class MainW(QtWidgets.QMainWindow):
             self.lbls[-1].setStyleSheet("color: white;")
         self.update_frame_slider()
 
+    def add_pose_model(self):
+        # Open a file dialog to browse and select a pose model
+        pose_model_path = QFileDialog.getOpenFileName(
+            self, "Select pose model", "", "Pose model (*.pt)"
+        )[0]
+        if pose_model_path:
+            model_loader.copy_to_models_dir(pose_model_path)
+            self.update_pose_model_combo_box()
+            # set index to the newly added model
+            pose_model_name = os.path.basename(pose_model_path).split(".")[0]
+            print(pose_model_name)
+            for i in range(self.pose_model_combobox.count()):
+                if self.pose_model_combobox.itemText(i) == pose_model_name:
+                    self.pose_model_combobox.setCurrentIndex(i)
+                    break
+            # Display QMessage box to inform user that the model was successfully added
+            msg = QMessageBox()
+            msg.setIcon(QMessageBox.Information)
+            msg.setText("Pose model successfully added.")
+            msg.setWindowTitle("Pose model added")
+            msg.setStandardButtons(QMessageBox.Ok)
+            msg.exec_()
+        else:
+            msg = QMessageBox()
+            msg.setIcon(QMessageBox.Warning)
+            msg.setText("Pose file not selected.")
+            msg.setWindowTitle("Pose file not selected")
+            msg.setStandardButtons(QMessageBox.Ok)
+            msg.exec_()
+
+        
     def update_pose_model_combo_box(self):
         self.pose_model_combobox.clear()
         self.pose_model_combobox.addItem("Base model")
@@ -1241,7 +1273,7 @@ class MainW(QtWidgets.QMainWindow):
                 """
                 self.setup_pose_model()
                 if not self.pose_gui.cancel_bbox_selection:
-                    self.pose_model.run_all()
+                    self.pose_model.run()
                     self.update_status_bar("Pose labels saved in " + self.save_path)
                     if file_idx == len(files) - 1:
                         self.update_status_bar("All files processed")
@@ -1273,7 +1305,7 @@ class MainW(QtWidgets.QMainWindow):
             if self.pose_model is None:
                 self.setup_pose_model()
             if not self.pose_gui.cancel_bbox_selection:
-                self.pose_model.run_all()
+                self.pose_model.run()
                 self.update_status_bar("Pose labels saved in " + savepath)
                 self.pose_model.plot_pose_estimates()
             else:
