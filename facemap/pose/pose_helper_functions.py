@@ -4,7 +4,6 @@ Copright © 2023 Howard Hughes Medical Institute, Authored by Carsen Stringer an
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Import packages ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 import numpy as np
 
-print("numpy version: %s" % np.__version__)
 import random
 from platform import python_version
 
@@ -16,8 +15,6 @@ import torch  # pytorch
 from PyQt5 import QtWidgets
 from PyQt5.QtWidgets import QDialog, QPushButton
 from scipy.ndimage import gaussian_filter
-
-print("python version:", python_version())
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~Global variables~~~~~~~~~~~~~~~~~~~~~~~~~~~~~`
 N_FACTOR = 2**4 // (2**2)

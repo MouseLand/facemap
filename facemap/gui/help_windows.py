@@ -20,6 +20,7 @@ from PyQt5.QtWidgets import (
     QVBoxLayout,
     QWidget,
 )
+from ..version import version_str
 
 
 class MainWindowHelp(QDialog):
@@ -165,12 +166,12 @@ class AboutWindow(QDialog):
             <b>License:</b> GPLv3
             </p>
             <p>
-            <b>Version:</b> 0.2.0
+            <b>Version:</b> {version}
             </p>
             <p>
             Visit our <a href="https://github.com/MouseLand/FaceMap"> github page </a> for more information.
             </p>
-        """
+        """.format(version=version_str)
         text = QLabel(text, self)
         text.setStyleSheet(
             "font-size: 12pt; font-family: Arial; color: white; text-align: center; "

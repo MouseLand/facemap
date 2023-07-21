@@ -1,18 +1,10 @@
-Pose tracking **(GUI)** :mouse:
-===============================
+Pose tracking **(GUI)**
+========================
 
 The latest python version is integrated with Facemap network for
 tracking 14 distinct keypoints on mouse face and an additional point for
-tracking paw. The keypoints can be tracked from different camera views
-(some examples shown below).
+tracking paw. The keypoints can be tracked from different camera views (see `examples <https://github.com/MouseLand/facemap/blob/dev/figs/mouse_views.png>`__).
 
-.. raw:: html
-
-   <p float="middle">
-
-.. raw:: html
-
-   </p>
 
 Generate keypoints
 ------------------
@@ -33,12 +25,13 @@ Follow the steps below to generate keypoints for your videos:
    -  Use the file menu to ``Set output folder``.
    -  The processed keypoints (``*.h5``) and metadata (``*.pkl``) will
       be saved in the selected output folder or folder containing the
-      video (default).
+      video (by default).
 
 2. Process video(s)
 
    -  Check ``Keypoints`` for pose tracking.
    -  Click ``process``.
+   -  Note: The first time facemap runs for processing keypoints it downloads the latest available trained model weights from our website.
 
 3. Set ROI/bounding box for face region
 
@@ -46,7 +39,7 @@ Follow the steps below to generate keypoints for your videos:
       appear. Drag the red rectangle to select region of interest on the
       frame where the keypoints will be tracked. Please ensure that the
       bouding box is focused on the face where all the keypoints will be
-      visible. See example frames `here <figs/mouse_views.png>`__. If a
+      visible. See example frames `here <https://github.com/MouseLand/facemap/blob/main/figs/mouse_views.png>`__. If a
       ‘Face (pose)’ ROI has already been added then this step will be
       skipped.
    -  Click ``Done`` to process video. Alternatively, click ``Skip`` to
@@ -62,7 +55,7 @@ Follow the steps below to generate keypoints for your videos:
 Visualize keypoints
 -------------------
 
-To load keypoints (*.h5) for a video generated using Facemap or other
+To load keypoints (\*.h5) for a video generated using Facemap or other
 software in the same format (such as DeepLabCut and SLEAP), follow the
 steps below:
 
@@ -75,7 +68,7 @@ steps below:
 
    -  Select ``Pose`` from the menu bar
    -  Select ``Load keypoints``
-   -  Select the keypoints (*.h5) file
+   -  Select the keypoints (\*.h5) file
 
 3. View keypoints
 
@@ -84,10 +77,6 @@ steps below:
    -  Change value of “Threshold (%)” under pose settings to filter
       keypoints with lower confidence estimates. Higher threshold will
       show keypoints with higher confidence estimates.
-
-Note: this feature is currently only supported for single video. Please
-see `CLI instructions <pose_tracking_cli_tutorial.md>`__ for viewing
-keypoints for multiple videos.
 
 Finetune model to refine keypoints for a video
 ----------------------------------------------

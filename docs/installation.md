@@ -1,6 +1,6 @@
 # Installation (Python)
 
-This package only supports python 3. We recommend installing python 3 with **[Anaconda](https://www.anaconda.com/download/)**.s
+This package only supports python 3. We recommend installing python 3 with **[Anaconda](https://www.anaconda.com/download/)**.
 
 ## Common installation issues
 
