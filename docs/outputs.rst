@@ -2,21 +2,14 @@ Outputs
 =======================
 
 ROI and SVD processing 
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~
+SVD processing saves two outputs: a \*.npy file and a \*.mat file. The output file contains the following variables:
 
+- **filenames**: A 2D list of video filenames - a list within the 2D list consists of videos recorded simultaneously whereas sequential videos are stored as a separate list
 
-Proccessed output
-~~~~~~~~~~~~~~~~~
+- **Ly**, **Lx**: list of frame length in y-dim (Ly) and x-dim (Lx) for each video taken simultaneously 
 
-The GUIs create one file for all videos (saved in current folder), the
-npy file has name “videofile_proc.npy” and the mat file has name
-“videofile_proc.mat”.
-
-- **filenames**: list of lists of video filenames - each list are the videos taken simultaneously 
-
-- **Ly**, **Lx**: list of number of pixels in Y (Ly) and X (Lx) for each video taken simultaneously 
-
-- **sbin**: spatial bin size for motion SVDs 
+- **sbin**: spatial bin size for SVDs 
 
 - **Lybin**, **Lxbin**: list of number of pixels binned by sbin in Y (Ly) and X (Lx) for each video taken simultaneously 
 
@@ -24,27 +17,27 @@ npy file has name “videofile_proc.npy” and the mat file has name
 
 - **LYbin**, **LXbin**: full-size of all videos embedded in rectangle (binned) 
 
-- **fullSVD**: whether or not “multivideo SVD” is computed 
+- **fullSVD**: bool flag indicating whether “multivideo SVD” is computed 
 
-- **save_mat**: whether or not to save proc as `\*.mat` file 
+- **save_mat**: bool flag indicating whether to save proc as `\*.mat` file 
 
 - **avgframe**: list of average frames for each video from a subset of frames (binned by sbin)
 
-- **avgframe_reshape**: average frame reshaped to be y-pixels x x-pixels 
+- **avgframe_reshape**: average frame reshaped to size y-pixels by x-pixels 
 
-- **avgmotion**: list of average motions for each video from a subset of frames (binned by sbin) 
+- **avgmotion**: list of average motion computed for each video from a subset of frames (binned by sbin) 
 
-- **avgmotion_reshape**: average motion reshaped to be y-pixels x x-pixels 
+- **avgmotion_reshape**: average motion reshaped to size y-pixels by x-pixels 
 
-- **iframes**: array containing number of frames in each consecutive video
+- **iframes**: an array containing the number of frames in each consecutive video
 
 - **motion**: list of absolute motion energies across time - first is “multivideo” motion energy (empty if not computed) 
 
-- **motSVD**: list of motion SVDs - first is “multivideo SVD” (empty if not computed) - each is nframes x components 
+- **motSVD**: list of motion SVDs - first is “multivideo SVD” (empty if not computed) - each is of size number of frames by number of components (500)
 
 - **motMask**: list of motion masks for each motion SVD - each motMask is pixels x components
 
-- **motMask_reshape**: motion masks reshaped to be y-pixels x x-pixels x components 
+- **motMask_reshape**: motion masks reshaped to: y-pixels x x-pixels x components 
 
 - **motSv**: array containing singular values for motSVD
 
@@ -81,15 +74,38 @@ npy file has name “videofile_proc.npy” and the mat file has name
 Loading outputs
 ''''''''''''''''''''
 
-Note this is a dict, e.g. to load in python:
+The \*.npy saved is a dict which can be loaded in python as follows:
 
 ::
 
    import numpy as np
-   proc = np.load('cam1_proc.npy', allow_pickle=True).item()
+   proc = np.load('filename_proc.npy', allow_pickle=True).item()
    print(proc.keys())
    motion = proc['motion']
 
-These \*_proc.npy\* files can be loaded into the GUI (and will
-automatically be loaded after processing). The checkboxes in the lower
-left allow you to view different traces from the processing.
+These \*_proc.npy\* files can be loaded in the GUI (and is
+automatically loaded after processing). The checkboxes on the lower
+left panel of the GUI can be used to toggle display of different traces/variables.
+
+Keypoints processing 
+~~~~~~~~~~~~~~~~~~~~
+
+Keypoints processing saves two outputs: a \*.h5 and a \*_metadata.pkl file. 
+   - \*.h5 file contains: Keypoints stored as a 3D array of shape (3, number of bodyparts, number of frames). The first dimension of size 3 is in the order: (x, y, likelihood). For more details on using/loading the \*.h5 file in python see this `tutorial <https://github.com/MouseLand/facemap/blob/main/notebooks/load_visualize_keypoints.ipynb>`__.
+   - \*_metadata.pkl file: contains a dictionary consisting of the following variables:
+        -  batch_size: batch size used for inference
+        -  image_size: frame size
+        -  bbox: bounding box for cropping the video [x1, x2, y1, y2]
+        -  total_frames: number of frames
+        -  bodyparts: names of bodyparts 
+        -  inference_speed: processing speed
+       To load the pkl file in python, use the following code:
+        
+        ::
+
+            import pickle
+            with open('filename_metadata.pkl', 'rb') as f:
+                metadata = pickle.load(f)
+            print(metadata.keys())
+            print(metadata['bodyparts'])
+

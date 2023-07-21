@@ -24,7 +24,7 @@ copyright = "2020, Carsen Stringer & Atika Syeda & Renee Tung"
 author = "Carsen Stringer & Atika Syeda & Renee Tung"
 
 # The full version, including alpha/beta/rc tags
-release = "1.0.0-rc1"
+release = "1.0.1"
 
 
 # -- General configuration ---------------------------------------------------

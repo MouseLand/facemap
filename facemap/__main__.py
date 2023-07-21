@@ -9,7 +9,7 @@ import numpy as np
 
 from facemap import process
 from facemap.gui import gui
-
+from facemap import version_str
 
 def tic():
     return time.time()
@@ -25,6 +25,7 @@ def main():
 
 
 if __name__ == "__main__":
+    
     parser = argparse.ArgumentParser(description="Movie files")
     parser.add_argument("--ops", default=[], type=str, help="options")
     parser.add_argument(
@@ -88,6 +89,9 @@ if __name__ == "__main__":
     parser.set_defaults(autoload_proc=True)
 
     args = parser.parse_args()
+
+    print(version_str)
+
     ops = {}
     if len(args.ops) > 0:
         ops = np.load(args.ops)
