@@ -43,7 +43,7 @@ Load a video or a set of videos and draw your ROIs and choose your processing se
 Data acquisition info
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 
-IR ILLUMINATION
+IR illumination
 ---------------------
 
 For recording in darkness we use `IR
@@ -67,7 +67,7 @@ tube <https://www.thorlabs.com/newgrouppage9.cfm?objectgroup_id=4109&pn=SM1V10#3
 and another `lens
 tube <https://www.thorlabs.com/thorproduct.cfm?partnumber=SM1L10>`__.
 
-CAMERAS
+Cameras
 ---------------------
 
 We use `ptgrey

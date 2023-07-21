@@ -3,16 +3,8 @@ Pose tracking **(GUI)**
 
 The latest python version is integrated with Facemap network for
 tracking 14 distinct keypoints on mouse face and an additional point for
-tracking paw. The keypoints can be tracked from different camera views
-(some examples shown below).
+tracking paw. The keypoints can be tracked from different camera views (see `examples <https://github.com/MouseLand/facemap/blob/dev/figs/mouse_views.png>`__).
 
-.. raw:: html
-
-   <p float="middle">
-
-.. raw:: html
-
-   </p>
 
 Generate keypoints
 ------------------
@@ -33,7 +25,7 @@ Follow the steps below to generate keypoints for your videos:
    -  Use the file menu to ``Set output folder``.
    -  The processed keypoints (``*.h5``) and metadata (``*.pkl``) will
       be saved in the selected output folder or folder containing the
-      video (default).
+      video (by default).
 
 2. Process video(s)
 

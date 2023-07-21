@@ -1,5 +1,5 @@
 Outputs
-=======================
+========
 
 ROI and SVD processing 
 ~~~~~~~~~~~~~~~~~~~~~~~
@@ -108,4 +108,15 @@ Keypoints processing saves two outputs: a \*.h5 and a \*_metadata.pkl file.
                 metadata = pickle.load(f)
             print(metadata.keys())
             print(metadata['bodyparts'])
+
+
+Neural activity prediction output 
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+The output of neural activity prediction is saved in \*.npy file and optionally in \*.mat file. The output contains a dictionary with the following keys:
+
+- predictions: a 2D array containing the predicted neural activity of shape (number of features x time)
+- test_indices: a list of indices indicating sections of data used as test data for computing variance explained by the model
+- variance_explained: variance explained by the model for test data
+- plot_extent: extent of the plot used for plotting the predicted neural activity in the order [x1, y1, x2, y2]
+
 
