@@ -23,4 +23,7 @@ For more details, please see our `paper <https://www.biorxiv.org/content/10.1101
    :caption: API Reference:
 
    api
-   
+
+.. 
+    Use the following command to generate documentation 
+    sphinx-build -b html docs docs/build/html 
