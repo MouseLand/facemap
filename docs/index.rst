@@ -14,9 +14,9 @@ For more details, please see our `paper <https://www.biorxiv.org/content/10.1101
     outputs
 
 .. toctree::
-   :caption: Tutorials
+    :caption: Tutorials
 
-   tutorials
+    notebooks/tutorials
 
 .. toctree::
    :caption: API Reference:
