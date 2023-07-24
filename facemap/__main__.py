@@ -69,7 +69,7 @@ if __name__ == "__main__":
         type=str,
         help="Absolute path to behavior timestamps file (*.npy)",
     )
-    parser.add_argument("--savedir", default=None, type=str, help="savedir")
+    parser.add_argument("--savedir", default=None, type=str, help="save directory")
     # Add a flag to autoload keypoints in the same directory as the movie
     parser.add_argument(
         "--autoload_keypoints",
