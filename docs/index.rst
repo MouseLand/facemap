@@ -14,6 +14,7 @@ For more details, please see our `paper <https://www.biorxiv.org/content/10.1101
     outputs
 
 .. toctree::
+    :maxdepth: 1
     :caption: Tutorials
 
     notebooks/tutorials
