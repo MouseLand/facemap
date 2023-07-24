@@ -20,8 +20,10 @@ formats:
 python:
    version: 3.8
    install:
+      - requirements: doc/requirements.txt
       - method: pip
         path: .
         extra_requirements:
           - docs
           - gui
+          version: 2
