@@ -39,6 +39,7 @@ extensions = [
     "sphinx.ext.mathjax",
     "sphinx.ext.viewcode",
     "sphinx.ext.napoleon",
+    "nbsphinx"
 ]
 # extensions = ['sphinx.ext.autodoc',
 #            'sphinx.ext.mathjax',
