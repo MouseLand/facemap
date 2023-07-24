@@ -158,7 +158,7 @@ class AboutWindow(QDialog):
             Pose tracking of mouse face from different camera views (python only) and svd processing of videos (python and MATLAB).
             </p>
             <p>
-            <b>Authors:</b> Carsen Stringer & Atika Syeda & Renee Tung
+            <b>Authors:</b> Carsen Stringer & Atika Syeda
             </p>
             <p>
             <b>Contact:</b> syedaa[at]janelia.hhmi.org, stringerc[at]janelia.hhmi.org

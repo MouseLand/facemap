@@ -20,8 +20,8 @@ Copright © 2023 Howard Hughes Medical Institute, Authored by Carsen Stringer an
 # -- Project information -----------------------------------------------------
 
 project = "Facemap"
-copyright = "2020, Carsen Stringer & Atika Syeda & Renee Tung"
-author = "Carsen Stringer & Atika Syeda & Renee Tung"
+copyright = "2023, Carsen Stringer & Atika Syeda"
+author = "Carsen Stringer & Atika Syeda"
 
 # The full version, including alpha/beta/rc tags
 release = "1.0.1"
