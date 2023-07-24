@@ -37,7 +37,6 @@ FaceMap/ops_user.npy
 *.sh
 *.pkl
 *.h5
-notebooks/
 
 #
 # =========================
