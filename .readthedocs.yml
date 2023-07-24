@@ -25,5 +25,4 @@ python:
         extra_requirements:
           - docs
           - gui
-          - nbsphinx
           version: 2
