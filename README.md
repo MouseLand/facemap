@@ -7,7 +7,7 @@
 [![Documentation Status](https://readthedocs.org/projects/ansicolortags/badge/?version=latest)](https://pypi.org/project/facemap/)
 [![GitHub open issues](https://badgen.net/github/open-issues/Mouseland/facemap)](https://github.com/MouseLand/facemap/issues)
 
-# Facemap <img src="facemap/mouse.png" width="200" title="lilmouse" alt="lilmouse" align="right" vspace = "50">
+# Facemap <img src="https://raw.githubusercontent.com/MouseLand/facemap/main/facemap/mouse.png" width="200" title="facemap" alt="facemap" align="right" vspace = "50">
 
 Facemap is a framework for predicting neural activity from mouse orofacial movements. It includes a pose estimation model for tracking distinct keypoints on the mouse face, a neural network model for predicting neural activity using the pose estimates, and also can be used compute the singular value decomposition (SVD) of behavioral videos.
 
@@ -112,7 +112,7 @@ Next you can extract information from the videos like track keypoints, compute m
 
 ## I. Pose tracking
 
-<img src="figs/facemap.gif" width="100%" height="500" title="Tracker" alt="tracker" algin="middle" vspace = "10">
+<img src="https://raw.githubusercontent.com/MouseLand/facemap/main/figs/facemap.gif" width="100%" height="500" title="Tracker" alt="tracker" algin="middle" vspace = "10">
 
 Facemap provides a trained network for tracking distinct keypoints on the mouse face from different camera views (some examples shown below). Check the `keypoints` box then click `process`. Next a bounding box will appear -- focus this on the face as shown below. Then the processed keypoints `*.h5` file will be saved in the output folder along with the corresponding metadata file `*.pkl`.
 
@@ -121,11 +121,11 @@ Keypoints will be predicted in the selected bounding box region so please ensure
 For more details on using the tracker, please refer to the [GUI Instructions](docs/pose_tracking_gui_tutorial.md). See  [command line interface (CLI) instructions](docs/pose_tracking_cli_tutorial.md) and for more examples, please see [tutorial notebooks](https://github.com/MouseLand/facemap/tree/dev/notebooks).
 
 <p float="middle">
-<img src="figs/mouse_face1_keypoints.png"  width="310" height="290" title="View 1" alt="view1" align="left" vspace = "10" hspace="30" style="border: 0.5px solid white"  />
-<img src="figs/mouse_face0_keypoints.png" width="310" height="290" title="View 2" alt="view2" algin="right" vspace = "10" style="border: 0.5px solid white">
+<img src="https://raw.githubusercontent.com/MouseLand/facemap/main/figs/mouse_face1_keypoints.png"  width="310" height="290" title="View 1" alt="view1" align="left" vspace = "10" hspace="30" style="border: 0.5px solid white"  />
+<img src="https://raw.githubusercontent.com/MouseLand/facemap/main/figs/mouse_face0_keypoints.png" width="310" height="290" title="View 2" alt="view2" algin="right" vspace = "10" style="border: 0.5px solid white">
 </p>
 
-### :mega: User contributions :video_camera: :camera: 
+### 📢 User contributions 📹 📷
 Facemap aims to provide a simple and easy-to-use tool for tracking mouse orofacial movements. The tracker's performance for new datasets could be further improved by expand our training set. You can contribute to the model by sharing videos/frames on the following email address(es): `asyeda1[at]jh.edu` or `stringerc[at]janelia.hhmi.org`.
 
 ## II. ROI and SVD processing
@@ -138,7 +138,7 @@ For more details see [SVD python tutorial](docs/svd_python_tutorial.md) or [SVD 
 
 ([video](https://www.youtube.com/watch?v=Rq8fEQ-DOm4) with old install instructions)
 
-<img src="figs/face_fast.gif" width="100%" alt="face gif">
+<img src="https://github.com/MouseLand/facemap/raw/main/figs/face_fast.gif" width="100%" alt="face gif">
 
 ## III. Neural activity prediction
 
@@ -146,7 +146,7 @@ Facemap includes a deep neural network encoding model for predicting neural acti
 
 The encoding model used for prediction is described as follows:
 <p float="middle">
-<img src="figs/encoding_model.png"  width="70%" height="300" title="View 1" alt="view1" align="center" vspace = "10" hspace="30" style="border: 0.5px solid white"  />
+<img src="https://raw.githubusercontent.com/MouseLand/facemap/main/figs/encoding_model.png"  width="70%" height="300" title="neural model" alt="neural model" align="center" vspace = "10" hspace="30" style="border: 0.5px solid white"  />
 </p>
 
 Please see neural activity prediction [tutorial](docs/neural_activity_prediction_tutorial.md) for more details.
