@@ -25,4 +25,3 @@ python:
         extra_requirements:
           - docs
           - gui
-          version: 2
