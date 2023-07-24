@@ -10,12 +10,11 @@ The quickest way to start is to open the GUI from a command line terminal:
     python -m facemap
 
 
-Command Line Usage
+Command line usage
 ~~~~~~~~~~~~~~~~~~~
 
-Run ``python -m facemap --help`` to see the usage of the optional parameters:
+Run ``python -m facemap --help`` to see usage of the following optional parameters:
 
-::
     -h, --help              show this help message and exit
     --ops                   options
     --movie                 Absolute path to video(s)
