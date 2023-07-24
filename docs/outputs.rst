@@ -90,9 +90,9 @@ left panel of the GUI can be used to toggle display of different traces/variable
 Keypoints processing 
 ~~~~~~~~~~~~~~~~~~~~
 
-Keypoints processing saves two outputs: a \*.h5 and a \*_metadata.pkl file. 
+Keypoints processing saves two outputs: a \*.h5 and a \*metadata.pkl file. 
    - \*.h5 file contains: Keypoints stored as a 3D array of shape (3, number of bodyparts, number of frames). The first dimension of size 3 is in the order: (x, y, likelihood). For more details on using/loading the \*.h5 file in python see this `tutorial <https://github.com/MouseLand/facemap/blob/main/notebooks/load_visualize_keypoints.ipynb>`__.
-   - \*_metadata.pkl file: contains a dictionary consisting of the following variables:
+   - \*metadata.pkl file: contains a dictionary consisting of the following variables:
         -  batch_size: batch size used for inference
         -  image_size: frame size
         -  bbox: bounding box for cropping the video [x1, x2, y1, y2]
