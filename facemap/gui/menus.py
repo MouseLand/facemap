@@ -8,7 +8,6 @@ from . import help_windows, io
 
 def mainmenu(parent):
     # --------------- MENU BAR --------------------------
-    # run suite2p from scratch
     open_file = QAction("Load video", parent)
     open_file.setShortcut("Ctrl+L")
     open_file.triggered.connect(lambda: io.open_file(parent))
