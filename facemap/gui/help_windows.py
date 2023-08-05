@@ -4,10 +4,10 @@ Copright © 2023 Howard Hughes Medical Institute, Authored by Carsen Stringer an
 import os
 
 import numpy as np
-from PyQt5 import QtCore
-from PyQt5.QtCore import Qt
-from PyQt5.QtGui import QPixmap
-from PyQt5.QtWidgets import (
+from qtpy import QtCore
+from qtpy.QtCore import Qt
+from qtpy.QtGui import QPixmap
+from qtpy.QtWidgets import (
     QDesktopWidget,
     QDialog,
     QGroupBox,

@@ -4,8 +4,8 @@ Copright © 2023 Howard Hughes Medical Institute, Authored by Carsen Stringer an
 import numpy as np
 import pyqtgraph as pg
 from matplotlib import cm
-from PyQt5 import QtCore
-from PyQt5.QtWidgets import (
+from qtpy import QtCore
+from qtpy.QtWidgets import (
     QDesktopWidget,
     QDialog,
     QHBoxLayout,

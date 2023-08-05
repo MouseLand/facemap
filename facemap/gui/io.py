@@ -7,7 +7,7 @@ import pickle
 
 import numpy as np
 from natsort import natsorted
-from PyQt5.QtWidgets import QFileDialog, QMessageBox
+from qtpy.QtWidgets import QFileDialog, QMessageBox
 
 from facemap import roi, utils
 
@@ -234,7 +234,7 @@ def open_proc(parent, file_name=None):
                         int(parent.saturation[parent.iROI] * 100 / 255)
                     )
                     parent.ROIs[parent.iROI].plot(parent)
-                    if parent.processed and k <= 7:
+                    if parent.processed and k <= 5:
                         parent.plot2_checkboxes[k].setText(
                             "%s%d" % (parent.typestr[r["rind"]], kt[r["rind"]])
                         )

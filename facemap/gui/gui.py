@@ -13,9 +13,9 @@ import pyqtgraph as pg
 import scipy.io as sio
 import torch
 from matplotlib import cm
-from PyQt5 import QtCore, QtWidgets
-from PyQt5.QtGui import QFont, QIcon, QPainterPath
-from PyQt5.QtWidgets import (
+from qtpy import QtCore, QtWidgets
+from qtpy.QtGui import QFont, QIcon, QPainterPath
+from qtpy.QtWidgets import (
     QButtonGroup,
     QCheckBox,
     QComboBox,
@@ -42,8 +42,6 @@ from facemap.neural_prediction import neural_activity, prediction_utils
 from facemap.pose import model_loader, pose, pose_gui, refine_pose
 
 istr = ["pupil", "motSVD", "blink", "running", "movSVD"]
-
-# TODO: Add pose instructions for CLI commands
 
 
 class MainW(QtWidgets.QMainWindow):
@@ -75,7 +73,7 @@ class MainW(QtWidgets.QMainWindow):
         QtCore.QCoreApplication.setApplicationName("Facemap")
 
         pg.setConfigOptions(imageAxisOrder="row-major")
-        self.setGeometry(55, 5, 1470, 800)
+        self.setGeometry(15, 5, 1470, 800)#(55, 5, 1470, 800)
         self.setWindowTitle("Facemap")
         self.setStyleSheet("QMainWindow {background: 'black';}")
         self.styleUnpressed = (
@@ -114,7 +112,6 @@ class MainW(QtWidgets.QMainWindow):
 
         menus.mainmenu(self)
         self.online_mode = False
-        # menus.onlinemenu(self)
 
         self.central_widget = QWidget(self)
         self.setCentralWidget(self.central_widget)
@@ -122,22 +119,22 @@ class MainW(QtWidgets.QMainWindow):
         self.central_widget.setLayout(self.scene_grid_layout)
         # --- cells image
         self.sizeObject = QDesktopWidget().screenGeometry(-1)
-        self.resize(self.sizeObject.width(), self.sizeObject.height())
+        self.resize(self.sizeObject.width(), self.sizeObject.height()-600)
 
         self.video_window = pg.GraphicsLayoutWidget()
-        self.video_window.move(self.sizeObject.height(), self.sizeObject.width())
-        self.video_window.resize(self.sizeObject.height(), self.sizeObject.width())
-        self.scene_grid_layout.addWidget(self.video_window, 1, 2, 10, 7)
+        #self.video_window.move(self.sizeObject.height(), self.sizeObject.width())
+        #self.video_window.resize(self.sizeObject.height(), self.sizeObject.width())
+        self.scene_grid_layout.addWidget(self.video_window, 0, 2, 5, 5)
 
         # Create a window for embedding and ROI plot
         self.roi_embed_window = pg.GraphicsLayoutWidget()
-        self.roi_embed_window.move(self.sizeObject.height(), 0)
-        self.roi_embed_window.resize(self.sizeObject.height(), self.sizeObject.width())
-        self.scene_grid_layout.addWidget(self.roi_embed_window, 14, 2, 7, 7)
+        #self.roi_embed_window.move(self.sizeObject.height(), 0)
+        #self.roi_embed_window.resize(self.sizeObject.height(), self.sizeObject.width())
+        self.scene_grid_layout.addWidget(self.roi_embed_window, 5, 2, 4, 5)
 
         # Create a window for plots
         self.plots_window = pg.GraphicsLayoutWidget()
-        self.scene_grid_layout.addWidget(self.plots_window, 0, 9, 24, 8)
+        self.scene_grid_layout.addWidget(self.plots_window, 0, 7, 9, 8)
 
         # Add logo
         # icon_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "mouse.png")
@@ -186,12 +183,10 @@ class MainW(QtWidgets.QMainWindow):
 
         qlabel = QLabel("Saturation:")
         qlabel.setStyleSheet("color: white;")
-        self.saturation_groupbox.layout().addWidget(qlabel, 0, 0, 1, 1)
+        self.saturation_groupbox.layout().addWidget(qlabel, 0, 0)
         video_saturation_slider = guiparts.Slider(0, self)
         self.saturation_sliders.append(video_saturation_slider)
-        self.saturation_groupbox.layout().addWidget(
-            self.saturation_sliders[0], 0, 1, 1, 4
-        )
+        self.saturation_groupbox.layout().addWidget(self.saturation_sliders[0], 0, 1)
 
         # Add label to indicate saturation level
         self.saturation_level_label = QLabel(str(self.saturation_sliders[0].value()))
@@ -204,7 +199,8 @@ class MainW(QtWidgets.QMainWindow):
         self.reflector.clicked.connect(self.add_reflectROI)
         self.rROI = []
         self.reflectors = []
-        self.scene_grid_layout.addWidget(self.reflector, 0, 6, 1, 1)
+        self.saturation_groupbox.layout().addWidget(self.reflector, 0, 2)
+        #self.scene_grid_layout.addWidget(self.reflector, 0, 6, 1, 1)
 
         # roi Saturation groupbox
         self.roi_saturation_groupbox = QGroupBox()
@@ -229,6 +225,7 @@ class MainW(QtWidgets.QMainWindow):
         self.saturation_sliders[1].valueChanged.connect(self.set_ROI_saturation_label)
 
         # Plots
+        # Add first plot
         self.keypoints_traces_plot = self.plots_window.addPlot(
             name="keypoints_traces_plot", row=0, col=1, title="Keypoints traces"
         )
@@ -254,6 +251,7 @@ class MainW(QtWidgets.QMainWindow):
             ["paw"],
         ]
 
+        # Add second plot
         self.svd_traces_plot = self.plots_window.addPlot(
             name="svd_traces_plot", row=1, col=1, title="SVD traces"
         )
@@ -420,14 +418,14 @@ class MainW(QtWidgets.QMainWindow):
         # ~~~~~~~~~~~~~~~~~~~~~~~~ SVD variables ~~~~~~~~~~~~~~~~~~~~~~~~
         self.svd_groupbox = QGroupBox("ROI settings:")
         self.svd_groupbox.setStyleSheet(
-            "QGroupBox { border: 1px solid white; border-style: outset; border-radius: 5px; color:white; padding: 20px 0px;}"
-        )  # padding: 5px -10px;
+            "QGroupBox { border: 1px solid white; border-style: outset; border-radius: 5px; color:white; padding: 5px 0px;}"
+        )
         self.svd_groupbox.setLayout(QGridLayout())
 
         # Create ROI features
         self.comboBox = QComboBox(self)
         # Set size of combobox
-        self.comboBox.setFixedWidth(int(0.05 * self.sizeObject.width()))
+        #self.comboBox.setFixedWidth(int(0.05 * self.sizeObject.width()))
         self.comboBox.addItem("Select ROI")
         self.comboBox.addItem("Pupil")
         self.comboBox.addItem("motion SVD")
@@ -439,7 +437,7 @@ class MainW(QtWidgets.QMainWindow):
         self.svd_groupbox.layout().addWidget(self.comboBox, 0, 0)
         # self.comboBox.currentIndexChanged.connect(self.mode_change)
         self.addROI = QPushButton("Add ROI")
-        self.addROI.setFixedWidth(int(0.04 * self.sizeObject.width()))
+        #self.addROI.setFixedWidth(int(0.04 * self.sizeObject.width()))
         self.addROI.setFont(QFont("Arial", 10, QFont.Bold))
         self.addROI.clicked.connect(lambda clicked: self.add_ROI())
         self.addROI.setEnabled(False)
@@ -453,7 +451,7 @@ class MainW(QtWidgets.QMainWindow):
         self.svdbin_spinbox = QSpinBox()
         self.svdbin_spinbox.setRange(1, 20)
         self.svdbin_spinbox.setValue(self.ops["sbin"])
-        self.svdbin_spinbox.setFixedWidth(int(0.03 * self.sizeObject.width()))
+        self.svdbin_spinbox.setFixedWidth(int(0.05 * self.sizeObject.width()))
         self.svd_groupbox.layout().addWidget(
             self.svdbin_spinbox, 1, 1, alignment=QtCore.Qt.AlignRight
         )
@@ -464,7 +462,7 @@ class MainW(QtWidgets.QMainWindow):
         )
         self.sigma_box = QLineEdit()
         self.sigma_box.setText(str(self.ops["pupil_sigma"]))
-        self.sigma_box.setFixedWidth(int(0.02 * self.sizeObject.width()))
+        self.sigma_box.setFixedWidth(int(0.05 * self.sizeObject.width()))
         self.pupil_sigma = float(self.sigma_box.text())
         self.sigma_box.returnPressed.connect(self.pupil_sigma_change)
         self.svd_groupbox.layout().addWidget(
@@ -474,7 +472,7 @@ class MainW(QtWidgets.QMainWindow):
         # ~~~~~~~~~~~~~~~~~~~~~~~~ Pose/keypoints variables ~~~~~~~~~~~~~~~~~~~~~~~~
         self.pose_groupbox = QGroupBox("Pose settings:")
         self.pose_groupbox.setStyleSheet(
-            "QGroupBox { border: 1px solid white; border-style: outset; border-radius: 10px; color:white; padding: 25px 5px;}"
+            "QGroupBox { border: 1px solid white; border-style: outset; border-radius: 5px; color:white; padding: 5px 0px;}"
         )
         self.pose_groupbox.setLayout(QGridLayout())
 
@@ -485,7 +483,7 @@ class MainW(QtWidgets.QMainWindow):
 
         self.pose_model_combobox = QComboBox(self)
         # Set size of combobox
-        self.pose_model_combobox.setFixedWidth(int(0.085 * self.sizeObject.width()))
+        #self.pose_model_combobox.setFixedWidth(int(0.085 * self.sizeObject.width()))
         # make combobox scrollable
         self.pose_model_combobox.view().setVerticalScrollBarPolicy(
             QtCore.Qt.ScrollBarAlwaysOn
@@ -494,7 +492,7 @@ class MainW(QtWidgets.QMainWindow):
         self.pose_model_combobox.setStyleSheet("QComboBox { combobox-popup: 0; }")
         self.update_pose_model_combo_box()
         self.pose_groupbox.layout().addWidget(
-            self.pose_model_combobox, 0, 1, alignment=QtCore.Qt.AlignLeft
+            self.pose_model_combobox, 0, 1
         )
 
         # Add a QLabel and spinbox for selecting batch size
@@ -504,7 +502,7 @@ class MainW(QtWidgets.QMainWindow):
         self.batch_size_spinbox = QSpinBox()
         self.batch_size_spinbox.setRange(1, 5000)
         self.batch_size_spinbox.setValue(4)
-        self.batch_size_spinbox.setFixedWidth(int(0.04 * self.sizeObject.width()))
+        #self.batch_size_spinbox.setFixedWidth(int(0.04 * self.sizeObject.width()))
         self.pose_groupbox.layout().addWidget(
             self.batch_size_spinbox, 1, 1, alignment=QtCore.Qt.AlignRight
         )
@@ -517,9 +515,9 @@ class MainW(QtWidgets.QMainWindow):
         self.keypoints_threshold_spinbox.setRange(0, 100)
         self.keypoints_threshold_spinbox.setValue(0)
         self.keypoints_threshold = self.keypoints_threshold_spinbox.value()
-        self.keypoints_threshold_spinbox.setFixedWidth(
-            int(0.04 * self.sizeObject.width())
-        )
+        #self.keypoints_threshold_spinbox.setFixedWidth(
+        #    int(0.04 * self.sizeObject.width())
+        #)
         self.keypoints_threshold_spinbox.valueChanged.connect(
             self.update_keypoints_threshold
         )
@@ -530,7 +528,7 @@ class MainW(QtWidgets.QMainWindow):
         # ~~~~~~~~~~~~~~~~~~~~~~~~ Process features ~~~~~~~~~~~~~~~~~~~~~~~~
         self.process_groupbox = QGroupBox("Process settings:")
         self.process_groupbox.setStyleSheet(
-            "QGroupBox { border: 1px solid white; border-style: outset; border-radius: 10px; color:white; padding: 25px 5px;}"
+            "QGroupBox { border: 1px solid white; border-style: outset; border-radius: 5px; color:white; padding: 7px 0px;}"
         )
         self.process_groupbox.setLayout(QGridLayout())
 
@@ -565,7 +563,7 @@ class MainW(QtWidgets.QMainWindow):
         self.process_groupbox.layout().addWidget(self.gpu_checkbox, 1, 2)
 
         # ~~~~~~~~~~~~~~~~~~~~~~~~ Process buttons ~~~~~~~~~~~~~~~~~~~~~~~~
-        self.process_buttons_groupbox = QGroupBox("Process buttons:")
+        self.process_buttons_groupbox = QGroupBox()
         self.process_buttons_groupbox.setStyleSheet(
             "QGroupBox { border: 0px solid white; border-style: outset;}"
         )
@@ -592,7 +590,7 @@ class MainW(QtWidgets.QMainWindow):
         # ~~~~~~~~~~~~~~~~~~~~~~~~ Labels ~~~~~~~~~~~~~~~~~~~~~~~~
         self.labels_groupbox = QGroupBox()
         self.labels_groupbox.setStyleSheet(
-            "QGroupBox { border: 0px solid white; border-style: outset;}"
+            "QGroupBox { border: 1px solid white; border-style: outset; border-radius: 0px; color:white; padding: 0px 0px;}"
         )
         self.labels_groupbox.setLayout(QGridLayout())
 
@@ -606,8 +604,8 @@ class MainW(QtWidgets.QMainWindow):
 
         self.batchlist = []
         self.batchname = []
-        # TODO: Change batchname to span 2 columns
-        for k in range(5):
+        # TODO: Change batchname to be displayed in a pop-up message box that lists the filenames!!
+        for k in range(1):
             self.batchname.append(QLabel(""))
             self.batchname[-1].setStyleSheet("color: white;")
             self.batchname[-1].setAlignment(QtCore.Qt.AlignCenter)
@@ -631,9 +629,121 @@ class MainW(QtWidgets.QMainWindow):
         self.frame_slider.setTracking(False)
         self.frame_slider.valueChanged.connect(self.go_to_frame)
         self.frameDelta = 10
-        istretch = 15
-        iplay = istretch + 10
         iconSize = QtCore.QSize(20, 20)
+
+        # Add clustering analysis/visualization features
+        self.roi_embed_combobox = QComboBox(self)
+        self.roi_embed_combobox.addItem("--Select display--")
+        self.roi_embed_combobox.addItem("ROI")
+        #self.roi_embed_combobox.addItem("UMAP")
+        #self.roi_embed_combobox.addItem("tSNE")
+        self.roi_embed_combobox.currentIndexChanged.connect(
+            self.vis_combobox_selection_changed
+        )
+        self.roi_display_combobox = QComboBox(self)
+        self.roi_display_combobox.hide()
+        self.roi_display_combobox.activated.connect(self.display_ROI)
+        self.run_clustering_button = QPushButton("Run")
+        self.run_clustering_button.setFont(QFont("Arial", 10, QFont.Bold))
+        self.run_clustering_button.clicked.connect(
+            lambda clicked: self.cluster_model.run(clicked, self)
+        )
+        self.run_clustering_button.hide()
+        self.save_clustering_button = QPushButton("Save")
+        self.save_clustering_button.setFont(QFont("Arial", 10, QFont.Bold))
+        self.save_clustering_button.clicked.connect(
+            lambda clicked: self.cluster_model.save_dialog(clicked, self)
+        )
+        self.save_clustering_button.hide()
+        self.data_clustering_combobox = QComboBox(self)
+        self.data_clustering_combobox.hide()
+        self.zoom_in_button = QPushButton("+")
+        self.zoom_in_button.setMaximumWidth(
+            int(0.3 * self.data_clustering_combobox.width())
+        )
+        self.zoom_in_button.clicked.connect(
+            lambda clicked: self.cluster_plot_zoom_buttons("in")
+        )
+        self.zoom_in_button.hide()
+        self.zoom_out_button = QPushButton("-")
+        self.zoom_out_button.setMaximumWidth(
+            int(0.3 * self.data_clustering_combobox.width())
+        )
+        self.zoom_out_button.clicked.connect(
+            lambda clicked: self.cluster_plot_zoom_buttons("out")
+        )
+        self.zoom_out_button.hide()
+
+        # Add features to window
+        # ~~~~~~~~~~ motsvd/movsvd options ~~~~~~~~~~
+        self.scene_grid_layout.addWidget(self.svd_groupbox, 0, 0, 1, 2)
+        # ~~~~~~~~~~ Pose features ~~~~~~~~~~
+        self.scene_grid_layout.addWidget(self.pose_groupbox, 1, 0, 2, 2)
+        # ~~~~~~~~~~ Process features ~~~~~~~~~~
+        self.scene_grid_layout.addWidget(self.process_groupbox, 3, 0, 1, 2)
+        # ~~~~~~~~~~ Process buttons features ~~~~~~~~~~
+        self.scene_grid_layout.addWidget(self.process_buttons_groupbox, 4, 0, 1, 2)
+        # ~~~~~~~~~~ Save/file IO ~~~~~~~~~~
+        self.scene_grid_layout.addWidget(self.labels_groupbox, 5, 0, 1, 2)
+
+        # ~~~~~~~~~~ Plot 1 and 2 features ~~~~~~~~~~
+        self.keypoints_chckbox_groupbox = QGroupBox("Keypoints traces")
+        self.keypoints_chckbox_groupbox.setStyleSheet(
+            "QGroupBox { border: 1px solid white; border-style: outset; border-radius: 5px; color:white; padding: 10px 15px;}"
+        )
+        self.keypoints_chckbox_groupbox.setLayout(QGridLayout())
+
+        self.svd_chckbox_groupbox = QGroupBox("SVD traces")
+        self.svd_chckbox_groupbox.setStyleSheet(
+            "QGroupBox { border: 1px solid white; border-style: outset; border-radius: 5px; color:white; padding: 10px 15px;}"
+        )
+        self.svd_chckbox_groupbox.setLayout(QGridLayout())
+        """
+        #plot_label = QLabel("Keypoints traces")
+        #plot_label.setStyleSheet("color: gray;")
+        #self.scene_grid_layout.addWidget(plot_label, istretch, 0, 1, 1)
+        plot_label = QLabel("SVD traces")
+        plot_label.setStyleSheet("color: gray;")
+        self.scene_grid_layout.addWidget(plot_label, istretch, 1, 1, 1)"""
+        #self.load_trace2_button = QPushButton("Load 1D data")
+        #self.load_trace2_button.setFont(QFont("Arial", 12))
+        #self.load_trace2_button.clicked.connect(
+        #    lambda: self.load_1dtrace_button_clicked(2)
+        #)
+        #self.load_trace2_button.setEnabled(False)
+        #self.load_trace2_button.setFixedWidth(int(0.07 * self.sizeObject.width()))
+        self.trace2_data_loaded = None
+        self.trace2_legend = pg.LegendItem(labelTextSize="12pt", horSpacing=30)
+        #self.scene_grid_layout.addWidget(self.load_trace2_button, istretch + 1, 1, 1, 1)
+        self.plot1_checkboxes = []
+        self.plot2_checkboxes = []
+        self.lbls = []
+        # Set plot 1 checkboxes
+        for i in range(len(self.keypoints_groups)):
+            self.plot1_checkboxes.append(QCheckBox(self.keypoints_groups[i]))
+            self.plot1_checkboxes[-1].setEnabled(False)
+            self.plot1_checkboxes[-1].setStyleSheet("color: gray;")
+            self.plot1_checkboxes[-1].toggled.connect(
+                self.keypoint_subgroup_checkbox_toggled
+            )
+            self.keypoints_chckbox_groupbox.layout().addWidget(self.plot1_checkboxes[-1], i, 0)
+            #self.scene_grid_layout.addWidget(
+            #    self.plot1_checkboxes[-1], istretch + 1 + i, 0, 1, 1
+            #)
+        self.scene_grid_layout.addWidget(self.keypoints_chckbox_groupbox, 6, 0, 3, 1)
+        # Set plot 2 checkboxes
+        for k in range(5):
+            self.plot2_checkboxes.append(QCheckBox(""))
+            self.svd_chckbox_groupbox.layout().addWidget(self.plot2_checkboxes[-1], k, 1)
+            #self.scene_grid_layout.addWidget(
+            #    self.plot2_checkboxes[-1], istretch + 1 + k, 1, 1, 1
+            #)
+            self.plot2_checkboxes[-1].toggled.connect(self.plot_processed)
+            self.plot2_checkboxes[-1].setEnabled(False)
+            self.plot2_checkboxes[k].setStyleSheet("color: gray;")
+            self.lbls.append(QLabel(""))
+            self.lbls[-1].setStyleSheet("color: white;")
+        self.scene_grid_layout.addWidget(self.svd_chckbox_groupbox, 6, 1, 3, 1)
 
         # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Video playback options ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         self.video_playback_groupbox = QGroupBox()
@@ -680,124 +790,37 @@ class MainW(QtWidgets.QMainWindow):
         btns.addButton(self.pauseButton, 1)
         btns.setExclusive(True)
 
-        # Add clustering analysis/visualization features
-        self.roi_embed_combobox = QComboBox(self)
-        self.roi_embed_combobox.addItem("--Select display--")
-        self.roi_embed_combobox.addItem("ROI")
-        self.roi_embed_combobox.addItem("UMAP")
-        self.roi_embed_combobox.addItem("tSNE")
-        self.roi_embed_combobox.currentIndexChanged.connect(
-            self.vis_combobox_selection_changed
-        )
-        self.roi_display_combobox = QComboBox(self)
-        self.roi_display_combobox.hide()
-        self.roi_display_combobox.activated.connect(self.display_ROI)
-        self.run_clustering_button = QPushButton("Run")
-        self.run_clustering_button.setFont(QFont("Arial", 10, QFont.Bold))
-        self.run_clustering_button.clicked.connect(
-            lambda clicked: self.cluster_model.run(clicked, self)
-        )
-        self.run_clustering_button.hide()
-        self.save_clustering_button = QPushButton("Save")
-        self.save_clustering_button.setFont(QFont("Arial", 10, QFont.Bold))
-        self.save_clustering_button.clicked.connect(
-            lambda clicked: self.cluster_model.save_dialog(clicked, self)
-        )
-        self.save_clustering_button.hide()
-        self.data_clustering_combobox = QComboBox(self)
-        self.data_clustering_combobox.hide()
-        self.zoom_in_button = QPushButton("+")
-        self.zoom_in_button.setMaximumWidth(
-            int(0.3 * self.data_clustering_combobox.width())
-        )
-        self.zoom_in_button.clicked.connect(
-            lambda clicked: self.cluster_plot_zoom_buttons("in")
-        )
-        self.zoom_in_button.hide()
-        self.zoom_out_button = QPushButton("-")
-        self.zoom_out_button.setMaximumWidth(
-            int(0.3 * self.data_clustering_combobox.width())
-        )
-        self.zoom_out_button.clicked.connect(
-            lambda clicked: self.cluster_plot_zoom_buttons("out")
-        )
-        self.zoom_out_button.hide()
-
-        # Add features to window
-        # ~~~~~~~~~~ motsvd/movsvd options ~~~~~~~~~~
-        self.scene_grid_layout.addWidget(self.svd_groupbox, 0, 0, 1, 2)
-        # ~~~~~~~~~~ Pose features ~~~~~~~~~~
-        self.scene_grid_layout.addWidget(self.pose_groupbox, 1, 0, 3, 2)
-        # ~~~~~~~~~~ Process features ~~~~~~~~~~
-        self.scene_grid_layout.addWidget(self.process_groupbox, 5, 0, 1, 2)
-        # ~~~~~~~~~~ Process buttons features ~~~~~~~~~~
-        self.scene_grid_layout.addWidget(self.process_buttons_groupbox, 6, 0, 1, 2)
-        # ~~~~~~~~~~ Save/file IO ~~~~~~~~~~
-        self.scene_grid_layout.addWidget(self.labels_groupbox, 7, 0, 1, 2)
-        # ~~~~~~~~~~ Saturation ~~~~~~~~~~
-        self.scene_grid_layout.addWidget(self.saturation_groupbox, 0, 2, 1, 3)
-        # ~~~~~~~~~~ embedding & ROI visualization window features
-        self.scene_grid_layout.addWidget(self.roi_saturation_groupbox, 11, 2, 1, 3)
-        self.scene_grid_layout.addWidget(self.roi_embed_combobox, 11, 6, 1, 1)
-        self.scene_grid_layout.addWidget(self.zoom_in_button, 11, 7, 1, 1)
-        self.scene_grid_layout.addWidget(self.zoom_out_button, 11, 8, 1, 1)
-        self.scene_grid_layout.addWidget(self.roi_display_combobox, 11, 7, 1, 1)
-        self.scene_grid_layout.addWidget(self.save_clustering_button, 12, 7, 1, 1)
-        #   ~~~~~~~~~~ Video playback ~~~~~~~~~~
-        self.scene_grid_layout.addWidget(self.video_playback_groupbox, iplay, 0, 1, 1)
         self.playButton.setEnabled(False)
         self.pauseButton.setEnabled(False)
         self.pauseButton.setChecked(True)
+
+        # Frame number labels
+        self.video_playback_groupbox.layout().addWidget(self.current_frame_lineedit, 0, 2)
+        self.video_playback_groupbox.layout().addWidget(self.total_frames_label, 0, 3)
+        self.scene_grid_layout.addWidget(self.video_playback_groupbox, 9, 0, 1, 2)
+        """
         self.scene_grid_layout.addWidget(QLabel(""), istretch, 0, 1, 3)
         self.scene_grid_layout.setRowStretch(istretch, 1)
         self.scene_grid_layout.addWidget(
-            self.current_frame_lineedit, istretch + 9, 0, 1, 1
+            self.current_frame_lineedit, istretch + 6, 0, 1, 1
         )
-        self.scene_grid_layout.addWidget(self.total_frames_label, istretch + 9, 1, 1, 1)
-        self.scene_grid_layout.addWidget(self.frame_slider, istretch + 10, 1, 1, 16)
+        self.scene_grid_layout.addWidget(self.total_frames_label, istretch + 6, 1, 1, 1)
+        """
+        self.scene_grid_layout.addWidget(self.frame_slider, 9, 2, 1, 16)
+        # ~~~~~~~~~~ Saturation ~~~~~~~~~~
+        self.scene_grid_layout.addWidget(self.saturation_groupbox, 0, 2, 1, 4)
+        # ~~~~~~~~~~ embedding & ROI visualization window features
+        self.scene_grid_layout.addWidget(self.roi_saturation_groupbox, 4, 2, 1, 3)
+        self.scene_grid_layout.addWidget(self.roi_embed_combobox, 4, 5, 1, 1)
+        #self.scene_grid_layout.addWidget(self.zoom_in_button, 4, 7, 1, 1)
+        #self.scene_grid_layout.addWidget(self.zoom_out_button, 4, 8, 1, 1)
+        self.scene_grid_layout.addWidget(self.roi_display_combobox, 4, 6, 1, 1)
+        #self.scene_grid_layout.addWidget(self.save_clustering_button, 5, 7, 1, 1)
+        
+        video_path_label = QLabel("Save path:")
+        video_path_label.setStyleSheet("color: gray;")
+        self.labels_groupbox.layout().addWidget(video_path_label, 0, 0)
 
-        # Plot 1 and 2 features
-        plot_label = QLabel("Keypoints traces")
-        plot_label.setStyleSheet("color: gray;")
-        self.scene_grid_layout.addWidget(plot_label, istretch, 0, 1, 1)
-        plot_label = QLabel("SVD traces")
-        plot_label.setStyleSheet("color: gray;")
-        self.scene_grid_layout.addWidget(plot_label, istretch, 1, 1, 1)
-        self.load_trace2_button = QPushButton("Load 1D data")
-        self.load_trace2_button.setFont(QFont("Arial", 12))
-        self.load_trace2_button.clicked.connect(
-            lambda: self.load_1dtrace_button_clicked(2)
-        )
-        self.load_trace2_button.setEnabled(False)
-        self.load_trace2_button.setFixedWidth(int(0.07 * self.sizeObject.width()))
-        self.trace2_data_loaded = None
-        self.trace2_legend = pg.LegendItem(labelTextSize="12pt", horSpacing=30)
-        self.scene_grid_layout.addWidget(self.load_trace2_button, istretch + 1, 1, 1, 1)
-        self.plot1_checkboxes = []
-        self.plot2_checkboxes = []
-        self.lbls = []
-        # Set plot 1 checkboxes
-        for i in range(len(self.keypoints_groups)):
-            self.plot1_checkboxes.append(QCheckBox(self.keypoints_groups[i]))
-            self.plot1_checkboxes[-1].setEnabled(False)
-            self.plot1_checkboxes[-1].setStyleSheet("color: gray;")
-            self.plot1_checkboxes[-1].toggled.connect(
-                self.keypoint_subgroup_checkbox_toggled
-            )
-            self.scene_grid_layout.addWidget(
-                self.plot1_checkboxes[-1], istretch + 1 + i, 0, 1, 1
-            )
-        # Set plot 2 checkboxes
-        for k in range(7):
-            self.plot2_checkboxes.append(QCheckBox(""))
-            self.scene_grid_layout.addWidget(
-                self.plot2_checkboxes[-1], istretch + 2 + k, 1, 1, 1
-            )
-            self.plot2_checkboxes[-1].toggled.connect(self.plot_processed)
-            self.plot2_checkboxes[-1].setEnabled(False)
-            self.plot2_checkboxes[k].setStyleSheet("color: gray;")
-            self.lbls.append(QLabel(""))
-            self.lbls[-1].setStyleSheet("color: white;")
         self.update_frame_slider()
 
     def add_pose_model(self):
@@ -1177,7 +1200,7 @@ class MainW(QtWidgets.QMainWindow):
         self.saverois.setEnabled(True)
         self.multivideo_svd_checkbox.setChecked(True)
         self.save_mat.setChecked(True)
-        self.load_trace2_button.setEnabled(True)
+        #self.load_trace2_button.setEnabled(True)
 
         # Enable pose features for single video only
         self.keypoints_checkbox.setEnabled(True)

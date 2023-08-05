@@ -10,9 +10,9 @@ import numpy as np
 import pyqtgraph as pg
 import torch
 from matplotlib import cm
-from PyQt5 import QtCore
-from PyQt5.QtGui import QColor
-from PyQt5.QtWidgets import (
+from qtpy import QtCore
+from qtpy.QtGui import QColor
+from qtpy.QtWidgets import (
     QButtonGroup,
     QCheckBox,
     QComboBox,

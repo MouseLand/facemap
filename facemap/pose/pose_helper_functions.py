@@ -12,8 +12,8 @@ import matplotlib
 import matplotlib.pyplot as plt
 import pyqtgraph as pg
 import torch  # pytorch
-from PyQt5 import QtWidgets
-from PyQt5.QtWidgets import QDialog, QPushButton
+from qtpy import QtWidgets
+from qtpy.QtWidgets import QDialog, QPushButton
 from scipy.ndimage import gaussian_filter
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~Global variables~~~~~~~~~~~~~~~~~~~~~~~~~~~~~`
