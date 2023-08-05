@@ -232,7 +232,7 @@ class ImageDraw(pg.ImageItem):
     for controlling the levels and lookup table used to display the image.
     """
 
-    sigImageChanged = QtCore.Signal() #QtCore.pyqtSignal()
+    sigImageChanged = QtCore.pyqtSignal()
 
     def __init__(self, image=None, viewbox=None, parent=None, **kargs):
         super(ImageDraw, self).__init__()
