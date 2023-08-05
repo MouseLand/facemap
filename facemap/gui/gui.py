@@ -119,18 +119,18 @@ class MainW(QtWidgets.QMainWindow):
         self.central_widget.setLayout(self.scene_grid_layout)
         # --- cells image
         self.sizeObject = QDesktopWidget().screenGeometry(-1)
-        self.resize(self.sizeObject.width(), self.sizeObject.height()-600)
+        self.resize(self.sizeObject.width(), self.sizeObject.height())
 
         self.video_window = pg.GraphicsLayoutWidget()
         #self.video_window.move(self.sizeObject.height(), self.sizeObject.width())
         #self.video_window.resize(self.sizeObject.height(), self.sizeObject.width())
-        self.scene_grid_layout.addWidget(self.video_window, 0, 2, 5, 5)
+        self.scene_grid_layout.addWidget(self.video_window, 0, 2, 6, 5)
 
         # Create a window for embedding and ROI plot
         self.roi_embed_window = pg.GraphicsLayoutWidget()
         #self.roi_embed_window.move(self.sizeObject.height(), 0)
         #self.roi_embed_window.resize(self.sizeObject.height(), self.sizeObject.width())
-        self.scene_grid_layout.addWidget(self.roi_embed_window, 5, 2, 4, 5)
+        self.scene_grid_layout.addWidget(self.roi_embed_window, 6, 2, 3, 5)
 
         # Create a window for plots
         self.plots_window = pg.GraphicsLayoutWidget()
@@ -806,15 +806,15 @@ class MainW(QtWidgets.QMainWindow):
         )
         self.scene_grid_layout.addWidget(self.total_frames_label, istretch + 6, 1, 1, 1)
         """
-        self.scene_grid_layout.addWidget(self.frame_slider, 9, 2, 1, 16)
+        self.scene_grid_layout.addWidget(self.frame_slider, 9, 2, 1, 13)
         # ~~~~~~~~~~ Saturation ~~~~~~~~~~
         self.scene_grid_layout.addWidget(self.saturation_groupbox, 0, 2, 1, 4)
         # ~~~~~~~~~~ embedding & ROI visualization window features
-        self.scene_grid_layout.addWidget(self.roi_saturation_groupbox, 4, 2, 1, 3)
-        self.scene_grid_layout.addWidget(self.roi_embed_combobox, 4, 5, 1, 1)
+        self.scene_grid_layout.addWidget(self.roi_saturation_groupbox, 5, 2, 1, 3)
+        self.scene_grid_layout.addWidget(self.roi_embed_combobox, 5, 5, 1, 1)
         #self.scene_grid_layout.addWidget(self.zoom_in_button, 4, 7, 1, 1)
         #self.scene_grid_layout.addWidget(self.zoom_out_button, 4, 8, 1, 1)
-        self.scene_grid_layout.addWidget(self.roi_display_combobox, 4, 6, 1, 1)
+        self.scene_grid_layout.addWidget(self.roi_display_combobox, 5, 6, 1, 1)
         #self.scene_grid_layout.addWidget(self.save_clustering_button, 5, 7, 1, 1)
         
         video_path_label = QLabel("Save path:")
