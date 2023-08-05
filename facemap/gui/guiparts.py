@@ -3,8 +3,8 @@ Copright © 2023 Howard Hughes Medical Institute, Authored by Carsen Stringer an
 """
 import numpy as np
 import pyqtgraph as pg
-from qtpy import QtCore, QtGui, QtWidgets
-from qtpy.QtWidgets import (
+from PyQt5 import QtCore, QtGui, QtWidgets
+from PyQt5.QtWidgets import (
     QAbstractItemView,
     QButtonGroup,
     QDialog,

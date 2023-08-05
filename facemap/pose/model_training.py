@@ -55,7 +55,7 @@ def train(
         Whether to save the best model. The default is False.
     checkpoint_path : str, optional
         The path to save the best model. The default is None.
-    gui : qtpy.QMainWindow
+    gui : PyQt5.QMainWindow
         The main window of the application.
     gui_obj : QtWidgets
         The gui object of the application.

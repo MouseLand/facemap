@@ -1,7 +1,7 @@
 """
 Copright © 2023 Howard Hughes Medical Institute, Authored by Carsen Stringer and Atika Syeda.
 """
-from qtpy.QtWidgets import QAction, QDesktopWidget
+from PyQt5.QtWidgets import QAction, QDesktopWidget
 
 from . import help_windows, io
 

@@ -7,7 +7,7 @@ import pickle
 
 import numpy as np
 from natsort import natsorted
-from qtpy.QtWidgets import QFileDialog, QMessageBox
+from PyQt5.QtWidgets import QFileDialog, QMessageBox
 
 from facemap import roi, utils
 

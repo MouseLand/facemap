@@ -19,9 +19,9 @@ TSNE_INSTALLED = True
 
 # import hdbscan
 from matplotlib import cm
-from qtpy import QtCore, QtWidgets
-from qtpy.QtGui import QFont
-from qtpy.QtWidgets import (
+from PyQt5 import QtCore, QtWidgets
+from PyQt5.QtGui import QFont
+from PyQt5.QtWidgets import (
     QButtonGroup,
     QCheckBox,
     QLabel,

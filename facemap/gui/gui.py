@@ -13,9 +13,9 @@ import pyqtgraph as pg
 import scipy.io as sio
 import torch
 from matplotlib import cm
-from qtpy import QtCore, QtWidgets
-from qtpy.QtGui import QFont, QIcon, QPainterPath
-from qtpy.QtWidgets import (
+from PyQt5 import QtCore, QtWidgets
+from PyQt5.QtGui import QFont, QIcon, QPainterPath
+from PyQt5.QtWidgets import (
     QButtonGroup,
     QCheckBox,
     QComboBox,
