@@ -19,6 +19,7 @@ from PyQt5.QtWidgets import (
     QSizePolicy,
     QVBoxLayout,
     QWidget,
+    QTextEdit,
 )
 from ..version import version_str
 
@@ -112,11 +113,6 @@ class MainWindowHelp(QDialog):
 
         self.show()
 
-        # TODO - Add instructions for filetypes accepted for different load buttons
-
-        # TODO - Add instructions for loading neural data
-
-
 class AboutWindow(QDialog):
     def __init__(self, parent=None, window_size=None):
         super(AboutWindow, self).__init__(parent)
@@ -155,7 +151,7 @@ class AboutWindow(QDialog):
 
         text = """
             <p>
-            Pose tracking of mouse face from different camera views (python only) and svd processing of videos (python and MATLAB).
+            Framework for predicting neural activity from mouse orofacial movements tracked using a pose estimation model. Package also includes singular value decomposition (SVD) of behavioral videos. 
             </p>
             <p>
             <b>Authors:</b> Carsen Stringer & Atika Syeda
@@ -169,15 +165,15 @@ class AboutWindow(QDialog):
             <b>Version:</b> {version}
             </p>
             <p>
-            Visit our <a href="https://github.com/MouseLand/FaceMap"> github page </a> for more information.
+            Visit our GitHub page for more information.
             </p>
         """.format(version=version_str)
-        text = QLabel(text, self)
-        text.setStyleSheet(
-            "font-size: 12pt; font-family: Arial; color: white; text-align: center; "
+        text = QTextEdit(text, self)
+        text.setStyleSheet(            
+                            "font-size: 12pt; color: white; background-color: #000000;"
         )
-        text.setWordWrap(True)
-        text.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+        text.setReadOnly(True) 
+        text.setFixedSize(width*0.98, height)
         layout.addWidget(text, stretch=1)
 
         self.show()
@@ -187,7 +183,7 @@ class PoseRefinementStep2HelpWindow(QDialog):
     def __init__(self, parent=None, window_size=None):
         super(PoseRefinementStep2HelpWindow, self).__init__(parent)
         width, height = int(window_size.width() * 0.3), int(window_size.height() * 0.3)
-        self.resize(width, height)
+        self.resize(width * 0.95, height * 0.75)
         self.setWindowTitle("Help")
         self.win = QWidget(self)
         layout = QVBoxLayout()
@@ -196,16 +192,19 @@ class PoseRefinementStep2HelpWindow(QDialog):
 
         text = """
             <ol>
-                <li>Select the initial/base model to use for further finetuning.</li>
-                <li>Set the name of output model after refinement.</li>
-                <li>(If applicable) Select data files containing refined keypoints from previous training to include during current model training.</li>
-                <li>Select 'Refine current video' to refine predicted keypoints for a subset of frames from the current video after selecting the number of frames. Note: the suggested number of frames for each new animal are 20-25.</li>
-                <li>Select '+' to set the hyperparameters for training.</li>
+                <li>Select base model for finetuning.</li>
+                <li>Set name of finetuned model.</li>
+                <li>Select whether to 'Refine current video' and the number of frames to refine from current video.</li>
+                <li>Set proportion of random frames to include during training. Rest of the frames are selected based on keypoint values that lie above likelihood threshold.</li>
+                <li>(Optional) Select whether to use refined keypoints from previous training.</li>
+                <li>Select '+' to change hyperparameter settings for training.</li>
             </ol>
             """
-        label = QLabel(text)
-        label.setStyleSheet("font-size: 12pt; font-family: Arial; color: white;")
-        label.setWordWrap(True)
+        label = QTextEdit(text) #QLabel(text)
+        label.setReadOnly(True)  # Make the text area read-only
+        label.setStyleSheet("font-size: 12pt; color: white; background-color: #2E2E2E;")
+        label.setHtml(text)
+        label.setFixedSize(width * 0.9, height * 0.6)
         layout.addWidget(label, alignment=QtCore.Qt.AlignCenter)
 
         # Add a ok button to close the window
@@ -246,83 +245,84 @@ class RefinementHelpWindow(QDialog):
             <h2>Refinement keys</h2>
             <p>
             <ul>
-                <li><b>Left click:</b> Press left button and drag mouse to move a keypoint</li>
-                <li><b>Right click:</b> To add a deleted keypoint currently selected in the radio buttons at current mouse position</li>
-                <li><b>Shift + D:</b> To delete a keypoint selected in the radio buttons</li>
+                <li><b>Move Keypoint:</b> Hold down the left mouse button and drag the mouse to reposition a keypoint.</li>
+                <li><b>Restore Keypoint:</b> Right-click to add a previously deleted keypoint at the current mouse position, matching the radio button selection.</li>
+                <li><b>Delete Keypoint:</b> Use Shift + D to remove the keypoint selected in the radio buttons.</li>
             </ul>
             </p>
-            <h2>Labelling instructions</h2>
+            <h2>Guidelines for Labeling</h2>
             <p>
-            Keypoints for different facial regions are labelled as shown above in the side view and top view. Detailed instructions for each region are given below for different views:
+            Keypoints representing various facial regions are annotated according to the illustrations provided for the side view and top view. For each viewpoint, detailed instructions for labeling different regions are outlined below:
             </p>
             <h3>Eye</h3>
             <ul>
                 <li>
-                EYE(TOP): Upper eyelid point centered at the top of the eye.
+                EYE(TOP): Mark the upper eyelid's central point, located at the eye's highest point.
                 </li>
                 <li>
-                EYE(BOTTOM): Lower eyelid point centered at the bottom of the eye.
+                EYE(BOTTOM): Identify the lower eyelid's central point, situated at the eye's lowest point.
                 </li>
                 <li>
-                EYE(FRONT): Point at the front of the eye near the nose.
+                EYE(FRONT): Annotate the point at the eye's front, closest to the nose.
                 </li>
                 <li>
-                EYE(BACK): Point opposite the front eye keypoint.
+                EYE(BACK): Mark the point opposite the front eye keypoint.
                 </li>
             </ul>
             <h3>Nose</h3>
             <ul>
                 <li>
-                NOSEBRIDGE: Point at the top of the nose in line with the EYE(FRONT) keypoint.
+                NOSEBRIDGE:  Place a point at the top of the nose, aligned with the "EYE(FRONT)" keypoint.
                 </li>
                 <li>
-                NOSE(TOP): Point at the top of the nose.
+                NOSE(TOP):  Place a point at the top of the nose.
                 </li>
                 <li>
-                NOSE(TIP): Point at the tip/middle of the nose.
+                NOSE(TIP): Annotate the point at the tip or middle of the nose.
                 </li>
                 <li>
-                NOSE(BOTTOM): Point at the bottom of the nose if viewed from the side. If viewed from the top, this is the point opposite the nose(Right) keypoint to track left/right movements.
+                NOSE(BOTTOM): Place a point at the nose's bottom, visible from the side. In a top view, this point corresponds to the opposite side of the "Nose (Right)" keypoint, tracking lateral movements.
                 </li>
                 <li>
-                NOSE(R): Point at the right side of the nose which is only labeled if viewed from the top. The point tracks left/right movements.
+                NOSE(R): Label this point only when viewing from the top. It tracks left/right movements.
                 </li>
             </ul>
              <h3>Whiskers</h3>
-            To label whiskers, find a set of 3 whiskers in the triangular configuration as shown above. The easiest way to do this is to identify most prominent whiskers that are easily identifiable across frames. Whiskers are labeled in clockwise order (C1->D1-C3) when viewed from the right side and in counterclockwise order (C1->D1-C3) when viewed from the top/left view.
+            For whisker labeling, identify a set of three whiskers forming a triangular pattern as shown. Look for prominent whiskers consistently recognizable across frames. Label whiskers in a clockwise order (I->II-III) when viewed from the right side, or counterclockwise order (I->II-III) when viewed from the top/left view.
             <ul> 
                 <li>
-                WHISKER(I): First whisker in the third row from top.
+                WHISKER(I): The first whisker in the third row from the top.
                 </li>
                 <li>
-                WHISKER(II): First whisker in the fourth row from top.
+                WHISKER(II): The first whisker in the fourth row from the top.
                 </li>
                 <li>
-                WHISKER(III): Second whisker in the fourth row from top.
+                WHISKER(III): The second whisker in the fourth row from the top.
                 </li>
             </ul>
             <h3>Paw</h3>
             <ul>
                 <li>
-                PAW: Point is only labelled when visible in frame. Select any region of the paw to label the paw.
+                PAW: Label this point only when visible within the frame. Select any region of the paw for labeling.
                 </li>
             </ul>
             <h3>Mouth</h3>
             <ul>
                 <li>
-                MOUTH: Point indicating the center of the mouth (opening). The point is only labeled when visible (usually from the sideview).
+                MOUTH: Mark the point at the center of the mouth opening. Label only when visible, usually in the side view.
                 </li>
                 <li>
-                LOWERLIP: Point at the bottom of the lower lip near the mouth keypoint. The point is only labeled when visible (usually from the sideview).
+                LOWERLIP: Place a point at the bottom of the lower lip near the mouth keypoint. Label only when visible, typically from the side view.
                 </li>
             </ul>
+            Please follow these instructions to accurately label the keypoints for each facial region in the provided illustrations.
             """
-        label = QLabel(text)
+        label = QTextEdit(text)
         label.setStyleSheet(
             "font-size: 12pt; font-family: Arial; color: white; text-align: center; padding: 15;"
         )
-        label.setWordWrap(True)
-        label.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+        label.setReadOnly(True)
+        label.setFixedSize(width * 0.9, height * 0.6)
         layout.addWidget(label, alignment=QtCore.Qt.AlignLeft, stretch=1)
 
         # Add ok button to close the window
@@ -334,9 +334,6 @@ class RefinementHelpWindow(QDialog):
         layout.addWidget(self.ok_button, alignment=QtCore.Qt.AlignCenter)
 
         self.show()
-
-
-# TODO: Update help button with correct instructions about keypoints labels (specially whiskers)
 
 
 class NeuralModelTrainingWindow(QDialog):

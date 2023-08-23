@@ -380,8 +380,8 @@ def save_folder(parent):
     if folderName:
         parent.save_path = folderName
         parent.output_folder_set = True
-        if len(folderName) > 30:
-            parent.savelabel.setText("..." + folderName[-30:])
+        if len(folderName) > 15:
+            parent.savelabel.setText("..." + folderName[-15:])
         else:
             parent.savelabel.setText(folderName)
 

@@ -391,8 +391,8 @@ class MainW(QtWidgets.QMainWindow):
         if savedir is not None:
             self.save_path = savedir
             self.output_folder_set = True
-            if len(savedir) > 20:
-                self.savelabel.setText("..." + savedir[-20:])
+            if len(savedir) > 15:
+                self.savelabel.setText("..." + savedir[-15:])
             else:
                 self.savelabel.setText(savedir)
         if keypoints_file is not None:
@@ -418,7 +418,7 @@ class MainW(QtWidgets.QMainWindow):
         # ~~~~~~~~~~~~~~~~~~~~~~~~ SVD variables ~~~~~~~~~~~~~~~~~~~~~~~~
         self.svd_groupbox = QGroupBox("ROI settings:")
         self.svd_groupbox.setStyleSheet(
-            "QGroupBox { border: 1px solid white; border-style: outset; border-radius: 5px; color:white; padding: 5px 0px;}"
+            "QGroupBox { border: 1px solid white; border-style: outset; border-radius: 5px; color:white; padding: 15px 0px;}"
         )
         self.svd_groupbox.setLayout(QGridLayout())
 
@@ -565,7 +565,7 @@ class MainW(QtWidgets.QMainWindow):
         # ~~~~~~~~~~~~~~~~~~~~~~~~ Process buttons ~~~~~~~~~~~~~~~~~~~~~~~~
         self.process_buttons_groupbox = QGroupBox()
         self.process_buttons_groupbox.setStyleSheet(
-            "QGroupBox { border: 0px solid white; border-style: outset;}"
+            "QGroupBox { border: 0px solid white; border-style: outset; border-radius: 0px; color:white; padding: 0px 0px;}"
         )
         self.process_buttons_groupbox.setLayout(QGridLayout())
 
@@ -590,7 +590,7 @@ class MainW(QtWidgets.QMainWindow):
         # ~~~~~~~~~~~~~~~~~~~~~~~~ Labels ~~~~~~~~~~~~~~~~~~~~~~~~
         self.labels_groupbox = QGroupBox()
         self.labels_groupbox.setStyleSheet(
-            "QGroupBox { border: 1px solid white; border-style: outset; border-radius: 0px; color:white; padding: 0px 0px;}"
+            "QGroupBox { border: 0px solid white; border-style: outset; border-radius: 0px; color:white; padding: 0px 0px;}"
         )
         self.labels_groupbox.setLayout(QGridLayout())
 
@@ -603,6 +603,12 @@ class MainW(QtWidgets.QMainWindow):
         self.labels_groupbox.layout().addWidget(self.savelabel, 0, 1)
 
         self.batchlist = []
+        # Add show batch button to labels groupbox
+        self.show_batch_button = QPushButton("Show batch")
+        self.show_batch_button.setFont(QFont("Arial", 10, QFont.Bold))
+        self.show_batch_button.clicked.connect(self.show_batch)
+        self.labels_groupbox.layout().addWidget(self.show_batch_button, 0, 2)
+        """
         self.batchname = []
         # TODO: Change batchname to be displayed in a pop-up message box that lists the filenames!!
         for k in range(1):
@@ -611,6 +617,7 @@ class MainW(QtWidgets.QMainWindow):
             self.batchname[-1].setAlignment(QtCore.Qt.AlignCenter)
             self.labels_groupbox.layout().addWidget(self.batchname[-1], k + 1, 0, 1, 2)
             # self.scene_grid_layout.addWidget(self.batchname[-1], 6 + k, 0, 1, 4)
+        """
 
         # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Video playback options ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         self.current_frame_lineedit = QLineEdit()
@@ -822,6 +829,14 @@ class MainW(QtWidgets.QMainWindow):
         self.labels_groupbox.layout().addWidget(video_path_label, 0, 0)
 
         self.update_frame_slider()
+
+    def show_batch(self):
+        if not self.batchlist:
+            QMessageBox.information(self, "Batch List", "No filenames in batchlist.")
+        else:
+            message = "List of filenames in batchlist:\n\n"
+            message += "\n".join(self.batchlist)  # Items will be separated by new lines
+            QMessageBox.information(self, "Batch List", message)
 
     def add_pose_model(self):
         # Open a file dialog to browse and select a pose model

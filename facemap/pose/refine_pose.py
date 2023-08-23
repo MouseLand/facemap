@@ -305,7 +305,7 @@ class ModelTrainingPopup(QDialog):
 
         self.spinbox_nframes = QSpinBox(self)
         self.spinbox_nframes.setRange(1, self.gui.cumframes[-1])
-        self.spinbox_nframes.setValue(25)
+        self.spinbox_nframes.setValue(15)
         self.spinbox_nframes.setStyleSheet("QSpinBox {color: 'black';}")
         self.get_num_frames_groupbox.layout().addWidget(self.spinbox_nframes)
 
