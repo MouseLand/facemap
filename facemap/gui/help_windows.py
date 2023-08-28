@@ -128,6 +128,13 @@ class LoadNeuralDataHelp(QDialog):
         layout.setAlignment(QtCore.Qt.AlignCenter)
         self.win.setLayout(layout)
 
+        self.scrollArea = QScrollArea(self)
+        self.scrollArea.setFixedHeight(height)
+        self.scrollArea.setFixedWidth(width)
+        self.scrollArea.setWidgetResizable(True)
+        self.scrollArea.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOn)
+        self.scrollArea.setWidget(self.win)
+        
         text = """
             <ol>
                 <li>Load neural data file (*.npy) containing an array of shape neurons x time.</li>
@@ -137,11 +144,13 @@ class LoadNeuralDataHelp(QDialog):
                 <li> Note: the timestamps file are used for resampling behavioral data to neural timescale.</li>
             </ol>
             """
-        label = QTextEdit(text) #QLabel(text)
-        label.setReadOnly(True)  # Make the text area read-only
-        label.setHtml(text)
-        label.setFixedSize(width * 0.97, height*0.75)
-        layout.addWidget(label, alignment=QtCore.Qt.AlignCenter)
+
+        label = QLabel(text, self)
+        label.setStyleSheet(
+            "font-size: 12pt; font-family: Arial;  text-align: center; "
+        )
+        label.setWordWrap(True)
+        layout.addWidget(label, stretch=1)
 
         # Add a ok button to close the window
         self.ok_button = QPushButton("Ok")
@@ -152,7 +161,7 @@ class LoadNeuralDataHelp(QDialog):
 
 
 class AboutWindow(QDialog):
-    def __init__(self, window_size, parent=None):
+    def __init__(self, parent, window_size):
         super(AboutWindow, self).__init__(parent)
         width, height = int(window_size.width() * 0.28), int(
             window_size.height() * 0.42
