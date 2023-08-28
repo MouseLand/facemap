@@ -120,7 +120,7 @@ class LoadNeuralDataHelp(QDialog):
         super(LoadNeuralDataHelp, self).__init__(parent)
         self.setWindowTitle("Help")
         width, height = int(window_size.width() * 0.28), int(
-            window_size.height() * 0.2
+            window_size.height() * 0.25
         )
         self.resize(width, height)
         self.win = QWidget(self)
@@ -249,7 +249,7 @@ class PoseRefinementStep2HelpWindow(QDialog):
             """
         label = QTextEdit(text) #QLabel(text)
         label.setReadOnly(True)  # Make the text area read-only
-        label.setStyleSheet("font-size: 12pt; color: white; background-color: #2E2E2E;")
+        label.setStyleSheet("font-size: 12pt; color: white; background-color: black;")
         label.setHtml(text)
         label.setFixedSize(width * 0.9, height * 0.6)
         layout.addWidget(label, alignment=QtCore.Qt.AlignCenter)
