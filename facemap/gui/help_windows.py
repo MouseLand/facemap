@@ -61,7 +61,7 @@ class MainWindowHelp(QDialog):
         layout.addWidget(main_text, stretch=1)
 
         # Pose tracking section
-        pose_tracking_group = QGroupBox("Pose tracking", self)
+        pose_tracking_group = QGroupBox()
         pose_tracking_group.setStyleSheet(
             "QGroupBox {background: 'black'; border: 0px ;}"
         )
@@ -87,7 +87,7 @@ class MainWindowHelp(QDialog):
         layout.addWidget(pose_tracking_group, stretch=1)
 
         # SVD section
-        svd_group = QGroupBox("SVD", self)
+        svd_group = QGroupBox()
         svd_group.setStyleSheet("QGroupBox {background: 'black'; border: 0px ;}")
         svd_group.setLayout(QVBoxLayout())
         svd_text = """
