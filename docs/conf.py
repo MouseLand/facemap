@@ -77,9 +77,10 @@ html_favicon = "_static/favicon.ico"
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
 #
-"""
+
 html_theme = 'sphinx_rtd_theme'
 html_theme_path = ["_themes"]
+"""
 html_theme_options = {
     'canonical_url': '',
     'analytics_id': 'UA-XXXXXXX-1',  #  Provided by Google in your dashboard
