@@ -2328,6 +2328,10 @@ class MainW(QtWidgets.QMainWindow):
         neural_data_cancel_button = QtWidgets.QPushButton("Cancel")
         neural_data_cancel_button.clicked.connect(dialog.reject)
         neural_data_buttons_hbox.addWidget(neural_data_cancel_button)
+        # Add a help button 
+        neural_data_help_button = QtWidgets.QPushButton("Help")
+        neural_data_help_button.clicked.connect(lambda clicked: self.load_neural_data_help_clicked(clicked, dialog))
+        neural_data_buttons_hbox.addWidget(neural_data_help_button)
         # Add a done button
         neural_data_done_button = QtWidgets.QPushButton("Done")
         neural_data_done_button.clicked.connect(
@@ -2445,7 +2449,7 @@ class MainW(QtWidgets.QMainWindow):
             "QGroupBox {border: 1px solid gray; border-radius: 9px; margin-top: 1em;} "
         )
         dialog.neural_model_hyperparameters_groupbox.setTitle(
-            "Keypoints network hyperparameters"
+            "Training hyperparameters"
         )
         learning_rate_label = QtWidgets.QLabel("Learning rate:")
         dialog.learning_rate_line_edit = QtWidgets.QLineEdit()
@@ -2622,6 +2626,9 @@ class MainW(QtWidgets.QMainWindow):
         else:
             dialog.neural_model_hyperparameters_groupbox.hide()
             dialog.linear_regression_hyperparameters_groupbox.show()
+
+    def load_neural_data_help_clicked(self, clicked, dialog):
+        help_windows.LoadNeuralDataHelp(parent=dialog, window_size=self.sizeObject)
 
     def neural_data_help_button_clicked(self, clicked, dialog):
         help_windows.NeuralModelTrainingWindow(

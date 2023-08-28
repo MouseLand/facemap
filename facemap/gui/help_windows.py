@@ -2,6 +2,7 @@
 Copright © 2023 Howard Hughes Medical Institute, Authored by Carsen Stringer and Atika Syeda.
 """
 import os
+import typing
 
 import numpy as np
 from PyQt5 import QtCore
@@ -113,8 +114,45 @@ class MainWindowHelp(QDialog):
 
         self.show()
 
+
+class LoadNeuralDataHelp(QDialog):
+    def __init__(self, window_size, parent=None):
+        super(LoadNeuralDataHelp, self).__init__(parent)
+        self.setWindowTitle("Help")
+        width, height = int(window_size.width() * 0.28), int(
+            window_size.height() * 0.2
+        )
+        self.resize(width, height)
+        self.win = QWidget(self)
+        layout = QVBoxLayout()
+        layout.setAlignment(QtCore.Qt.AlignCenter)
+        self.win.setLayout(layout)
+
+        text = """
+            <ol>
+                <li>Load neural data file (*.npy) containing an array of shape neurons x time.</li>
+                <li>Select whether to view neural data as heatmap or traces (for small number of neurons).</li>
+                <li>(Optional) Load neural timestamps file (*.npy) containing a 1D array.</li>
+                <li>(Optional) Load behavioral timestamps file (*.npy) containing a 1D array.</li>
+                <li> Note: the timestamps file are used for resampling behavioral data to neural timescale.</li>
+            </ol>
+            """
+        label = QTextEdit(text) #QLabel(text)
+        label.setReadOnly(True)  # Make the text area read-only
+        label.setHtml(text)
+        label.setFixedSize(width * 0.97, height*0.75)
+        layout.addWidget(label, alignment=QtCore.Qt.AlignCenter)
+
+        # Add a ok button to close the window
+        self.ok_button = QPushButton("Ok")
+        self.ok_button.clicked.connect(self.close)
+        layout.addWidget(self.ok_button, alignment=QtCore.Qt.AlignCenter)
+
+        self.show()
+
+
 class AboutWindow(QDialog):
-    def __init__(self, parent=None, window_size=None):
+    def __init__(self, window_size, parent=None):
         super(AboutWindow, self).__init__(parent)
         width, height = int(window_size.width() * 0.28), int(
             window_size.height() * 0.42
@@ -339,7 +377,7 @@ class RefinementHelpWindow(QDialog):
 class NeuralModelTrainingWindow(QDialog):
     def __init__(self, parent=None, window_size=None):
         super(NeuralModelTrainingWindow, self).__init__(parent)
-        width, height = int(window_size.width() * 0.4), int(window_size.height() * 0.45)
+        width, height = int(window_size.width() * 0.3), int(window_size.height() * 0.45)
         self.resize(width, height)
         self.setWindowTitle("Help - Neural Model Training")
 
@@ -353,32 +391,36 @@ class NeuralModelTrainingWindow(QDialog):
         self.scrollArea.setFixedWidth(width)
         self.scrollArea.setWidgetResizable(True)
         self.scrollArea.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOn)
-        self.scrollArea.setStyleSheet("background: 'black'; ")
         self.scrollArea.setWidget(self.win)
 
         # Add a list of hyperparameters and their descriptions with recommended values
         main_text = """
-            <h2>Training instructions</h2>
+            <h2>Instructions for Training</h2>
             <p>
-            <ul>
-                <li>Select input data to be used for training the model and prediction</li>
-                <li>Set the hyperparameters for training the model</li>
-                <li>Select whether to save the model and predictions</li>
-            </ul>
+            <ol>
+                <li>Choose the input data to be used for neural activity prediction.</li>
+                <li>Select the output of the neural activity prediction model (neural principal components or neurons).</li>
+                <li>Configure the hyperparameters for training the model.</li>
+                <li>Indicate whether to save the output of the neural activity prediction model as yes/no.</li>
+            </ol>
             </p>
-            <h2>Hyperparameters</h2>
             <p>
+            <h4>Output of the Model</h4>
             <ul>
-                <li><b>Learning rate:</b> Learning rate for the optimizer. Recommended value: 0.001</li>
-                <li><b>Weight decay:</b> Weight decay for the optimizer. Recommended value: 0.0001</li>
-                <li><b># Epochs:</b> Number of epochs to train the model. Recommended value: 100</li>
-                <li><b># Neurons split:</b> Number of neurons in the split layer. Recommended value: 100</li>
+                <li>The results of predicting neural activity are stored in files with the extensions *.npy and/or *.mat.</li>
+                <li>The output comprises a dictionary with the following entries:</li>
+                <ul>
+                    <li><b>predictions:</b> a two-dimensional array containing the predicted neural activity, organized as (number of features x time)</li>
+                    <li><b>test_indices:</b> a list of indices indicating which data segments were used for testing, thus determining the variance explained by the model</li>
+                    <li><b>variance_explained:</b> the amount of variability accounted for by the model with respect to the test data</li>
+                    <li><b>plot_extent:</b> the dimensions of the plot area employed to visualize the projected neural activity, presented in the order [x1, y1, x2, y2]</li>
+                </ul>
             </ul>
             </p>
             """
         main_text = QLabel(main_text, self)
         main_text.setStyleSheet(
-            "font-size: 12pt; font-family: Arial; color: white; text-align: center; "
+            "font-size: 12pt; font-family: Arial;  text-align: center; "
         )
         main_text.setWordWrap(True)
         layout.addWidget(main_text, stretch=1)
@@ -387,7 +429,7 @@ class NeuralModelTrainingWindow(QDialog):
         self.ok_button = QPushButton("Ok")
         self.ok_button.clicked.connect(self.close)
         self.ok_button.setStyleSheet(
-            "background: 'black'; color: 'white'; font-size: 12pt; font-family: Arial; "
+            "font-size: 12pt; font-family: Arial; "
         )
         layout.addWidget(self.ok_button, alignment=QtCore.Qt.AlignCenter)
 
