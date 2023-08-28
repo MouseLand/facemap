@@ -1,15 +1,15 @@
 """
 Copright © 2023 Howard Hughes Medical Institute, Authored by Carsen Stringer and Atika Syeda.
 """
-# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Import packages ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-import numpy as np
-
 import random
 from platform import python_version
 
 import cv2  # opencv
 import matplotlib
 import matplotlib.pyplot as plt
+
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Import packages ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+import numpy as np
 import pyqtgraph as pg
 import torch  # pytorch
 from PyQt5 import QtWidgets

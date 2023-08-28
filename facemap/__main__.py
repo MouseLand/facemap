@@ -7,9 +7,9 @@ from distutils.util import strtobool
 
 import numpy as np
 
-from facemap import process
+from facemap import process, version_str
 from facemap.gui import gui
-from facemap import version_str
+
 
 def tic():
     return time.time()

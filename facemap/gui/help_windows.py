@@ -18,10 +18,11 @@ from PyQt5.QtWidgets import (
     QPushButton,
     QScrollArea,
     QSizePolicy,
+    QTextEdit,
     QVBoxLayout,
     QWidget,
-    QTextEdit,
 )
+
 from ..version import version_str
 
 

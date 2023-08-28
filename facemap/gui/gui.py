@@ -20,6 +20,7 @@ from PyQt5.QtWidgets import (
     QCheckBox,
     QComboBox,
     QDesktopWidget,
+    QFileDialog,
     QGridLayout,
     QGroupBox,
     QLabel,
@@ -32,7 +33,6 @@ from PyQt5.QtWidgets import (
     QStatusBar,
     QToolButton,
     QWidget,
-    QFileDialog
 )
 from scipy.stats import skew, zscore
 
