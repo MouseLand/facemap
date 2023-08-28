@@ -234,7 +234,7 @@ def open_proc(parent, file_name=None):
                         int(parent.saturation[parent.iROI] * 100 / 255)
                     )
                     parent.ROIs[parent.iROI].plot(parent)
-                    if parent.processed and k <= 7:
+                    if parent.processed and k <= 5:
                         parent.plot2_checkboxes[k].setText(
                             "%s%d" % (parent.typestr[r["rind"]], kt[r["rind"]])
                         )
@@ -380,8 +380,8 @@ def save_folder(parent):
     if folderName:
         parent.save_path = folderName
         parent.output_folder_set = True
-        if len(folderName) > 30:
-            parent.savelabel.setText("..." + folderName[-30:])
+        if len(folderName) > 15:
+            parent.savelabel.setText("..." + folderName[-15:])
         else:
             parent.savelabel.setText(folderName)
 

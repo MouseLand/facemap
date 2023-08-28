@@ -13,10 +13,14 @@ Copright © 2023 Howard Hughes Medical Institute, Authored by Carsen Stringer an
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.
 #
-# import os
-# import sys
-# sys.path.insert(0, os.path.abspath('.'))
+import os
+import sys
+sys.path.insert(0, os.path.abspath('.'))
 
+""" 
+Use the following command to generate documentation 
+    sphinx-build -b html docs docs/build/html     
+"""
 # -- Project information -----------------------------------------------------
 
 project = "Facemap"
@@ -24,7 +28,7 @@ copyright = "2023, Carsen Stringer & Atika Syeda"
 author = "Carsen Stringer & Atika Syeda"
 
 # The full version, including alpha/beta/rc tags
-release = "1.0.1"
+release = "1.0.2"
 
 
 # -- General configuration ---------------------------------------------------
@@ -39,7 +43,7 @@ extensions = [
     "sphinx.ext.mathjax",
     "sphinx.ext.viewcode",
     "sphinx.ext.napoleon",
-    "nbsphinx"
+    "nbsphinx",
 ]
 # extensions = ['sphinx.ext.autodoc',
 #            'sphinx.ext.mathjax',
@@ -73,9 +77,10 @@ html_favicon = "_static/favicon.ico"
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
 #
-"""
+
 html_theme = 'sphinx_rtd_theme'
 html_theme_path = ["_themes"]
+"""
 html_theme_options = {
     'canonical_url': '',
     'analytics_id': 'UA-XXXXXXX-1',  #  Provided by Google in your dashboard

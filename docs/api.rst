@@ -1,7 +1,6 @@
 Facemap API Guide
 ===================================
 
-
 Pose estimation 
 ~~~~~~~~~~~~~~~~
 .. autoclass:: facemap.pose.pose.Pose

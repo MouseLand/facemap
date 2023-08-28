@@ -2,10 +2,12 @@
 Copright © 2023 Howard Hughes Medical Institute, Authored by Carsen Stringer and Atika Syeda.
 """
 
+import sys
 from importlib.metadata import PackageNotFoundError, version
-import sys 
 from platform import python_version
-import torch, numpy
+
+import numpy
+import torch
 
 try:
     version = version("facemap")

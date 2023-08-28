@@ -1,12 +1,14 @@
 """
 Copright © 2023 Howard Hughes Medical Institute, Authored by Carsen Stringer and Atika Syeda.
 """
-import matplotlib 
-import matplotlib.pyplot as plt
-from scipy.stats import wilcoxon
 import cv2
-from facemap import keypoints
+import matplotlib
+import matplotlib.pyplot as plt
 from fig_utils import *
+from scipy.stats import wilcoxon
+
+from facemap import keypoints
+
 
 def panel_percentile_error(ax, data_path):
     errors = np.load(f'{data_path}net_results/facemap_benchmark_distances.npy', allow_pickle=True).item()['test_distances']

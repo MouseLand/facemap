@@ -1,5 +1,5 @@
-[![Downloads](https://pepy.tech/badge/facemap)](https://pepy.tech/project/facemap)
-[![Downloads](https://pepy.tech/badge/facemap/month)](https://pepy.tech/project/facemap)
+[![Downloads](https://static.pepy.tech/badge/facemap)](https://pepy.tech/project/facemap)
+[![Downloads](https://static.pepy.tech/badge/facemap/month)](https://pepy.tech/project/facemap)
 [![GitHub stars](https://badgen.net/github/stars/Mouseland/facemap)](https://github.com/MouseLand/facemap/stargazers)
 [![GitHub forks](https://badgen.net/github/forks/Mouseland/facemap)](https://github.com/MouseLand/facemap/network/members)
 [![](https://img.shields.io/github/license/MouseLand/facemap)](https://github.com/MouseLand/facemap/blob/main/LICENSE)
@@ -7,7 +7,7 @@
 [![Documentation Status](https://readthedocs.org/projects/ansicolortags/badge/?version=latest)](https://pypi.org/project/facemap/)
 [![GitHub open issues](https://badgen.net/github/open-issues/Mouseland/facemap)](https://github.com/MouseLand/facemap/issues)
 
-# Facemap <img src="https://raw.githubusercontent.com/MouseLand/facemap/main/facemap/mouse.png" width="200" title="facemap" alt="facemap" align="right" vspace = "50">
+# Facemap <img src="https://raw.githubusercontent.com/MouseLand/facemap/main/facemap/mouse.png" width="300" title="facemap" alt="facemap" align="right" vspace = "50">
 
 Facemap is a framework for predicting neural activity from mouse orofacial movements. It includes a pose estimation model for tracking distinct keypoints on the mouse face, a neural network model for predicting neural activity using the pose estimates, and also can be used compute the singular value decomposition (SVD) of behavioral videos.
 
