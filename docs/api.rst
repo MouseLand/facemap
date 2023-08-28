@@ -1,6 +1,5 @@
 Facemap API Guide
-------------------------
-
+===================================
 
 Pose estimation 
 ~~~~~~~~~~~~~~~~
@@ -12,6 +11,7 @@ SVD processing
 ~~~~~~~~~~~~~~~
 .. automodule:: facemap.process
    :members:
+
 
 Transforms
 ~~~~~~~~~~~
