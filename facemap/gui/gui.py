@@ -122,15 +122,15 @@ class MainW(QtWidgets.QMainWindow):
         self.resize(self.sizeObject.width(), self.sizeObject.height())
 
         self.video_window = pg.GraphicsLayoutWidget()
-        self.scene_grid_layout.addWidget(self.video_window, 1, 2, 5, 5)
+        self.scene_grid_layout.addWidget(self.video_window, 0, 2, 5, 5)
 
         # Create a window for embedding and ROI plot
         self.roi_embed_window = pg.GraphicsLayoutWidget()
-        self.scene_grid_layout.addWidget(self.roi_embed_window, 1, 7, 4, 5)
+        self.scene_grid_layout.addWidget(self.roi_embed_window, 0, 7, 5, 5)
 
         # Create a window for plots
         self.plots_window = pg.GraphicsLayoutWidget()
-        self.scene_grid_layout.addWidget(self.plots_window, 6, 2, 3, 10)
+        self.scene_grid_layout.addWidget(self.plots_window, 4, 2, 5, 10)
 
         # A plot area (ViewBox + axes) for displaying the image
         self.p0 = self.video_window.addViewBox(
@@ -164,6 +164,7 @@ class MainW(QtWidgets.QMainWindow):
             "QGroupBox { border: 0px solid white; border-style: outset;}"
         )
         self.saturation_groupbox.setLayout(QGridLayout())
+        self.saturation_groupbox.layout().setAlignment(QtCore.Qt.AlignTop)
 
         # saturation sliders
         self.saturation_sliders = []
@@ -171,10 +172,10 @@ class MainW(QtWidgets.QMainWindow):
 
         qlabel = QLabel("Saturation:")
         qlabel.setStyleSheet("color: white;")
-        self.saturation_groupbox.layout().addWidget(qlabel, 0, 0)
+        self.saturation_groupbox.layout().addWidget(qlabel, 0, 0, 1, 1)
         video_saturation_slider = guiparts.Slider(0, self)
         self.saturation_sliders.append(video_saturation_slider)
-        self.saturation_groupbox.layout().addWidget(self.saturation_sliders[0], 0, 1)
+        self.saturation_groupbox.layout().addWidget(self.saturation_sliders[0], 0, 1, 1, 1)
 
         # Add label to indicate saturation level
         self.saturation_level_label = QLabel(str(self.saturation_sliders[0].value()))
@@ -187,7 +188,7 @@ class MainW(QtWidgets.QMainWindow):
         self.reflector.clicked.connect(self.add_reflectROI)
         self.rROI = []
         self.reflectors = []
-        self.saturation_groupbox.layout().addWidget(self.reflector, 0, 2)
+        self.saturation_groupbox.layout().addWidget(self.reflector, 0, 2, 1, 1)
         #self.scene_grid_layout.addWidget(self.reflector, 0, 6, 1, 1)
 
         # roi Saturation groupbox
@@ -196,6 +197,7 @@ class MainW(QtWidgets.QMainWindow):
             "QGroupBox { border: 0px solid white; border-style: outset;}"
         )
         self.roi_saturation_groupbox.setLayout(QGridLayout())
+        self.roi_saturation_groupbox.layout().setAlignment(QtCore.Qt.AlignTop)
 
         qlabel = QLabel("ROI Saturation:")
         qlabel.setStyleSheet("color: white;")
@@ -203,7 +205,7 @@ class MainW(QtWidgets.QMainWindow):
         roi_saturation_slider = guiparts.Slider(1, self)
         self.saturation_sliders.append(roi_saturation_slider)
         self.roi_saturation_groupbox.layout().addWidget(
-            self.saturation_sliders[1], 0, 1, 1, 4
+            self.saturation_sliders[1], 0, 1, 1, 1
         )
 
         self.roi_saturation_label = QLabel(str(self.saturation_sliders[1].value()))
@@ -215,8 +217,11 @@ class MainW(QtWidgets.QMainWindow):
         # Plots
         # Add first plot
         self.keypoints_traces_plot = self.plots_window.addPlot(
-            name="keypoints_traces_plot", row=3, col=0, title="Keypoints traces"
+            name="keypoints_traces_plot", row=0, col=0, title="Keypoints traces"
         )
+        # align center
+        self.keypoints_traces_plot.layout.setContentsMargins(0, 0, 0, 0)
+        self.keypoints_traces_plot.hideAxis("bottom")
         self.keypoints_traces_plot.scene().sigMouseClicked.connect(
             self.on_click_keypoints_plot
         )
@@ -241,8 +246,9 @@ class MainW(QtWidgets.QMainWindow):
 
         # Add second plot
         self.svd_traces_plot = self.plots_window.addPlot(
-            name="svd_traces_plot", row=4, col=0, title="SVD traces"
+            name="svd_traces_plot", row=1, col=0, title="SVD traces"
         )
+        self.svd_traces_plot.layout.setContentsMargins(0, 0, 0, 0)
         self.svd_traces_plot.scene().sigMouseClicked.connect(self.on_click_svd_plot)
         self.svd_traces_plot.setMouseEnabled(x=True, y=False)
         self.svd_traces_plot.setMenuEnabled(False)
@@ -649,9 +655,12 @@ class MainW(QtWidgets.QMainWindow):
         self.roi_embed_combobox.currentIndexChanged.connect(
             self.vis_combobox_selection_changed
         )
+        self.roi_saturation_groupbox.layout().addWidget(self.roi_embed_combobox, 0, 3, 1, 1)
+
         self.roi_display_combobox = QComboBox(self)
         self.roi_display_combobox.hide()
         self.roi_display_combobox.activated.connect(self.display_ROI)
+        self.roi_saturation_groupbox.layout().addWidget(self.roi_display_combobox, 0, 4, 1, 1)
         self.run_clustering_button = QPushButton("Run")
         self.run_clustering_button.setFont(QFont("Arial", 10, QFont.Bold))
         self.run_clustering_button.clicked.connect(
@@ -817,13 +826,13 @@ class MainW(QtWidgets.QMainWindow):
         """
         self.scene_grid_layout.addWidget(self.frame_slider, 9, 2, 1, 10)
         # ~~~~~~~~~~ Saturation ~~~~~~~~~~
-        self.scene_grid_layout.addWidget(self.saturation_groupbox, 0, 2, 1, 3)
+        self.scene_grid_layout.addWidget(self.saturation_groupbox, 0, 2, 1, 5)
         # ~~~~~~~~~~ embedding & ROI visualization window features
-        self.scene_grid_layout.addWidget(self.roi_saturation_groupbox, 0, 7, 1, 2)
-        self.scene_grid_layout.addWidget(self.roi_embed_combobox, 0, 9, 1, 1)
+        self.scene_grid_layout.addWidget(self.roi_saturation_groupbox, 0, 7, 1, 6)
+        #self.scene_grid_layout.addWidget(self.roi_embed_combobox, 0, 10, 1, 1)
         #self.scene_grid_layout.addWidget(self.zoom_in_button, 4, 7, 1, 1)
         #self.scene_grid_layout.addWidget(self.zoom_out_button, 4, 8, 1, 1)
-        self.scene_grid_layout.addWidget(self.roi_display_combobox, 0, 10, 1, 1)
+        #self.scene_grid_layout.addWidget(self.roi_display_combobox, 0, 11, 1, 1)
         #self.scene_grid_layout.addWidget(self.save_clustering_button, 5, 7, 1, 1)
         
         video_path_label = QLabel("Save path:")
