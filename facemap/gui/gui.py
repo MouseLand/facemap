@@ -2,7 +2,7 @@
 Copright © 2023 Howard Hughes Medical Institute, Authored by Carsen Stringer and Atika Syeda.
 """
 import os
-import sys
+import sys, cv2
 from pathlib import Path
 
 import h5py
@@ -106,7 +106,7 @@ class MainW(QtWidgets.QMainWindow):
                 "save_path": "",
                 "save_mat": False,
             }
-
+        self.setAcceptDrops(True)
         self.save_path = self.ops["save_path"]
         self.output_folder_set = False
 
@@ -151,7 +151,7 @@ class MainW(QtWidgets.QMainWindow):
         self.p0.setMenuEnabled(False)
         self.pimg = pg.ImageItem()
         self.p0.addItem(self.pimg)
-
+        
         # image ROI
         self.pROI = self.roi_embed_window.addViewBox(
             lockAspect=True, row=2, col=0, rowspan=2, invertY=True
@@ -413,6 +413,17 @@ class MainW(QtWidgets.QMainWindow):
             self.plot_neural_data()
         if neural_predictions_file is not None:
             self.load_neural_predictions_file(neural_predictions_file)
+
+    def dragEnterEvent(self, event):
+        if event.mimeData().hasUrls():
+            event.acceptProposedAction()
+
+    def dropEvent(self, event):
+        if event.mimeData().hasUrls():
+            url = event.mimeData().urls()[0]
+            if url.isLocalFile() and url.toString().endswith(('.mp4', '.avi')):
+                video_path = url.toLocalFile()
+                io.open_file(self, (video_path, 'Movie files (*.h5 *.mj2 *.mp4 *.mkv *.avi *.mpeg *.mpg *.asf *m4v)'))
 
     def make_buttons(self):
         # ~~~~~~~~~~~~~~~~~~~~~~~~ SVD variables ~~~~~~~~~~~~~~~~~~~~~~~~
