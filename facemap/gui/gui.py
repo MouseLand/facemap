@@ -122,31 +122,19 @@ class MainW(QtWidgets.QMainWindow):
         self.resize(self.sizeObject.width(), self.sizeObject.height())
 
         self.video_window = pg.GraphicsLayoutWidget()
-        #self.video_window.move(self.sizeObject.height(), self.sizeObject.width())
-        #self.video_window.resize(self.sizeObject.height(), self.sizeObject.width())
-        self.scene_grid_layout.addWidget(self.video_window, 0, 2, 6, 5)
+        self.scene_grid_layout.addWidget(self.video_window, 1, 2, 5, 5)
 
         # Create a window for embedding and ROI plot
         self.roi_embed_window = pg.GraphicsLayoutWidget()
-        #self.roi_embed_window.move(self.sizeObject.height(), 0)
-        #self.roi_embed_window.resize(self.sizeObject.height(), self.sizeObject.width())
-        self.scene_grid_layout.addWidget(self.roi_embed_window, 6, 2, 3, 5)
+        self.scene_grid_layout.addWidget(self.roi_embed_window, 1, 7, 4, 5)
 
         # Create a window for plots
         self.plots_window = pg.GraphicsLayoutWidget()
-        self.scene_grid_layout.addWidget(self.plots_window, 0, 7, 9, 8)
-
-        # Add logo
-        # icon_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "mouse.png")
-        # self.logo = QPixmap(icon_path).scaled(90, 70, QtCore.Qt.KeepAspectRatio, QtCore.Qt.SmoothTransformation)
-        # self.logoLabel = QtGui.QLabel(self)
-        # self.logoLabel.setPixmap(self.logo)
-        # self.logoLabel.setScaledContents(True)
-        # self.scene_grid_layout.addWidget(self.logoLabel,0,0,3,2)
+        self.scene_grid_layout.addWidget(self.plots_window, 6, 2, 3, 10)
 
         # A plot area (ViewBox + axes) for displaying the image
         self.p0 = self.video_window.addViewBox(
-            lockAspect=True, row=0, col=0, rowspan=2, invertY=True
+            lockAspect=True, row=0, col=0, invertY=True
         )
         self.p0.setMenuEnabled(False)
         self.pimg = pg.ImageItem()
@@ -154,7 +142,7 @@ class MainW(QtWidgets.QMainWindow):
         
         # image ROI
         self.pROI = self.roi_embed_window.addViewBox(
-            lockAspect=True, row=2, col=0, rowspan=2, invertY=True
+            lockAspect=True, row=0, col=1, colspan=3, rowspan=3, invertY=True
         )
         # Set size of pROI to be the same as p0
         self.pROI.setGeometry(self.p0.sceneBoundingRect())
@@ -227,7 +215,7 @@ class MainW(QtWidgets.QMainWindow):
         # Plots
         # Add first plot
         self.keypoints_traces_plot = self.plots_window.addPlot(
-            name="keypoints_traces_plot", row=0, col=1, title="Keypoints traces"
+            name="keypoints_traces_plot", row=3, col=0, title="Keypoints traces"
         )
         self.keypoints_traces_plot.scene().sigMouseClicked.connect(
             self.on_click_keypoints_plot
@@ -253,7 +241,7 @@ class MainW(QtWidgets.QMainWindow):
 
         # Add second plot
         self.svd_traces_plot = self.plots_window.addPlot(
-            name="svd_traces_plot", row=1, col=1, title="SVD traces"
+            name="svd_traces_plot", row=4, col=0, title="SVD traces"
         )
         self.svd_traces_plot.scene().sigMouseClicked.connect(self.on_click_svd_plot)
         self.svd_traces_plot.setMouseEnabled(x=True, y=False)
@@ -264,6 +252,7 @@ class MainW(QtWidgets.QMainWindow):
         self.svd_traces_plot.setXLink(self.keypoints_traces_plot)
         self.svd_plot_vtick = None
 
+        """ 
         # Add third plot
         self.neural_activity_plot = self.plots_window.addPlot(
             name="neural_activity_plot", row=2, col=1, title="Neural activity"
@@ -294,6 +283,7 @@ class MainW(QtWidgets.QMainWindow):
         self.neural_predictions_plot.setXLink(self.keypoints_traces_plot)
         self.neural_predictions_plot.disableAutoRange()
         self.neural_predictions_vtick = None
+        """
 
         self.nframes = 0
         self.cframe = 0
@@ -313,6 +303,7 @@ class MainW(QtWidgets.QMainWindow):
         self.bbox_set = False
         self.resize_img, self.add_padding = False, False
 
+        """
         self.clustering_plot = self.roi_embed_window.addPlot(
             row=2, col=0, rowspan=2, lockAspect=True, enableMouse=False
         )
@@ -339,7 +330,7 @@ class MainW(QtWidgets.QMainWindow):
         self.cluster_model = cluster.Cluster(parent=self)
         self.is_cluster_labels_loaded = False
         self.loaded_cluster_labels = None
-
+        """
         self.updateTimer = QtCore.QTimer()
         self.updateTimer.timeout.connect(self.next_frame)
         self.cframe = 0
@@ -824,15 +815,15 @@ class MainW(QtWidgets.QMainWindow):
         )
         self.scene_grid_layout.addWidget(self.total_frames_label, istretch + 6, 1, 1, 1)
         """
-        self.scene_grid_layout.addWidget(self.frame_slider, 9, 2, 1, 13)
+        self.scene_grid_layout.addWidget(self.frame_slider, 9, 2, 1, 10)
         # ~~~~~~~~~~ Saturation ~~~~~~~~~~
-        self.scene_grid_layout.addWidget(self.saturation_groupbox, 0, 2, 1, 4)
+        self.scene_grid_layout.addWidget(self.saturation_groupbox, 0, 2, 1, 3)
         # ~~~~~~~~~~ embedding & ROI visualization window features
-        self.scene_grid_layout.addWidget(self.roi_saturation_groupbox, 5, 2, 1, 3)
-        self.scene_grid_layout.addWidget(self.roi_embed_combobox, 5, 5, 1, 1)
+        self.scene_grid_layout.addWidget(self.roi_saturation_groupbox, 0, 7, 1, 2)
+        self.scene_grid_layout.addWidget(self.roi_embed_combobox, 0, 9, 1, 1)
         #self.scene_grid_layout.addWidget(self.zoom_in_button, 4, 7, 1, 1)
         #self.scene_grid_layout.addWidget(self.zoom_out_button, 4, 8, 1, 1)
-        self.scene_grid_layout.addWidget(self.roi_display_combobox, 5, 6, 1, 1)
+        self.scene_grid_layout.addWidget(self.roi_display_combobox, 0, 10, 1, 1)
         #self.scene_grid_layout.addWidget(self.save_clustering_button, 5, 7, 1, 1)
         
         video_path_label = QLabel("Save path:")
@@ -922,8 +913,8 @@ class MainW(QtWidgets.QMainWindow):
     def set_frame_changed(self, text):
         self.cframe = int(float(self.current_frame_lineedit.text()))
         self.jump_to_frame()
-        if self.cluster_model.embedded_output is not None:
-            self.highlight_embed_point(self.cframe)
+        #if self.cluster_model.embedded_output is not None:
+        #    self.highlight_embed_point(self.cframe)
 
     def reset(self):
         self.update_window_title()
@@ -944,10 +935,10 @@ class MainW(QtWidgets.QMainWindow):
         self.saturation = []
         self.clear_visualization_window()
         # Clear clusters
-        self.cluster_model.disable_data_clustering_features(self)
+        #self.cluster_model.disable_data_clustering_features(self)
         self.roi_embed_combobox.setCurrentIndex(0)
-        self.clustering_plot.clear()
-        self.clustering_plot_legend.clear()
+        #self.clustering_plot.clear()
+        #self.clustering_plot_legend.clear()
         # Clear keypoints when a new file is loaded
         self.pose_scatterplot.clear()
         self.is_pose_loaded = False
@@ -978,8 +969,8 @@ class MainW(QtWidgets.QMainWindow):
         # Clear plots
         self.keypoints_traces_plot.clear()
         self.svd_traces_plot.clear()
-        self.neural_activity_plot.clear()
-        self.neural_predictions_plot.clear()
+        #self.neural_activity_plot.clear()
+        #self.neural_predictions_plot.clear()
         # Clear vticks
         self.keypoints_vtick = None
         self.svd_vtick = None
@@ -2982,8 +2973,8 @@ class MainW(QtWidgets.QMainWindow):
         lut = lut[0:-3, :]
         self.neural_predictions.test_data_image.setLookupTable(lut)
         self.neural_activity.test_data_image.setLookupTable(lut)
-        self.neural_predictions_plot.addItem(self.neural_predictions.test_data_image)
-        self.neural_activity_plot.addItem(self.neural_activity.test_data_image)
+        #self.neural_predictions_plot.addItem(self.neural_predictions.test_data_image)
+        #self.neural_activity_plot.addItem(self.neural_activity.test_data_image)
 
     def toggle_testdata_display(self, button):
         """
@@ -3197,7 +3188,7 @@ class MainW(QtWidgets.QMainWindow):
         visualization_request = int(self.roi_embed_combobox.currentIndex())
         self.reflector.show()
         if visualization_request == 1:  # ROI
-            self.cluster_model.disable_data_clustering_features(self)
+            #self.cluster_model.disable_data_clustering_features(self)
             if len(self.ROIs) > 0:
                 self.update_ROI_vis_comboBox()
                 self.update_status_bar("")
@@ -3214,12 +3205,14 @@ class MainW(QtWidgets.QMainWindow):
         self.roi_display_combobox.hide()
         self.pROIimg.clear()
         self.pROI.removeItem(self.scatter)
+        """
         self.clustering_plot.clear()
         self.clustering_plot.hideAxis("left")
         self.clustering_plot.hideAxis("bottom")
         self.clustering_plot.removeItem(self.clustering_scatterplot)
         self.clustering_plot_legend.setParentItem(None)
         self.clustering_plot_legend.hide()
+        """
 
     def cluster_plot_zoom_buttons(self, in_or_out):
         """

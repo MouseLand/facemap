@@ -307,8 +307,8 @@ def load_movies(parent, filelist=None):
         parent.Lx = Lx
         parent.keypoints_traces_plot.clear()
         parent.svd_traces_plot.clear()
-        parent.neural_activity_plot.clear()
-        parent.neural_activity_plot.clear()
+        #parent.neural_activity_plot.clear()
+        #parent.neural_activity_plot.clear()
         if len(parent.Ly) < 2:
             parent.LY = parent.Ly[0]
             parent.LX = parent.Lx[0]
