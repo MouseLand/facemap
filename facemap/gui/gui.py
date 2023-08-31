@@ -37,7 +37,7 @@ from PyQt5.QtWidgets import (
 from scipy.stats import skew, zscore
 
 from facemap import process, roi, utils
-from facemap.gui import cluster, guiparts, help_windows, io, menus
+from facemap.gui import cluster, guiparts, help_windows, io, menus, neural_activity_window
 from facemap.neural_prediction import neural_activity, prediction_utils
 from facemap.pose import model_loader, pose, pose_gui, refine_pose
 
@@ -655,12 +655,12 @@ class MainW(QtWidgets.QMainWindow):
         self.roi_embed_combobox.currentIndexChanged.connect(
             self.vis_combobox_selection_changed
         )
-        self.roi_saturation_groupbox.layout().addWidget(self.roi_embed_combobox, 0, 3, 1, 1)
+        self.roi_saturation_groupbox.layout().addWidget(self.roi_embed_combobox, 0, 2, 1, 1)
 
         self.roi_display_combobox = QComboBox(self)
         self.roi_display_combobox.hide()
         self.roi_display_combobox.activated.connect(self.display_ROI)
-        self.roi_saturation_groupbox.layout().addWidget(self.roi_display_combobox, 0, 4, 1, 1)
+        self.roi_saturation_groupbox.layout().addWidget(self.roi_display_combobox, 0, 3, 1, 1)
         self.run_clustering_button = QPushButton("Run")
         self.run_clustering_button.setFont(QFont("Arial", 10, QFont.Bold))
         self.run_clustering_button.clicked.connect(
@@ -828,7 +828,7 @@ class MainW(QtWidgets.QMainWindow):
         # ~~~~~~~~~~ Saturation ~~~~~~~~~~
         self.scene_grid_layout.addWidget(self.saturation_groupbox, 0, 2, 1, 5)
         # ~~~~~~~~~~ embedding & ROI visualization window features
-        self.scene_grid_layout.addWidget(self.roi_saturation_groupbox, 0, 7, 1, 6)
+        self.scene_grid_layout.addWidget(self.roi_saturation_groupbox, 0, 7, 1, 5)
         #self.scene_grid_layout.addWidget(self.roi_embed_combobox, 0, 10, 1, 1)
         #self.scene_grid_layout.addWidget(self.zoom_in_button, 4, 7, 1, 1)
         #self.scene_grid_layout.addWidget(self.zoom_out_button, 4, 8, 1, 1)
@@ -2170,7 +2170,9 @@ class MainW(QtWidgets.QMainWindow):
                 # self.jump_to_frame()
 
     ## ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Neural data plot ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ ##
-
+    def launch_neural_activity_window(self):
+        neural_activity_window.NeuralActivityWindow(self)
+    """
     # Open a QDialog to select the neural data to plot
     def load_neural_data(self):
         dialog = QtWidgets.QDialog()
@@ -2209,26 +2211,6 @@ class MainW(QtWidgets.QMainWindow):
         neural_file_groupbox.layout().addWidget(neural_data_button)
         neural_activity_groupbox.layout().addWidget(neural_file_groupbox)
 
-        """
-        # Create a hbox for neural data type selection
-        neural_datatype_groupbox = QtWidgets.QGroupBox()
-        neural_datatype_groupbox.setLayout(QtWidgets.QHBoxLayout())
-        neural_datatype_groupbox.setStyleSheet("QGroupBox { border: 0px solid gray; }")
-        # Add a label to the hbox
-        neural_data_type_label = QtWidgets.QLabel("Data type:")
-        neural_datatype_groupbox.layout().addWidget(neural_data_type_label)
-        dialog.neural_data_type_radiobuttons = QtWidgets.QButtonGroup()
-        dialog.neural_data_type_radiobuttons.setExclusive(True)
-        dialog.calcium_radiobutton = QtWidgets.QRadioButton("Calcium")
-        dialog.calcium_radiobutton.setChecked(True)
-        dialog.ephys_radiobutton = QtWidgets.QRadioButton("Electrophysiology")
-        dialog.neural_data_type_radiobuttons.addButton(dialog.calcium_radiobutton)
-        dialog.neural_data_type_radiobuttons.addButton(dialog.ephys_radiobutton)
-        # Add QRadiobuttons to the hbox
-        neural_datatype_groupbox.layout().addWidget(dialog.calcium_radiobutton)
-        neural_datatype_groupbox.layout().addWidget(dialog.ephys_radiobutton)
-        neural_activity_groupbox.layout().addWidget(neural_datatype_groupbox)
-        """
 
         # Add a hbox for data visualization
         neural_data_vis_groupbox = QtWidgets.QGroupBox()
@@ -2278,20 +2260,6 @@ class MainW(QtWidgets.QMainWindow):
         )
         timestamps_groupbox.layout().addWidget(neural_data_timestamps_groupbox)
 
-        """
-        neural_time_groupbox = QtWidgets.QGroupBox()
-        neural_time_groupbox.setLayout(QtWidgets.QHBoxLayout())
-        neural_time_groupbox.setStyleSheet("QGroupBox { border: 0px solid gray; }")
-        neural_tstart_label = QtWidgets.QLabel("Start time:")
-        neural_time_groupbox.layout().addWidget(neural_tstart_label)
-        dialog.neural_tstart_qlineedit = QtWidgets.QLineEdit()
-        neural_time_groupbox.layout().addWidget(dialog.neural_tstart_qlineedit)
-        neural_tend_label = QtWidgets.QLabel("End time:")
-        neural_time_groupbox.layout().addWidget(neural_tend_label)
-        dialog.neural_tend_qlineedit = QtWidgets.QLineEdit()
-        neural_time_groupbox.layout().addWidget(dialog.neural_tend_qlineedit)
-        timestamps_groupbox.layout().addWidget(neural_time_groupbox)
-        """
 
         # Add a groupbpx for behav timestamps selection
         behav_data_timestamps_groupbox = QtWidgets.QGroupBox()
@@ -2316,21 +2284,6 @@ class MainW(QtWidgets.QMainWindow):
 
         timestamps_groupbox.layout().addWidget(behav_data_timestamps_groupbox)
 
-        """
-        behav_time_groupbox = QtWidgets.QGroupBox()
-        behav_time_groupbox.setLayout(QtWidgets.QHBoxLayout())
-        behav_time_groupbox.setStyleSheet("QGroupBox { border: 0px solid gray; }")
-        behav_tstart_label = QtWidgets.QLabel("Start time:")
-        behav_time_groupbox.layout().addWidget(behav_tstart_label)
-        dialog.behav_tstart_qlineedit = QtWidgets.QLineEdit()
-        behav_time_groupbox.layout().addWidget(dialog.behav_tstart_qlineedit)
-        behav_tend_label = QtWidgets.QLabel("End time:")
-        behav_time_groupbox.layout().addWidget(behav_tend_label)
-        dialog.behav_tend_qlineedit = QtWidgets.QLineEdit()
-        behav_time_groupbox.layout().addWidget(dialog.behav_tend_qlineedit)
-        timestamps_groupbox.layout().addWidget(behav_time_groupbox)
-        """
-
         vbox.addWidget(timestamps_groupbox)
 
         # Add a hbox for cancel and done buttons
@@ -2354,7 +2307,7 @@ class MainW(QtWidgets.QMainWindow):
         dialog.exec_()
 
     def load_neural_predictions_file(self, neural_predictions_filepath=None):
-        """Load neural predictions file."""
+        #Load neural predictions file.
         if neural_predictions_filepath is None:
             neural_predictions_filepath = io.load_npy_file(self)
         if neural_predictions_filepath is not None and (
@@ -2629,7 +2582,7 @@ class MainW(QtWidgets.QMainWindow):
         dialog.exec_()
 
     def update_hyperparameter_box(self, dialog):
-        """Update the hyperparameter box when the user changes the input/model type."""
+        #Update the hyperparameter box when the user changes the input/model type.
         # Hide the training hyperparameters box if keypoints is not selected
         if dialog.input_data_keypoints_radio_button.isChecked():
             dialog.neural_model_hyperparameters_groupbox.show()
@@ -2682,9 +2635,7 @@ class MainW(QtWidgets.QMainWindow):
         dialog.accept()
 
     def run_neural_predictions(self, clicked, dialog):
-        """
-        Run neural predictions
-        """
+        # Run neural predictions
 
         if self.neural_activity.data is None:
             msg = QtWidgets.QMessageBox()
@@ -2869,32 +2820,24 @@ class MainW(QtWidgets.QMainWindow):
             self.update_status_bar("Predictions saved to: {}".format(save_dir))
 
     def output_file_path_button_clicked(self, clicked, line_edit):
-        """
-        Select the output file path
-        """
+        # Select the output file path
         save_path = QtWidgets.QFileDialog.getExistingDirectory(
             self, "Select a directory to save the predictions"
         )
         line_edit.setText(save_path)
 
     def set_neural_data_filepath(self, clicked, dialog):
-        """
-        Set the neural data file
-        """
+        # Set the neural data file
         neural_data_file = io.load_npy_file(self)
         dialog.neural_data_lineedit.setText(neural_data_file)
 
     def set_neural_timestamps_filepath(self, clicked, dialog):
-        """
-        Set the neural timestamps file
-        """
+        # Set the neural timestamps file
         neural_timestamps_file = io.load_npy_file(self)
         dialog.neural_data_timestamps_lineedit.setText(neural_timestamps_file)
 
     def set_behav_timestamps_filepath(self, clicked, dialog):
-        """
-        Set the behavioral data file
-        """
+        # Set the behavioral data file
         behav_data_file = io.load_npy_file(self)
         dialog.behav_data_timestamps_qlineedit.setText(behav_data_file)
 
@@ -2905,9 +2848,7 @@ class MainW(QtWidgets.QMainWindow):
         neural_timestamps_filepath,
         behav_data_timestamps_filepath,
     ):
-        """
-        Get user settings from the dialog box to set neural activity data
-        """
+        # Get user settings from the dialog box to set neural activity data
         self.neural_activity.set_data(
             neural_data_filepath,
             None,
@@ -2923,9 +2864,7 @@ class MainW(QtWidgets.QMainWindow):
         self.plot_neural_data()
 
     def set_neural_prediction_data(self, dialog, data, test_indices):
-        """
-        Get user settings from the dialog box to set neural prediction data
-        """
+        # Get user settings from the dialog box to set neural prediction data
         self.neural_predictions.set_data(
             data, None, self.neural_activity.data_viz_method
         )
@@ -2936,13 +2875,8 @@ class MainW(QtWidgets.QMainWindow):
         dialog.accept()
 
     def highlight_test_data(self, test_indices_list, extent=None):
-        """
-        Highlight the test data in the neural predictions plot
-        Parameters
-        ----------
-        test_indices : list
-            List of test indices
-        """
+        # Highlight the test data in the neural predictions plot
+
         # Create a pyqtgraph image item with low alpha value to highlight the test data
         test_section_box = np.zeros(self.neural_predictions.data.shape)
         # Set the test section box to 1 for the test indices
@@ -2986,9 +2920,7 @@ class MainW(QtWidgets.QMainWindow):
         #self.neural_activity_plot.addItem(self.neural_activity.test_data_image)
 
     def toggle_testdata_display(self, button):
-        """
-        Toggle the display of test data in the neural predictions plot
-        """
+        # Toggle the display of test data in the neural predictions plot
         if self.neural_predictions.test_data_image is not None:
             if button.isChecked():
                 self.neural_predictions.test_data_image.show()
@@ -3124,9 +3056,7 @@ class MainW(QtWidgets.QMainWindow):
             self.update_neural_predictions_vtick(mouse_point.x())
 
     def update_neural_predictions_vtick(self, x_pos=None):
-        """
-        Update the vertical line indicating the current frame in the neural predictions plot by setting the x position (x_pos) of the line
-        """
+        # Update the vertical line indicating the current frame in the neural predictions plot by setting the x position (x_pos) of the line
         if not self.neural_predictions_loaded:
             return
         if x_pos is not None:
@@ -3146,9 +3076,7 @@ class MainW(QtWidgets.QMainWindow):
         self.current_frame_lineedit.setText(str(frame))
 
     def update_neural_data_vtick(self, x_pos=None):
-        """
-        Update the vertical line indicating the current frame in the neural data plot by setting the x position (x_pos) of the line
-        """
+        # Update the vertical line indicating the current frame in the neural data plot by setting the x position (x_pos) of the line
         if not self.neural_data_loaded:
             return
         if x_pos is not None:
@@ -3166,6 +3094,7 @@ class MainW(QtWidgets.QMainWindow):
             self.neural_activity_plot.getViewBox().setXRange(frame, frame, padding=0)
             self.neural_activity_plot.getViewBox().updateAutoRange()
         self.current_frame_lineedit.setText(str(frame))
+    """
 
     def update_behavior_data(self):
         """
