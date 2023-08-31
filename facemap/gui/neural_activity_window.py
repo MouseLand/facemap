@@ -1,5 +1,5 @@
 import numpy as np
-from PyQt5 import QtCore, QtWidgets
+from PyQt5 import QtCore, QtWidgets, QtGui
 import os
 import scipy.io as sio
 from facemap.gui import guiparts, help_windows, io
@@ -49,6 +49,15 @@ class NeuralActivityWindow(QtWidgets.QMainWindow):
         button_panel = QWidget()
         button_layout = QVBoxLayout(button_panel)
         
+        # Add a logo to the button panel
+        icon_path = os.path.join(os.path.dirname(__file__), "..", "mouse.png")
+        logo = QtGui.QPixmap(icon_path).scaled((1352/1.5)/8, (878/2)/4, QtCore.Qt.KeepAspectRatio, QtCore.Qt.SmoothTransformation)
+        logoLabel = QLabel(self)
+        logoLabel.setPixmap(logo)
+        # align the logo to the center
+        logoLabel.setAlignment(QtCore.Qt.AlignCenter)
+        button_layout.addWidget(logoLabel)
+
         self.load_groupbox = QGroupBox("Data loader")
         self.load_groupbox.setStyleSheet(
             "QGroupBox { border: 1px solid white; border-style: outset; border-radius: 5px; color:white; padding: 5px 0px;}"
