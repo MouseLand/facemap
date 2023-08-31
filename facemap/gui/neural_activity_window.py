@@ -41,8 +41,10 @@ class NeuralActivityWindow(QtWidgets.QMainWindow):
 
     def setup_ui(self):
         # Set up the splitter
-        splitter = QSplitter()
+        splitter = QSplitter(self)
+        self.setCentralWidget(splitter)
         splitter.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+        splitter.setSizes([100,500])
 
         button_panel = QWidget()
         button_layout = QVBoxLayout(button_panel)
@@ -70,12 +72,20 @@ class NeuralActivityWindow(QtWidgets.QMainWindow):
             "QGroupBox { border: 1px solid white; border-style: outset; border-radius: 5px; color:white; padding: 5px 0px;}"
         )
         self.process_groupbox.setLayout(QGridLayout())
+        
         # Run neural predictions
         run_neural_predictions_button = QPushButton("Run neural predictions")
         run_neural_predictions_button.clicked.connect(
             self.show_run_neural_predictions_dialog
         )
         self.process_groupbox.layout().addWidget(run_neural_predictions_button, 0, 0)
+        # Add a checkable button to toggle the visibility of test data in the predictions plot
+        toggle_test_data = QCheckBox("Highlight test data")
+        toggle_test_data.setStyleSheet("color: gray;")
+        toggle_test_data.setCheckable(True)
+        toggle_test_data.setChecked(True)
+        toggle_test_data.stateChanged.connect(lambda: self.toggle_testdata_display(toggle_test_data))
+        self.process_groupbox.layout().addWidget(toggle_test_data, 1, 0)
 
         # Add the panels to the splitter
         button_layout.addWidget(self.load_groupbox)
@@ -86,33 +96,32 @@ class NeuralActivityWindow(QtWidgets.QMainWindow):
         # Add a plots window neural data visualization
         plots_window = pg.GraphicsLayoutWidget()
 
-        self.neural_activity_plot = plots_window.addPlot(
+        neural_activity_plot = plots_window.addPlot(
             name="neural_activity_plot", row=0, col=0, title="Neural activity"
         )
-        self.neural_activity_plot.scene().sigMouseClicked.connect(
+        neural_activity_plot.scene().sigMouseClicked.connect(
             self.on_click_neural_activity_plot
         )
-        self.neural_activity_plot.setMouseEnabled(x=True, y=False)
-        self.neural_activity_plot.setMenuEnabled(False)
-        self.neural_activity_plot.hideAxis("left")
-        self.neural_activity_plot.disableAutoRange()
-        self.neural_activity_vtick = None
+        neural_activity_plot.setMouseEnabled(x=True, y=False)
+        neural_activity_plot.setMenuEnabled(False)
+        neural_activity_plot.hideAxis("left")
+        neural_activity_plot.disableAutoRange()
+        neural_activity_vtick = None
 
-        self.neural_predictions_plot = plots_window.addPlot(
+        neural_predictions_plot = plots_window.addPlot(
             name="neural_predictions_plot", row=1, col=0, title="Neural predictions",
         )
-        self.neural_predictions_plot.scene().sigMouseClicked.connect(
+        neural_predictions_plot.scene().sigMouseClicked.connect(
             self.on_click_neural_predictions_plot
         )
-        self.neural_predictions_plot.setMouseEnabled(x=True, y=False)
-        self.neural_predictions_plot.setMenuEnabled(False)
-        self.neural_predictions_plot.hideAxis("left")
-        self.neural_predictions_plot.disableAutoRange()
-        self.neural_predictions_vtick = None
+        neural_predictions_plot.setMouseEnabled(x=True, y=False)
+        neural_predictions_plot.setMenuEnabled(False)
+        neural_predictions_plot.hideAxis("left")
+        neural_predictions_plot.disableAutoRange()
+        neural_predictions_vtick = None
 
         splitter.addWidget(plots_window)
-
-        self.layout().addWidget(splitter)
+        splitter.setSizes([self.sizeObject.width() / 4, (self.sizeObject.width() / 2)])
 
 
     # Open a QDialog to select the neural data to plot
