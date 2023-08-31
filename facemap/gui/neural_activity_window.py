@@ -11,6 +11,7 @@ import matplotlib
 from matplotlib import cm
 import pyqtgraph as pg
 from PyQt5.QtMultimedia import QMediaPlayer, QMediaContent
+from facemap.neural_prediction import neural_activity, prediction_utils
 
 
 class NeuralActivityWindow(QtWidgets.QMainWindow):
@@ -25,11 +26,14 @@ class NeuralActivityWindow(QtWidgets.QMainWindow):
             self.sizeObject = window_size
         self.resize(np.floor(self.sizeObject.width() / 1.5).astype(int), np.floor(self.sizeObject.height() / 2).astype(int))
         self.center()
-
         # Set up the UI
         self.setup_ui()
+
         # Initialize variables
-        self.video_filenames = []
+        self.neural_activity = neural_activity.NeuralActivity(parent=self)
+        self.neural_predictions = neural_activity.NeuralActivity(parent=self)
+        self.neural_data_loaded = False
+        self.neural_predictions_loaded = False
 
         self.show()
         
@@ -38,6 +42,14 @@ class NeuralActivityWindow(QtWidgets.QMainWindow):
         cp = QtWidgets.QDesktopWidget().availableGeometry().center()
         qr.moveCenter(cp)
         self.move(qr.topLeft())
+
+    def reset(self):
+        self.neural_activity_plot.clear()
+        self.neural_predictions_plot.clear()
+        self.neural_activity_vtick = None
+        self.neural_predictions_vtick = None
+        self.neural_data_loaded = False
+        self.neural_predictions_loaded = False
 
     def setup_ui(self):
         # Set up the splitter
@@ -76,6 +88,11 @@ class NeuralActivityWindow(QtWidgets.QMainWindow):
         )
         self.load_groupbox.layout().addWidget(load_neural_predictions_button, 1, 0)
 
+        # Add a reset button
+        reset_button = QPushButton("Reset")
+        reset_button.clicked.connect(self.reset)
+        self.load_groupbox.layout().addWidget(reset_button, 2, 0)
+
         self.process_groupbox = QGroupBox("Process")
         self.process_groupbox.setStyleSheet(
             "QGroupBox { border: 1px solid white; border-style: outset; border-radius: 5px; color:white; padding: 5px 0px;}"
@@ -105,33 +122,33 @@ class NeuralActivityWindow(QtWidgets.QMainWindow):
         # Add a plots window neural data visualization
         plots_window = pg.GraphicsLayoutWidget()
 
-        neural_activity_plot = plots_window.addPlot(
+        self.neural_activity_plot = plots_window.addPlot(
             name="neural_activity_plot", row=0, col=0, title="Neural activity"
         )
-        neural_activity_plot.scene().sigMouseClicked.connect(
+        self.neural_activity_plot.scene().sigMouseClicked.connect(
             self.on_click_neural_activity_plot
         )
-        neural_activity_plot.setMouseEnabled(x=True, y=False)
-        neural_activity_plot.setMenuEnabled(False)
-        neural_activity_plot.hideAxis("left")
-        neural_activity_plot.disableAutoRange()
-        neural_activity_vtick = None
+        self.neural_activity_plot.setMouseEnabled(x=True, y=False)
+        self.neural_activity_plot.setMenuEnabled(False)
+        self.neural_activity_plot.hideAxis("left")
+        self.neural_activity_plot.disableAutoRange()
 
-        neural_predictions_plot = plots_window.addPlot(
+        self.neural_predictions_plot = plots_window.addPlot(
             name="neural_predictions_plot", row=1, col=0, title="Neural predictions",
         )
-        neural_predictions_plot.scene().sigMouseClicked.connect(
+        self.neural_predictions_plot.scene().sigMouseClicked.connect(
             self.on_click_neural_predictions_plot
         )
-        neural_predictions_plot.setMouseEnabled(x=True, y=False)
-        neural_predictions_plot.setMenuEnabled(False)
-        neural_predictions_plot.hideAxis("left")
-        neural_predictions_plot.disableAutoRange()
-        neural_predictions_vtick = None
+        self.neural_predictions_plot.setMouseEnabled(x=True, y=False)
+        self.neural_predictions_plot.setMenuEnabled(False)
+        self.neural_predictions_plot.hideAxis("left")
+        self.neural_predictions_plot.disableAutoRange()
+        
+        self.neural_activity_vtick = None
+        self.neural_predictions_vtick = None
 
         splitter.addWidget(plots_window)
         splitter.setSizes([self.sizeObject.width() / 4, (self.sizeObject.width() / 2)])
-
 
     # Open a QDialog to select the neural data to plot
     def load_neural_data(self):
@@ -579,7 +596,7 @@ class NeuralActivityWindow(QtWidgets.QMainWindow):
                 dialog.behav_data_timestamps_qlineedit.text()
             )
         except:
-            self.behavior_timestamps = np.arange(0, self.nframes)
+            self.behavior_timestamps = np.arange(0, self.parent.nframes)
         try:
             self.neural_timestamps = np.load(
                 dialog.neural_data_timestamps_lineedit.text()
@@ -777,7 +794,6 @@ class NeuralActivityWindow(QtWidgets.QMainWindow):
                     save_data_dict,
                 )
             print("Predictions saved to: {}".format(save_dir))
-            self.update_status_bar("Predictions saved to: {}".format(save_dir))
 
     def output_file_path_button_clicked(self, clicked, line_edit):
         # Select the output file path
@@ -936,15 +952,13 @@ class NeuralActivityWindow(QtWidgets.QMainWindow):
         self.neural_activity_plot.autoRange()
         # Add a vertical line to the plot to indicate the time of the current trial
         self.neural_activity_vtick = pg.InfiniteLine(
-            pos=self.cframe,
+            pos=self.parent.cframe,
             angle=90,
             pen=pg.mkPen(color=(255, 0, 0), width=2, movable=True),
         )
         self.neural_activity_plot.addItem(self.neural_activity_vtick)
         self.neural_activity_plot.setXRange(0, self.neural_activity.data.shape[1])
-        self.neural_activity_plot.setLimits(xMin=0, xMax=self.nframes)
-
-        self.update_status_bar("Neural data loaded")
+        self.neural_activity_plot.setLimits(xMin=0, xMax=self.parent.nframes)
 
     def plot_neural_predictions(self, extent=None):
         # Clear plot
@@ -995,13 +1009,13 @@ class NeuralActivityWindow(QtWidgets.QMainWindow):
         # Add a vertical line to the plot to indicate the time of the current trial
         if self.neural_predictions_vtick is None:
             self.neural_predictions_vtick = pg.InfiniteLine(
-                pos=self.cframe,
+                pos=self.parent.cframe,
                 angle=90,
                 pen=pg.mkPen(color=(255, 0, 0), width=2, movable=True),
             )
         self.neural_predictions_plot.addItem(self.neural_predictions_vtick)
         self.neural_predictions_plot.setXRange(0, self.neural_predictions.data.shape[1])
-        self.neural_predictions_plot.setLimits(xMin=0, xMax=self.nframes)
+        self.neural_predictions_plot.setLimits(xMin=0, xMax=self.parent.nframes)
 
     def on_click_neural_activity_plot(self, event):
         if event.button() == QtCore.Qt.LeftButton:
@@ -1023,8 +1037,8 @@ class NeuralActivityWindow(QtWidgets.QMainWindow):
             self.neural_predictions_vtick.setPos(x_pos)
             frame = int(x_pos)
         else:
-            self.neural_predictions_vtick.setPos(self.cframe)
-            frame = self.cframe
+            self.neural_predictions_vtick.setPos(self.parent.cframe)
+            frame = self.parent.cframe
         # Check if x position is within the neural activity plot's current range of view
         if (
             not self.neural_predictions_plot.getViewBox().viewRange()[0][0]
@@ -1033,7 +1047,7 @@ class NeuralActivityWindow(QtWidgets.QMainWindow):
         ):
             self.neural_predictions_plot.getViewBox().setXRange(frame, frame, padding=0)
             self.neural_predictions_plot.getViewBox().updateAutoRange()
-        self.current_frame_lineedit.setText(str(frame))
+        self.parent.current_frame_lineedit.setText(str(frame))
 
     def update_neural_data_vtick(self, x_pos=None):
         # Update the vertical line indicating the current frame in the neural data plot by setting the x position (x_pos) of the line
@@ -1043,8 +1057,8 @@ class NeuralActivityWindow(QtWidgets.QMainWindow):
             self.neural_activity_vtick.setPos(x_pos)
             frame = int(x_pos)
         else:
-            self.neural_activity_vtick.setPos(self.cframe)
-            frame = self.cframe
+            self.neural_activity_vtick.setPos(self.parent.cframe)
+            frame = self.parent.cframe
         # Check if x position is within the neural activity plot's current range of view
         if (
             not self.neural_activity_plot.getViewBox().viewRange()[0][0]
@@ -1053,4 +1067,4 @@ class NeuralActivityWindow(QtWidgets.QMainWindow):
         ):
             self.neural_activity_plot.getViewBox().setXRange(frame, frame, padding=0)
             self.neural_activity_plot.getViewBox().updateAutoRange()
-        self.current_frame_lineedit.setText(str(frame))
+        self.parent.current_frame_lineedit.setText(str(frame))
