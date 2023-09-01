@@ -143,6 +143,7 @@ class NeuralActivityWindow(QtWidgets.QMainWindow):
         self.neural_predictions_plot.setMenuEnabled(False)
         self.neural_predictions_plot.hideAxis("left")
         self.neural_predictions_plot.disableAutoRange()
+        self.neural_predictions_plot.setXLink("neural_activity_plot")
         
         self.neural_activity_vtick = None
         self.neural_predictions_vtick = None
@@ -628,7 +629,7 @@ class NeuralActivityWindow(QtWidgets.QMainWindow):
 
         if dialog.input_data_keypoints_radio_button.isChecked():
             # Check if keypoints are loaded
-            if self.poseFilepath[0] is None:
+            if self.parent.poseFilepath[0] is None:
                 msg = QtWidgets.QMessageBox()
                 msg.setIcon(QtWidgets.QMessageBox.Critical)
                 msg.setText("Keypoints not loaded")
@@ -639,9 +640,9 @@ class NeuralActivityWindow(QtWidgets.QMainWindow):
                 msg.exec_()
                 return
             # keypoints = keypoints_utils.get_normalized_keypoints(self.poseFilepath[0])
-            keypoints = utils.get_keypoints_for_neuralpred(self.poseFilepath[0])
+            keypoints = utils.get_keypoints_for_neuralpred(self.parent.poseFilepath[0])
             # If the number of timestamps is not equal to the number of frames, then interpolate
-            if len(self.behavior_timestamps) != self.nframes:
+            if len(self.behavior_timestamps) != self.parent.nframes:
                 keypoints = keypoints[
                     np.linspace(
                         0, len(keypoints) - 1, len(self.behavior_timestamps)
@@ -677,7 +678,7 @@ class NeuralActivityWindow(QtWidgets.QMainWindow):
                 weight_decay=float(dialog.weight_decay_line_edit.text()),
                 gui=dialog,
                 GUIobject=QtWidgets,
-                device=self.device,
+                device=self.parent.device,
             )
             # TODO: Use num neurons input provided by the user
             predictions, _ = prediction_utils.get_trained_model_predictions(
@@ -685,7 +686,7 @@ class NeuralActivityWindow(QtWidgets.QMainWindow):
                 model,
                 self.behavior_timestamps,
                 self.neural_timestamps,
-                device=self.device,
+                device=self.parent.device,
             )
 
             if dialog.neural_pcs_yes_radio_button.isChecked():
@@ -723,7 +724,7 @@ class NeuralActivityWindow(QtWidgets.QMainWindow):
                 neural_target = self.neural_activity.data.T.copy()
             # Use a linear model to predict neural activity from SVDs
             # Resample behavioral data to match neural data timestamps
-            if len(self.behavior_timestamps) != self.nframes:
+            if len(self.behavior_timestamps) != self.parent.nframes:
                 x_input = x_input[
                     np.linspace(
                         0, len(x_input) - 1, len(self.behavior_timestamps)
@@ -742,7 +743,7 @@ class NeuralActivityWindow(QtWidgets.QMainWindow):
                 neural_target,
                 tbin=dialog.tbin_spinbox.value(),
                 lam=float(dialog.lambda_line_edit.text()),
-                device=self.device,
+                device=self.parent.device,
             )
             ranks = np.argmax(varexp)
             print(

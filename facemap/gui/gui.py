@@ -129,7 +129,7 @@ class MainW(QtWidgets.QMainWindow):
 
         # Create a window for plots
         self.plots_window = pg.GraphicsLayoutWidget()
-        self.scene_grid_layout.addWidget(self.plots_window, 4, 2, 5, 10)
+        self.scene_grid_layout.addWidget(self.plots_window, 5, 2, 4, 10)
 
         # A plot area (ViewBox + axes) for displaying the image
         self.p0 = self.video_window.addViewBox(
@@ -252,8 +252,6 @@ class MainW(QtWidgets.QMainWindow):
         self.svd_traces_plot.setMouseEnabled(x=True, y=False)
         self.svd_traces_plot.setMenuEnabled(False)
         self.svd_traces_plot.hideAxis("left")
-        self.scatter2 = pg.ScatterPlotItem()
-        self.svd_traces_plot.addItem(self.scatter2)
         self.svd_traces_plot.setXLink(self.keypoints_traces_plot)
         self.svd_plot_vtick = None
 
@@ -932,15 +930,12 @@ class MainW(QtWidgets.QMainWindow):
         self.keypoints_brushes = []
         self.bbox = []
         self.bbox_set = False
-        # Update neural data variables
-        self.neural_data_loaded = False
-        self.neural_predictions_loaded = False
         # Clear plots
         self.keypoints_traces_plot.clear()
         self.svd_traces_plot.clear()
         # Clear vticks
         self.keypoints_vtick = None
-        self.svd_vtick = None
+        self.svd_plot_vtick = None
 
     def pupil_sigma_change(self):
         self.pupil_sigma = float(self.sigma_box.text())
@@ -1116,10 +1111,6 @@ class MainW(QtWidgets.QMainWindow):
         self.pimg.setLevels([0, self.sat[0]])
         self.current_frame_lineedit.setText(str(self.cframe))
         self.update_pose()
-        if self.neural_data_loaded:
-            self.update_neural_data_vtick()
-        if self.neural_predictions_loaded:
-            self.update_neural_predictions_vtick()
         if self.is_pose_loaded:
             self.update_keypoints_vtick()
         if self.processed or self.trace2_data_loaded is not None:
@@ -1875,13 +1866,13 @@ class MainW(QtWidgets.QMainWindow):
             self.svd_traces_plot.setRange(
                 xRange=(0, self.nframes), yRange=(-4, 4), padding=0.0
             )
-        if self.svd_plot_vtick is None:
-            self.svd_plot_vtick = pg.InfiniteLine(
-                pos=self.cframe,
-                angle=90,
-                pen=pg.mkPen(color=(255, 255, 255), width=2, movable=True),
-            )
-            self.svd_traces_plot.addItem(self.svd_plot_vtick)
+        
+        self.svd_plot_vtick = pg.InfiniteLine(
+            pos=self.cframe,
+            angle=90,
+            pen=pg.mkPen(color=(255, 255, 255), width=2, movable=True),
+        )
+        self.svd_traces_plot.addItem(self.svd_plot_vtick)
         self.svd_traces_plot.setRange(xRange=(0, self.nframes))
         self.svd_traces_plot.setLimits(xMin=0, xMax=self.nframes)
         self.svd_traces_plot.show()
@@ -1915,12 +1906,11 @@ class MainW(QtWidgets.QMainWindow):
             pen = pg.mkPen(color)
             selected_plot.plot(tr, pen=pen)
             selected_plot.setRange(yRange=(-3, 3))
-            if self.svd_plot_vtick is None:
-                self.svd_plot_vtick = pg.InfiniteLine(
-                    pos=self.cframe,
-                    angle=90,
-                    pen=pg.mkPen(color=(255, 255, 255), width=2, movable=True),
-                )
+            self.svd_plot_vtick = pg.InfiniteLine(
+                pos=self.cframe,
+                angle=90,
+                pen=pg.mkPen(color=(255, 255, 255), width=2, movable=True),
+            )
             selected_plot.addItem(self.svd_plot_vtick)
         elif proctype == 1:  # Pupil
             pup = self.pupil[wroi]
@@ -2092,7 +2082,7 @@ class MainW(QtWidgets.QMainWindow):
                     posx = pos.x()
                     iplot = 1
                 elif x == self.svd_traces_plot:
-                    vb = self.keypoints_traces_plot.vb
+                    vb = self.svd_traces_plot.vb
                     pos = vb.mapSceneToView(event.scenePos())
                     posx = pos.x()
                     iplot = 2
@@ -2158,13 +2148,9 @@ class MainW(QtWidgets.QMainWindow):
                 self.update_status_bar("")
             else:
                 self.update_status_bar("Please add ROIs for display")
-        elif visualization_request == 2 or visualization_request == 3:  # tSNE/UMAP
-            self.reflector.hide()
-            self.cluster_model.enable_data_clustering_features(parent=self)
-            self.update_status_bar("")
         else:
-            self.cluster_model.disable_data_clustering_features(self)
-
+            return
+        
     def clear_visualization_window(self):
         self.roi_display_combobox.hide()
         self.pROIimg.clear()
