@@ -34,6 +34,8 @@ class NeuralActivityWindow(QtWidgets.QMainWindow):
         self.neural_predictions = neural_activity.NeuralActivity(parent=self)
         self.neural_data_loaded = False
         self.neural_predictions_loaded = False
+        self.neural_activity_vtick = None
+        self.neural_predictions_vtick = None
 
         self.show()
         
@@ -77,14 +79,14 @@ class NeuralActivityWindow(QtWidgets.QMainWindow):
         self.load_groupbox.setLayout(QGridLayout())
        
         # Load neural activity
-        add_video_button = QPushButton("Load neural activity")
-        add_video_button.clicked.connect(self.load_neural_data)
-        self.load_groupbox.layout().addWidget(add_video_button, 0, 0)
+        load_neural_activity_button = QPushButton("Load neural activity")
+        load_neural_activity_button.clicked.connect(self.load_neural_data)
+        self.load_groupbox.layout().addWidget(load_neural_activity_button, 0, 0)
 
         # Load neural predictions
         load_neural_predictions_button = QPushButton("Load neural predictions")
         load_neural_predictions_button.clicked.connect(
-            self.load_neural_predictions_file
+            lambda clicked: self.load_neural_predictions_file(None)
         )
         self.load_groupbox.layout().addWidget(load_neural_predictions_button, 1, 0)
 
@@ -287,24 +289,18 @@ class NeuralActivityWindow(QtWidgets.QMainWindow):
     def load_neural_predictions_file(self, neural_predictions_filepath=None):
         #Load neural predictions file.
         if neural_predictions_filepath is None:
-            neural_predictions_filepath = io.load_npy_file(self)
-        if neural_predictions_filepath is not None and (
-            ".npy" in neural_predictions_filepath
-            or ".npz" in neural_predictions_filepath
-        ):
-            dat = np.load(neural_predictions_filepath, allow_pickle=True).item()
-        else:
-            return
+            neural_predictions_filepath = io.load_npy_file(self.parent, allow_mat=False)
+        dat = np.load(neural_predictions_filepath, allow_pickle=True).item()
         # Check if the file is a dictionary
         if isinstance(dat, dict):
             try:
                 self.neural_predictions.data = dat["predictions"]
                 extent = dat["plot_extent"]
                 self.neural_predictions.data_viz_method = "heatmap"
+                self.neural_predictions_loaded = True
                 self.plot_neural_predictions(extent=dat["plot_extent"])
                 self.highlight_test_data(dat["test_indices"], extent=extent)
-                print("Variance explained: {}".format(dat["variance_explained"]))
-                self.neural_predictions_loaded = True
+                print("Variance explained (test data): {}".format(dat["variance_explained"]))
             except Exception as e:
                 print("error", e)
                 # Show error message
@@ -519,20 +515,6 @@ class NeuralActivityWindow(QtWidgets.QMainWindow):
         dialog.output_filename_line_edit.setText("neural_predictions")
         output_filename_groupbox.layout().addWidget(dialog.output_filename_line_edit)
         save_neural_predictions_groupbox.layout().addWidget(output_filename_groupbox)
-
-        # Add a label for file datatype and two checkboxes for selecting the file datatype
-        save_datatype_groupbox = QtWidgets.QGroupBox()
-        save_datatype_groupbox.setLayout(QtWidgets.QHBoxLayout())
-        save_datatype_groupbox.setStyleSheet("QGroupBox { border: 0px solid gray; }")
-        save_datatype_label = QtWidgets.QLabel("Save *.mat:")
-        save_datatype_groupbox.layout().addWidget(save_datatype_label)
-        # Create two checkboxes named npy and mat to ask the user to select the file datatype
-        save_datatype_checkbox_group = QtWidgets.QButtonGroup()
-        save_datatype_checkbox_group.setExclusive(False)
-        dialog.save_mat_checkbox = QtWidgets.QCheckBox("mat")
-        save_datatype_checkbox_group.addButton(dialog.save_mat_checkbox)
-        save_datatype_groupbox.layout().addWidget(dialog.save_mat_checkbox)
-        save_neural_predictions_groupbox.layout().addWidget(save_datatype_groupbox)
 
         vbox.addWidget(save_neural_predictions_groupbox)
 
@@ -789,11 +771,6 @@ class NeuralActivityWindow(QtWidgets.QMainWindow):
                 save_path + ".npy",
                 save_data_dict,
             )
-            if dialog.save_mat_checkbox.isChecked():
-                sio.savemat(
-                    save_path + ".mat",
-                    save_data_dict,
-                )
             print("Predictions saved to: {}".format(save_dir))
 
     def output_file_path_button_clicked(self, clicked, line_edit):
@@ -859,7 +836,6 @@ class NeuralActivityWindow(QtWidgets.QMainWindow):
         # Set the test section box to 1 for the test indices
         for test_idx_list in test_indices_list:
             test_section_box[:, test_idx_list[0] : test_idx_list[-1]] = 1
-
         self.neural_predictions.test_data_image = pg.ImageItem(
             test_section_box, opacity=0.3
         )
@@ -893,19 +869,23 @@ class NeuralActivityWindow(QtWidgets.QMainWindow):
         lut = lut[0:-3, :]
         self.neural_predictions.test_data_image.setLookupTable(lut)
         self.neural_activity.test_data_image.setLookupTable(lut)
-        #self.neural_predictions_plot.addItem(self.neural_predictions.test_data_image)
-        #self.neural_activity_plot.addItem(self.neural_activity.test_data_image)
+        if self.neural_predictions_loaded:
+            self.neural_predictions_plot.addItem(self.neural_predictions.test_data_image)
+        if self.neural_data_loaded:
+            self.neural_activity_plot.addItem(self.neural_activity.test_data_image)
 
     def toggle_testdata_display(self, button):
+
         # Toggle the display of test data in the neural predictions plot
         if self.neural_predictions.test_data_image is not None:
             if button.isChecked():
                 self.neural_predictions.test_data_image.show()
             else:
                 self.neural_predictions.test_data_image.hide()
-        if self.neural_activity.test_data_image is not None:
+        if self.neural_activity.test_data_image is not None and self.neural_data_loaded:
             if button.isChecked():
                 self.neural_activity.test_data_image.show()
+
             else:
                 self.neural_activity.test_data_image.hide()
 

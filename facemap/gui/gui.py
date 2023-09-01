@@ -308,6 +308,7 @@ class MainW(QtWidgets.QMainWindow):
         self.video_window.show()
         self.show()
         self.processed = False
+        self.neural_win = None
 
         # Status bar
         self.statusBar = QStatusBar()
@@ -936,6 +937,7 @@ class MainW(QtWidgets.QMainWindow):
         # Clear vticks
         self.keypoints_vtick = None
         self.svd_plot_vtick = None
+        self.neural_win = None
 
     def pupil_sigma_change(self):
         self.pupil_sigma = float(self.sigma_box.text())
@@ -1115,6 +1117,9 @@ class MainW(QtWidgets.QMainWindow):
             self.update_keypoints_vtick()
         if self.processed or self.trace2_data_loaded is not None:
             self.update_svd_vtick()
+        if self.neural_win is not None:
+            self.neural_win.update_neural_data_vtick()
+            self.neural_win.update_neural_predictions_vtick()
         self.total_frames_label.setText("/ " + str(self.nframes) + " frames")
         self.video_window.show()
         self.show()
@@ -2110,7 +2115,7 @@ class MainW(QtWidgets.QMainWindow):
 
     ## ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Neural data  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ ##
     def launch_neural_activity_window(self):
-        neural_activity_window.NeuralActivityWindow(self)
+        self.neural_win = neural_activity_window.NeuralActivityWindow(self)
 
     def update_behavior_data(self):
         """
