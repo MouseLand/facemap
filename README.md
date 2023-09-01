@@ -27,7 +27,7 @@ Syeda, A., Zhong, L., Tung, R., Long, W., Pachitariu, M.\*, & Stringer, C.\* (20
 Stringer, C.\*, Pachitariu, M.\*, Steinmetz, N., Reddy, C. B., Carandini, M., & Harris, K. D. (2019). Spontaneous behaviors drive multidimensional, brainwide activity. <em>Science, 364</em>(6437), eaav7893.
 [[bibtex](https://scholar.googleusercontent.com/scholar.bib?q=info:DNVOkEas4K8J:scholar.google.com/&output=citation&scisdr=CgXHFLYtEMb9qP1Bt0Q:AAGBfm0AAAAAY3JHr0TJourtY6W2vbjy7opKXX2jOX9Z&scisig=AAGBfm0AAAAAY3JHryiZnvgWM1ySwd_xQ9brvQxH71UM&scisf=4&ct=citation&cd=-1&hl=en&scfhb=1)]
 
-The MATLAB version of the GUI is no longer supported (old [documentation](docs/svd_matlab_tutorial.md)).
+The MATLAB version of the GUI is no longer supported (see old [documentation](https://github.com/MouseLand/facemap/blob/main/docs/svd_matlab_tutorial.md)).
 
 ## Installation
 
@@ -86,7 +86,7 @@ Facemap supports grayscale and RGB movies. The software can process multi-camera
 
 '.mj2','.mp4','.mkv','.avi','.mpeg','.mpg','.asf'
 
-For more details, please refer to the [data acquisition page](docs/data_acquisition.md).
+For more details, please refer to the [data acquisition page](https://github.com/MouseLand/facemap/blob/main/docs/data_acquisition.md).
 
 ## Support
 
@@ -118,7 +118,7 @@ Facemap provides a trained network for tracking distinct keypoints on the mouse 
 
 Keypoints will be predicted in the selected bounding box region so please ensure the bounding box focuses on the face. See example frames [here](figs/mouse_views.png). 
 
-For more details on using the tracker, please refer to the [GUI Instructions](docs/pose_tracking_gui_tutorial.md). See  [command line interface (CLI) instructions](docs/pose_tracking_cli_tutorial.md) and for more examples, please see [tutorial notebooks](https://github.com/MouseLand/facemap/tree/dev/notebooks).
+For more details on using the tracker, please refer to the [GUI Instructions](https://github.com/MouseLand/facemap/blob/main/docs/pose_tracking_gui_tutorial.md). Check out the [notebook](https://github.com/MouseLand/facemap/blob/main/docs/notebooks/process_keypoints.ipynb) for processing keypoints in colab.
 
 <p float="middle">
 <img src="https://raw.githubusercontent.com/MouseLand/facemap/main/figs/mouse_face1_keypoints.png"  width="310" height="290" title="View 1" alt="view1" align="left" vspace = "10" hspace="30" style="border: 0.5px solid white"  />
@@ -134,7 +134,7 @@ Facemap allows pupil tracking, blink tracking and running estimation, see more d
 
 You can draw ROIs to compute the motion/movie SVD within the ROI, and/or compute the full video SVD by checking `multivideo`. Then check `motSVD`  and/or `movSVD` and click `process`. The processed SVD `*_proc.npy` (and optionally `*_proc.mat`) file will be saved in the output folder selected.
 
-For more details see [SVD python tutorial](docs/svd_python_tutorial.md) or [SVD MATLAB tutorial](docs/svd_matlab_tutorial.md).
+For more details see [SVD python tutorial](https://github.com/MouseLand/facemap/blob/main/docs/svd_python_tutorial.md) or [SVD MATLAB tutorial](https://github.com/MouseLand/facemap/blob/main/docs/svd_matlab_tutorial.md).
 
 ([video](https://www.youtube.com/watch?v=Rq8fEQ-DOm4) with old install instructions)
 
@@ -149,5 +149,5 @@ The encoding model used for prediction is described as follows:
 <img src="https://raw.githubusercontent.com/MouseLand/facemap/main/figs/encoding_model.png"  width="70%" height="300" title="neural model" alt="neural model" align="center" vspace = "10" hspace="30" style="border: 0.5px solid white"  />
 </p>
 
-Please see neural activity prediction [tutorial](docs/neural_activity_prediction_tutorial.md) for more details.
+Please see neural activity prediction [tutorial](https://github.com/MouseLand/facemap/blob/main/docs/neural_activity_prediction_tutorial.md) for more details.
 
