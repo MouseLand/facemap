@@ -799,8 +799,8 @@ class ModelTrainingPopup(QDialog):
         self.frame_win = KeypointsViewBox(
             scatter_item=self.keypoints_scatterplot, invertY=True, lockAspect=True
         )  # self.win.addViewBox(invertY=True)
-        self.frame_win.setAspectLocked(True, QtCore.Qt.IgnoreAspectRatio)
-        self.frame_win.setMouseEnabled(False, False)
+        #self.frame_win.setAspectLocked(True, QtCore.Qt.IgnoreAspectRatio)
+        #self.frame_win.setMouseEnabled(False, False)
         self.frame_win.setMenuEnabled(False)
         self.win.addItem(self.frame_win)
         self.frame_group.layout().addWidget(self.win)
@@ -820,21 +820,33 @@ class ModelTrainingPopup(QDialog):
         self.saturation_group = QGroupBox()
         self.saturation_group.setLayout(QHBoxLayout())
         self.saturation_label = QLabel(self)
-        self.saturation_label.setText("Image saturation:")
+        self.saturation_label.setText("Saturation:")
         self.saturation_label.setStyleSheet("QLabel {color: 'white'; font-size: 16}")
         self.saturation_label.setAlignment(QtCore.Qt.AlignRight)
-        self.saturation_group.layout().addWidget(self.saturation_label)
         self.saturation_slider = QSlider(QtCore.Qt.Horizontal, self)
         self.saturation_slider.setMinimum(0)
         self.saturation_slider.setMaximum(100)
         self.saturation_slider.setValue(100)
         self.saturation_slider.valueChanged.connect(self.update_saturation)
         self.saturation_slider.setTracking(False)
-        # Set width of slider
-        self.saturation_slider.setFixedWidth(
-            int(np.floor(self.window_max_size.width() * 0.6 * 0.2))
+        # Add a brightness slider to saturation group
+        self.brightness_label = QLabel(self)
+        self.brightness_label.setText("Brightness:")
+        self.brightness_label.setStyleSheet("QLabel {color: 'white'; font-size: 16}")
+        self.brightness_label.setAlignment(QtCore.Qt.AlignRight)
+        self.brightness_slider = QSlider(QtCore.Qt.Horizontal, self)
+        self.brightness_slider.setMinimum(0)
+        self.brightness_slider.setMaximum(200)
+        self.brightness_slider.setValue(100)
+        self.brightness_slider.valueChanged.connect(self.update_brightness)
+        self.brightness_slider.setTracking(False)
+        self.brightness_slider.setFixedWidth(
+            int(np.floor(self.window_max_size.width() * 0.5 * 0.2))
         )
-        self.saturation_group.layout().addWidget(self.saturation_slider)
+        self.saturation_group.layout().addWidget(self.brightness_label)
+        self.saturation_group.layout().addWidget(self.brightness_slider)
+        #self.saturation_group.layout().addWidget(self.saturation_label)
+        #self.saturation_group.layout().addWidget(self.saturation_slider)
         self.left_vertical_group.layout().addWidget(self.saturation_group)
 
         # Define buttons for main window
@@ -918,6 +930,22 @@ class ModelTrainingPopup(QDialog):
             * (self.all_frames[self.current_video_idx][self.current_frame].max())
         )
         self.img.setLevels([0, saturation])
+
+    def update_brightness(self):
+        """
+        Update the brightness of the image
+        """
+        brightness_factor = float(self.brightness_slider.value())/100
+        # change brightness
+        image = self.all_frames[self.current_video_idx][self.current_frame]
+        # Ensure that the brightness factor is within a valid range
+        brightness_factor = max(0.0, min(brightness_factor, 2.0))
+        # Adjust the brightness by multiplying with the factor
+        brightened_image_array = image * brightness_factor
+        # Make sure the values are still in the valid 0-1 range
+        brightened_image_array = np.clip(brightened_image_array, 0.0, 1.0)
+        self.img.setImage(brightened_image_array)
+
 
     def split_frames_idx_by_category(self, pose_pred_data):
         """
@@ -1096,7 +1124,8 @@ class ModelTrainingPopup(QDialog):
             self.previous_frame()
         else:
             self.previous_button.setEnabled(False)
-        self.update_saturation()
+        self.update_brightness()
+        # self.update_saturation()
 
     def update_frame_counter(self, button):
         self.next_button.setEnabled(True)
@@ -1153,10 +1182,11 @@ class ModelTrainingPopup(QDialog):
             self.next_frame()
         else:
             self.next_button.setEnabled(False)
-        self.frame_win.setAspectLocked(True, QtCore.Qt.IgnoreAspectRatio)
-        self.frame_win.setMouseEnabled(False, False)
+        #self.frame_win.setAspectLocked(True, QtCore.Qt.IgnoreAspectRatio)
+        #self.frame_win.setMouseEnabled(False, False)
         self.frame_win.setMenuEnabled(False)
-        self.update_saturation()
+        self.update_brightness()
+        #self.update_saturation()
         self.win.show()
 
     def keyPressEvent(self, ev):
