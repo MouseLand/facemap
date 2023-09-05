@@ -36,6 +36,7 @@ from PyQt5.QtWidgets import (
 from .. import utils
 from ..gui import help_windows, io
 from . import model_loader, transforms
+from torch.nn import functional as F
 
 """
 Single workflow for re-training the model or fine-tuning the model with new data.
@@ -764,7 +765,7 @@ class ModelTrainingPopup(QDialog):
                 self.all_frames[0],
                 self.pose_data[0],
             ) = self.get_bbox_adjusted_img_and_keypoints(
-                self.all_frames[0], self.pose_data[0], self.bbox[0]
+                self.all_frames[0], self.pose_data[0], self.bbox[0], resize = False
             )
 
         if (
@@ -973,7 +974,7 @@ class ModelTrainingPopup(QDialog):
         easy_frames_idx = np.where(likelihood < likelihood_threshold)[0]
         return difficult_frames_idx, easy_frames_idx
 
-    def get_bbox_adjusted_img_and_keypoints(self, imgs, keypoints, bbox):
+    def get_bbox_adjusted_img_and_keypoints(self, imgs, keypoints, bbox, resize=None):
         """
         Adjusts the images and keypoints to the bounding box
         Parameters
@@ -990,10 +991,11 @@ class ModelTrainingPopup(QDialog):
             add_padding = True
         else:
             add_padding = False
-        if x2 - x1 != 256 or y2 - y1 != 256:
-            resize = True
-        else:
-            resize = False
+        if resize is None:
+            if x2 - x1 != 256 or y2 - y1 != 256:
+                resize = True
+            else:
+                resize = False
         imgs, postpad_shape, pads = transforms.preprocess_img(
             torch.tensor(imgs[np.newaxis, ...]),
             bbox,
@@ -1225,8 +1227,12 @@ class ModelTrainingPopup(QDialog):
     def train_model(self):
         if self.use_current_video:
             self.keypoints_scatterplot.save_refined_data()
-        # Combine all keypoints and image data from selected videos into one list
-        # Convert lists to numpy arrays
+        # Combine all keypoints and image data from selected videos into one array
+        # resize all to 256,256 before concatenating
+        for s, set in enumerate(self.all_frames):
+            self.pose_data[s][:,:,0], self.pose_data[s][:,:,1] = transforms.rescale_keypoints(self.pose_data[s][:,:,0], self.pose_data[s][:,:,1], set.shape, (256, 256))
+            self.all_frames[s] = transforms.resize_image(torch.from_numpy(self.all_frames[s]), resize_shape=(256, 256)).numpy()
+
         keypoints_data = np.concatenate(self.pose_data, axis=0)
         image_data = np.concatenate(self.all_frames, axis=0)
         keypoints_data = np.array(keypoints_data)
@@ -1333,6 +1339,7 @@ class ModelTrainingPopup(QDialog):
                 frame = imgs[i * rows + j]
                 self.win = pg.GraphicsLayoutWidget()
                 frame_win = self.win.addViewBox(invertY=True)
+                frame_win.setAspectLocked(True)
                 frame_win.addItem(
                     pg.LabelItem("Frame {}".format(random_frame_indices[i * 3 + j] + 1))
                 )
