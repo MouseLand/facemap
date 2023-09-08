@@ -42,6 +42,14 @@ If you are using a GPU, make sure its drivers and the cuda libraries are correct
 5. To install the minimal version of facemap, run `python -m pip install facemap`.  
 6. To install facemap and the GUI, run `python -m pip install facemap[gui]`. If you're on a zsh server, you may need to use ' ' around the facemap[gui] call: `python -m pip install 'facemap[gui]'.
 
+For Macbook users with M1/M2 please follow the following instructions for installation:
+1. Install an [Anaconda](https://www.anaconda.com/products/distribution) distribution of Python. Note you might need to use an anaconda prompt if you did not add anaconda to the path.
+2. Open an anaconda prompt / command prompt which has `conda` for **python 3** in the path
+3. Create a new environment with `conda create -y -n facemap python=3.9 pyqt imagecodecs pyqtgraph matplotlib`
+4. To activate this new environment, run `conda activate facemap`
+5. Next, install the facemap in the environment: `pip install facemap`
+6. Finally, run `python -m facemap` to launch facemap GUI.
+
 To upgrade facemap (package [here](https://pypi.org/project/facemap/)), run the following in the environment:
 
 ~~~sh
