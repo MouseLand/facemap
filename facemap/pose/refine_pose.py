@@ -1230,7 +1230,7 @@ class ModelTrainingPopup(QDialog):
         # Combine all keypoints and image data from selected videos into one array
         # resize all to 256,256 before concatenating
         for s, set in enumerate(self.all_frames):
-            self.pose_data[s][:,:,0], self.pose_data[s][:,:,1] = transforms.rescale_keypoints(self.pose_data[s][:,:,0], self.pose_data[s][:,:,1], set.shape, (256, 256))
+            self.pose_data[s][:,:,0], self.pose_data[s][:,:,1] = transforms.rescale_keypoints(self.pose_data[s][:,:,0], self.pose_data[s][:,:,1], set.shape[1:], (256, 256))
             self.all_frames[s] = transforms.resize_image(torch.from_numpy(self.all_frames[s]), resize_shape=(256, 256)).numpy()
 
         keypoints_data = np.concatenate(self.pose_data, axis=0)
@@ -1268,7 +1268,7 @@ class ModelTrainingPopup(QDialog):
             self.output_folder_path, self.output_model_name + ".pt"
         )
         self.gui.save_pose_model(output_filepath)
-        self.gui.update_pose_model_combo_box()
+        self.gui.add_pose_model(output_filepath)
         self.close()
 
     ### ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Model Evaluation ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ ###

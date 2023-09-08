@@ -808,17 +808,17 @@ class MainW(QtWidgets.QMainWindow):
             message += "\n".join(self.batchlist)  # Items will be separated by new lines
             QMessageBox.information(self, "Batch List", message)
 
-    def add_pose_model(self):
+    def add_pose_model(self, pose_model_path=None):
         # Open a file dialog to browse and select a pose model
-        pose_model_path = QFileDialog.getOpenFileName(
-            self, "Select pose model", "", "Pose model (*.pt)"
-        )[0]
-        if pose_model_path:
+        if pose_model_path is None:
+            pose_model_path = QFileDialog.getOpenFileName(
+                self, "Select pose model", "", "Pose model (*.pt)"
+                )[0]
+        try:
             model_loader.copy_to_models_dir(pose_model_path)
             self.update_pose_model_combo_box()
             # set index to the newly added model
             pose_model_name = os.path.basename(pose_model_path).split(".")[0]
-            print(pose_model_name)
             for i in range(self.pose_model_combobox.count()):
                 if self.pose_model_combobox.itemText(i) == pose_model_name:
                     self.pose_model_combobox.setCurrentIndex(i)
@@ -830,11 +830,11 @@ class MainW(QtWidgets.QMainWindow):
             msg.setWindowTitle("Pose model added")
             msg.setStandardButtons(QMessageBox.Ok)
             msg.exec_()
-        else:
+        except Exception as e:
             msg = QMessageBox()
-            msg.setIcon(QMessageBox.Warning)
-            msg.setText("Pose file not selected.")
-            msg.setWindowTitle("Pose file not selected")
+            msg.setIcon(QMessageBox.Error)
+            msg.setText("Pose model not added. Error: " + str(e))
+            msg.setWindowTitle("Eror")
             msg.setStandardButtons(QMessageBox.Ok)
             msg.exec_()
 
