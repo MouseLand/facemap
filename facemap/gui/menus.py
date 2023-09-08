@@ -42,6 +42,12 @@ def mainmenu(parent):
     add_pose_model.triggered.connect(lambda: parent.add_pose_model())
     parent.addAction(add_pose_model)
 
+    launch_neural_activity_window = QAction("Launch Neural Activity Window", parent)
+    launch_neural_activity_window.triggered.connect(
+        lambda: parent.launch_neural_activity_window()
+    )
+    parent.addAction(launch_neural_activity_window)
+    """
     # Load neural data
     load_neural = QAction("Load neural data", parent)
     load_neural.triggered.connect(lambda: parent.load_neural_data())
@@ -69,6 +75,7 @@ def mainmenu(parent):
         lambda: parent.toggle_testdata_display(toggle_test_data)
     )
     parent.addAction(toggle_test_data)
+    """
 
     user_manual = QAction("User manual", parent)
     user_manual.setShortcut("Ctrl+H")
@@ -95,10 +102,13 @@ def mainmenu(parent):
     pose_menu.addAction(add_pose_model)
 
     neural_activity_menu = main_menu.addMenu("Neural activity")
+    neural_activity_menu.addAction(launch_neural_activity_window)
+    """"
     neural_activity_menu.addAction(load_neural)
     neural_activity_menu.addAction(load_neural_predictions)
     neural_activity_menu.addAction(run_neural_prediction)
     neural_activity_menu.addAction(toggle_test_data)
+    """
 
     help_menu = main_menu.addMenu("&Help")
     help_menu.addAction(user_manual)
