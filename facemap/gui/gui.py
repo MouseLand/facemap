@@ -2,9 +2,10 @@
 Copright © 2023 Howard Hughes Medical Institute, Authored by Carsen Stringer and Atika Syeda.
 """
 import os
-import sys, cv2
+import sys
 from pathlib import Path
 
+import cv2
 import h5py
 import matplotlib
 import matplotlib.pyplot as plt
@@ -37,7 +38,14 @@ from PyQt5.QtWidgets import (
 from scipy.stats import skew, zscore
 
 from facemap import process, roi, utils
-from facemap.gui import cluster, guiparts, help_windows, io, menus, neural_activity_window
+from facemap.gui import (
+    cluster,
+    guiparts,
+    help_windows,
+    io,
+    menus,
+    neural_activity_window,
+)
 from facemap.pose import model_loader, pose, pose_gui, refine_pose
 
 istr = ["pupil", "motSVD", "blink", "running", "movSVD"]

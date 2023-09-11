@@ -1,16 +1,16 @@
-import numpy as np
-from PyQt5 import QtCore, QtWidgets, QtGui
 import os
-import scipy.io as sio
-from facemap.gui import guiparts, help_windows, io
-from facemap.neural_prediction import prediction_utils
-from PyQt5.QtWidgets import *
-from PyQt5.QtCore import Qt, QUrl
-from facemap import utils
+
 import matplotlib
-from matplotlib import cm
+import numpy as np
 import pyqtgraph as pg
-from PyQt5.QtMultimedia import QMediaPlayer, QMediaContent
+import scipy.io as sio
+from matplotlib import cm
+from PyQt5 import QtCore, QtGui, QtWidgets
+from PyQt5.QtCore import Qt, QUrl
+from PyQt5.QtWidgets import *
+
+from facemap import utils
+from facemap.gui import guiparts, help_windows, io
 from facemap.neural_prediction import neural_activity, prediction_utils
 
 
