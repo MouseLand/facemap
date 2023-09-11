@@ -1,3 +1,6 @@
+"""
+Copright © 2023 Howard Hughes Medical Institute, Authored by Carsen Stringer and Atika Syeda.
+"""
 "Test Facemap's pose estimation output "
 import os
 
@@ -27,7 +30,7 @@ def test_pose_estimation_output(data_dir, video_names, bodyparts, expected_outpu
         filenames=[[video_abs_path]], model_name="facemap_model_state"
     )
     # Run prediction
-    pose_object.run_all()
+    pose_object.run()
     # Get output
     test_h5_path = (
         video_abs_path.split(video_extension)[0] + "_FacemapPose.h5"

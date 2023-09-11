@@ -1,4 +1,8 @@
+"""
+Copright © 2023 Howard Hughes Medical Institute, Authored by Carsen Stringer and Atika Syeda.
+"""
 import os
+import typing
 
 import numpy as np
 from PyQt5 import QtCore
@@ -14,9 +18,12 @@ from PyQt5.QtWidgets import (
     QPushButton,
     QScrollArea,
     QSizePolicy,
+    QTextEdit,
     QVBoxLayout,
     QWidget,
 )
+
+from ..version import version_str
 
 
 class MainWindowHelp(QDialog):
@@ -55,7 +62,7 @@ class MainWindowHelp(QDialog):
         layout.addWidget(main_text, stretch=1)
 
         # Pose tracking section
-        pose_tracking_group = QGroupBox("Pose tracking", self)
+        pose_tracking_group = QGroupBox()
         pose_tracking_group.setStyleSheet(
             "QGroupBox {background: 'black'; border: 0px ;}"
         )
@@ -81,7 +88,7 @@ class MainWindowHelp(QDialog):
         layout.addWidget(pose_tracking_group, stretch=1)
 
         # SVD section
-        svd_group = QGroupBox("SVD", self)
+        svd_group = QGroupBox()
         svd_group.setStyleSheet("QGroupBox {background: 'black'; border: 0px ;}")
         svd_group.setLayout(QVBoxLayout())
         svd_text = """
@@ -108,13 +115,54 @@ class MainWindowHelp(QDialog):
 
         self.show()
 
-        # TODO - Add instructions for filetypes accepted for different load buttons
 
-        # TODO - Add instructions for loading neural data
+class LoadNeuralDataHelp(QDialog):
+    def __init__(self, window_size, parent=None):
+        super(LoadNeuralDataHelp, self).__init__(parent)
+        self.setWindowTitle("Help")
+        width, height = int(window_size.width() * 0.28), int(
+            window_size.height() * 0.25
+        )
+        self.resize(width, height)
+        self.win = QWidget(self)
+        layout = QVBoxLayout()
+        layout.setAlignment(QtCore.Qt.AlignCenter)
+        self.win.setLayout(layout)
+
+        self.scrollArea = QScrollArea(self)
+        self.scrollArea.setFixedHeight(height)
+        self.scrollArea.setFixedWidth(width)
+        self.scrollArea.setWidgetResizable(True)
+        self.scrollArea.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOn)
+        self.scrollArea.setWidget(self.win)
+        
+        text = """
+            <ol>
+                <li>Load neural data file (*.npy) containing an array of shape neurons x time.</li>
+                <li>Select whether to view neural data as heatmap or traces (for small number of neurons).</li>
+                <li>(Optional) Load neural timestamps file (*.npy) containing a 1D array.</li>
+                <li>(Optional) Load behavioral timestamps file (*.npy) containing a 1D array.</li>
+                <li> Note: the timestamps file are used for resampling behavioral data to neural timescale.</li>
+            </ol>
+            """
+
+        label = QLabel(text, self)
+        label.setStyleSheet(
+            "font-size: 12pt; font-family: Arial;  text-align: center; "
+        )
+        label.setWordWrap(True)
+        layout.addWidget(label, stretch=1)
+
+        # Add a ok button to close the window
+        self.ok_button = QPushButton("Ok")
+        self.ok_button.clicked.connect(self.close)
+        layout.addWidget(self.ok_button, alignment=QtCore.Qt.AlignCenter)
+
+        self.show()
 
 
 class AboutWindow(QDialog):
-    def __init__(self, parent=None, window_size=None):
+    def __init__(self, parent, window_size):
         super(AboutWindow, self).__init__(parent)
         width, height = int(window_size.width() * 0.28), int(
             window_size.height() * 0.42
@@ -151,10 +199,10 @@ class AboutWindow(QDialog):
 
         text = """
             <p>
-            Pose tracking of mouse face from different camera views (python only) and svd processing of videos (python and MATLAB).
+            Framework for predicting neural activity from mouse orofacial movements tracked using a pose estimation model. Package also includes singular value decomposition (SVD) of behavioral videos. 
             </p>
             <p>
-            <b>Authors:</b> Carsen Stringer & Atika Syeda & Renee Tung
+            <b>Authors:</b> Carsen Stringer & Atika Syeda
             </p>
             <p>
             <b>Contact:</b> syedaa[at]janelia.hhmi.org, stringerc[at]janelia.hhmi.org
@@ -162,18 +210,18 @@ class AboutWindow(QDialog):
             <b>License:</b> GPLv3
             </p>
             <p>
-            <b>Version:</b> 0.2.0
+            <b>Version:</b> {version}
             </p>
             <p>
-            Visit our <a href="https://github.com/MouseLand/FaceMap"> github page </a> for more information.
+            Visit our GitHub page for more information.
             </p>
-        """
-        text = QLabel(text, self)
-        text.setStyleSheet(
-            "font-size: 12pt; font-family: Arial; color: white; text-align: center; "
+        """.format(version=version_str)
+        text = QTextEdit(text, self)
+        text.setStyleSheet(            
+                            "font-size: 12pt; color: white; background-color: #000000;"
         )
-        text.setWordWrap(True)
-        text.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+        text.setReadOnly(True) 
+        text.setFixedSize(width*0.98, height)
         layout.addWidget(text, stretch=1)
 
         self.show()
@@ -183,7 +231,7 @@ class PoseRefinementStep2HelpWindow(QDialog):
     def __init__(self, parent=None, window_size=None):
         super(PoseRefinementStep2HelpWindow, self).__init__(parent)
         width, height = int(window_size.width() * 0.3), int(window_size.height() * 0.3)
-        self.resize(width, height)
+        self.resize(width * 0.95, height * 0.75)
         self.setWindowTitle("Help")
         self.win = QWidget(self)
         layout = QVBoxLayout()
@@ -192,16 +240,19 @@ class PoseRefinementStep2HelpWindow(QDialog):
 
         text = """
             <ol>
-                <li>Select the initial/base model to use for further finetuning.</li>
-                <li>Set the name of output model after refinement.</li>
-                <li>(If applicable) Select data files containing refined keypoints from previous training to include during current model training.</li>
-                <li>Select 'Refine current video' to refine predicted keypoints for a subset of frames from the current video after selecting the number of frames. Note: the suggested number of frames for each new animal are 20-25.</li>
-                <li>Select '+' to set the hyperparameters for training.</li>
+                <li>Select base model for finetuning.</li>
+                <li>Set name of finetuned model.</li>
+                <li>Select whether to 'Refine current video' and the number of frames to refine from current video.</li>
+                <li>Set proportion of random frames to include during training. Rest of the frames are selected based on keypoint values that lie above likelihood threshold.</li>
+                <li>(Optional) Select whether to use refined keypoints from previous training.</li>
+                <li>Select '+' to change hyperparameter settings for training.</li>
             </ol>
             """
-        label = QLabel(text)
-        label.setStyleSheet("font-size: 12pt; font-family: Arial; color: white;")
-        label.setWordWrap(True)
+        label = QTextEdit(text) #QLabel(text)
+        label.setReadOnly(True)  # Make the text area read-only
+        label.setStyleSheet("font-size: 12pt; color: white; background-color: black;")
+        label.setHtml(text)
+        label.setFixedSize(width * 0.9, height * 0.6)
         layout.addWidget(label, alignment=QtCore.Qt.AlignCenter)
 
         # Add a ok button to close the window
@@ -242,83 +293,84 @@ class RefinementHelpWindow(QDialog):
             <h2>Refinement keys</h2>
             <p>
             <ul>
-                <li><b>Left click:</b> Press left button and drag mouse to move a keypoint</li>
-                <li><b>Right click:</b> To add a deleted keypoint currently selected in the radio buttons at current mouse position</li>
-                <li><b>Shift + D:</b> To delete a keypoint selected in the radio buttons</li>
+                <li><b>Move Keypoint:</b> Hold down the left mouse button and drag the mouse to reposition a keypoint.</li>
+                <li><b>Restore Keypoint:</b> Right-click to add a previously deleted keypoint at the current mouse position, matching the radio button selection.</li>
+                <li><b>Delete Keypoint:</b> Use Shift + D to remove the keypoint selected in the radio buttons.</li>
             </ul>
             </p>
-            <h2>Labelling instructions</h2>
+            <h2>Guidelines for Labeling</h2>
             <p>
-            Keypoints for different facial regions are labelled as shown above in the side view and top view. Detailed instructions for each region are given below for different views:
+            Keypoints representing various facial regions are annotated according to the illustrations provided for the side view and top view. For each viewpoint, detailed instructions for labeling different regions are outlined below:
             </p>
             <h3>Eye</h3>
             <ul>
                 <li>
-                EYE(TOP): Upper eyelid point centered at the top of the eye.
+                EYE(TOP): Mark the upper eyelid's central point, located at the eye's highest point.
                 </li>
                 <li>
-                EYE(BOTTOM): Lower eyelid point centered at the bottom of the eye.
+                EYE(BOTTOM): Identify the lower eyelid's central point, situated at the eye's lowest point.
                 </li>
                 <li>
-                EYE(FRONT): Point at the front of the eye near the nose.
+                EYE(FRONT): Annotate the point at the eye's front, closest to the nose.
                 </li>
                 <li>
-                EYE(BACK): Point opposite the front eye keypoint.
+                EYE(BACK): Mark the point opposite the front eye keypoint.
                 </li>
             </ul>
             <h3>Nose</h3>
             <ul>
                 <li>
-                NOSEBRIDGE: Point at the top of the nose in line with the EYE(FRONT) keypoint.
+                NOSEBRIDGE:  Place a point at the top of the nose, aligned with the "EYE(FRONT)" keypoint.
                 </li>
                 <li>
-                NOSE(TOP): Point at the top of the nose.
+                NOSE(TOP):  Place a point at the top of the nose.
                 </li>
                 <li>
-                NOSE(TIP): Point at the tip/middle of the nose.
+                NOSE(TIP): Annotate the point at the tip or middle of the nose.
                 </li>
                 <li>
-                NOSE(BOTTOM): Point at the bottom of the nose if viewed from the side. If viewed from the top, this is the point opposite the nose(Right) keypoint to track left/right movements.
+                NOSE(BOTTOM): Place a point at the nose's bottom, visible from the side. In a top view, this point corresponds to the opposite side of the "Nose (Right)" keypoint, tracking lateral movements.
                 </li>
                 <li>
-                NOSE(R): Point at the right side of the nose which is only labeled if viewed from the top. The point tracks left/right movements.
+                NOSE(R): Label this point only when viewing from the top. It tracks left/right movements.
                 </li>
             </ul>
              <h3>Whiskers</h3>
-            To label whiskers, find a set of 3 whiskers in the triangular configuration as shown above. The easiest way to do this is to identify most prominent whiskers that are easily identifiable across frames. Whiskers are labeled in clockwise order (C1->D1-C3) when viewed from the right side and in counterclockwise order (C1->D1-C3) when viewed from the top/left view.
+            For whisker labeling, identify a set of three whiskers forming a triangular pattern as shown. Look for prominent whiskers consistently recognizable across frames. Label whiskers in a clockwise order (I->II-III) when viewed from the right side, or counterclockwise order (I->II-III) when viewed from the top/left view.
             <ul> 
                 <li>
-                WHISKER(I): First whisker in the third row from top.
+                WHISKER(I): The first whisker in the third row from the top.
                 </li>
                 <li>
-                WHISKER(II): First whisker in the fourth row from top.
+                WHISKER(II): The first whisker in the fourth row from the top.
                 </li>
                 <li>
-                WHISKER(III): Second whisker in the fourth row from top.
+                WHISKER(III): The second whisker in the fourth row from the top.
                 </li>
             </ul>
             <h3>Paw</h3>
             <ul>
                 <li>
-                PAW: Point is only labelled when visible in frame. Select any region of the paw to label the paw.
+                PAW: Label this point only when visible within the frame. Select any region of the paw for labeling.
                 </li>
             </ul>
             <h3>Mouth</h3>
             <ul>
                 <li>
-                MOUTH: Point indicating the center of the mouth (opening). The point is only labeled when visible (usually from the sideview).
+                MOUTH: Mark the point at the center of the mouth opening. Label only when visible, usually in the side view.
                 </li>
                 <li>
-                LOWERLIP: Point at the bottom of the lower lip near the mouth keypoint. The point is only labeled when visible (usually from the sideview).
+                LOWERLIP: Place a point at the bottom of the lower lip near the mouth keypoint. Label only when visible, typically from the side view.
                 </li>
             </ul>
+            Please follow these instructions to accurately label the keypoints for each facial region in the provided illustrations.
             """
-        label = QLabel(text)
+        label = QTextEdit(text)
         label.setStyleSheet(
             "font-size: 12pt; font-family: Arial; color: white; text-align: center; padding: 15;"
         )
-        label.setWordWrap(True)
-        label.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+        label.setReadOnly(True)
+        label.setFixedSize(width * 0.9, height * 0.6)
         layout.addWidget(label, alignment=QtCore.Qt.AlignLeft, stretch=1)
 
         # Add ok button to close the window
@@ -332,13 +384,10 @@ class RefinementHelpWindow(QDialog):
         self.show()
 
 
-# TODO: Update help button with correct instructions about keypoints labels (specially whiskers)
-
-
 class NeuralModelTrainingWindow(QDialog):
     def __init__(self, parent=None, window_size=None):
         super(NeuralModelTrainingWindow, self).__init__(parent)
-        width, height = int(window_size.width() * 0.4), int(window_size.height() * 0.45)
+        width, height = int(window_size.width() * 0.3), int(window_size.height() * 0.45)
         self.resize(width, height)
         self.setWindowTitle("Help - Neural Model Training")
 
@@ -352,32 +401,36 @@ class NeuralModelTrainingWindow(QDialog):
         self.scrollArea.setFixedWidth(width)
         self.scrollArea.setWidgetResizable(True)
         self.scrollArea.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOn)
-        self.scrollArea.setStyleSheet("background: 'black'; ")
         self.scrollArea.setWidget(self.win)
 
         # Add a list of hyperparameters and their descriptions with recommended values
         main_text = """
-            <h2>Training instructions</h2>
+            <h2>Instructions for Training</h2>
             <p>
-            <ul>
-                <li>Select input data to be used for training the model and prediction</li>
-                <li>Set the hyperparameters for training the model</li>
-                <li>Select whether to save the model and predictions</li>
-            </ul>
+            <ol>
+                <li>Choose the input data to be used for neural activity prediction.</li>
+                <li>Select the output of the neural activity prediction model (neural principal components or neurons).</li>
+                <li>Configure the hyperparameters for training the model.</li>
+                <li>Indicate whether to save the output of the neural activity prediction model as yes/no.</li>
+            </ol>
             </p>
-            <h2>Hyperparameters</h2>
             <p>
+            <h4>Output of the Model</h4>
             <ul>
-                <li><b>Learning rate:</b> Learning rate for the optimizer. Recommended value: 0.001</li>
-                <li><b>Weight decay:</b> Weight decay for the optimizer. Recommended value: 0.0001</li>
-                <li><b># Epochs:</b> Number of epochs to train the model. Recommended value: 100</li>
-                <li><b># Neurons split:</b> Number of neurons in the split layer. Recommended value: 100</li>
+                <li>The results of predicting neural activity are stored in files with the extensions *.npy and/or *.mat.</li>
+                <li>The output comprises a dictionary with the following entries:</li>
+                <ul>
+                    <li><b>predictions:</b> a two-dimensional array containing the predicted neural activity, organized as (number of features x time)</li>
+                    <li><b>test_indices:</b> a list of indices indicating which data segments were used for testing, thus determining the variance explained by the model</li>
+                    <li><b>variance_explained:</b> the amount of variability accounted for by the model with respect to the test data</li>
+                    <li><b>plot_extent:</b> the dimensions of the plot area employed to visualize the projected neural activity, presented in the order [x1, y1, x2, y2]</li>
+                </ul>
             </ul>
             </p>
             """
         main_text = QLabel(main_text, self)
         main_text.setStyleSheet(
-            "font-size: 12pt; font-family: Arial; color: white; text-align: center; "
+            "font-size: 12pt; font-family: Arial;  text-align: center; "
         )
         main_text.setWordWrap(True)
         layout.addWidget(main_text, stretch=1)
@@ -386,7 +439,7 @@ class NeuralModelTrainingWindow(QDialog):
         self.ok_button = QPushButton("Ok")
         self.ok_button.clicked.connect(self.close)
         self.ok_button.setStyleSheet(
-            "background: 'black'; color: 'white'; font-size: 12pt; font-family: Arial; "
+            "font-size: 12pt; font-family: Arial; "
         )
         layout.addWidget(self.ok_button, alignment=QtCore.Qt.AlignCenter)
 

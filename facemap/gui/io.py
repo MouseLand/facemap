@@ -1,3 +1,6 @@
+"""
+Copright © 2023 Howard Hughes Medical Institute, Authored by Carsen Stringer and Atika Syeda.
+"""
 import glob
 import os
 import pickle
@@ -19,8 +22,8 @@ def open_file(parent, file_name=None):
             "",
             "Movie files (*.h5 *.mj2 *.mp4 *.mkv *.avi *.mpeg *.mpg *.asf *m4v)",
         )
-    # load ops in same folder
-    if file_name:
+    # check if file_name selected or cancelled
+    if file_name[0]:
         parent.filelist = [[file_name[0]]]
         load_movies(parent)
     else:
@@ -231,7 +234,7 @@ def open_proc(parent, file_name=None):
                         int(parent.saturation[parent.iROI] * 100 / 255)
                     )
                     parent.ROIs[parent.iROI].plot(parent)
-                    if parent.processed and k <= 7:
+                    if parent.processed and k <= 5:
                         parent.plot2_checkboxes[k].setText(
                             "%s%d" % (parent.typestr[r["rind"]], kt[r["rind"]])
                         )
@@ -304,8 +307,8 @@ def load_movies(parent, filelist=None):
         parent.Lx = Lx
         parent.keypoints_traces_plot.clear()
         parent.svd_traces_plot.clear()
-        parent.neural_activity_plot.clear()
-        parent.neural_activity_plot.clear()
+        #parent.neural_activity_plot.clear()
+        #parent.neural_activity_plot.clear()
         if len(parent.Ly) < 2:
             parent.LY = parent.Ly[0]
             parent.LX = parent.Lx[0]
@@ -377,8 +380,8 @@ def save_folder(parent):
     if folderName:
         parent.save_path = folderName
         parent.output_folder_set = True
-        if len(folderName) > 30:
-            parent.savelabel.setText("..." + folderName[-30:])
+        if len(folderName) > 15:
+            parent.savelabel.setText("..." + folderName[-15:])
         else:
             parent.savelabel.setText(folderName)
 

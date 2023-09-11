@@ -1,20 +1,20 @@
-# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Import packages ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-import numpy as np
-
-print("numpy version: %s" % np.__version__)
+"""
+Copright © 2023 Howard Hughes Medical Institute, Authored by Carsen Stringer and Atika Syeda.
+"""
 import random
 from platform import python_version
 
 import cv2  # opencv
 import matplotlib
 import matplotlib.pyplot as plt
+
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Import packages ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+import numpy as np
 import pyqtgraph as pg
 import torch  # pytorch
 from PyQt5 import QtWidgets
 from PyQt5.QtWidgets import QDialog, QPushButton
 from scipy.ndimage import gaussian_filter
-
-print("python version:", python_version())
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~Global variables~~~~~~~~~~~~~~~~~~~~~~~~~~~~~`
 N_FACTOR = 2**4 // (2**2)

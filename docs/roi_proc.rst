@@ -1,5 +1,5 @@
-ROI and SVD processing
-==============================
+SVD processing and ROIs
+========================
 
 Choose a type of ROI to add and then click “add ROI” to add it to the
 view. The pixels in the ROI will show up in the right window (with

@@ -1,3 +1,6 @@
+"""
+Copright © 2023 Howard Hughes Medical Institute, Authored by Carsen Stringer and Atika Syeda.
+"""
 import numpy as np
 from scipy.ndimage import gaussian_filter
 
@@ -11,7 +14,7 @@ def fit_gaussian(im, sigma=2.0, do_xy=False, missing=None):
         miss = np.isin(ix * im.shape[1] + iy, mx * im.shape[1] + my)
         miss = miss.flatten()
     else:
-        miss = np.zeros((ix.size,), np.bool)
+        miss = np.zeros((ix.size,), "bool")
 
     ix = ix[~miss].flatten()
     iy = iy[~miss].flatten()

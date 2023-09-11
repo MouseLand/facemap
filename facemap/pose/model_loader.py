@@ -1,4 +1,7 @@
 """
+Copright © 2023 Howard Hughes Medical Institute, Authored by Carsen Stringer and Atika Syeda.
+"""
+"""
 Facemap model trained for generating pose estimates. Contains functions for: 
 - downloading pre-trained models
 - Model class 
@@ -45,8 +48,13 @@ def copy_to_models_dir(filename):
 
     # Copy file to hidden directory
     model_dir = get_models_dir()
-    print("Copying %s to %s" % (filename, model_dir))
-    shutil.copy(filename, model_dir)
+    # check if filename already exists in model_dir
+    if not os.path.exists(model_dir.joinpath(filename)):
+        shutil.copy(filename, model_dir)
+        print("Copied %s to %s" % (filename, model_dir))
+    else:
+        print("File %s already exists in %s. Overwriting file." % (filename, model_dir))
+        shutil.copy(filename, model_dir)
     return model_dir
 
 

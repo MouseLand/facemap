@@ -1,3 +1,6 @@
+"""
+Copright © 2023 Howard Hughes Medical Institute, Authored by Carsen Stringer and Atika Syeda.
+"""
 ## Import packages
 import os
 from io import StringIO
@@ -13,10 +16,8 @@ from . import pose_helper_functions as pose_utils
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 """
-Fine-tuning the model using the pre-trained weights and refined training data
-provided by the user.
+Fine-tuning the model using the pre-trained weights and refined training data provided by the user.
 """
-
 
 def train(
     train_dataloader,
