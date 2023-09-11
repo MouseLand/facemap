@@ -1,3 +1,6 @@
+"""
+Copright © 2023 Howard Hughes Medical Institute, Authored by Carsen Stringer and Atika Syeda.
+"""
 import fig4
 import matplotlib.pyplot as plt
 import torch
@@ -6,6 +9,7 @@ from rastermap import sorting
 from scipy.stats import wilcoxon, zscore
 
 from facemap.utils import bin1d
+
 
 def varexp_ranks(data_path, dbs, evals=None, save_fig=False):
     colors = [[0.5, 0.5, 0.5], [0.75, 0.75, 0.25]]

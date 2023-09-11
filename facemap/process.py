@@ -1,3 +1,6 @@
+"""
+Copright © 2023 Howard Hughes Medical Institute, Authored by Carsen Stringer and Atika Syeda.
+"""
 import os
 import time
 from io import StringIO
@@ -641,7 +644,7 @@ def run(
     savepath=None,
 ):
     """
-    Process video files using SVD computation of motion and/or raw movie data. See https://github.com/MouseLand/facemap/blob/main/notebooks/process.ipynb for example usage.
+    Process video files using SVD computation of motion and/or raw movie data. 
     Parameters
     ----------
     filenames: 2D-list
