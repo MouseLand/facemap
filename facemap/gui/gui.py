@@ -314,7 +314,7 @@ class MainW(QtWidgets.QMainWindow):
         self.wraw = False
         self.video_window.scene().sigMouseClicked.connect(self.plot_clicked)
         self.video_window.show()
-        self.show()
+        #self.show()
         self.processed = False
         self.neural_win = None
 
@@ -1130,7 +1130,7 @@ class MainW(QtWidgets.QMainWindow):
             self.neural_win.update_neural_predictions_vtick()
         self.total_frames_label.setText("/ " + str(self.nframes) + " frames")
         self.video_window.show()
-        self.show()
+        #self.show()
 
     def start(self):
         if self.online_mode:
@@ -2310,19 +2310,6 @@ def run(
     autoload_keypoints=True,
     autoload_proc=True,
 ):
-    # Always start by initializing Qt (only once per application)
-    app = QtWidgets.QApplication(sys.argv)
-    icon_path = os.path.join(
-        os.path.dirname(os.path.realpath(__file__)), "../mouse.png"
-    )
-    app_icon = QIcon()
-    app_icon.addFile(icon_path, QtCore.QSize(16, 16))
-    app_icon.addFile(icon_path, QtCore.QSize(24, 24))
-    app_icon.addFile(icon_path, QtCore.QSize(32, 32))
-    app_icon.addFile(icon_path, QtCore.QSize(48, 48))
-    app_icon.addFile(icon_path, QtCore.QSize(96, 96))
-    app_icon.addFile(icon_path, QtCore.QSize(256, 256))
-    app.setWindowIcon(app_icon)
     GUI = MainW(
         moviefile,
         savedir,
@@ -2335,5 +2322,4 @@ def run(
         autoload_keypoints,
         autoload_proc,
     )
-    ret = app.exec_()
-    sys.exit(ret)
+    return GUI

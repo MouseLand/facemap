@@ -1,4 +1,4 @@
-import sys, os
+import os
 from PyQt5 import QtCore, QtWidgets
 from PyQt5.QtGui import QIcon
 from PyQt5.QtWidgets import (
@@ -30,6 +30,12 @@ class TabWidget(QTabWidget):
 class MainWindow(QtWidgets.QMainWindow):
     def __init__(self):
         super().__init__()
+        icon_path = os.path.join(
+            os.path.dirname(os.path.realpath(__file__)), "../mouse.png"
+        )
+        app_icon = QIcon()
+        app_icon.addFile(icon_path, QtCore.QSize(256, 256))
+        self.setWindowIcon(app_icon)
         self.setGeometry(55, 5, 1470, 800)
         self.setWindowTitle("Facemap")
 
@@ -71,20 +77,10 @@ class MainWindow(QtWidgets.QMainWindow):
 
 
 def run():
-    # Always start by initializing Qt (only once per application)
-    app = QtWidgets.QApplication(sys.argv)
     icon_path = os.path.join(
-        os.path.dirname(os.path.realpath(__file__)), "../mouse.png"
+        os.path.dirname(os.path.realpath(__file__)), "mouse.png"
     )
     app_icon = QIcon()
-    app_icon.addFile(icon_path, QtCore.QSize(16, 16))
-    app_icon.addFile(icon_path, QtCore.QSize(24, 24))
-    app_icon.addFile(icon_path, QtCore.QSize(32, 32))
-    app_icon.addFile(icon_path, QtCore.QSize(48, 48))
-    app_icon.addFile(icon_path, QtCore.QSize(96, 96))
     app_icon.addFile(icon_path, QtCore.QSize(256, 256))
-    app.setWindowIcon(app_icon)
-    app.setApplicationName("Facemap")
     window = MainWindow()
-    window.show()
-    app.exec_()
+    return window
