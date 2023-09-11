@@ -32,11 +32,11 @@ from PyQt5.QtWidgets import (
     QSpinBox,
     QVBoxLayout,
 )
+from torch.nn import functional as F
 
 from .. import utils
 from ..gui import help_windows, io
 from . import model_loader, transforms
-from torch.nn import functional as F
 
 """
 Single workflow for re-training the model or fine-tuning the model with new data.
