@@ -1,3 +1,6 @@
+"""
+Copright © 2023 Howard Hughes Medical Institute, Authored by Carsen Stringer and Atika Syeda.
+"""
 import os
 from PyQt5 import QtCore, QtWidgets
 from PyQt5.QtGui import QIcon
@@ -41,10 +44,10 @@ class MainWindow(QtWidgets.QMainWindow):
 
         dark_stylesheet = """
             QMainWindow {background: 'black';}
-            QTabWidget::pane {background-color: rgb(50,50,50);}
+            QTabWidget::pane {background-color: rgb(0,0,0);}
             QTabWidget::tab-bar {
                 alignment: center;
-                background-color: rgb(80, 80, 80);
+                background-color: rgb(0, 0, 0);
                 border-bottom: 1px solid rgb(30, 30, 30);
             }
             QTabBar::tab {
@@ -52,7 +55,7 @@ class MainWindow(QtWidgets.QMainWindow):
                 width: 200px;
                 font-size: 12pt;
                 color: rgb(220, 220, 220);
-                background-color: rgb(80, 80, 80);
+                background-color: rgb(0, 0, 0);
                 border-top-left-radius: 5px;
                 border-top-right-radius: 5px;
                 padding: 5px;

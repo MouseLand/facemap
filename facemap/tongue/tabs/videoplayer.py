@@ -16,18 +16,11 @@ class VideoPlayer(QWidget):
         videoWidget = QVideoWidget()
 
         openButton = QPushButton("Open Video")   
-        openButton.setToolTip("Open Video File")
-        openButton.setStatusTip("Open Video File")
-        openButton.setFixedHeight(24)
-        openButton.setIconSize(btnSize)
-        openButton.setFont(QFont("Noto Sans", 8))
         openButton.setIcon(QIcon.fromTheme("document-open", QIcon("D:/_Qt/img/open.png")))
         openButton.clicked.connect(self.abrir)
 
         self.playButton = QPushButton()
         self.playButton.setEnabled(False)
-        self.playButton.setFixedHeight(24)
-        self.playButton.setIconSize(btnSize)
         self.playButton.setIcon(self.style().standardIcon(QStyle.SP_MediaPlay))
         self.playButton.clicked.connect(self.play)
 

@@ -1,8 +1,19 @@
+"""
+Copright © 2023 Howard Hughes Medical Institute, Authored by Carsen Stringer and Atika Syeda.
+"""
 from PyQt5.QtWidgets import *
-from PyQt5.QtCore import Qt, QUrl
-from PyQt5.QtMultimedia import QMediaPlayer, QMediaContent
-from PyQt5.QtMultimediaWidgets import QVideoWidget
+from PyQt5.QtCore import Qt
 from ..tabs.videoplayer import VideoPlayer
+from facemap import utils
+from facemap.tongue.segmentation_model import FMnet
+import torch
+import time
+from tqdm import tqdm
+from facemap.tongue import segmentation_utils
+from matplotlib import animation
+import matplotlib.pyplot as plt
+import numpy as np
+
 
 class SegmentationTab(QWidget):
     def __init__(self):
@@ -13,6 +24,7 @@ class SegmentationTab(QWidget):
 
         # Initialize variables
         self.video_filenames = []
+        self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
     def setup_ui(self):
         # Set up the layout
@@ -46,38 +58,39 @@ class SegmentationTab(QWidget):
         """
 
         # Add buttons with orange color
-        add_video_button = QPushButton("Add Video")
-        add_video_button.setStyleSheet("background-color: rgb(196, 108, 57); color: white;")
-        add_video_button.clicked.connect(self.add_video)
-        add_video_button.setStyleSheet(button_style)
-        button_layout.addWidget(add_video_button)
+        video_button_groupbox = QGroupBox()
+        video_button_groupbox.setLayout(QHBoxLayout())
 
-        # Add number of videos loaded label
-        self.num_videos_label = QLabel("0 Videos Loaded")
-        self.num_videos_label.setStyleSheet("color: lightgrey;")
-        self.num_videos_label.setAlignment(Qt.AlignCenter)
-        button_layout.addWidget(self.num_videos_label)
+        load_video_button = QPushButton("Load video")
+        load_video_button.setStyleSheet("background-color: rgb(196, 108, 57); color: white; font-size: 20px;")
+        load_video_button.clicked.connect(self.add_video)
+        load_video_button.setStyleSheet(button_style)
+        video_button_groupbox.layout().addWidget(load_video_button)
 
-        show_filenames_button = QPushButton("Get loaded videos")
-        show_filenames_button.setStyleSheet("background-color: rgb(196, 108, 57); color: white;")
-        show_filenames_button.clicked.connect(self.show_video_filenames)
-        show_filenames_button.setStyleSheet(button_style)
-        button_layout.addWidget(show_filenames_button)
+        run_segmentation_button = QPushButton("Run segmentation")
+        run_segmentation_button.setStyleSheet("background-color: rgb(196, 108, 57); color: white; font-size: 20px;")
+        run_segmentation_button.clicked.connect(self.run_segmentation)
+        run_segmentation_button.setStyleSheet(button_style)
+        video_button_groupbox.layout().addWidget(run_segmentation_button)
 
-        # Add radio buttons for video views
-        self.video_view_label = QLabel("Video View:")
-        self.video_view_label.setAlignment(Qt.AlignCenter)
-        self.video_view_label.setStyleSheet("color: lightgrey;")
-        button_layout.addWidget(self.video_view_label)
-        
+        button_layout.addWidget(video_button_groupbox)
+
+        # Add radio buttons for video views        
         video_view_groupbox = QGroupBox()
         # change style sheet to remove border
         video_view_groupbox.setStyleSheet("border: none;")
         video_view_groupbox.setLayout(QHBoxLayout())
+
+        video_view_label = QLabel("Video View:")
+        video_view_label.setAlignment(Qt.AlignCenter)
+        video_view_label.setStyleSheet("color: lightgrey;")
+        video_view_groupbox.layout().addWidget(video_view_label)
+
         self.video_view_group = QButtonGroup(button_panel)
 
         bottom_view_button = QRadioButton("Bottom")
         bottom_view_button.setStyleSheet("color: white;")
+        bottom_view_button.setChecked(True)
         self.video_view_group.addButton(bottom_view_button)
         video_view_groupbox.layout().addWidget(bottom_view_button)
 
@@ -93,36 +106,15 @@ class SegmentationTab(QWidget):
 
         button_layout.addWidget(video_view_groupbox)
 
-        """
-        # Set up the right panel with loaded video label
-        video_panel = QWidget()
-        video_panel_layout = QVBoxLayout(video_panel)
-
-        self.media_player = QMediaPlayer(self)
-        self.video_widget = QVideoWidget(self)
-
-        self.video_slider = QSlider(Qt.Horizontal)
-        self.video_slider.setEnabled(False)
-        self.video_slider.sliderMoved.connect(self.media_player.setPosition)        
-        self.media_player.positionChanged.connect(self.update_slider_position)
-        self.media_player.durationChanged.connect(self.video_slider.setMaximum)
-
-        video_panel_layout.addWidget(self.video_widget)
-        video_panel_layout.addWidget(self.video_slider)
-        video_panel_layout.addStretch()
-
-        # Set the size policy of the video panel
-        video_panel.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
-        """
         # Add the panels to the splitter
         splitter.addWidget(button_panel)
         splitter.addWidget(VideoPlayer())
-        splitter.setSizes([100, 500])
+        splitter.setStretchFactor(1, 3)
 
         # Set the style sheet for the dark theme and use white text
         dark_stylesheet = """
             QWidget {
-                background-color: rgb(50,50,50);
+                background-color: rgb(0,0,0);
             }
             QSplitter::handle {
                 background-color: rgb(80, 80, 80);
@@ -133,30 +125,6 @@ class SegmentationTab(QWidget):
         # Add the splitter to the layout
         self.layout.addWidget(splitter, 0, 0)
 
-    def play_video(self, video_file):
-        # Set the media player's media and set the video output to the video widget
-        self.media_player.setMedia(QMediaContent(QUrl.fromLocalFile(video_file)))
-        self.media_player.setVideoOutput(self.video_widget)
-
-        # Add the video widget to the layout
-        self.layout.addWidget(self.video_widget, 0, 1)
-
-        # Enable the slider and set its maximum value to the media player's duration
-        self.video_slider.setEnabled(True)
-        self.video_slider.setMaximum(self.media_player.duration())
-
-        # Play the video
-        self.media_player.play()
-
-    def show_video_filenames(self):
-        # Show a message box with the list of video filenames
-        if self.video_filenames:
-            message = "\n".join(self.video_filenames)
-        else:
-            message = "No Videos Loaded"
-        QMessageBox.information(self, "Loaded Videos", message)
-
-
     def add_video(self):
         # Show file dialog to select video files
         file_dialog = QFileDialog(self)
@@ -165,18 +133,97 @@ class SegmentationTab(QWidget):
         if file_dialog.exec_():
             # Add the selected files to the list of video filenames
             self.video_filenames += file_dialog.selectedFiles()
+            self.cumframes, self.Ly, self.Lx, self.containers = utils.get_frame_details([[self.video_filenames[-1]]])
+            print("Video loaded:", self.video_filenames)
 
-            # Update the loaded videos label
-            num_videos = len(self.video_filenames)
-            if num_videos == 1:
-                loaded_videos_text = "1 Video Loaded"
-            else:
-                loaded_videos_text = f"{num_videos} Videos Loaded"
-            self.num_videos_label.setText(loaded_videos_text)
+    def run_segmentation(self):
+        # Get the video view
+        video_view = self.video_view_group.checkedButton().text()
 
-            # Play the first video in the list
-            if num_videos == 1:
-                self.play_video(self.video_filenames[0])
+        # Run the segmentation
+        segmentation_results = self.get_segmentation_results(video_view)
 
-    def update_slider_position(self, position):
-        self.video_slider.setValue(position)
+        # Show the results
+        self.show_segmentation_results(segmentation_results)
+        print("Segmentation completed")
+
+    def get_segmentation_results(self, video_view):
+        model = FMnet() 
+        model = model.to(self.device);
+        if video_view == "Bottom":
+            model.load_state_dict(torch.load('/home/stringlab/Desktop/JHU_courses/DLCV/DLCV_final_project/fmnet_model/model_best.pth'))
+            print("Model weights loaded")
+        elif video_view == "Side":
+            pass
+        elif video_view == "Other":
+            pass
+
+        frames = segmentation_utils.get_img_from_video(self.video_filenames[-1])
+        frames = segmentation_utils.preprocess_imgs(frames, resize_shape=(256, 256))
+
+        print("Predicting masks")
+        pred_masks, pred_edges = [], []
+        for frame in tqdm(frames):
+            frame = frame.unsqueeze(0).to(self.device)
+            pred_mask, pred_edge, _ = predict(model, frame, self.device, sigmoid=True, threshold=0.5)
+            pred_masks.append(pred_mask)
+            pred_edges.append(pred_edge)
+
+        return pred_masks, pred_edges
+            
+
+    def show_segmentation_results(self, segmentation_results):
+        # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Plot restuls ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        # Create an animation of video and model predictions
+        print("Saving animation...")
+        fig, ax = plt.subplots(1, 3, figsize=(8, 5), dpi=300)
+
+        start_idx = 0
+        masks, edges = segmentation_results
+
+        imgs = segmentation_utils.get_img_from_video(self.video_filenames[-1])  
+
+        # Plot the original image
+        img_plot = ax[0].imshow(imgs[start_idx].squeeze(), cmap='gray')
+        ax[0].axis("off")
+        ax[0].set_title("Frame: " + str(start_idx))
+        mask_plot = ax[1].imshow(masks[start_idx].squeeze(), cmap='Greens', alpha=1, vmin=0, vmax=1)
+        ax[1].axis("off")
+        ax[1].set_title("Mask: " + str(start_idx))
+        mask_edge_plot = ax[2].imshow(edges[start_idx].squeeze(), cmap='Reds', alpha=.4, vmin=0, vmax=1)
+        ax[2].axis("off")
+        ax[2].set_title("Edges: " + str(start_idx))
+
+        def animate(i):
+            img_plot.set_data(imgs[i].squeeze())
+            ax[0].set_title("Frame: " + str(i))
+            mask_plot.set_data(masks[i].squeeze())
+            ax[1].set_title("Mask: " + str(i))
+            mask_edge_plot.set_data(edges[i].squeeze())
+            ax[2].set_title("Edges: " + str(i))
+            return (img_plot, mask_plot, mask_edge_plot)
+
+        anim = animation.FuncAnimation(fig, animate, frames=self.cumframes[-1]-5, interval=100, repeat=False, blit=True)
+        # HTML(anim.to_html5_video())
+        # save to mp4 using ffmpeg writer
+        writervideo = animation.FFMpegWriter(fps=60)
+        anim.save('segmentation.mp4', writer=writervideo)
+        plt.close()
+
+
+def predict(net, im_input, device, sigmoid=True, threshold=0):
+    # Predict
+    net.eval()
+    with torch.no_grad():
+        mask_pred, mask_edges_pred, mask_dist_pred = net(im_input.to(device, dtype=torch.float32))
+
+        if sigmoid:
+            mask_pred = torch.sigmoid(mask_pred)
+            mask_edges_pred = torch.sigmoid(mask_edges_pred)
+        if threshold > 0:
+            mask_pred[mask_pred > threshold] = 1
+            mask_edges_pred[mask_edges_pred > threshold] = 1
+            mask_pred[mask_pred <= threshold] = 0
+            mask_edges_pred[mask_edges_pred <= threshold] = 0
+
+    return mask_pred.cpu().numpy(), mask_edges_pred.cpu().numpy(), mask_dist_pred.cpu().numpy()
