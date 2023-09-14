@@ -4,9 +4,8 @@ Copright © 2023 Howard Hughes Medical Institute, Authored by Carsen Stringer an
 import numpy as np
 import pyqtgraph as pg
 from matplotlib import cm
-from PyQt5 import QtCore
-from PyQt5.QtWidgets import (
-    QDesktopWidget,
+from qtpy import QtCore, QtGui
+from qtpy.QtWidgets import (
     QDialog,
     QHBoxLayout,
     QPushButton,
@@ -113,7 +112,7 @@ class PoseGUI(pose.Pose):
 class ROI_popup(QDialog):
     def __init__(self, frame, video_id, gui, pose, last_video):
         super().__init__()
-        window_max_size = QDesktopWidget().screenGeometry(-1)
+        window_max_size = QtGui.QGuiApplication.primaryScreen().availableGeometry()
         fraction = 0.5
         aspect_ratio = 1.5
         self.resize(

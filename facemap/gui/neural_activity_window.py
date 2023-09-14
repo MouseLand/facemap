@@ -5,9 +5,9 @@ import numpy as np
 import pyqtgraph as pg
 import scipy.io as sio
 from matplotlib import cm
-from PyQt5 import QtCore, QtGui, QtWidgets
-from PyQt5.QtCore import Qt, QUrl
-from PyQt5.QtWidgets import *
+from qtpy import QtCore, QtGui, QtWidgets
+from qtpy.QtCore import Qt, QUrl
+from qtpy.QtWidgets import *
 
 from facemap import utils
 from facemap.gui import guiparts, help_windows, io
@@ -21,7 +21,7 @@ class NeuralActivityWindow(QtWidgets.QMainWindow):
         self.parent = parent
         # Set the size of the window
         if window_size is None:
-            self.sizeObject = QtWidgets.QDesktopWidget().screenGeometry(-1)
+            self.sizeObject = QtGui.QGuiApplication.primaryScreen().availableGeometry()
         else:
             self.sizeObject = window_size
         self.resize(np.floor(self.sizeObject.width() / 1.5).astype(int), np.floor(self.sizeObject.height() / 2).astype(int))
@@ -41,7 +41,7 @@ class NeuralActivityWindow(QtWidgets.QMainWindow):
         
     def center(self):
         qr = self.frameGeometry()
-        cp = QtWidgets.QDesktopWidget().availableGeometry().center()
+        cp = QtGui.QGuiApplication.primaryScreen().availableGeometry().center()
         qr.moveCenter(cp)
         self.move(qr.topLeft())
 

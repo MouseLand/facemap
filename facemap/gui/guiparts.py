@@ -3,8 +3,8 @@ Copright © 2023 Howard Hughes Medical Institute, Authored by Carsen Stringer an
 """
 import numpy as np
 import pyqtgraph as pg
-from PyQt5 import QtCore, QtGui, QtWidgets
-from PyQt5.QtWidgets import (
+from qtpy import QtCore, QtGui, QtWidgets
+from qtpy.QtWidgets import (
     QAbstractItemView,
     QButtonGroup,
     QDialog,
@@ -232,7 +232,7 @@ class ImageDraw(pg.ImageItem):
     for controlling the levels and lookup table used to display the image.
     """
 
-    sigImageChanged = QtCore.pyqtSignal()
+    sigImageChanged = QtCore.Signal()
 
     def __init__(self, image=None, viewbox=None, parent=None, **kargs):
         super(ImageDraw, self).__init__()

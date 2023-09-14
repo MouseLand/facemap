@@ -10,13 +10,12 @@ import numpy as np
 import pyqtgraph as pg
 import torch
 from matplotlib import cm
-from PyQt5 import QtCore
-from PyQt5.QtGui import QColor
-from PyQt5.QtWidgets import (
+from qtpy import QtCore, QtGui
+from qtpy.QtGui import QColor
+from qtpy.QtWidgets import (
     QButtonGroup,
     QCheckBox,
     QComboBox,
-    QDesktopWidget,
     QDialog,
     QFormLayout,
     QGridLayout,
@@ -93,7 +92,7 @@ class ModelTrainingPopup(QDialog):
 
         self.verticalLayout = QVBoxLayout(self)
         # Set window size that is adjusted to the size of the window
-        self.window_max_size = QDesktopWidget().screenGeometry(-1)
+        self.window_max_size = QtGui.QGuiApplication.primaryScreen().availableGeometry()
 
         self.show_choose_folder()
         self.setLayout(self.verticalLayout)

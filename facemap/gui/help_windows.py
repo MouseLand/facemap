@@ -5,11 +5,10 @@ import os
 import typing
 
 import numpy as np
-from PyQt5 import QtCore
-from PyQt5.QtCore import Qt
-from PyQt5.QtGui import QPixmap
-from PyQt5.QtWidgets import (
-    QDesktopWidget,
+from qtpy import QtCore
+from qtpy.QtCore import Qt
+from qtpy.QtGui import QPixmap, QGuiApplication
+from qtpy.QtWidgets import (
     QDialog,
     QGroupBox,
     QHBoxLayout,
@@ -510,7 +509,7 @@ class ProgressBarPopup(QDialog):
         super().__init__(gui)
         self.gui = gui
         self.setWindowTitle(window_title)
-        window_size = QDesktopWidget().screenGeometry(-1)
+        window_size = QGuiApplication.primaryScreen().availableGeometry()
         self.setFixedSize(
             int(np.floor(window_size.width() * 0.31)),
             int(np.floor(window_size.height() * 0.31 * 0.5)),

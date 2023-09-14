@@ -5,22 +5,18 @@ import os
 import sys
 from pathlib import Path
 
-import cv2
 import h5py
-import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
 import pyqtgraph as pg
-import scipy.io as sio
 import torch
 from matplotlib import cm
-from PyQt5 import QtCore, QtWidgets
-from PyQt5.QtGui import QFont, QIcon, QPainterPath
-from PyQt5.QtWidgets import (
+from qtpy import QtCore, QtWidgets, QtGui
+from qtpy.QtGui import QFont, QIcon, QPainterPath
+from qtpy.QtWidgets import (
     QButtonGroup,
     QCheckBox,
     QComboBox,
-    QDesktopWidget,
     QFileDialog,
     QGridLayout,
     QGroupBox,
@@ -125,7 +121,7 @@ class MainW(QtWidgets.QMainWindow):
         self.scene_grid_layout = QGridLayout()
         self.central_widget.setLayout(self.scene_grid_layout)
         # --- cells image
-        self.sizeObject = QDesktopWidget().screenGeometry(-1)
+        self.sizeObject = QtGui.QGuiApplication.primaryScreen().availableGeometry()
         self.resize(self.sizeObject.width(), self.sizeObject.height())
 
         self.video_window = pg.GraphicsLayoutWidget()

@@ -1,7 +1,8 @@
 """
 Copright © 2023 Howard Hughes Medical Institute, Authored by Carsen Stringer and Atika Syeda.
 """
-from PyQt5.QtWidgets import QAction, QDesktopWidget
+from qtpy.QtWidgets import QAction
+from qtpy.QtGui import QGuiApplication
 
 from . import help_windows, io
 
@@ -116,8 +117,8 @@ def mainmenu(parent):
 
 
 def launch_user_manual(parent):
-    help_windows.MainWindowHelp(parent, QDesktopWidget().screenGeometry(-1))
+    help_windows.MainWindowHelp(parent, QGuiApplication.primaryScreen().availableGeometry())
 
 
 def show_about(parent):
-    help_windows.AboutWindow(parent, QDesktopWidget().screenGeometry(-1))
+    help_windows.AboutWindow(parent, QGuiApplication.primaryScreen().availableGeometry())
