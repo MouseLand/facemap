@@ -144,7 +144,7 @@ class SegmentationTab(QWidget):
         segmentation_results = self.get_segmentation_results(video_view)
 
         # Show the results
-        self.show_segmentation_results(segmentation_results)
+        self.save_segmentation_results(segmentation_results)
         print("Segmentation completed")
 
     def get_segmentation_results(self, video_view):
@@ -172,7 +172,7 @@ class SegmentationTab(QWidget):
         return pred_masks, pred_edges
             
 
-    def show_segmentation_results(self, segmentation_results):
+    def save_segmentation_results(self, segmentation_results):
         # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Plot restuls ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         # Create an animation of video and model predictions
         print("Saving animation...")
