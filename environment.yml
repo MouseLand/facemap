@@ -17,5 +17,6 @@ dependencies:
     - h5py
     - pyqtgraph>=0.12.0
     - qtpy
+    - pyqt6
     - umap-learn
 

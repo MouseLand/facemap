@@ -23,7 +23,7 @@ The software has been heavily tested on Ubuntu 18.04, and less well tested on Wi
 
 Facemap python relies on these awesome packages:
 - [pyqtgraph](http://pyqtgraph.org/)
-- [PyQt5](http://pyqt.sourceforge.net/Docs/PyQt5/)
+- [PyQt6](http://pyqt.sourceforge.net/Docs/PyQt6/)
 - [numpy](http://www.numpy.org/) (>=1.13.0)
 - [scipy](https://www.scipy.org/)
 - [opencv](https://opencv.org/)
