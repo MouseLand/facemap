@@ -106,9 +106,24 @@ class SegmentationTab(QWidget):
 
         button_layout.addWidget(video_view_groupbox)
 
+        # Add a play button
+        self.video_playback_groupbox = QGroupBox()
+        self.video_playback_groupbox.setLayout(QHBoxLayout())
+
+        self.play_button = QPushButton()
+        self.video_playback_groupbox.layout().addWidget(self.play_button)
+
+        self.frame_label = QLabel("0")
+        self.frame_label.setStyleSheet("color: white;")
+        self.video_playback_groupbox.layout().addWidget(self.frame_label)
+
+        self.video_player = VideoPlayer(self.play_button)
+
+        button_layout.addWidget(self.video_playback_groupbox)
+
         # Add the panels to the splitter
         splitter.addWidget(button_panel)
-        splitter.addWidget(VideoPlayer())
+        splitter.addWidget(self.video_player)
         splitter.setStretchFactor(1, 3)
 
         # Set the style sheet for the dark theme and use white text
@@ -128,12 +143,13 @@ class SegmentationTab(QWidget):
     def add_video(self):
         # Show file dialog to select video files
         file_dialog = QFileDialog(self)
-        file_dialog.setNameFilter("Video Files (*.mp4 *.avi *.mkv)")
+        file_dialog.setNameFilter("Video Files (*.mj2 *.mp4 *.mkv *.avi *.mpeg *.mpg *.asf *m4v)")
         file_dialog.setFileMode(QFileDialog.ExistingFiles)
         if file_dialog.exec_():
             # Add the selected files to the list of video filenames
             self.video_filenames += file_dialog.selectedFiles()
             self.cumframes, self.Ly, self.Lx, self.containers = utils.get_frame_details([[self.video_filenames[-1]]])
+            self.video_player.abrir(self.video_filenames[-1])
             print("Video loaded:", self.video_filenames)
 
     def run_segmentation(self):

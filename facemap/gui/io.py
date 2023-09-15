@@ -20,7 +20,7 @@ def open_file(parent, file_name=None):
             parent,
             "Open movie file",
             "",
-            "Movie files (*.h5 *.mj2 *.mp4 *.mkv *.avi *.mpeg *.mpg *.asf *m4v)",
+            "Movie files (*.mj2 *.mp4 *.mkv *.avi *.mpeg *.mpg *.asf *m4v)",
         )
     # check if file_name selected or cancelled
     if file_name[0]:
