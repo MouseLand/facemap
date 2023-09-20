@@ -123,6 +123,7 @@ class NeuralActivityWindow(QtWidgets.QMainWindow):
 
         # Add a plots window neural data visualization
         plots_window = pg.GraphicsLayoutWidget()
+        plots_window.viewport().setAttribute(QtCore.Qt.WidgetAttribute.WA_AcceptTouchEvents, False)
 
         self.neural_activity_plot = plots_window.addPlot(
             name="neural_activity_plot", row=0, col=0, title="Neural activity"

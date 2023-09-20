@@ -12,7 +12,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pyqtgraph as pg
 import torch  # pytorch
-from qtpy import QtWidgets
+from qtpy import QtWidgets, QtCore
 from qtpy.QtWidgets import QDialog, QPushButton
 from scipy.ndimage import gaussian_filter
 
@@ -248,6 +248,7 @@ class test_popup(QDialog):
 
         # Add image and ROI bbox
         self.win = pg.GraphicsLayoutWidget()
+        self.win.viewport().setAttribute(QtCore.Qt.WidgetAttribute.WA_AcceptTouchEvents, False)
         ROI_win = self.win.addViewBox(invertY=True)
         self.img = pg.ImageItem(self.frame)
         ROI_win.addItem(self.img)

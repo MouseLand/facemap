@@ -125,14 +125,18 @@ class MainW(QtWidgets.QMainWindow):
         self.resize(self.sizeObject.width(), self.sizeObject.height())
 
         self.video_window = pg.GraphicsLayoutWidget()
+        self.video_window.viewport().setAttribute(QtCore.Qt.WidgetAttribute.WA_AcceptTouchEvents, False)
+
         self.scene_grid_layout.addWidget(self.video_window, 0, 2, 5, 5)
 
         # Create a window for embedding and ROI plot
         self.roi_embed_window = pg.GraphicsLayoutWidget()
+        self.roi_embed_window.viewport().setAttribute(QtCore.Qt.WidgetAttribute.WA_AcceptTouchEvents, False)
         self.scene_grid_layout.addWidget(self.roi_embed_window, 0, 7, 5, 5)
 
         # Create a window for plots
         self.plots_window = pg.GraphicsLayoutWidget()
+        self.plots_window.viewport().setAttribute(QtCore.Qt.WidgetAttribute.WA_AcceptTouchEvents, False)
         self.scene_grid_layout.addWidget(self.plots_window, 5, 2, 4, 10)
 
         # A plot area (ViewBox + axes) for displaying the image

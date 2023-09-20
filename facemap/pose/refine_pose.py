@@ -794,6 +794,7 @@ class ModelTrainingPopup(QDialog):
         self.frame_group = QGroupBox()
         self.frame_group.setLayout(QHBoxLayout())
         self.win = pg.GraphicsLayoutWidget()
+        self.win.viewport().setAttribute(QtCore.Qt.WidgetAttribute.WA_AcceptTouchEvents, False)
         self.win.setObjectName("Keypoints refinement")
         self.keypoints_scatterplot = KeypointsGraph(parent=self)
         self.frame_win = KeypointsViewBox(
@@ -1337,6 +1338,7 @@ class ModelTrainingPopup(QDialog):
             for j in range(cols):
                 frame = imgs[i * rows + j]
                 self.win = pg.GraphicsLayoutWidget()
+                self.win.viewport().setAttribute(QtCore.Qt.WidgetAttribute.WA_AcceptTouchEvents, False)
                 frame_win = self.win.addViewBox(invertY=True)
                 frame_win.setAspectLocked(True)
                 frame_win.addItem(
