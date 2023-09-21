@@ -306,7 +306,7 @@ class NeuralActivityWindow(QtWidgets.QMainWindow):
                 print("error", e)
                 # Show error message
                 msg = QtWidgets.QMessageBox()
-                msg.setIcon(QtWidgets.QMessageBox.Critical)
+                msg.setIcon(QtWidgets.QMessageBox.Icon.Critical)
                 msg.setText("Invalid neural predictions file.")
                 msg.setInformativeText(
                     "The selected file is not a valid neural predictions file."
@@ -600,7 +600,7 @@ class NeuralActivityWindow(QtWidgets.QMainWindow):
 
         if self.neural_activity.data is None:
             msg = QtWidgets.QMessageBox()
-            msg.setIcon(QtWidgets.QMessageBox.Critical)
+            msg.setIcon(QtWidgets.QMessageBox.Icon.Critical)
             msg.setText("Neural activity not loaded")
             msg.setInformativeText(
                 "Please load neural activity data before running neural predictions"
@@ -614,7 +614,7 @@ class NeuralActivityWindow(QtWidgets.QMainWindow):
             # Check if keypoints are loaded
             if self.parent.poseFilepath[0] is None:
                 msg = QtWidgets.QMessageBox()
-                msg.setIcon(QtWidgets.QMessageBox.Critical)
+                msg.setIcon(QtWidgets.QMessageBox.Icon.Critical)
                 msg.setText("Keypoints not loaded")
                 msg.setInformativeText(
                     "Please load keypoints before running neural predictions"
@@ -688,7 +688,7 @@ class NeuralActivityWindow(QtWidgets.QMainWindow):
                     x_input = self.movSVDs[0]
             except:
                 msg = QtWidgets.QMessageBox()
-                msg.setIcon(QtWidgets.QMessageBox.Critical)
+                msg.setIcon(QtWidgets.QMessageBox.Icon.Critical)
                 msg.setText("SVDs not loaded")
                 msg.setInformativeText(
                     "Please load SVDs (proc file) before running neural predictions"

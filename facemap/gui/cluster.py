@@ -408,9 +408,9 @@ class Cluster:
         else:
             self.data_type = None
             msg = QMessageBox(parent)
-            msg.setIcon(QMessageBox.Warning)
+            msg.setIcon(QMessageBox.Icon.Warning)
             msg.setText("Please select data for clustering")
-            msg.setStandardButtons(QMessageBox.Ok)
+            msg.setStandardButtons(QMessageBox.StandardButton.Ok)
             msg.exec_()
             return
         if self.cluster_method == "UMAP":
@@ -718,9 +718,9 @@ class Cluster:
                     pass
             else:
                 msg = QMessageBox(parent)
-                msg.setIcon(QMessageBox.Warning)
+                msg.setIcon(QMessageBox.Icon.Warning)
                 msg.setText("Please generate cluster labels for saving cluster videos")
-                msg.setStandardButtons(QMessageBox.Ok)
+                msg.setStandardButtons(QMessageBox.StandardButton.Ok)
                 msg.exec_()
         if dialogBox.data_checkbox.isChecked():
             self.save_cluster_output(parent)

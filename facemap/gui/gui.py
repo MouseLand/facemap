@@ -833,17 +833,17 @@ class MainW(QtWidgets.QMainWindow):
                     break
             # Display QMessage box to inform user that the model was successfully added
             msg = QMessageBox()
-            msg.setIcon(QMessageBox.Information)
+            msg.setIcon(QMessageBox.Icon.Information)
             msg.setText("Pose model successfully added.")
             msg.setWindowTitle("Pose model added")
-            msg.setStandardButtons(QMessageBox.Ok)
+            msg.setStandardButtons(QMessageBox.StandardButton.Ok)
             msg.exec_()
         except Exception as e:
             msg = QMessageBox()
-            msg.setIcon(QMessageBox.Error)
+            msg.setIcon(QMessageBox.Icon.Critical)
             msg.setText("Pose model not added. Error: " + str(e))
             msg.setWindowTitle("Eror")
-            msg.setStandardButtons(QMessageBox.Ok)
+            msg.setStandardButtons(QMessageBox.StandardButton.Ok)
             msg.exec_()
 
         
@@ -2255,7 +2255,7 @@ class MainW(QtWidgets.QMainWindow):
         # Open a qmessage box to notify the user that the video is not loaded
         msg = QtWidgets.QMessageBox()
         # Error icon in the top left corner
-        msg.setIcon(QtWidgets.QMessageBox.Critical)
+        msg.setIcon(QtWidgets.QMessageBox.Icon.Critical)
         msg.setText("Please load a video first.")
         msg.setWindowTitle("No video loaded")
         msg.exec_()
@@ -2269,16 +2269,16 @@ class MainW(QtWidgets.QMainWindow):
 
     def invalid_roi_popup(self):
         msg = QMessageBox(self)
-        msg.setIcon(QMessageBox.Warning)
+        msg.setIcon(QMessageBox.Icon.Warning)
         msg.setText("only pupil ROI allowed during online mode")
-        msg.setStandardButtons(QMessageBox.Ok)
+        msg.setStandardButtons(QMessageBox.StandardButton.Ok)
         msg.exec_()
 
     def show_roi_selection_error(self):
         msg = QMessageBox(self)
-        msg.setIcon(QMessageBox.Warning)
+        msg.setIcon(QMessageBox.Icon.Warning)
         msg.setText("Please select a ROI")
-        msg.setStandardButtons(QMessageBox.Ok)
+        msg.setStandardButtons(QMessageBox.StandardButton.Ok)
         msg.exec_()
 
     def model_loaded_popup(self, model_path):

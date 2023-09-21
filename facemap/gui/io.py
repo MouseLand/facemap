@@ -279,7 +279,7 @@ def get_folder_path(parent):
     else:
         # Open a qmessagebox to inform the user that the path does not exist
         msg = QMessageBox()
-        msg.setIcon(QMessageBox.Warning)
+        msg.setIcon(QMessageBox.Icon.Warning)
         msg.setText("The path does not exist")
         msg.setWindowTitle("Warning")
         msg.exec_()
@@ -367,7 +367,7 @@ def load_npy_file(parent, allow_mat=False):
     else:
         # Open a qmessagebox to inform the user that the path does not exist
         msg = QMessageBox()
-        msg.setIcon(QMessageBox.Warning)
+        msg.setIcon(QMessageBox.Icon.Warning)
         msg.setText("The path does not exist")
         msg.setWindowTitle("Warning")
         msg.exec_()
@@ -423,9 +423,9 @@ def load_cluster_labels(parent):
             return
     except Exception as e:
         msg = QMessageBox(parent)
-        msg.setIcon(QMessageBox.Warning)
+        msg.setIcon(QMessageBox.Icon.Warning)
         msg.setText("Error: not a supported filetype")
-        msg.setStandardButtons(QMessageBox.Ok)
+        msg.setStandardButtons(QMessageBox.StandardButton.Ok)
         msg.exec_()
         print(e)
 
@@ -457,9 +457,9 @@ def load_umap(parent):
         return embedded_data
     except Exception as e:
         msg = QMessageBox(parent)
-        msg.setIcon(QMessageBox.Warning)
+        msg.setIcon(QMessageBox.Icon.Warning)
         msg.setText("Error: not a supported filetype")
-        msg.setStandardButtons(QMessageBox.Ok)
+        msg.setStandardButtons(QMessageBox.StandardButton.Ok)
         msg.exec_()
         print(e)
 
@@ -480,9 +480,9 @@ def load_trace_data(parent):
         return dat
     except Exception as e:
         msg = QMessageBox(parent)
-        msg.setIcon(QMessageBox.Warning)
+        msg.setIcon(QMessageBox.Icon.Warning)
         msg.setText("Error: not a supported filetype")
-        msg.setStandardButtons(QMessageBox.Ok)
+        msg.setStandardButtons(QMessageBox.StandardButton.Ok)
         msg.exec_()
         print(e)
 
