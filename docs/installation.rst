@@ -28,7 +28,7 @@ Dependencies
 Facemap (python package) relies on these awesome packages:
 
 - `pyqtgraph`_
-- `pyqt5`_
+- `pyqt6`_
 - `numpy`_ (>=1.13.0)
 - `scipy`_ 
 - `opencv`_
@@ -40,7 +40,7 @@ Facemap (python package) relies on these awesome packages:
 - `UMAP`_
 
 .. _pyqtgraph: http://pyqtgraph.org/
-.. _pyqt5: http://pyqt.sourceforge.net/Docs/PyQt5/
+.. _pyqt6: http://pyqt.sourceforge.net/Docs/PyQt6/
 .. _numpy: http://www.numpy.org/
 .. _scipy: https://www.scipy.org/
 .. _opencv: https://opencv.org/ 

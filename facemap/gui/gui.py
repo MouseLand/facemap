@@ -5,22 +5,18 @@ import os
 import sys
 from pathlib import Path
 
-import cv2
 import h5py
-import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
 import pyqtgraph as pg
-import scipy.io as sio
 import torch
 from matplotlib import cm
-from PyQt5 import QtCore, QtWidgets
-from PyQt5.QtGui import QFont, QIcon, QPainterPath
-from PyQt5.QtWidgets import (
+from qtpy import QtCore, QtWidgets, QtGui
+from qtpy.QtGui import QFont, QIcon, QPainterPath
+from qtpy.QtWidgets import (
     QButtonGroup,
     QCheckBox,
     QComboBox,
-    QDesktopWidget,
     QFileDialog,
     QGridLayout,
     QGroupBox,
@@ -125,18 +121,22 @@ class MainW(QtWidgets.QMainWindow):
         self.scene_grid_layout = QGridLayout()
         self.central_widget.setLayout(self.scene_grid_layout)
         # --- cells image
-        self.sizeObject = QDesktopWidget().screenGeometry(-1)
+        self.sizeObject = QtGui.QGuiApplication.primaryScreen().availableGeometry()
         self.resize(self.sizeObject.width(), self.sizeObject.height())
 
         self.video_window = pg.GraphicsLayoutWidget()
+        self.video_window.viewport().setAttribute(QtCore.Qt.WidgetAttribute.WA_AcceptTouchEvents, False)
+
         self.scene_grid_layout.addWidget(self.video_window, 0, 2, 5, 5)
 
         # Create a window for embedding and ROI plot
         self.roi_embed_window = pg.GraphicsLayoutWidget()
+        self.roi_embed_window.viewport().setAttribute(QtCore.Qt.WidgetAttribute.WA_AcceptTouchEvents, False)
         self.scene_grid_layout.addWidget(self.roi_embed_window, 0, 7, 5, 5)
 
         # Create a window for plots
         self.plots_window = pg.GraphicsLayoutWidget()
+        self.plots_window.viewport().setAttribute(QtCore.Qt.WidgetAttribute.WA_AcceptTouchEvents, False)
         self.scene_grid_layout.addWidget(self.plots_window, 5, 2, 4, 10)
 
         # A plot area (ViewBox + axes) for displaying the image
@@ -833,17 +833,17 @@ class MainW(QtWidgets.QMainWindow):
                     break
             # Display QMessage box to inform user that the model was successfully added
             msg = QMessageBox()
-            msg.setIcon(QMessageBox.Information)
+            msg.setIcon(QMessageBox.Icon.Information)
             msg.setText("Pose model successfully added.")
             msg.setWindowTitle("Pose model added")
-            msg.setStandardButtons(QMessageBox.Ok)
+            msg.setStandardButtons(QMessageBox.StandardButton.Ok)
             msg.exec_()
         except Exception as e:
             msg = QMessageBox()
-            msg.setIcon(QMessageBox.Error)
+            msg.setIcon(QMessageBox.Icon.Critical)
             msg.setText("Pose model not added. Error: " + str(e))
             msg.setWindowTitle("Eror")
-            msg.setStandardButtons(QMessageBox.Ok)
+            msg.setStandardButtons(QMessageBox.StandardButton.Ok)
             msg.exec_()
 
         
@@ -2255,7 +2255,7 @@ class MainW(QtWidgets.QMainWindow):
         # Open a qmessage box to notify the user that the video is not loaded
         msg = QtWidgets.QMessageBox()
         # Error icon in the top left corner
-        msg.setIcon(QtWidgets.QMessageBox.Critical)
+        msg.setIcon(QtWidgets.QMessageBox.Icon.Critical)
         msg.setText("Please load a video first.")
         msg.setWindowTitle("No video loaded")
         msg.exec_()
@@ -2269,16 +2269,16 @@ class MainW(QtWidgets.QMainWindow):
 
     def invalid_roi_popup(self):
         msg = QMessageBox(self)
-        msg.setIcon(QMessageBox.Warning)
+        msg.setIcon(QMessageBox.Icon.Warning)
         msg.setText("only pupil ROI allowed during online mode")
-        msg.setStandardButtons(QMessageBox.Ok)
+        msg.setStandardButtons(QMessageBox.StandardButton.Ok)
         msg.exec_()
 
     def show_roi_selection_error(self):
         msg = QMessageBox(self)
-        msg.setIcon(QMessageBox.Warning)
+        msg.setIcon(QMessageBox.Icon.Warning)
         msg.setText("Please select a ROI")
-        msg.setStandardButtons(QMessageBox.Ok)
+        msg.setStandardButtons(QMessageBox.StandardButton.Ok)
         msg.exec_()
 
     def model_loaded_popup(self, model_path):

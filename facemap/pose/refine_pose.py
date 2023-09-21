@@ -10,13 +10,12 @@ import numpy as np
 import pyqtgraph as pg
 import torch
 from matplotlib import cm
-from PyQt5 import QtCore
-from PyQt5.QtGui import QColor
-from PyQt5.QtWidgets import (
+from qtpy import QtCore, QtGui
+from qtpy.QtGui import QColor
+from qtpy.QtWidgets import (
     QButtonGroup,
     QCheckBox,
     QComboBox,
-    QDesktopWidget,
     QDialog,
     QFormLayout,
     QGridLayout,
@@ -93,7 +92,7 @@ class ModelTrainingPopup(QDialog):
 
         self.verticalLayout = QVBoxLayout(self)
         # Set window size that is adjusted to the size of the window
-        self.window_max_size = QDesktopWidget().screenGeometry(-1)
+        self.window_max_size = QtGui.QGuiApplication.primaryScreen().availableGeometry()
 
         self.show_choose_folder()
         self.setLayout(self.verticalLayout)
@@ -106,6 +105,11 @@ class ModelTrainingPopup(QDialog):
             int(np.floor(self.window_max_size.width() * frac)),
             int(np.floor(self.window_max_size.height() * frac * aspect_ratio)),
         )
+        # center window on screen
+        centerPoint = QtGui.QGuiApplication.primaryScreen().availableGeometry().center()
+        qtRectangle = self.frameGeometry()
+        qtRectangle.moveCenter(centerPoint)
+        self.move(qtRectangle.topLeft())
 
     def clear_window(self):
         # Clear the window
@@ -174,13 +178,11 @@ class ModelTrainingPopup(QDialog):
     ### ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Step 2: Choose training files ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ ###
 
     def show_choose_training_files(self):
-        self.update_window_size(0.4, aspect_ratio=0.5)
-
         self.output_folder_path = self.output_folder_path_box.text()
         # Check if path exists
         if not os.path.exists(self.output_folder_path):
             msg = QMessageBox(self)
-            msg.setIcon(QMessageBox.Warning)
+            msg.setIcon(QMessageBox.Icon.Warning)
             msg.setStyleSheet("QLabel{ color: white}")
             msg.setText("Please set a valid output folder path first")
             msg.setWindowTitle("Warning")
@@ -472,6 +474,8 @@ class ModelTrainingPopup(QDialog):
         )
 
         self.verticalLayout.addWidget(self.buttons_groupbox)
+        
+        self.update_window_size(0.4, aspect_ratio=1.5)
 
     def show_data_files(self, yes_selected):
         """
@@ -640,11 +644,11 @@ class ModelTrainingPopup(QDialog):
         if self.output_model_name == "facemap_model_state":
             # Open a QMessageBox to warn the user that the model name is not allowed
             msg = QMessageBox(self)
-            msg.setIcon(QMessageBox.Warning)
+            msg.setIcon(QMessageBox.Icon.Warning)
             msg.setText("Output model name cannot be 'facemap_model_state'")
             msg.setStyleSheet("QLabel{ color: white}")
             msg.setWindowTitle("Warning")
-            msg.setStandardButtons(QMessageBox.Ok)
+            msg.setStandardButtons(QMessageBox.StandardButton.Ok)
             msg.exec_()
             return
         # Get the selected videos
@@ -669,7 +673,7 @@ class ModelTrainingPopup(QDialog):
         else:
             # Show error message
             self.error_message = QMessageBox()
-            self.error_message.setIcon(QMessageBox.Critical)
+            self.error_message.setIcon(QMessageBox.Icon.Critical)
             self.error_message.setText("Please select at least one video for training.")
             self.error_message.setWindowTitle("Error")
             self.error_message.exec_()
@@ -795,6 +799,7 @@ class ModelTrainingPopup(QDialog):
         self.frame_group = QGroupBox()
         self.frame_group.setLayout(QHBoxLayout())
         self.win = pg.GraphicsLayoutWidget()
+        self.win.viewport().setAttribute(QtCore.Qt.WidgetAttribute.WA_AcceptTouchEvents, False)
         self.win.setObjectName("Keypoints refinement")
         self.keypoints_scatterplot = KeypointsGraph(parent=self)
         self.frame_win = KeypointsViewBox(
@@ -1338,6 +1343,7 @@ class ModelTrainingPopup(QDialog):
             for j in range(cols):
                 frame = imgs[i * rows + j]
                 self.win = pg.GraphicsLayoutWidget()
+                self.win.viewport().setAttribute(QtCore.Qt.WidgetAttribute.WA_AcceptTouchEvents, False)
                 frame_win = self.win.addViewBox(invertY=True)
                 frame_win.setAspectLocked(True)
                 frame_win.addItem(

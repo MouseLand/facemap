@@ -5,9 +5,9 @@ import numpy as np
 import pyqtgraph as pg
 import scipy.io as sio
 from matplotlib import cm
-from PyQt5 import QtCore, QtGui, QtWidgets
-from PyQt5.QtCore import Qt, QUrl
-from PyQt5.QtWidgets import *
+from qtpy import QtCore, QtGui, QtWidgets
+from qtpy.QtCore import Qt, QUrl
+from qtpy.QtWidgets import *
 
 from facemap import utils
 from facemap.gui import guiparts, help_windows, io
@@ -21,7 +21,7 @@ class NeuralActivityWindow(QtWidgets.QMainWindow):
         self.parent = parent
         # Set the size of the window
         if window_size is None:
-            self.sizeObject = QtWidgets.QDesktopWidget().screenGeometry(-1)
+            self.sizeObject = QtGui.QGuiApplication.primaryScreen().availableGeometry()
         else:
             self.sizeObject = window_size
         self.resize(np.floor(self.sizeObject.width() / 1.5).astype(int), np.floor(self.sizeObject.height() / 2).astype(int))
@@ -41,7 +41,7 @@ class NeuralActivityWindow(QtWidgets.QMainWindow):
         
     def center(self):
         qr = self.frameGeometry()
-        cp = QtWidgets.QDesktopWidget().availableGeometry().center()
+        cp = QtGui.QGuiApplication.primaryScreen().availableGeometry().center()
         qr.moveCenter(cp)
         self.move(qr.topLeft())
 
@@ -123,6 +123,7 @@ class NeuralActivityWindow(QtWidgets.QMainWindow):
 
         # Add a plots window neural data visualization
         plots_window = pg.GraphicsLayoutWidget()
+        plots_window.viewport().setAttribute(QtCore.Qt.WidgetAttribute.WA_AcceptTouchEvents, False)
 
         self.neural_activity_plot = plots_window.addPlot(
             name="neural_activity_plot", row=0, col=0, title="Neural activity"
@@ -305,7 +306,7 @@ class NeuralActivityWindow(QtWidgets.QMainWindow):
                 print("error", e)
                 # Show error message
                 msg = QtWidgets.QMessageBox()
-                msg.setIcon(QtWidgets.QMessageBox.Critical)
+                msg.setIcon(QtWidgets.QMessageBox.Icon.Critical)
                 msg.setText("Invalid neural predictions file.")
                 msg.setInformativeText(
                     "The selected file is not a valid neural predictions file."
@@ -599,7 +600,7 @@ class NeuralActivityWindow(QtWidgets.QMainWindow):
 
         if self.neural_activity.data is None:
             msg = QtWidgets.QMessageBox()
-            msg.setIcon(QtWidgets.QMessageBox.Critical)
+            msg.setIcon(QtWidgets.QMessageBox.Icon.Critical)
             msg.setText("Neural activity not loaded")
             msg.setInformativeText(
                 "Please load neural activity data before running neural predictions"
@@ -613,7 +614,7 @@ class NeuralActivityWindow(QtWidgets.QMainWindow):
             # Check if keypoints are loaded
             if self.parent.poseFilepath[0] is None:
                 msg = QtWidgets.QMessageBox()
-                msg.setIcon(QtWidgets.QMessageBox.Critical)
+                msg.setIcon(QtWidgets.QMessageBox.Icon.Critical)
                 msg.setText("Keypoints not loaded")
                 msg.setInformativeText(
                     "Please load keypoints before running neural predictions"
@@ -687,7 +688,7 @@ class NeuralActivityWindow(QtWidgets.QMainWindow):
                     x_input = self.movSVDs[0]
             except:
                 msg = QtWidgets.QMessageBox()
-                msg.setIcon(QtWidgets.QMessageBox.Critical)
+                msg.setIcon(QtWidgets.QMessageBox.Icon.Critical)
                 msg.setText("SVDs not loaded")
                 msg.setInformativeText(
                     "Please load SVDs (proc file) before running neural predictions"
