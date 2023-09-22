@@ -160,7 +160,11 @@ class SegmentationTab(QWidget):
         segmentation_results = self.get_segmentation_results(video_view)
 
         # Show the results
-        self.save_segmentation_results(segmentation_results)
+        masks, edges = segmentation_results
+        # save masks
+        #np.save('masks.npy', masks)
+        self.video_player.display_segmentation(masks, edges)
+        #self.save_segmentation_results(segmentation_results)
         print("Segmentation completed")
 
     def get_segmentation_results(self, video_view):

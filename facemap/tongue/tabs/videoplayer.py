@@ -2,8 +2,8 @@ from PyQt5.QtWidgets import *
 from PyQt5.QtCore import QUrl, Qt
 from PyQt5.QtMultimedia import QMediaPlayer, QMediaContent
 from PyQt5.QtGui import *
-from PyQt5 import QtMultimediaWidgets
-
+from PyQt5 import QtMultimediaWidgets, QtGui, QtCore, QtWidgets                                                
+import pyqtgraph as pg                                    
 
 class VideoPlayer(QWidget):
 
@@ -11,15 +11,14 @@ class VideoPlayer(QWidget):
         super(VideoPlayer, self).__init__(parent)
 
         self.scene = QGraphicsScene(self)
-        self.graphics_view = QGraphicsView(self.scene)
-
-        self.mediaPlayer = QMediaPlayer(None, QMediaPlayer.VideoSurface)
+        self.graphics_view = QGraphicsView(self)
+        self.graphics_view.setScene(self.scene)
+        self.mediaPlayer = QMediaPlayer(self)
         self.mediaPlayer.setPlaybackRate(.5)
-
-        self.scene = QGraphicsScene(self)
-        self.graphics_view = QGraphicsView(self.scene)
-
         self.videoWidget = QtMultimediaWidgets.QGraphicsVideoItem() #QVideoWidget()
+        self.pixmap = QPixmap() #QGraphicsPixmapItem(self.videoWidget)          
+        self.pixmap_item = QGraphicsPixmapItem(self.pixmap)
+        self.show_masks = False                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    
 
         self.play_button = playButton
         #self.playButton.setEnabled(False)
@@ -40,9 +39,11 @@ class VideoPlayer(QWidget):
 
         layout = QVBoxLayout()
         self.scene.addItem(self.videoWidget)
+        self.scene.addItem(self.pixmap_item)
         layout.addWidget(self.graphics_view)
         layout.addWidget(self.positionSlider)
         layout.addWidget(self.statusBar)
+        #layout.addWidget(self.pic)
 
         self.setLayout(layout)
 
@@ -72,6 +73,10 @@ class VideoPlayer(QWidget):
         if self.mediaPlayer.state() == QMediaPlayer.PlayingState:
             self.play_button.setIcon(
                     self.style().standardIcon(QStyle.SP_MediaPause))
+        # check if end of media state then change position to 0
+        elif self.mediaPlayer.state() == QMediaPlayer.StoppedState:
+            self.setPosition(0)
+            self.positionChanged(0)
         else:
             self.play_button.setIcon(
                     self.style().standardIcon(QStyle.SP_MediaPlay))
@@ -89,5 +94,27 @@ class VideoPlayer(QWidget):
         self.play_button.setEnabled(False)
         self.statusBar.showMessage("Error: " + self.mediaPlayer.errorString())
 
+    def display_segmentation(self, masks, edges):
+        self.show_masks = True
+        for i, mask in enumerate(masks):
+            if sum(mask.flatten()) > 2100:
+                # convert mask to image in 0-255
+                #mask = mask * 255
+                self.scene.removeItem(self.pixmap_item)
+                mask_image = self.array_to_qpixmap(mask.squeeze())
+                self.pixmap = QPixmap(mask_image)
+                self.pixmap_item = QGraphicsPixmapItem(self.pixmap)
+                self.scene.addItem(self.pixmap_item)
 
+    def array_to_qpixmap(self, array):
+        height, width = array.shape
+        q_image = QImage(width, height, QImage.Format_ARGB32)  # Use ARGB32 format for transparency
+
+        for y in range(height):
+            for x in range(width):
+                value = array[y, x]
+                color = QColor(255, 255, 255, 0 if value == 0 else 255)  # Set alpha to 0 for 0 values
+                q_image.setPixel(x, y, color.rgba())
+
+        return QPixmap.fromImage(q_image)
 
