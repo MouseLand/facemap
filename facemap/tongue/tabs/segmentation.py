@@ -149,7 +149,7 @@ class SegmentationTab(QWidget):
             # Add the selected files to the list of video filenames
             self.video_filenames += file_dialog.selectedFiles()
             self.cumframes, self.Ly, self.Lx, self.containers = utils.get_frame_details([[self.video_filenames[-1]]])
-            self.video_player.abrir(self.video_filenames[-1])
+            self.video_player.load_video(self.cumframes, self.Ly, self.Lx, self.containers)#.abrir(self.video_filenames[-1])
             print("Video loaded:", self.video_filenames)
 
     def run_segmentation(self):
