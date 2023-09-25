@@ -5,6 +5,7 @@ from PyQt5.QtGui import *
 from PyQt5 import QtMultimediaWidgets, QtCore, QtMultimedia, QtGui                                               
 import pyqtgraph as pg
 from facemap import utils
+import cv2
 
 class VideoPlayer(QWidget):
 
@@ -98,7 +99,7 @@ class VideoPlayer(QWidget):
         mask_image = self.masks[self.current_frame].squeeze().transpose(1,0)#self.array_to_qpixmap(self.masks[self.current_frame].squeeze())
         self.mask_image.setImage(mask_image)
         self.mask_image.setOpacity(0.5)
-        self.mask_image.setRect(self.p0.itemBoundingRect(self.pimg))#.pimg.boundingRect())
+        self.mask_image.setRect(self.pimg.boundingRect())
 
     def display_segmentation(self, masks, edges):
         self.show_masks = True
