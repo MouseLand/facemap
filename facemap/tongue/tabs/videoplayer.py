@@ -2,7 +2,7 @@ from PyQt5.QtWidgets import *
 from PyQt5.QtCore import *
 from PyQt5.QtMultimedia import QMediaPlayer, QMediaContent, QVideoFrame
 from PyQt5.QtGui import *
-from PyQt5 import QtMultimediaWidgets, QtCore, QtMultimedia                                                
+from PyQt5 import QtMultimediaWidgets, QtCore, QtMultimedia, QtGui                                               
 import pyqtgraph as pg
 from facemap import utils
 
@@ -11,24 +11,20 @@ class VideoPlayer(QWidget):
     def __init__(self, playButton, parent=None):
         super(VideoPlayer, self).__init__(parent)
 
-        #self.scene = QGraphicsScene(self)
-        #self.graphics_view = QGraphicsView(self)
-        #self.graphics_view.setScene(self.scene)
         self.video_window = pg.GraphicsLayoutWidget()
-        #self.mediaPlayer = QMediaPlayer(self)
-        #self.mediaPlayer.setPlaybackRate(.5)
-        #self.videoWidget = QtMultimediaWidgets.QGraphicsVideoItem() #QVideoWidget()
-                # A plot area (ViewBox + axes) for displaying the image
         self.p0 = self.video_window.addViewBox(lockAspect=True, row=0, col=0, invertY=True)
         self.p0.setMenuEnabled(False)
         self.pimg = pg.ImageItem()
         self.p0.addItem(self.pimg)
-        #self.pixmap = QPixmap() #QGraphicsPixmapItem(self.videoWidget)          
-        #self.pixmap_item = QGraphicsPixmapItem(self.pixmap)
-        self.show_masks = False                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    
-
+        self.mask_image = pg.ImageItem()
+        # set qrectf of mask_image same as pimg
+        print(self.p0.viewRect())
+        self.mask_image.setZValue(10)
+        self.mask_image.setPos(0,0)
+        self.p0.addItem(self.mask_image)
+        self.show_masks = False           
+                                                                                            
         self.play_button = playButton
-        #self.playButton.setEnabled(False)
         self.play_button.setIcon(self.style().standardIcon(QStyle.SP_MediaPlay))
         self.play_button.clicked.connect(self.play_clicked)
         self.play_status = False
@@ -52,25 +48,12 @@ class VideoPlayer(QWidget):
         self.positionSlider.setTracking(False)
 
         layout = QVBoxLayout()
-        #self.scene.addItem(self.videoWidget)
-        #self.scene.addItem(self.pixmap_item)
         layout.addWidget(self.video_window)#graphics_view)
         layout.addWidget(self.positionSlider)
         layout.addWidget(self.frameCounter)
         layout.addWidget(self.statusBar)
         self.setLayout(layout)
 
-        """
-        self.probe = QtMultimedia.QVideoProbe()
-        self.probe.videoFrameProbed.connect(self.frameCounter.processFrame)
-        self.probe.setSource(self.mediaPlayer)
-
-        self.mediaPlayer.setVideoOutput(self.videoWidget)
-        self.mediaPlayer.stateChanged.connect(self.mediaStateChanged)
-        self.mediaPlayer.positionChanged.connect(self.positionChanged)
-        self.mediaPlayer.durationChanged.connect(self.durationChanged)
-        self.mediaPlayer.error.connect(self.handleError)
-        """
         self.statusBar.showMessage("Ready")
 
     def play_clicked(self):
@@ -98,7 +81,8 @@ class VideoPlayer(QWidget):
         frame = frame.transpose(1, 0, 2)
         self.pimg.setImage(frame)
         self.frameCounter.setText(str(self.current_frame))
-
+        if self.show_masks:
+            self.update_segmentation()
 
     def load_video(self, cumframes, Ly, Lx, containers):
         self.cumframes = cumframes
@@ -111,12 +95,10 @@ class VideoPlayer(QWidget):
         self.play_button.click()
 
     def update_segmentation(self):
-        #self.scene.removeItem(self.pixmap_item)
-        mask_image = self.array_to_qpixmap(self.masks[self.current_frame].squeeze())
-        self.pixmap = QPixmap(mask_image)
-        #self.pixmap_item = QGraphicsPixmapItem(self.pixmap)
-        self.pixmap_item.setPixmap(self.pixmap)
-        #self.scene.addItem(self.pixmap_item)
+        mask_image = self.masks[self.current_frame].squeeze().transpose(1,0)#self.array_to_qpixmap(self.masks[self.current_frame].squeeze())
+        self.mask_image.setImage(mask_image)
+        self.mask_image.setOpacity(0.5)
+        self.mask_image.setRect(self.p0.itemBoundingRect(self.pimg))#.pimg.boundingRect())
 
     def display_segmentation(self, masks, edges):
         self.show_masks = True
