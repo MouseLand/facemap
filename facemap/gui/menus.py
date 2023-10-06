@@ -1,14 +1,14 @@
 """
 Copright © 2023 Howard Hughes Medical Institute, Authored by Carsen Stringer and Atika Syeda.
 """
-from PyQt5.QtWidgets import QAction, QDesktopWidget
+from qtpy.QtWidgets import QAction
+from qtpy.QtGui import QGuiApplication
 
 from . import help_windows, io
 
 
 def mainmenu(parent):
     # --------------- MENU BAR --------------------------
-    # run suite2p from scratch
     open_file = QAction("Load video", parent)
     open_file.setShortcut("Ctrl+L")
     open_file.triggered.connect(lambda: io.open_file(parent))
@@ -39,6 +39,16 @@ def mainmenu(parent):
     train_model.triggered.connect(lambda: parent.show_model_training_popup())
     parent.addAction(train_model)
 
+    add_pose_model = QAction("Add pose model", parent)
+    add_pose_model.triggered.connect(lambda: parent.add_pose_model())
+    parent.addAction(add_pose_model)
+
+    launch_neural_activity_window = QAction("Launch Neural Activity Window", parent)
+    launch_neural_activity_window.triggered.connect(
+        lambda: parent.launch_neural_activity_window()
+    )
+    parent.addAction(launch_neural_activity_window)
+    """
     # Load neural data
     load_neural = QAction("Load neural data", parent)
     load_neural.triggered.connect(lambda: parent.load_neural_data())
@@ -66,6 +76,7 @@ def mainmenu(parent):
         lambda: parent.toggle_testdata_display(toggle_test_data)
     )
     parent.addAction(toggle_test_data)
+    """
 
     user_manual = QAction("User manual", parent)
     user_manual.setShortcut("Ctrl+H")
@@ -89,12 +100,16 @@ def mainmenu(parent):
     pose_menu = main_menu.addMenu("Pose")
     pose_menu.addAction(load_pose)
     pose_menu.addAction(train_model)
+    pose_menu.addAction(add_pose_model)
 
     neural_activity_menu = main_menu.addMenu("Neural activity")
+    neural_activity_menu.addAction(launch_neural_activity_window)
+    """"
     neural_activity_menu.addAction(load_neural)
     neural_activity_menu.addAction(load_neural_predictions)
     neural_activity_menu.addAction(run_neural_prediction)
     neural_activity_menu.addAction(toggle_test_data)
+    """
 
     help_menu = main_menu.addMenu("&Help")
     help_menu.addAction(user_manual)
@@ -102,8 +117,8 @@ def mainmenu(parent):
 
 
 def launch_user_manual(parent):
-    help_windows.MainWindowHelp(parent, QDesktopWidget().screenGeometry(-1))
+    help_windows.MainWindowHelp(parent, QGuiApplication.primaryScreen().availableGeometry())
 
 
 def show_about(parent):
-    help_windows.AboutWindow(parent, QDesktopWidget().screenGeometry(-1))
+    help_windows.AboutWindow(parent, QGuiApplication.primaryScreen().availableGeometry())

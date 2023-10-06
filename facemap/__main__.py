@@ -7,7 +7,7 @@ from distutils.util import strtobool
 
 import numpy as np
 
-from facemap import process
+from facemap import process, version_str
 from facemap.gui import gui
 
 
@@ -25,6 +25,7 @@ def main():
 
 
 if __name__ == "__main__":
+    
     parser = argparse.ArgumentParser(description="Movie files")
     parser.add_argument("--ops", default=[], type=str, help="options")
     parser.add_argument(
@@ -68,7 +69,7 @@ if __name__ == "__main__":
         type=str,
         help="Absolute path to behavior timestamps file (*.npy)",
     )
-    parser.add_argument("--savedir", default=None, type=str, help="savedir")
+    parser.add_argument("--savedir", default=None, type=str, help="save directory")
     # Add a flag to autoload keypoints in the same directory as the movie
     parser.add_argument(
         "--autoload_keypoints",
@@ -88,6 +89,9 @@ if __name__ == "__main__":
     parser.set_defaults(autoload_proc=True)
 
     args = parser.parse_args()
+
+    print(version_str)
+
     ops = {}
     if len(args.ops) > 0:
         ops = np.load(args.ops)

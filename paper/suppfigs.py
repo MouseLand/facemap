@@ -10,6 +10,7 @@ from scipy.stats import wilcoxon, zscore
 
 from facemap.utils import bin1d
 
+
 def varexp_ranks(data_path, dbs, evals=None, save_fig=False):
     colors = [[0.5, 0.5, 0.5], [0.75, 0.75, 0.25]]
     lbls = ["keypoints", "movie PCs"]

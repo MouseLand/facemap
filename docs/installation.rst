@@ -1,35 +1,34 @@
 Installation
 ===================================
 
-Please see the github readme for full install instructions.
+Please see the Github readme for the latest installation `instructions`_
 
+.. _instructions: https://github.com/MouseLand/facemap#readme
 
 Common installation issues
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-If you have pip issues, there might be some interaction between pre-installed dependencies and the ones FaceMap needs. First thing to try is
-::
+- If you have ``pip`` issues, there might be some interaction between pre-installed dependencies and the required Facemap dependencies. Please upgrade pip as follows:
+  ::
 
     python -m pip install --upgrade pip
 
 
-While running ``python -m facemap``, if you receive the error: ``No module named PyQt5.sip``, then try uninstalling and reinstalling pyqt5
-::
+- While running ``python -m facemap``, if you receive the error: ``No module named PyQt5.sip``, then try uninstalling and reinstalling pyqt5 as follows:
+  ::
 
     pip uninstall pyqt5 pyqt5-tools
     pip install pyqt5 pyqt5-tools pyqt5.sip
 
-If you are on Yosemite Mac OS, PyQt doesn't work, and you won't be able to install Facemap. More recent versions of Mac OS are fine.
-
-The software has been heavily tested on Ubuntu 18.04, and less well tested on Windows 10 and Mac OS. Please post an issue if you have installation problems.
+- If you are on Yosemite Mac OS, PyQt doesn't work, and you won't be able to install Facemap. More recent versions of Mac OS are supported. The software has been heavily tested on Ubuntu 18.04, and less well tested on Windows 10 and Mac OS. Please post an issue if you have installation problems.
 
 Dependencies
 ~~~~~~~~~~~~~~~~~~~
 
-Facemap python relies on these awesome packages:
+Facemap (python package) relies on these awesome packages:
 
 - `pyqtgraph`_
-- `pyqt5`_
+- `pyqt6`_
 - `numpy`_ (>=1.13.0)
 - `scipy`_ 
 - `opencv`_
@@ -41,7 +40,7 @@ Facemap python relies on these awesome packages:
 - `UMAP`_
 
 .. _pyqtgraph: http://pyqtgraph.org/
-.. _pyqt5: http://pyqt.sourceforge.net/Docs/PyQt5/
+.. _pyqt6: http://pyqt.sourceforge.net/Docs/PyQt6/
 .. _numpy: http://www.numpy.org/
 .. _scipy: https://www.scipy.org/
 .. _opencv: https://opencv.org/ 
@@ -55,4 +54,4 @@ Facemap python relies on these awesome packages:
 MATLAB package installation
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-The matlab version supports SVD processing only and does not include face tracker. The package can be downloaded/cloned from github (no install required). It works in Matlab 2014b and above. The Image Processing Toolbox is necessary to use the GUI. For GPU functionality, the Parallel Processing Toolbox is required. If you don't have the Parallel Processing Toolbox, uncheck the box next to "use GPU" in the GUI before processing. Note this version is no longer supported.
+The matlab version supports SVD processing only and does not include the orofacial tracker. The package can be downloaded/cloned from github (no install required). It works in Matlab 2014b and above. The Image Processing Toolbox is necessary to use the GUI. For GPU functionality, the Parallel Processing Toolbox is required. If you don't have the Parallel Processing Toolbox, uncheck the box next to "use GPU" in the GUI before processing. Note this version is no longer supported.

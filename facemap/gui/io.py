@@ -7,7 +7,7 @@ import pickle
 
 import numpy as np
 from natsort import natsorted
-from PyQt5.QtWidgets import QFileDialog, QMessageBox
+from qtpy.QtWidgets import QFileDialog, QMessageBox
 
 from facemap import roi, utils
 
@@ -22,8 +22,8 @@ def open_file(parent, file_name=None):
             "",
             "Movie files (*.h5 *.mj2 *.mp4 *.mkv *.avi *.mpeg *.mpg *.asf *m4v)",
         )
-    # load ops in same folder
-    if file_name:
+    # check if file_name selected or cancelled
+    if file_name[0]:
         parent.filelist = [[file_name[0]]]
         load_movies(parent)
     else:
@@ -234,7 +234,7 @@ def open_proc(parent, file_name=None):
                         int(parent.saturation[parent.iROI] * 100 / 255)
                     )
                     parent.ROIs[parent.iROI].plot(parent)
-                    if parent.processed and k <= 7:
+                    if parent.processed and k <= 5:
                         parent.plot2_checkboxes[k].setText(
                             "%s%d" % (parent.typestr[r["rind"]], kt[r["rind"]])
                         )
@@ -279,7 +279,7 @@ def get_folder_path(parent):
     else:
         # Open a qmessagebox to inform the user that the path does not exist
         msg = QMessageBox()
-        msg.setIcon(QMessageBox.Warning)
+        msg.setIcon(QMessageBox.Icon.Warning)
         msg.setText("The path does not exist")
         msg.setWindowTitle("Warning")
         msg.exec_()
@@ -307,8 +307,8 @@ def load_movies(parent, filelist=None):
         parent.Lx = Lx
         parent.keypoints_traces_plot.clear()
         parent.svd_traces_plot.clear()
-        parent.neural_activity_plot.clear()
-        parent.neural_activity_plot.clear()
+        #parent.neural_activity_plot.clear()
+        #parent.neural_activity_plot.clear()
         if len(parent.Ly) < 2:
             parent.LY = parent.Ly[0]
             parent.LX = parent.Lx[0]
@@ -367,7 +367,7 @@ def load_npy_file(parent, allow_mat=False):
     else:
         # Open a qmessagebox to inform the user that the path does not exist
         msg = QMessageBox()
-        msg.setIcon(QMessageBox.Warning)
+        msg.setIcon(QMessageBox.Icon.Warning)
         msg.setText("The path does not exist")
         msg.setWindowTitle("Warning")
         msg.exec_()
@@ -380,8 +380,8 @@ def save_folder(parent):
     if folderName:
         parent.save_path = folderName
         parent.output_folder_set = True
-        if len(folderName) > 30:
-            parent.savelabel.setText("..." + folderName[-30:])
+        if len(folderName) > 15:
+            parent.savelabel.setText("..." + folderName[-15:])
         else:
             parent.savelabel.setText(folderName)
 
@@ -423,9 +423,9 @@ def load_cluster_labels(parent):
             return
     except Exception as e:
         msg = QMessageBox(parent)
-        msg.setIcon(QMessageBox.Warning)
+        msg.setIcon(QMessageBox.Icon.Warning)
         msg.setText("Error: not a supported filetype")
-        msg.setStandardButtons(QMessageBox.Ok)
+        msg.setStandardButtons(QMessageBox.StandardButton.Ok)
         msg.exec_()
         print(e)
 
@@ -457,9 +457,9 @@ def load_umap(parent):
         return embedded_data
     except Exception as e:
         msg = QMessageBox(parent)
-        msg.setIcon(QMessageBox.Warning)
+        msg.setIcon(QMessageBox.Icon.Warning)
         msg.setText("Error: not a supported filetype")
-        msg.setStandardButtons(QMessageBox.Ok)
+        msg.setStandardButtons(QMessageBox.StandardButton.Ok)
         msg.exec_()
         print(e)
 
@@ -480,9 +480,9 @@ def load_trace_data(parent):
         return dat
     except Exception as e:
         msg = QMessageBox(parent)
-        msg.setIcon(QMessageBox.Warning)
+        msg.setIcon(QMessageBox.Icon.Warning)
         msg.setText("Error: not a supported filetype")
-        msg.setStandardButtons(QMessageBox.Ok)
+        msg.setStandardButtons(QMessageBox.StandardButton.Ok)
         msg.exec_()
         print(e)
 

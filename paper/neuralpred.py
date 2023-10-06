@@ -10,7 +10,7 @@ import torch
 from scipy.interpolate import interp1d
 from scipy.linalg import eigh
 from scipy.ndimage import gaussian_filter1d
-from scipy.stats import zscore 
+from scipy.stats import zscore
 from sklearn.decomposition import PCA
 from torch import nn
 from torch.nn import functional as F

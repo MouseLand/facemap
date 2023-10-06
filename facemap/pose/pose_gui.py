@@ -4,9 +4,8 @@ Copright © 2023 Howard Hughes Medical Institute, Authored by Carsen Stringer an
 import numpy as np
 import pyqtgraph as pg
 from matplotlib import cm
-from PyQt5 import QtCore
-from PyQt5.QtWidgets import (
-    QDesktopWidget,
+from qtpy import QtCore, QtGui, QtWidgets
+from qtpy.QtWidgets import (
     QDialog,
     QHBoxLayout,
     QPushButton,
@@ -113,7 +112,7 @@ class PoseGUI(pose.Pose):
 class ROI_popup(QDialog):
     def __init__(self, frame, video_id, gui, pose, last_video):
         super().__init__()
-        window_max_size = QDesktopWidget().screenGeometry(-1)
+        window_max_size = QtGui.QGuiApplication.primaryScreen().availableGeometry()
         fraction = 0.5
         aspect_ratio = 1.5
         self.resize(
@@ -129,6 +128,7 @@ class ROI_popup(QDialog):
         # Add image and ROI bbox
         self.verticalLayout = QVBoxLayout(self)
         self.win = pg.GraphicsLayoutWidget()
+        self.win.viewport().setAttribute(QtCore.Qt.WidgetAttribute.WA_AcceptTouchEvents, False)
         self.win.setObjectName("Dialog " + str(video_id + 1))
         # fix image in ROI window
         ROI_win = self.win.addViewBox(invertY=True, lockAspect=True, enableMouse=False)
@@ -233,6 +233,7 @@ class VisualizeVideoSubset(QDialog):
         # Add image and pose prediction
         self.verticalLayout = QtWidgets.QVBoxLayout(self)
         self.win = pg.GraphicsLayoutWidget()
+        self.win.viewport().setAttribute(QtCore.Qt.WidgetAttribute.WA_AcceptTouchEvents, False)
         self.win.setObjectName("Dialog " + str(video_id + 1))
         frame_win = self.win.addViewBox(invertY=True)
         self.current_frame_idx = 0

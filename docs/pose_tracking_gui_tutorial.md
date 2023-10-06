@@ -11,7 +11,7 @@ The latest python version is integrated with Facemap network for tracking 14 dis
 
 ## Generate keypoints
 
-Follow the steps below to generate keypoints for your videos:
+Follow the steps below to generate keypoints for your videos or download sample video from [here](https://drive.google.com/file/d/124e5eRFe4KSJDTkxKlMICdslzyXf_lkw/view?usp=sharing):
 
 1. Load video 
     - Select `File` from the menu bar
@@ -24,7 +24,7 @@ Follow the steps below to generate keypoints for your videos:
     - Check `Keypoints` for pose tracking.
     - Click `process`.
 3. Set ROI/bounding box for face region
-    - A dialog box for selecting a bounding box for the face will appear. Drag the red rectangle to select region of interest on the frame where the keypoints will be tracked. Please ensure that the bouding box is focused on the face where all the keypoints will be visible. See example frames [here](figs/mouse_views.png). If a 'Face (pose)' ROI has already been added then this step will be skipped.
+    - A dialog box for selecting a bounding box for the face will appear. Drag the red rectangle to select region of interest on the frame where the keypoints will be tracked. Please ensure that the bouding box is focused on the face where all the keypoints will be visible. See example frames [here](https://github.com/MouseLand/facemap/blob/main/figs/mouse_views.png). If a 'Face (pose)' ROI has already been added then this step will be skipped.
     - Click `Done` to process video. Alternatively, click `Skip` to use the entire frame region. Monitor progress bar at the bottom of the window for updates.
 4. View keypoints
     - Keypoints will be automatically loaded after processing.
