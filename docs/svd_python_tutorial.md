@@ -121,4 +121,4 @@ proc = np.load('cam1_proc.npy', allow_pickle=True).item()
 
 The `_proc.npy` files can be loaded into the GUI (and will automatically be loaded after processing). The checkboxes in the lower left allow you to view different traces from the processed video(s).
 
-For example usage, see [notebook](https://github.com/MouseLand/facemap/blob/dev/notebooks/process.ipynb).
+For example usage, see [notebook](https://github.com/MouseLand/facemap/blob/main/docs/notebooks/process_svd.ipynb).

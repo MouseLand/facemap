@@ -1,3 +1,6 @@
+"""
+Copright © 2023 Howard Hughes Medical Institute, Authored by Carsen Stringer and Atika Syeda.
+"""
 import matplotlib.pyplot as plt
 import torch
 from fig_utils import *

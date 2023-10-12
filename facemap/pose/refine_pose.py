@@ -1,3 +1,6 @@
+"""
+Copright © 2023 Howard Hughes Medical Institute, Authored by Carsen Stringer and Atika Syeda.
+"""
 import os
 import shutil
 from glob import glob
@@ -7,13 +10,12 @@ import numpy as np
 import pyqtgraph as pg
 import torch
 from matplotlib import cm
-from PyQt5 import QtCore
-from PyQt5.QtGui import QColor
-from PyQt5.QtWidgets import (
+from qtpy import QtCore, QtGui
+from qtpy.QtGui import QColor
+from qtpy.QtWidgets import (
     QButtonGroup,
     QCheckBox,
     QComboBox,
-    QDesktopWidget,
     QDialog,
     QFormLayout,
     QGridLayout,
@@ -29,6 +31,7 @@ from PyQt5.QtWidgets import (
     QSpinBox,
     QVBoxLayout,
 )
+from torch.nn import functional as F
 
 from .. import utils
 from ..gui import help_windows, io
@@ -89,7 +92,7 @@ class ModelTrainingPopup(QDialog):
 
         self.verticalLayout = QVBoxLayout(self)
         # Set window size that is adjusted to the size of the window
-        self.window_max_size = QDesktopWidget().screenGeometry(-1)
+        self.window_max_size = QtGui.QGuiApplication.primaryScreen().availableGeometry()
 
         self.show_choose_folder()
         self.setLayout(self.verticalLayout)
@@ -102,6 +105,11 @@ class ModelTrainingPopup(QDialog):
             int(np.floor(self.window_max_size.width() * frac)),
             int(np.floor(self.window_max_size.height() * frac * aspect_ratio)),
         )
+        # center window on screen
+        centerPoint = QtGui.QGuiApplication.primaryScreen().availableGeometry().center()
+        qtRectangle = self.frameGeometry()
+        qtRectangle.moveCenter(centerPoint)
+        self.move(qtRectangle.topLeft())
 
     def clear_window(self):
         # Clear the window
@@ -170,13 +178,11 @@ class ModelTrainingPopup(QDialog):
     ### ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Step 2: Choose training files ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ ###
 
     def show_choose_training_files(self):
-        self.update_window_size(0.4, aspect_ratio=0.5)
-
         self.output_folder_path = self.output_folder_path_box.text()
         # Check if path exists
         if not os.path.exists(self.output_folder_path):
             msg = QMessageBox(self)
-            msg.setIcon(QMessageBox.Warning)
+            msg.setIcon(QMessageBox.Icon.Warning)
             msg.setStyleSheet("QLabel{ color: white}")
             msg.setText("Please set a valid output folder path first")
             msg.setWindowTitle("Warning")
@@ -302,7 +308,7 @@ class ModelTrainingPopup(QDialog):
 
         self.spinbox_nframes = QSpinBox(self)
         self.spinbox_nframes.setRange(1, self.gui.cumframes[-1])
-        self.spinbox_nframes.setValue(25)
+        self.spinbox_nframes.setValue(15)
         self.spinbox_nframes.setStyleSheet("QSpinBox {color: 'black';}")
         self.get_num_frames_groupbox.layout().addWidget(self.spinbox_nframes)
 
@@ -468,6 +474,8 @@ class ModelTrainingPopup(QDialog):
         )
 
         self.verticalLayout.addWidget(self.buttons_groupbox)
+        
+        self.update_window_size(0.4, aspect_ratio=1.5)
 
     def show_data_files(self, yes_selected):
         """
@@ -636,11 +644,11 @@ class ModelTrainingPopup(QDialog):
         if self.output_model_name == "facemap_model_state":
             # Open a QMessageBox to warn the user that the model name is not allowed
             msg = QMessageBox(self)
-            msg.setIcon(QMessageBox.Warning)
+            msg.setIcon(QMessageBox.Icon.Warning)
             msg.setText("Output model name cannot be 'facemap_model_state'")
             msg.setStyleSheet("QLabel{ color: white}")
             msg.setWindowTitle("Warning")
-            msg.setStandardButtons(QMessageBox.Ok)
+            msg.setStandardButtons(QMessageBox.StandardButton.Ok)
             msg.exec_()
             return
         # Get the selected videos
@@ -665,7 +673,7 @@ class ModelTrainingPopup(QDialog):
         else:
             # Show error message
             self.error_message = QMessageBox()
-            self.error_message.setIcon(QMessageBox.Critical)
+            self.error_message.setIcon(QMessageBox.Icon.Critical)
             self.error_message.setText("Please select at least one video for training.")
             self.error_message.setWindowTitle("Error")
             self.error_message.exec_()
@@ -761,7 +769,7 @@ class ModelTrainingPopup(QDialog):
                 self.all_frames[0],
                 self.pose_data[0],
             ) = self.get_bbox_adjusted_img_and_keypoints(
-                self.all_frames[0], self.pose_data[0], self.bbox[0]
+                self.all_frames[0], self.pose_data[0], self.bbox[0], resize = False
             )
 
         if (
@@ -791,13 +799,14 @@ class ModelTrainingPopup(QDialog):
         self.frame_group = QGroupBox()
         self.frame_group.setLayout(QHBoxLayout())
         self.win = pg.GraphicsLayoutWidget()
+        self.win.viewport().setAttribute(QtCore.Qt.WidgetAttribute.WA_AcceptTouchEvents, False)
         self.win.setObjectName("Keypoints refinement")
         self.keypoints_scatterplot = KeypointsGraph(parent=self)
         self.frame_win = KeypointsViewBox(
             scatter_item=self.keypoints_scatterplot, invertY=True, lockAspect=True
         )  # self.win.addViewBox(invertY=True)
-        self.frame_win.setAspectLocked(True, QtCore.Qt.IgnoreAspectRatio)
-        self.frame_win.setMouseEnabled(False, False)
+        #self.frame_win.setAspectLocked(True, QtCore.Qt.IgnoreAspectRatio)
+        #self.frame_win.setMouseEnabled(False, False)
         self.frame_win.setMenuEnabled(False)
         self.win.addItem(self.frame_win)
         self.frame_group.layout().addWidget(self.win)
@@ -817,21 +826,33 @@ class ModelTrainingPopup(QDialog):
         self.saturation_group = QGroupBox()
         self.saturation_group.setLayout(QHBoxLayout())
         self.saturation_label = QLabel(self)
-        self.saturation_label.setText("Image saturation:")
+        self.saturation_label.setText("Saturation:")
         self.saturation_label.setStyleSheet("QLabel {color: 'white'; font-size: 16}")
         self.saturation_label.setAlignment(QtCore.Qt.AlignRight)
-        self.saturation_group.layout().addWidget(self.saturation_label)
         self.saturation_slider = QSlider(QtCore.Qt.Horizontal, self)
         self.saturation_slider.setMinimum(0)
         self.saturation_slider.setMaximum(100)
         self.saturation_slider.setValue(100)
         self.saturation_slider.valueChanged.connect(self.update_saturation)
         self.saturation_slider.setTracking(False)
-        # Set width of slider
-        self.saturation_slider.setFixedWidth(
-            int(np.floor(self.window_max_size.width() * 0.6 * 0.2))
+        # Add a brightness slider to saturation group
+        self.brightness_label = QLabel(self)
+        self.brightness_label.setText("Brightness:")
+        self.brightness_label.setStyleSheet("QLabel {color: 'white'; font-size: 16}")
+        self.brightness_label.setAlignment(QtCore.Qt.AlignRight)
+        self.brightness_slider = QSlider(QtCore.Qt.Horizontal, self)
+        self.brightness_slider.setMinimum(0)
+        self.brightness_slider.setMaximum(200)
+        self.brightness_slider.setValue(100)
+        self.brightness_slider.valueChanged.connect(self.update_brightness)
+        self.brightness_slider.setTracking(False)
+        self.brightness_slider.setFixedWidth(
+            int(np.floor(self.window_max_size.width() * 0.5 * 0.2))
         )
-        self.saturation_group.layout().addWidget(self.saturation_slider)
+        self.saturation_group.layout().addWidget(self.brightness_label)
+        self.saturation_group.layout().addWidget(self.brightness_slider)
+        #self.saturation_group.layout().addWidget(self.saturation_label)
+        #self.saturation_group.layout().addWidget(self.saturation_slider)
         self.left_vertical_group.layout().addWidget(self.saturation_group)
 
         # Define buttons for main window
@@ -916,6 +937,22 @@ class ModelTrainingPopup(QDialog):
         )
         self.img.setLevels([0, saturation])
 
+    def update_brightness(self):
+        """
+        Update the brightness of the image
+        """
+        brightness_factor = float(self.brightness_slider.value())/100
+        # change brightness
+        image = self.all_frames[self.current_video_idx][self.current_frame]
+        # Ensure that the brightness factor is within a valid range
+        brightness_factor = max(0.0, min(brightness_factor, 2.0))
+        # Adjust the brightness by multiplying with the factor
+        brightened_image_array = image * brightness_factor
+        # Make sure the values are still in the valid 0-1 range
+        brightened_image_array = np.clip(brightened_image_array, 0.0, 1.0)
+        self.img.setImage(brightened_image_array)
+
+
     def split_frames_idx_by_category(self, pose_pred_data):
         """
         Split the frames into difficult or easy frames category based on the likelihood threshold percentile
@@ -942,7 +979,7 @@ class ModelTrainingPopup(QDialog):
         easy_frames_idx = np.where(likelihood < likelihood_threshold)[0]
         return difficult_frames_idx, easy_frames_idx
 
-    def get_bbox_adjusted_img_and_keypoints(self, imgs, keypoints, bbox):
+    def get_bbox_adjusted_img_and_keypoints(self, imgs, keypoints, bbox, resize=None):
         """
         Adjusts the images and keypoints to the bounding box
         Parameters
@@ -959,10 +996,11 @@ class ModelTrainingPopup(QDialog):
             add_padding = True
         else:
             add_padding = False
-        if x2 - x1 != 256 or y2 - y1 != 256:
-            resize = True
-        else:
-            resize = False
+        if resize is None:
+            if x2 - x1 != 256 or y2 - y1 != 256:
+                resize = True
+            else:
+                resize = False
         imgs, postpad_shape, pads = transforms.preprocess_img(
             torch.tensor(imgs[np.newaxis, ...]),
             bbox,
@@ -1093,7 +1131,8 @@ class ModelTrainingPopup(QDialog):
             self.previous_frame()
         else:
             self.previous_button.setEnabled(False)
-        self.update_saturation()
+        self.update_brightness()
+        # self.update_saturation()
 
     def update_frame_counter(self, button):
         self.next_button.setEnabled(True)
@@ -1150,10 +1189,11 @@ class ModelTrainingPopup(QDialog):
             self.next_frame()
         else:
             self.next_button.setEnabled(False)
-        self.frame_win.setAspectLocked(True, QtCore.Qt.IgnoreAspectRatio)
-        self.frame_win.setMouseEnabled(False, False)
+        #self.frame_win.setAspectLocked(True, QtCore.Qt.IgnoreAspectRatio)
+        #self.frame_win.setMouseEnabled(False, False)
         self.frame_win.setMenuEnabled(False)
-        self.update_saturation()
+        self.update_brightness()
+        #self.update_saturation()
         self.win.show()
 
     def keyPressEvent(self, ev):
@@ -1192,8 +1232,12 @@ class ModelTrainingPopup(QDialog):
     def train_model(self):
         if self.use_current_video:
             self.keypoints_scatterplot.save_refined_data()
-        # Combine all keypoints and image data from selected videos into one list
-        # Convert lists to numpy arrays
+        # Combine all keypoints and image data from selected videos into one array
+        # resize all to 256,256 before concatenating
+        for s, set in enumerate(self.all_frames):
+            self.pose_data[s][:,:,0], self.pose_data[s][:,:,1] = transforms.rescale_keypoints(self.pose_data[s][:,:,0], self.pose_data[s][:,:,1], set.shape[1:], (256, 256))
+            self.all_frames[s] = transforms.resize_image(torch.from_numpy(self.all_frames[s]), resize_shape=(256, 256)).numpy()
+
         keypoints_data = np.concatenate(self.pose_data, axis=0)
         image_data = np.concatenate(self.all_frames, axis=0)
         keypoints_data = np.array(keypoints_data)
@@ -1229,7 +1273,7 @@ class ModelTrainingPopup(QDialog):
             self.output_folder_path, self.output_model_name + ".pt"
         )
         self.gui.save_pose_model(output_filepath)
-        self.gui.update_pose_model_combo_box()
+        self.gui.add_pose_model(output_filepath)
         self.close()
 
     ### ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Model Evaluation ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ ###
@@ -1299,7 +1343,9 @@ class ModelTrainingPopup(QDialog):
             for j in range(cols):
                 frame = imgs[i * rows + j]
                 self.win = pg.GraphicsLayoutWidget()
+                self.win.viewport().setAttribute(QtCore.Qt.WidgetAttribute.WA_AcceptTouchEvents, False)
                 frame_win = self.win.addViewBox(invertY=True)
+                frame_win.setAspectLocked(True)
                 frame_win.addItem(
                     pg.LabelItem("Frame {}".format(random_frame_indices[i * 3 + j] + 1))
                 )

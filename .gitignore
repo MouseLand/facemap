@@ -37,7 +37,7 @@ FaceMap/ops_user.npy
 *.sh
 *.pkl
 *.h5
-
+*.mp4 
 #
 # =========================
 # Operating System Files

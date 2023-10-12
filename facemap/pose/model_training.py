@@ -1,3 +1,6 @@
+"""
+Copright © 2023 Howard Hughes Medical Institute, Authored by Carsen Stringer and Atika Syeda.
+"""
 ## Import packages
 import os
 from io import StringIO
@@ -13,10 +16,8 @@ from . import pose_helper_functions as pose_utils
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 """
-Fine-tuning the model using the pre-trained weights and refined training data
-provided by the user.
+Fine-tuning the model using the pre-trained weights and refined training data provided by the user.
 """
-
 
 def train(
     train_dataloader,
@@ -54,7 +55,7 @@ def train(
         Whether to save the best model. The default is False.
     checkpoint_path : str, optional
         The path to save the best model. The default is None.
-    gui : PyQt5.QMainWindow
+    gui : qtpy.QMainWindow
         The main window of the application.
     gui_obj : QtWidgets
         The gui object of the application.

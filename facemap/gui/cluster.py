@@ -1,3 +1,6 @@
+"""
+Copright © 2023 Howard Hughes Medical Institute, Authored by Carsen Stringer and Atika Syeda.
+"""
 import os
 
 import cv2
@@ -16,9 +19,9 @@ TSNE_INSTALLED = True
 
 # import hdbscan
 from matplotlib import cm
-from PyQt5 import QtCore, QtWidgets
-from PyQt5.QtGui import QFont
-from PyQt5.QtWidgets import (
+from qtpy import QtCore, QtWidgets
+from qtpy.QtGui import QFont
+from qtpy.QtWidgets import (
     QButtonGroup,
     QCheckBox,
     QLabel,
@@ -405,9 +408,9 @@ class Cluster:
         else:
             self.data_type = None
             msg = QMessageBox(parent)
-            msg.setIcon(QMessageBox.Warning)
+            msg.setIcon(QMessageBox.Icon.Warning)
             msg.setText("Please select data for clustering")
-            msg.setStandardButtons(QMessageBox.Ok)
+            msg.setStandardButtons(QMessageBox.StandardButton.Ok)
             msg.exec_()
             return
         if self.cluster_method == "UMAP":
@@ -715,9 +718,9 @@ class Cluster:
                     pass
             else:
                 msg = QMessageBox(parent)
-                msg.setIcon(QMessageBox.Warning)
+                msg.setIcon(QMessageBox.Icon.Warning)
                 msg.setText("Please generate cluster labels for saving cluster videos")
-                msg.setStandardButtons(QMessageBox.Ok)
+                msg.setStandardButtons(QMessageBox.StandardButton.Ok)
                 msg.exec_()
         if dialogBox.data_checkbox.isChecked():
             self.save_cluster_output(parent)

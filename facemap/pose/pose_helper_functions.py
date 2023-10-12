@@ -1,20 +1,20 @@
-# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Import packages ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-import numpy as np
-
-print("numpy version: %s" % np.__version__)
+"""
+Copright © 2023 Howard Hughes Medical Institute, Authored by Carsen Stringer and Atika Syeda.
+"""
 import random
 from platform import python_version
 
 import cv2  # opencv
 import matplotlib
 import matplotlib.pyplot as plt
+
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Import packages ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+import numpy as np
 import pyqtgraph as pg
 import torch  # pytorch
-from PyQt5 import QtWidgets
-from PyQt5.QtWidgets import QDialog, QPushButton
+from qtpy import QtWidgets, QtCore
+from qtpy.QtWidgets import QDialog, QPushButton
 from scipy.ndimage import gaussian_filter
-
-print("python version:", python_version())
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~Global variables~~~~~~~~~~~~~~~~~~~~~~~~~~~~~`
 N_FACTOR = 2**4 // (2**2)
@@ -248,6 +248,7 @@ class test_popup(QDialog):
 
         # Add image and ROI bbox
         self.win = pg.GraphicsLayoutWidget()
+        self.win.viewport().setAttribute(QtCore.Qt.WidgetAttribute.WA_AcceptTouchEvents, False)
         ROI_win = self.win.addViewBox(invertY=True)
         self.img = pg.ImageItem(self.frame)
         ROI_win.addItem(self.img)
