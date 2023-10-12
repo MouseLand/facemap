@@ -804,12 +804,6 @@ def run(
                     U_mov_reshape[k] = np.reshape(
                         U_mov[k].copy(), (ly, lx, U_mov[k].shape[-1])
                     )
-                    S_mot_reshape[k] = np.reshape(
-                        S_mot[k].copy(), (ly, lx, S_mot[k].shape[-1])
-                    )
-                    S_mov_reshape[k] = np.reshape(
-                        S_mov[k].copy(), (ly, lx, S_mov[k].shape[-1])
-                    )
                     k += 1
     else:
         U_mot, U_mov, S_mot, S_mov = [], [], [], []
