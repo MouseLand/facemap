@@ -703,7 +703,7 @@ def run(
             rois = proc["rois"]
             sy = proc["sy"]
             sx = proc["sx"]
-            savepath = proc["savepath"] if savepath is not None else savepath
+            savepath = proc["savepath"] if savepath is None else savepath
 
     Lybin, Lxbin, iinds = binned_inds(Ly, Lx, sbin)
     LYbin, LXbin, sybin, sxbin = utils.video_placement(Lybin, Lxbin)
