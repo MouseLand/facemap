@@ -454,7 +454,7 @@ def process_ROIs(
                     if movSVD:  # use raw frames for movSVD
                         imbin_mov = imbin[1:, :]
                     if fullSVD:
-                        M[t : t + imbin_mot.shape[0]] += imbin_mot.sum(axis=(-2, -1))
+                        M[0][t : t + imbin_mot.shape[0]] += imbin_mot.sum(axis=-1)
                         if motSVD:
                             imall_mot[:, ir[ii]] = imbin_mot - avgmotion[ii].flatten()
                         if movSVD:
@@ -703,7 +703,7 @@ def run(
             rois = proc["rois"]
             sy = proc["sy"]
             sx = proc["sx"]
-            savepath = proc["savepath"] if savepath is not None else savepath
+            savepath = proc["savepath"] if savepath is None else savepath #proc["savepath"] if savepath is not None else savepath
 
     Lybin, Lxbin, iinds = binned_inds(Ly, Lx, sbin)
     LYbin, LXbin, sybin, sxbin = utils.video_placement(Lybin, Lxbin)

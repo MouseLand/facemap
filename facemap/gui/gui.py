@@ -583,16 +583,6 @@ class MainW(QtWidgets.QMainWindow):
         self.show_batch_button.setFont(QFont("Arial", 10, QFont.Bold))
         self.show_batch_button.clicked.connect(self.show_batch)
         self.labels_groupbox.layout().addWidget(self.show_batch_button, 0, 2)
-        """
-        self.batchname = []
-        # TODO: Change batchname to be displayed in a pop-up message box that lists the filenames!!
-        for k in range(1):
-            self.batchname.append(QLabel(""))
-            self.batchname[-1].setStyleSheet("color: white;")
-            self.batchname[-1].setAlignment(QtCore.Qt.AlignCenter)
-            self.labels_groupbox.layout().addWidget(self.batchname[-1], k + 1, 0, 1, 2)
-            # self.scene_grid_layout.addWidget(self.batchname[-1], 6 + k, 0, 1, 4)
-        """
 
         # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Video playback options ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         self.current_frame_lineedit = QLineEdit()
@@ -1239,7 +1229,6 @@ class MainW(QtWidgets.QMainWindow):
         self.batchlist.append(savename)
         _, filename = os.path.split(savename)
         filename, _ = os.path.splitext(filename)
-        self.batchname[len(self.batchlist) - 1].setText(filename)
         self.processbatch.setEnabled(True)
 
     def process_batch(self):
