@@ -75,6 +75,21 @@ class SegmentationTab(QWidget):
 
         button_layout.addWidget(video_button_groupbox)
 
+        path_button_groupbox = QGroupBox()
+        path_button_groupbox.setLayout(QHBoxLayout())
+
+        save_path_button = QPushButton("Save path")
+        save_path_button.setStyleSheet("background-color: rgb(196, 108, 57); color: white; font-size: 20px;")
+        save_path_button.clicked.connect(self.set_save_path)
+        path_button_groupbox.layout().addWidget(save_path_button)
+
+        load_model_button = QPushButton("Load model")
+        load_model_button.setStyleSheet("background-color: rgb(196, 108, 57); color: white; font-size: 20px;")
+        load_model_button.clicked.connect(self.set_model_path)
+        path_button_groupbox.layout().addWidget(load_model_button)
+
+        button_layout.addWidget(path_button_groupbox)
+
         # Add radio buttons for video views        
         video_view_groupbox = QGroupBox()
         # change style sheet to remove border
@@ -152,13 +167,29 @@ class SegmentationTab(QWidget):
             self.video_player.load_video(self.cumframes, self.Ly, self.Lx, self.containers)#.abrir(self.video_filenames[-1])
             print("Video loaded:", self.video_filenames)
 
+    def set_save_path(self):
+        # Show file dialog to select save path
+        file_dialog = QFileDialog(self)
+        file_dialog.setFileMode(QFileDialog.Directory)
+        if file_dialog.exec_():
+            # Set the save path
+            self.save_path = file_dialog.selectedFiles()[0]
+            print("Save path set:", self.save_path)
+
+    def set_model_path(self):
+        # Show file dialog to select model path
+        file_dialog = QFileDialog(self)
+        file_dialog.setFileMode(QFileDialog.Directory)
+        if file_dialog.exec_():
+            # Set the model path
+            self.model_path = file_dialog.selectedFiles()[0]
+            print("Model path set:", self.model_path)
+
     def run_segmentation(self):
         # Get the video view
         video_view = self.video_view_group.checkedButton().text()
-
         # Run the segmentation
         segmentation_results = self.get_segmentation_results(video_view)
-
         # Show the results
         masks, edges = segmentation_results
         # save masks
@@ -172,9 +203,10 @@ class SegmentationTab(QWidget):
         model = model.to(self.device);
         if video_view == "Bottom":
             model.load_state_dict(torch.load('/home/stringlab/Desktop/JHU_courses/DLCV/DLCV_final_project/fmnet_model/model_best.pth'))
-            print("Model weights loaded")
+            print("Bottom model weights loaded:", '/home/stringlab/Desktop/JHU_courses/DLCV/DLCV_final_project/fmnet_model/model_best.pth')
         elif video_view == "Side":
-            pass
+            model.load_state_dict(torch.load('/home/stringlab/Desktop/Hopkins/Jupyter_notebooks/segmentation_refinement/models/RD053_Num2_20220215_171727/side/num_refinement_imgs_100/model_best.pth'))
+            print("Side model weights loaded:", '/home/stringlab/Desktop/Hopkins/Jupyter_notebooks/segmentation_refinement/model_best.pth')
         elif video_view == "Other":
             pass
 

@@ -1,11 +1,9 @@
 from PyQt5.QtWidgets import *
 from PyQt5.QtCore import *
-from PyQt5.QtMultimedia import QMediaPlayer, QMediaContent, QVideoFrame
 from PyQt5.QtGui import *
-from PyQt5 import QtMultimediaWidgets, QtCore, QtMultimedia, QtGui                                               
+from PyQt5 import QtCore                                  
 import pyqtgraph as pg
 from facemap import utils
-import cv2
 
 class VideoPlayer(QWidget):
 
@@ -116,47 +114,3 @@ class VideoPlayer(QWidget):
                 q_image.setPixel(x, y, color.rgba())
 
         return QPixmap.fromImage(q_image)
-
-    """
-    def abrir(self, filename):
-        self.mediaPlayer.setMedia(
-                QMediaContent(QUrl.fromLocalFile(filename)))
-        self.play_button.setEnabled(True)
-        self.statusBar.showMessage(filename)
-        #self.mediaPlayer.play()
-        #self.play_video()
-
-    def play_video(self):
-        self.graphics_view.fitInView(self.videoWidget, Qt.KeepAspectRatio)
-        if self.mediaPlayer.state() == QMediaPlayer.PlayingState:
-            self.mediaPlayer.pause()
-        else:
-            self.mediaPlayer.play()
-
-    def mediaStateChanged(self, state):
-        if self.mediaPlayer.state() == QMediaPlayer.PlayingState:
-            self.play_button.setIcon(
-                    self.style().standardIcon(QStyle.SP_MediaPause))
-        # check if end of media state then change position to 0
-        elif self.mediaPlayer.state() == QMediaPlayer.StoppedState:
-            self.setPosition(0)
-            self.positionChanged(0)
-        else:
-            self.play_button.setIcon(
-                    self.style().standardIcon(QStyle.SP_MediaPlay))
-
-    def positionChanged(self, position):
-        self.positionSlider.setValue(position)
-
-    def durationChanged(self, duration):
-        self.positionSlider.setRange(0, duration)
-
-        def setPosition(self, position):
-        self.mediaPlayer.setPosition(position)
-
-    def handleError(self):
-        self.play_button.setEnabled(False)
-        self.statusBar.showMessage("Error: " + self.mediaPlayer.errorString())
-    """
-
-
