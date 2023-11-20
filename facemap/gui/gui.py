@@ -510,9 +510,11 @@ class MainW(QtWidgets.QMainWindow):
         # Check boxes
         self.motSVD_checkbox = QCheckBox("motSVD")
         self.motSVD_checkbox.setStyleSheet("color: gray;")
+        self.motSVD_checkbox.setChecked(True)
         self.process_groupbox.layout().addWidget(self.motSVD_checkbox, 0, 0)
         self.movSVD_checkbox = QCheckBox("movSVD")
         self.movSVD_checkbox.setStyleSheet("color: gray;")
+        self.movSVD_checkbox.setChecked(True)
         self.process_groupbox.layout().addWidget(self.movSVD_checkbox, 0, 1)
         self.keypoints_checkbox = QCheckBox("Keypoints")
         self.keypoints_checkbox.setStyleSheet("color: gray;")
@@ -1167,7 +1169,6 @@ class MainW(QtWidgets.QMainWindow):
         self.pauseButton.setChecked(True)
         self.process.setEnabled(True)
         self.saverois.setEnabled(True)
-        self.multivideo_svd_checkbox.setChecked(True)
         self.save_mat.setChecked(True)
         #self.load_trace2_button.setEnabled(True)
 
@@ -1528,7 +1529,6 @@ class MainW(QtWidgets.QMainWindow):
             self.pose_likelihood = np.array(
                 [self.pose_likelihood]
             )  # size: keypoints x frames
-            # TODO: Choose colors for each label: provide option for palette that is color-blind friendly
             colors = cm.get_cmap("jet")(
                 np.linspace(0, 1.0, len(self.keypoints_labels[video_id]))
             )
@@ -1894,15 +1894,19 @@ class MainW(QtWidgets.QMainWindow):
             else:
                 ir = wroi + 1
             cmap = cm.get_cmap("hsv")
-            nc = min(10, self.motSVDs[ir].shape[1])
+            if self.motSVDs == []:
+                svd_trace = self.movSVDs
+            else:
+                svd_trace = self.motSVDs
+            nc = min(10, svd_trace[ir].shape[1])
             cmap = (255 * cmap(np.linspace(0, 0.2, nc))).astype(int)
-            norm = (self.motSVDs[ir][:, 0]).std()
-            tr = (self.motSVDs[ir][:, :10] ** 2).sum(axis=1) ** 0.5 / norm
+            norm = (svd_trace[ir][:, 0]).std()
+            tr = (svd_trace[ir][:, :10] ** 2).sum(axis=1) ** 0.5 / norm
             for c in np.arange(0, nc, 1, int)[::-1]:
                 pen = pg.mkPen(
                     tuple(cmap[c, :]), width=1
                 )  # , style=QtCore.Qt.DashLine)
-                tr2 = self.motSVDs[ir][:, c] / norm
+                tr2 = svd_trace[ir][:, c] / norm
                 tr2 *= np.sign(skew(tr2))
                 selected_plot.plot(tr2, pen=pen)
             pen = pg.mkPen(color)

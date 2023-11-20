@@ -339,8 +339,10 @@ def process_ROIs(
     nroi = 0  # number of motion ROIs
 
     if fullSVD:
-        ncomps_mot = U_mot[0].shape[-1]
-        ncomps_mov = U_mov[0].shape[-1]
+        if motSVD:
+            ncomps_mot = U_mot[0].shape[-1]
+        if movSVD:
+            ncomps_mov = U_mov[0].shape[-1]
         V_mot = [np.zeros((nframes, ncomps_mot), np.float32)] if motSVD else []
         V_mov = [np.zeros((nframes, ncomps_mov), np.float32)] if movSVD else []
         M = [np.zeros((nframes), np.float32)]
@@ -454,10 +456,11 @@ def process_ROIs(
                     if movSVD:  # use raw frames for movSVD
                         imbin_mov = imbin[1:, :]
                     if fullSVD:
-                        M[0][t : t + imbin_mot.shape[0]] += imbin_mot.sum(axis=-1)
                         if motSVD:
+                            M[0][t : t + imbin_mot.shape[0]] += imbin_mot.sum(axis=-1)
                             imall_mot[:, ir[ii]] = imbin_mot - avgmotion[ii].flatten()
                         if movSVD:
+                            M = []
                             imall_mov[:, ir[ii]] = imbin_mov - avgframe[ii].flatten()
                 if nroi > 0 and wmot.size > 0:
                     wmot = np.array(wmot).astype(int)
@@ -787,24 +790,28 @@ def run(
         U_mot_reshape = U_mot.copy()
         U_mov_reshape = U_mov.copy()
         if fullSVD:
-            U_mot_reshape[0] = utils.multivideo_reshape(
-                U_mot_reshape[0], LYbin, LXbin, sybin, sxbin, Lybin, Lxbin, iinds
-            )
-            U_mov_reshape[0] = utils.multivideo_reshape(
-                U_mov_reshape[0], LYbin, LXbin, sybin, sxbin, Lybin, Lxbin, iinds
-            )
+            if motSVD:
+                U_mot_reshape[0] = utils.multivideo_reshape(
+                    U_mot_reshape[0], LYbin, LXbin, sybin, sxbin, Lybin, Lxbin, iinds
+                )
+            if movSVD:
+                U_mov_reshape[0] = utils.multivideo_reshape(
+                    U_mov_reshape[0], LYbin, LXbin, sybin, sxbin, Lybin, Lxbin, iinds
+                )
         if nroi > 0:
             k = 1
             for r in rois:
                 if r["rind"] == 1:
                     ly = r["yrange_bin"].size
                     lx = r["xrange_bin"].size
-                    U_mot_reshape[k] = np.reshape(
-                        U_mot[k].copy(), (ly, lx, U_mot[k].shape[-1])
-                    )
-                    U_mov_reshape[k] = np.reshape(
-                        U_mov[k].copy(), (ly, lx, U_mov[k].shape[-1])
-                    )
+                    if motSVD:
+                        U_mot_reshape[k] = np.reshape(
+                            U_mot[k].copy(), (ly, lx, U_mot[k].shape[-1])
+                        )
+                    if movSVD:
+                        U_mov_reshape[k] = np.reshape(
+                            U_mov[k].copy(), (ly, lx, U_mov[k].shape[-1])
+                        )
                     k += 1
     else:
         U_mot, U_mov, S_mot, S_mov = [], [], [], []
