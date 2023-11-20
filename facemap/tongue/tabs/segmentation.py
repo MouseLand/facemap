@@ -6,14 +6,12 @@ from PyQt5.QtCore import Qt
 from ..tabs.videoplayer import VideoPlayer
 from facemap import utils
 from facemap.tongue.segmentation_model import FMnet
-import torch
-import time
+import torch, os
 from tqdm import tqdm
 from facemap.tongue import segmentation_utils
 from matplotlib import animation
 import matplotlib.pyplot as plt
 import numpy as np
-
 
 class SegmentationTab(QWidget):
     def __init__(self):
@@ -25,6 +23,7 @@ class SegmentationTab(QWidget):
         # Initialize variables
         self.video_filenames = []
         self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+        self.model_path = None
 
     def setup_ui(self):
         # Set up the layout
@@ -177,9 +176,10 @@ class SegmentationTab(QWidget):
             print("Save path set:", self.save_path)
 
     def set_model_path(self):
-        # Show file dialog to select model path
+        # Show file dialog to select model file (*.pth)
         file_dialog = QFileDialog(self)
-        file_dialog.setFileMode(QFileDialog.Directory)
+        file_dialog.setNameFilter("Model Files (*.pth)")
+        file_dialog.setFileMode(QFileDialog.ExistingFile)
         if file_dialog.exec_():
             # Set the model path
             self.model_path = file_dialog.selectedFiles()[0]
@@ -195,20 +195,22 @@ class SegmentationTab(QWidget):
         # save masks
         #np.save('masks.npy', masks)
         self.video_player.display_segmentation(masks, edges)
-        #self.save_segmentation_results(segmentation_results)
+        self.save_segmentation_results(segmentation_results)
         print("Segmentation completed")
 
     def get_segmentation_results(self, video_view):
         model = FMnet() 
         model = model.to(self.device);
-        if video_view == "Bottom":
-            model.load_state_dict(torch.load('/home/stringlab/Desktop/JHU_courses/DLCV/DLCV_final_project/fmnet_model/model_best.pth'))
-            print("Bottom model weights loaded:", '/home/stringlab/Desktop/JHU_courses/DLCV/DLCV_final_project/fmnet_model/model_best.pth')
-        elif video_view == "Side":
-            model.load_state_dict(torch.load('/home/stringlab/Desktop/Hopkins/Jupyter_notebooks/segmentation_refinement/models/RD053_Num2_20220215_171727/side/num_refinement_imgs_100/model_best.pth'))
-            print("Side model weights loaded:", '/home/stringlab/Desktop/Hopkins/Jupyter_notebooks/segmentation_refinement/model_best.pth')
-        elif video_view == "Other":
-            pass
+        if self.model_path is None:
+            if video_view == "Bottom":
+                model.load_state_dict(torch.load('/home/stringlab/Desktop/JHU_courses/DLCV/DLCV_final_project/fmnet_model/model_best.pth'))
+                print("Bottom model weights loaded:", '/home/stringlab/Desktop/JHU_courses/DLCV/DLCV_final_project/fmnet_model/model_best.pth')
+            elif video_view == "Side":
+                model.load_state_dict(torch.load('/home/stringlab/Desktop/Hopkins/Jupyter_notebooks/segmentation_refinement/model_best.pth'))
+                print("Side model weights loaded:", '/home/stringlab/Desktop/Hopkins/Jupyter_notebooks/segmentation_refinement/model_best.pth')
+        else:
+            model.load_state_dict(torch.load(self.model_path))
+            print("Model weights loaded:", self.model_path)
 
         frames = segmentation_utils.get_img_from_video(self.video_filenames[-1])
         frames = segmentation_utils.preprocess_imgs(frames, resize_shape=(256, 256))
@@ -227,6 +229,7 @@ class SegmentationTab(QWidget):
     def save_segmentation_results(self, segmentation_results):
         # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Plot restuls ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         # Create an animation of video and model predictions
+        """
         print("Saving animation...")
         fig, ax = plt.subplots(1, 3, figsize=(8, 5), dpi=300)
 
@@ -259,8 +262,13 @@ class SegmentationTab(QWidget):
         # HTML(anim.to_html5_video())
         # save to mp4 using ffmpeg writer
         writervideo = animation.FFMpegWriter(fps=60)
-        anim.save('segmentation.mp4', writer=writervideo)
+        anim.save(os.path.join(self.save_path, 'segmentation.mp4'), writer=writervideo)
         plt.close()
+        """
+        # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Save masks ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        print("Saving masks...")
+        masks, edges = segmentation_results
+        np.save(os.path.join(self.save_path, 'masks.npy'), masks)
 
 
 def predict(net, im_input, device, sigmoid=True, threshold=0):
