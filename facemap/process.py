@@ -460,7 +460,6 @@ def process_ROIs(
                             M[0][t : t + imbin_mot.shape[0]] += imbin_mot.sum(axis=-1)
                             imall_mot[:, ir[ii]] = imbin_mot - avgmotion[ii].flatten()
                         if movSVD:
-                            M = []
                             imall_mov[:, ir[ii]] = imbin_mov - avgframe[ii].flatten()
                 if nroi > 0 and wmot.size > 0:
                     wmot = np.array(wmot).astype(int)
