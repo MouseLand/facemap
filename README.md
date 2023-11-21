@@ -29,6 +29,9 @@ Stringer, C.\*, Pachitariu, M.\*, Steinmetz, N., Reddy, C. B., Carandini, M., & 
 
 The MATLAB version of the GUI is no longer supported (see old [documentation](https://github.com/MouseLand/facemap/blob/main/docs/svd_matlab_tutorial.md)).
 
+### Logo
+Logo was designed by Atika Syeda and [Tzuhsuan Ma](https://github.com/tzhma).
+
 ## Installation
 
 If you have an older `facemap` environment you can remove it with `conda env remove -n facemap` before creating a new one.
@@ -150,6 +153,3 @@ The encoding model used for prediction is described as follows:
 </p>
 
 Please see neural activity prediction [tutorial](https://github.com/MouseLand/facemap/blob/main/docs/neural_activity_prediction_tutorial.md) for more details.
-
-### Logo
-Logo was designed by Atika Syeda and [Tzuhsuan Ma](https://github.com/tzhma).
