@@ -151,3 +151,5 @@ The encoding model used for prediction is described as follows:
 
 Please see neural activity prediction [tutorial](https://github.com/MouseLand/facemap/blob/main/docs/neural_activity_prediction_tutorial.md) for more details.
 
+### Logo
+Logo was designed by Atika Syeda and [Tzuhsuan Ma](https://github.com/tzhma).
