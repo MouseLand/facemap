@@ -35,9 +35,7 @@ from scipy.stats import skew, zscore
 
 from facemap import process, roi, utils
 from facemap.gui import (
-    cluster,
     guiparts,
-    help_windows,
     io,
     menus,
     neural_activity_window,
