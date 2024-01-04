@@ -77,7 +77,7 @@ class SegmentationTab(QWidget):
         path_button_groupbox = QGroupBox()
         path_button_groupbox.setLayout(QHBoxLayout())
 
-        save_path_button = QPushButton("Save path")
+        save_path_button = QPushButton("Set save path")
         save_path_button.setStyleSheet("background-color: rgb(196, 108, 57); color: white; font-size: 20px;")
         save_path_button.clicked.connect(self.set_save_path)
         path_button_groupbox.layout().addWidget(save_path_button)
@@ -88,6 +88,10 @@ class SegmentationTab(QWidget):
         path_button_groupbox.layout().addWidget(load_model_button)
 
         button_layout.addWidget(path_button_groupbox)
+        # Add a checkbox to save masks animation
+        self.save_masks_checkbox = QCheckBox("Save masks animation")
+        self.save_masks_checkbox.setStyleSheet("color: white;")
+        button_layout.addWidget(self.save_masks_checkbox)
 
         # Add radio buttons for video views        
         video_view_groupbox = QGroupBox()
@@ -112,11 +116,6 @@ class SegmentationTab(QWidget):
         side_view_button.setStyleSheet("color: white;")
         self.video_view_group.addButton(side_view_button)
         video_view_groupbox.layout().addWidget(side_view_button)
-
-        other_view_button = QRadioButton("Other")
-        other_view_button.setStyleSheet("color: white;")
-        self.video_view_group.addButton(other_view_button)
-        video_view_groupbox.layout().addWidget(other_view_button)
 
         button_layout.addWidget(video_view_groupbox)
 
@@ -150,13 +149,18 @@ class SegmentationTab(QWidget):
             }
         """
         self.setStyleSheet(dark_stylesheet)
-
+        self.light_stylesheet = """
+            QWidget {
+                background-color: rgb(255, 255, 255);
+            }
+        """
         # Add the splitter to the layout
         self.layout.addWidget(splitter, 0, 0)
 
     def add_video(self):
         # Show file dialog to select video files
         file_dialog = QFileDialog(self)
+        file_dialog.setStyleSheet(self.light_stylesheet)
         file_dialog.setNameFilter("Video Files (*.mj2 *.mp4 *.mkv *.avi *.mpeg *.mpg *.asf *m4v)")
         file_dialog.setFileMode(QFileDialog.ExistingFiles)
         if file_dialog.exec_():
@@ -164,11 +168,11 @@ class SegmentationTab(QWidget):
             self.video_filenames += file_dialog.selectedFiles()
             self.cumframes, self.Ly, self.Lx, self.containers = utils.get_frame_details([[self.video_filenames[-1]]])
             self.video_player.load_video(self.cumframes, self.Ly, self.Lx, self.containers)#.abrir(self.video_filenames[-1])
-            print("Video loaded:", self.video_filenames)
 
     def set_save_path(self):
         # Show file dialog to select save path
         file_dialog = QFileDialog(self)
+        file_dialog.setStyleSheet(self.light_stylesheet)
         file_dialog.setFileMode(QFileDialog.Directory)
         if file_dialog.exec_():
             # Set the save path
@@ -178,6 +182,7 @@ class SegmentationTab(QWidget):
     def set_model_path(self):
         # Show file dialog to select model file (*.pth)
         file_dialog = QFileDialog(self)
+        file_dialog.setStyleSheet(self.light_stylesheet)
         file_dialog.setNameFilter("Model Files (*.pth)")
         file_dialog.setFileMode(QFileDialog.ExistingFile)
         if file_dialog.exec_():
@@ -193,7 +198,6 @@ class SegmentationTab(QWidget):
         # Show the results
         masks, edges = segmentation_results
         # save masks
-        #np.save('masks.npy', masks)
         self.video_player.display_segmentation(masks, edges)
         self.save_segmentation_results(segmentation_results)
         print("Segmentation completed")
@@ -203,11 +207,11 @@ class SegmentationTab(QWidget):
         model = model.to(self.device);
         if self.model_path is None:
             if video_view == "Bottom":
-                model.load_state_dict(torch.load('/home/stringlab/Desktop/JHU_courses/DLCV/DLCV_final_project/fmnet_model/model_best.pth'))
-                print("Bottom model weights loaded:", '/home/stringlab/Desktop/JHU_courses/DLCV/DLCV_final_project/fmnet_model/model_best.pth')
+                model.load_state_dict(torch.load('/home/asyeda/Desktop/Hopkins/JHU_courses/DLCV/DLCV_final_project/fmnet_model/model_best.pth'))
+                print("Bottom model weights loaded:", '/home/asyeda/Desktop/Hopkins/JHU_courses/DLCV/DLCV_final_project/fmnet_model/model_best.pth')
             elif video_view == "Side":
-                model.load_state_dict(torch.load('/home/stringlab/Desktop/Hopkins/Jupyter_notebooks/segmentation_refinement/model_best.pth'))
-                print("Side model weights loaded:", '/home/stringlab/Desktop/Hopkins/Jupyter_notebooks/segmentation_refinement/model_best.pth')
+                model.load_state_dict(torch.load('/home/asyeda/Desktop/Hopkins/Jupyter_notebooks/segmentation_refinement/model_best.pth'))
+                print("Side model weights loaded:", '/home/asyeda/Desktop/Hopkins/Jupyter_notebooks/segmentation_refinement/model_best.pth')
         else:
             model.load_state_dict(torch.load(self.model_path))
             print("Model weights loaded:", self.model_path)
@@ -228,43 +232,43 @@ class SegmentationTab(QWidget):
 
     def save_segmentation_results(self, segmentation_results):
         # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Plot restuls ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        # Create an animation of video and model predictions
-        """
-        print("Saving animation...")
-        fig, ax = plt.subplots(1, 3, figsize=(8, 5), dpi=300)
+        if self.save_masks_checkbox.isChecked():
+            print("Saving animation...")
+            # Create an animation of video and model predictions
+            fig, ax = plt.subplots(1, 3, figsize=(8, 5), dpi=300)
 
-        start_idx = 0
-        masks, edges = segmentation_results
+            start_idx = 0
+            masks, edges = segmentation_results
+            imgs = segmentation_utils.get_img_from_video(self.video_filenames[-1])  
 
-        imgs = segmentation_utils.get_img_from_video(self.video_filenames[-1])  
+            # Plot the original image
+            img_plot = ax[0].imshow(imgs[start_idx].squeeze(), cmap='gray')
+            ax[0].axis("off")
+            ax[0].set_title("Frame: " + str(start_idx))
+            mask_plot = ax[1].imshow(masks[start_idx].squeeze(), cmap='Greens', alpha=1, vmin=0, vmax=1)
+            ax[1].axis("off")
+            ax[1].set_title("Mask: " + str(start_idx))
+            mask_edge_plot = ax[2].imshow(edges[start_idx].squeeze(), cmap='Reds', alpha=.4, vmin=0, vmax=1)
+            ax[2].axis("off")
+            ax[2].set_title("Edges: " + str(start_idx))
 
-        # Plot the original image
-        img_plot = ax[0].imshow(imgs[start_idx].squeeze(), cmap='gray')
-        ax[0].axis("off")
-        ax[0].set_title("Frame: " + str(start_idx))
-        mask_plot = ax[1].imshow(masks[start_idx].squeeze(), cmap='Greens', alpha=1, vmin=0, vmax=1)
-        ax[1].axis("off")
-        ax[1].set_title("Mask: " + str(start_idx))
-        mask_edge_plot = ax[2].imshow(edges[start_idx].squeeze(), cmap='Reds', alpha=.4, vmin=0, vmax=1)
-        ax[2].axis("off")
-        ax[2].set_title("Edges: " + str(start_idx))
+            def animate(i):
+                img_plot.set_data(imgs[i].squeeze())
+                ax[0].set_title("Frame: " + str(i))
+                mask_plot.set_data(masks[i].squeeze())
+                ax[1].set_title("Mask: " + str(i))
+                mask_edge_plot.set_data(edges[i].squeeze())
+                ax[2].set_title("Edges: " + str(i))
+                return (img_plot, mask_plot, mask_edge_plot)
 
-        def animate(i):
-            img_plot.set_data(imgs[i].squeeze())
-            ax[0].set_title("Frame: " + str(i))
-            mask_plot.set_data(masks[i].squeeze())
-            ax[1].set_title("Mask: " + str(i))
-            mask_edge_plot.set_data(edges[i].squeeze())
-            ax[2].set_title("Edges: " + str(i))
-            return (img_plot, mask_plot, mask_edge_plot)
+            anim = animation.FuncAnimation(fig, animate, frames=self.cumframes[-1]-5, interval=100, repeat=False, blit=True)
+            # HTML(anim.to_html5_video())
+            # save to mp4 using ffmpeg writer
+            writervideo = animation.FFMpegWriter(fps=60, metadata=dict(artist='Your Name'), extra_args=['-vcodec', 'libx264'])
+            filename = self.video_filenames[-1].split('/')[-1].split('.')[0]
+            anim.save(os.path.join(self.save_path, filename+'_masks.mp4'), writer=writervideo)
+            plt.close()
 
-        anim = animation.FuncAnimation(fig, animate, frames=self.cumframes[-1]-5, interval=100, repeat=False, blit=True)
-        # HTML(anim.to_html5_video())
-        # save to mp4 using ffmpeg writer
-        writervideo = animation.FFMpegWriter(fps=60)
-        anim.save(os.path.join(self.save_path, 'segmentation.mp4'), writer=writervideo)
-        plt.close()
-        """
         # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Save masks ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         print("Saving masks...")
         masks, edges = segmentation_results

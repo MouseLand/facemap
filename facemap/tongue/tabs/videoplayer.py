@@ -76,6 +76,9 @@ class VideoPlayer(QWidget):
             self.positionSlider.setValue(self.current_frame)
         else:
             self.current_frame = idx
+        if self.current_frame >= self.cumframes[-1]:
+            self.current_frame = 0
+            self.positionSlider.setValue(self.current_frame)
         frame = utils.get_frame(self.current_frame, self.cumframes[-1], self.cumframes, self.containers)[0].squeeze()
         frame = frame.transpose(1, 0, 2)
         self.pimg.setImage(frame)
