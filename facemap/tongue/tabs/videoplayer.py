@@ -16,11 +16,10 @@ class VideoPlayer(QWidget):
         self.pimg = pg.ImageItem()
         self.p0.addItem(self.pimg)
         self.mask_image = pg.ImageItem()
-        # set qrectf of mask_image same as pimg
-        print(self.p0.viewRect())
         self.mask_image.setZValue(10)
         self.mask_image.setPos(0,0)
         self.p0.addItem(self.mask_image)
+
         self.show_masks = False           
                                                                                             
         self.play_button = playButton

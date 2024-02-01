@@ -2,16 +2,12 @@
 Copright © 2023 Howard Hughes Medical Institute, Authored by Carsen Stringer and Atika Syeda.
 """
 import os
-import sys
 from pathlib import Path
 
-import cv2
 import h5py
-import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
 import pyqtgraph as pg
-import scipy.io as sio
 import torch
 from matplotlib import cm
 from PyQt5 import QtCore, QtWidgets
@@ -39,9 +35,7 @@ from scipy.stats import skew, zscore
 
 from facemap import process, roi, utils
 from facemap.gui import (
-    cluster,
     guiparts,
-    help_windows,
     io,
     menus,
     neural_activity_window,

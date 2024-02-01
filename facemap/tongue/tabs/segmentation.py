@@ -2,8 +2,10 @@
 Copright © 2023 Howard Hughes Medical Institute, Authored by Carsen Stringer and Atika Syeda.
 """
 from PyQt5.QtWidgets import *
+from PyQt5 import QtCore                                  
 from PyQt5.QtCore import Qt
 from ..tabs.videoplayer import VideoPlayer
+from ..tabs.split_video_window import SplitVideoWindow
 from facemap import utils
 from facemap.tongue.segmentation_model import FMnet
 import torch, os
@@ -12,6 +14,7 @@ from facemap.tongue import segmentation_utils
 from matplotlib import animation
 import matplotlib.pyplot as plt
 import numpy as np
+import pyqtgraph as pg
 
 class SegmentationTab(QWidget):
     def __init__(self):
@@ -31,8 +34,8 @@ class SegmentationTab(QWidget):
         self.layout.setContentsMargins(0, 0, 0, 0)
         self.setLayout(self.layout)
 
-        # Set up the splitter
-        splitter = QSplitter(Qt.Horizontal)
+        # Set up the self.splitter
+        self.splitter = QSplitter(Qt.Horizontal)
         # Set up the left panel with buttons
         button_panel = QWidget()
         button_layout = QVBoxLayout(button_panel)
@@ -66,13 +69,18 @@ class SegmentationTab(QWidget):
         load_video_button.setStyleSheet(button_style)
         video_button_groupbox.layout().addWidget(load_video_button)
 
+        split_video_button = QPushButton("Split video")
+        split_video_button.setStyleSheet("background-color: rgb(196, 108, 57); color: white; font-size: 20px;")
+        split_video_button.clicked.connect(self.split_video)
+        split_video_button.setStyleSheet(button_style)
+        video_button_groupbox.layout().addWidget(split_video_button)
+        button_layout.addWidget(video_button_groupbox)
+
         run_segmentation_button = QPushButton("Run segmentation")
         run_segmentation_button.setStyleSheet("background-color: rgb(196, 108, 57); color: white; font-size: 20px;")
         run_segmentation_button.clicked.connect(self.run_segmentation)
         run_segmentation_button.setStyleSheet(button_style)
-        video_button_groupbox.layout().addWidget(run_segmentation_button)
-
-        button_layout.addWidget(video_button_groupbox)
+        button_layout.addWidget(run_segmentation_button)
 
         path_button_groupbox = QGroupBox()
         path_button_groupbox.setLayout(QHBoxLayout())
@@ -129,15 +137,15 @@ class SegmentationTab(QWidget):
         self.frame_label = QLabel("0")
         self.frame_label.setStyleSheet("color: white;")
         self.video_playback_groupbox.layout().addWidget(self.frame_label)
-
-        self.video_player = VideoPlayer(self.play_button)
-
         button_layout.addWidget(self.video_playback_groupbox)
 
-        # Add the panels to the splitter
-        splitter.addWidget(button_panel)
-        splitter.addWidget(self.video_player)
-        splitter.setStretchFactor(1, 3)
+        self.video_player = VideoPlayer(self.play_button)
+        self.video_player2 = VideoPlayer(self.play_button)
+
+        # Add the panels to the self.splitter
+        self.splitter.addWidget(button_panel)
+        self.splitter.addWidget(self.video_player)
+        self.splitter.setStretchFactor(1, 3)
 
         # Set the style sheet for the dark theme and use white text
         dark_stylesheet = """
@@ -154,8 +162,8 @@ class SegmentationTab(QWidget):
                 background-color: rgb(255, 255, 255);
             }
         """
-        # Add the splitter to the layout
-        self.layout.addWidget(splitter, 0, 0)
+        # Add the self.splitter to the layout
+        self.layout.addWidget(self.splitter, 0, 0)
 
     def add_video(self):
         # Show file dialog to select video files
@@ -168,6 +176,27 @@ class SegmentationTab(QWidget):
             self.video_filenames += file_dialog.selectedFiles()
             self.cumframes, self.Ly, self.Lx, self.containers = utils.get_frame_details([[self.video_filenames[-1]]])
             self.video_player.load_video(self.cumframes, self.Ly, self.Lx, self.containers)#.abrir(self.video_filenames[-1])
+
+    def split_video(self):
+        if self.video_filenames == []:
+            # show qmessagebox to select video first
+            msg = QMessageBox()
+            msg.setStyleSheet(self.light_stylesheet)
+            msg.setIcon(QMessageBox.Warning)
+            msg.setText("Please load a video first")
+            msg.setWindowTitle("Warning")
+            msg.setStandardButtons(QMessageBox.Ok)
+            msg.exec_()
+        else:
+            self.split_video_window = SplitVideoWindow(self, self.video_player)
+            self.split_video_window.show()
+
+    def add_video2(self, split_vline=None):
+        if split_vline is not None:
+            self.video_player.load_video(self.cumframes, self.Ly, [split_vline], self.containers)
+            self.video_player2.load_video(self.cumframes, self.Ly, [self.Lx[0]-split_vline], self.containers)
+            self.video_player2.play_clicked()
+            self.splitter.addWidget(self.video_player2)
 
     def set_save_path(self):
         # Show file dialog to select save path
