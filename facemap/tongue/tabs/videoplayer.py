@@ -78,18 +78,22 @@ class VideoPlayer(QWidget):
         if self.current_frame >= self.cumframes[-1]:
             self.current_frame = 0
             self.positionSlider.setValue(self.current_frame)
-        frame = utils.get_frame(self.current_frame, self.cumframes[-1], self.cumframes, self.containers)[0].squeeze()
+        if self.crop is None:
+            frame = utils.get_frame(self.current_frame, self.cumframes[-1], self.cumframes, self.containers)[0].squeeze()
+        else:
+            frame = utils.get_frame(self.current_frame, self.cumframes[-1], self.cumframes, self.containers, self.crop)[0].squeeze()
         frame = frame.transpose(1, 0, 2)
         self.pimg.setImage(frame)
         self.frameCounter.setText(str(self.current_frame))
         if self.show_masks:
             self.update_segmentation()
 
-    def load_video(self, cumframes, Ly, Lx, containers):
+    def load_video(self, cumframes, Ly, Lx, containers, crop=None):
         self.cumframes = cumframes
         self.Ly = Ly
         self.Lx = Lx
         self.containers = containers
+        self.crop = crop
         self.current_frame = 0
         self.play_status = True
         self.positionSlider.setRange(0, self.cumframes[-1])

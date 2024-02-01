@@ -69,11 +69,11 @@ class SegmentationTab(QWidget):
         load_video_button.setStyleSheet(button_style)
         video_button_groupbox.layout().addWidget(load_video_button)
 
-        split_video_button = QPushButton("Split video")
-        split_video_button.setStyleSheet("background-color: rgb(196, 108, 57); color: white; font-size: 20px;")
-        split_video_button.clicked.connect(self.split_video)
-        split_video_button.setStyleSheet(button_style)
-        video_button_groupbox.layout().addWidget(split_video_button)
+        self.split_video_button = QPushButton("Split video")
+        self.split_video_button.setStyleSheet("background-color: rgb(196, 108, 57); color: white; font-size: 20px;")
+        self.split_video_button.clicked.connect(self.split_video)
+        self.split_video_button.setStyleSheet(button_style)
+        video_button_groupbox.layout().addWidget(self.split_video_button)
         button_layout.addWidget(video_button_groupbox)
 
         run_segmentation_button = QPushButton("Run segmentation")
@@ -191,12 +191,12 @@ class SegmentationTab(QWidget):
             self.split_video_window = SplitVideoWindow(self, self.video_player)
             self.split_video_window.show()
 
-    def add_video2(self, split_vline=None):
-        if split_vline is not None:
-            self.video_player.load_video(self.cumframes, self.Ly, [split_vline], self.containers)
-            self.video_player2.load_video(self.cumframes, self.Ly, [self.Lx[0]-split_vline], self.containers)
-            self.video_player2.play_clicked()
-            self.splitter.addWidget(self.video_player2)
+    def add_video2(self, split_vline):
+        self.video_player.load_video(self.cumframes, self.Ly, [split_vline], self.containers, crop=[0, self.Ly[0], 0, split_vline])
+        self.video_player2.load_video(self.cumframes, self.Ly, [self.Lx[0]-split_vline], self.containers, crop=[0, self.Ly[0], split_vline, self.Lx[0]])
+        self.video_player2.play_clicked()
+        self.split_video_button.setEnabled(False)
+        self.splitter.addWidget(self.video_player2)
 
     def set_save_path(self):
         # Show file dialog to select save path

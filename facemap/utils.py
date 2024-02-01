@@ -403,7 +403,7 @@ def gabor_wavelet(sigma, f, ph, n_pts=201, is_torch=False):
     return G
 
 
-def get_frame(cframe, nframes, cumframes, containers):
+def get_frame(cframe, nframes, cumframes, containers, crop=None):
     cframe = np.maximum(0, np.minimum(nframes - 1, cframe))
     cframe = int(cframe)
     try:
@@ -419,6 +419,8 @@ def get_frame(cframe, nframes, cumframes, containers):
         ret, frame = capture.read()
         if ret:
             frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)[np.newaxis, ...]
+            if crop is not None:
+                frame = frame[:, crop[0] : crop[1], crop[2] : crop[3]]
             img.append(frame)
         else:
             print("Error reading frame")

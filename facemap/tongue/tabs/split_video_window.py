@@ -26,7 +26,7 @@ class SplitVideoWindow(QWidget):
 
         self.split_video_line = InfiniteLine(angle=90, movable=True, pen=mkPen(color='w', style=Qt.DashLine, width=2))
         self.split_video_line.setPos(pimg.image.shape[0]//2)
-        self.split_video_line.setBounds([0, pimg.image.shape[1]])
+        self.split_video_line.setBounds([0, pimg.image.shape[0]])
         self.split_video_line.sigPositionChangeFinished.connect(lambda: self.update_split_spinbox(self.split_video_line.value()))
         p0.addItem(self.split_video_line)
 
