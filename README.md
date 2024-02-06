@@ -32,6 +32,9 @@ The MATLAB version of the GUI is no longer supported (see old [documentation](ht
 ### Logo
 Logo was designed by Atika Syeda and [Tzuhsuan Ma](https://github.com/tzhma).
 
+### Video tutorial 
+Please follow the [video tutorial](https://www.youtube.com/watch?v=aO_kXkOuadg) for instructions on how to use Facemap or read the instructions below. 
+
 ## Installation
 
 If you have an older `facemap` environment you can remove it with `conda env remove -n facemap` before creating a new one.
