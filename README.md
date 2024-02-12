@@ -20,8 +20,8 @@ To learn about Facemap, read the [paper](https://www.nature.com/articles/s41593-
 ### CITATION
 
 **If you use Facemap, please cite the Facemap [paper](https://www.biorxiv.org/content/10.1101/2022.11.03.515121v1):**  
-Syeda, A., Zhong, L., Tung, R., Long, W., Pachitariu, M.\*, & Stringer, C.\* (2022). Facemap: a framework for modeling neural activity based on orofacial tracking. <em>bioRxiv</em>.
-[[bibtex](https://scholar.googleusercontent.com/scholar.bib?q=info:ckbIvC5D_FsJ:scholar.google.com/&output=citation&scisdr=CgXHFLYtEMb9qP1BWD0:AAGBfm0AAAAAY3JHQD2D6ewMN1lsoTB4rVT_uLVYr8DU&scisig=AAGBfm0AAAAAY3JHQOtGw17323ZXomLmlJoieZSXitl2&scisf=4&ct=citation&cd=-1&hl=en&scfhb=1)]
+Syeda, A., Zhong, L., Tung, R., Long, W., Pachitariu, M.\*, & Stringer, C.\* (2024). Facemap: a framework for modeling neural activity based on orofacial tracking. <em>Nature Neuroscience</em>, 27(1), 187-195.
+[[bibtex](https://scholar.googleusercontent.com/scholar.bib?q=info:ckbIvC5D_FsJ:scholar.google.com/&output=citation&scisdr=ClF-mOb-EMjM4mZZ21s:AFWwaeYAAAAAZcpfw1vc6bUrQR0LDQdzaTPXbO8&scisig=AFWwaeYAAAAAZcpfw5Aeocyxj1cWqLJIgPajziE&scisf=4&ct=citation&cd=-1&hl=en)]
 
 **If you use the SVD computation or pupil tracking components, please also cite our previous [paper](https://www.nature.com/articles/s41592-022-01663-4):**  
 Stringer, C.\*, Pachitariu, M.\*, Steinmetz, N., Reddy, C. B., Carandini, M., & Harris, K. D. (2019). Spontaneous behaviors drive multidimensional, brainwide activity. <em>Science, 364</em>(6437), eaav7893.
