@@ -19,7 +19,7 @@ To learn about Facemap, read the [paper](https://www.nature.com/articles/s41593-
 
 ### CITATION
 
-**If you use Facemap, please cite the Facemap [paper](https://www.biorxiv.org/content/10.1101/2022.11.03.515121v1):**  
+**If you use Facemap, please cite the Facemap [paper](https://www.nature.com/articles/s41593-023-01490-6):**   
 Syeda, A., Zhong, L., Tung, R., Long, W., Pachitariu, M.\*, & Stringer, C.\* (2024). Facemap: a framework for modeling neural activity based on orofacial tracking. <em>Nature Neuroscience</em>, 27(1), 187-195.
 [[bibtex](https://scholar.googleusercontent.com/scholar.bib?q=info:ckbIvC5D_FsJ:scholar.google.com/&output=citation&scisdr=ClF-mOb-EMjM4mZZ21s:AFWwaeYAAAAAZcpfw1vc6bUrQR0LDQdzaTPXbO8&scisig=AFWwaeYAAAAAZcpfw5Aeocyxj1cWqLJIgPajziE&scisf=4&ct=citation&cd=-1&hl=en)]
 
