@@ -194,7 +194,6 @@ class SegmentationTab(QWidget):
     def add_video2(self, split_vline):
         self.video_player.load_video(self.cumframes, self.Ly, [split_vline], self.containers, crop=[0, self.Ly[0], 0, split_vline])
         self.video_player2.load_video(self.cumframes, self.Ly, [self.Lx[0]-split_vline], self.containers, crop=[0, self.Ly[0], split_vline, self.Lx[0]])
-        self.video_player2.play_clicked()
         self.split_video_button.setEnabled(False)
         self.splitter.addWidget(self.video_player2)
 

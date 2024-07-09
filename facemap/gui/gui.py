@@ -1290,7 +1290,7 @@ class MainW(QtWidgets.QMainWindow):
             savepath = self.save_path
         else:
             savepath = None
-        if self.motSVD_checkbox.isChecked() or self.movSVD_checkbox.isChecked():
+        if self.motSVD_checkbox.isChecked() or self.movSVD_checkbox.isChecked() or len(self.ROIs) > 0:
             savename = process.run(
                 self.filenames, GUIobject=QtWidgets, parent=self, savepath=savepath
             )

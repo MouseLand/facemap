@@ -142,6 +142,7 @@ class KeypointsNetwork(nn.Module):
             itrain,
             itest,
         ) = arrs
+        print(X_train[0].shape, Y_train[0].shape, itrain_sample_b[0].shape)
         n_animals = len(X_train)
 
         tic = time.time()

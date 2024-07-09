@@ -28,6 +28,11 @@ class VideoPlayer(QWidget):
         self.play_status = False
 
         self.current_frame = 0
+        self.cumframes = []
+        self.Ly = []
+        self.Lx = []
+        self.containers = None
+        self.crop = None
 
         self.updateTimer = QtCore.QTimer()
         self.updateTimer.timeout.connect(self.next_frame)
@@ -43,7 +48,7 @@ class VideoPlayer(QWidget):
         self.positionSlider = QSlider(Qt.Horizontal)
         self.positionSlider.sliderMoved.connect(self.jump_to_frame)
         self.positionSlider.setTickInterval(5)
-        self.positionSlider.setTracking(False)
+        self.positionSlider.setTracking(True)
 
         layout = QVBoxLayout()
         layout.addWidget(self.video_window)#graphics_view)
@@ -55,21 +60,22 @@ class VideoPlayer(QWidget):
         self.statusBar.showMessage("Ready")
 
     def play_clicked(self):
-        # check if current icon is paused
-        if self.play_button.icon().name() == "media-playback-pause":
-            self.pause()
+        if self.play_status:
+            self.updateTimer.stop()
+            self.play_status = False
+            self.play_button.setIcon(self.style().standardIcon(QStyle.SP_MediaPlay))
         else:
-            self.updateTimer.start(50)  
+            self.updateTimer.start()  
+            self.play_status = True
             self.play_button.setIcon(self.style().standardIcon(QStyle.SP_MediaPause))
-
-    def pause(self):
-        self.updateTimer.stop()
-        self.play_button.setIcon(self.style().standardIcon(QStyle.SP_MediaPlay))
 
     def jump_to_frame(self):
         self.next_frame(self.positionSlider.value())
 
     def next_frame(self, idx=None):
+        if self.cumframes == []:
+            # Cumframes is not yet initialized or is empty
+            return
         if idx is None:
             self.current_frame = self.current_frame + 1
             self.positionSlider.setValue(self.current_frame)
@@ -95,7 +101,6 @@ class VideoPlayer(QWidget):
         self.containers = containers
         self.crop = crop
         self.current_frame = 0
-        self.play_status = True
         self.positionSlider.setRange(0, self.cumframes[-1])
         self.play_button.click()
 
