@@ -115,12 +115,12 @@ def process(data):
     X = multiplytype(X, maskMul)
     # X -= X.mean(axis=-1).mean(axis=-1)[:,np.newaxis,np.newaxis]
     for t in range(nt):
-        fft2(X[t], overwrite_x=True)
+        fft2(X[t])
     # phase correlation with previous frame
     X = phase_norm(X, fhg.astype(np.complex64))
     Xout = X[1:] * np.conj(X[:-1])
     for t in range(nt - 1):
-        ifft2(Xout[t], overwrite_x=True)
+        ifft2(Xout[t])
     x00, x01, x10, x11 = my_clip(Xout, lcorr)
     cc = np.real(np.block([[x11, x10], [x01, x00]]))
     # cc = spatial_smooth(cc, 2)
