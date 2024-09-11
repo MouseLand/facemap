@@ -8,6 +8,7 @@ class ClickableLabel(QLabel):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.click_positions = []  # List to store positions where clicks occurred
+        self.click_positions_mask = []  # List to store label type for each click
     
     def mousePressEvent(self, event: QMouseEvent):
         if event.button() == Qt.LeftButton:
@@ -15,6 +16,10 @@ class ClickableLabel(QLabel):
             y = event.y()
             self.click_positions.append((x, y))
             print(f"Clicked position: x={x}, y={y}")
+            if self.parent().mask_type_selection == self.parent().add_button:
+                self.click_positions_mask.append(1)
+            else:
+                self.click_positions_mask.append(0)
             self.update()  # Request a repaint to show the star
 
     def paintEvent(self, event):
@@ -24,13 +29,17 @@ class ClickableLabel(QLabel):
             painter = QPainter(self)
             painter.setRenderHint(QPainter.Antialiasing)
             
-            # Draw stars at the clicked positions
-            painter.setPen(QColor(255, 255, 0))  # Yellow color for the star
-            painter.setBrush(QColor(255, 255, 0))  # Fill color for the star
-            
-            for pos in self.click_positions:
+            for pos, mask in zip(self.click_positions, self.click_positions_mask):
                 x, y = pos
                 size = 10  # Size of the star
+                
+                if mask == 1:
+                    painter.setPen(QColor(0, 255, 0))  # Green color for the star
+                    painter.setBrush(QColor(0, 255, 0))  # Fill color for the star
+                else:
+                    painter.setPen(QColor(255, 0, 0))  # Red color for the star
+                    painter.setBrush(QColor(255, 0, 0))  # Fill color for the star
+                
                 self.draw_star(painter, x, y, size)
 
     def draw_star(self, painter, x, y, size):
@@ -81,12 +90,23 @@ class Sam2Popup(QDialog):
         left_layout.addWidget(self.object_thumbnail)
 
         # Add/Remove Buttons
+        self.button_group = QButtonGroup()
         self.add_button = QPushButton("Add")
         self.remove_button = QPushButton("Remove")
-        self.add_button.setStyleSheet("background-color: #00AEEF; color: white;")
-        self.remove_button.setStyleSheet("background-color: #FF4B4B; color: white;")
+        self.add_button.setStyleSheet("background-color: #007BFF; color: white; border: 2px solid #0056b3;")
+        self.remove_button.setStyleSheet("background-color: #FF3333; color: white; border: 2px solid #cc0000;")
+        self.button_group.addButton(self.add_button)
+        self.button_group.addButton(self.remove_button)
+        self.button_group.setExclusive(True)
         left_layout.addWidget(self.add_button)
         left_layout.addWidget(self.remove_button)
+
+        # Connect button group signal
+        self.button_group.buttonClicked.connect(self.update_button_styles)
+
+        # Set initial selection
+        self.mask_type_selection = self.add_button
+        self.update_button_styles(self.mask_type_selection)
 
         # Button to add more objects
         self.add_object_button = QPushButton("Add another object")
@@ -118,14 +138,28 @@ class Sam2Popup(QDialog):
 
         self.update_window_size()
 
+    def update_button_styles(self, button):
+        # Reset styles for both buttons
+        self.add_button.setStyleSheet("background-color: #007BFF; color: white; border: 2px solid #0056b3;")
+        self.remove_button.setStyleSheet("background-color: #FF3333; color: white; border: 2px solid #cc0000;")
+
+        # Highlight the selected button
+        if button == self.add_button:
+            self.add_button.setStyleSheet("background-color: #0056b3; color: white; border: 2px solid #003d7a;")
+        else:
+            self.remove_button.setStyleSheet("background-color: #cc0000; color: white; border: 2px solid #990000;")
+
+        # Update current selection
+        self.mask_type_selection = button
+
     def add_area(self):
-        # Logic for adding areas to the object (to be implemented)
-        print("Adding area to object...")
+        # Trigger button click to handle selection
+        self.button_group.buttonClicked.emit(self.add_button)
 
     def remove_area(self):
-        # Logic for removing areas from the object (to be implemented)
-        print("Removing area from object...")
-
+        # Trigger button click to handle selection
+        self.button_group.buttonClicked.emit(self.remove_button)
+        
     def track_objects(self):
         # Logic for tracking objects (to be implemented)
         print("Tracking objects...")
