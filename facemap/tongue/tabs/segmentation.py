@@ -15,6 +15,7 @@ from matplotlib import animation
 import matplotlib.pyplot as plt
 import numpy as np
 import pyqtgraph as pg
+from ..sam2.popup_window import Sam2Popup
 
 class SegmentationTab(QWidget):
     def __init__(self):
@@ -76,8 +77,22 @@ class SegmentationTab(QWidget):
         video_button_groupbox.layout().addWidget(self.split_video_button)
         button_layout.addWidget(video_button_groupbox)
 
-        run_segmentation_button = QPushButton("Run segmentation")
-        run_segmentation_button.setStyleSheet("background-color: rgb(196, 108, 57); color: white; font-size: 20px;")
+        model_option_groupbox = QGroupBox()
+        model_option_groupbox.setLayout(QHBoxLayout())
+        model_name_label = QLabel("Model:")
+        model_name_label.setStyleSheet("color: lightgrey;")
+        model_option_groupbox.layout().addWidget(model_name_label)
+
+        # create dropdown menu for model selection
+        self.model_dropdown = QComboBox()
+        self.model_dropdown.setStyleSheet("background-color: rgb(196, 108, 57); color: white; font-size: 20px;")
+        self.model_dropdown.addItem("SAM2")
+        self.model_dropdown.addItem("FaceampNet")
+        model_option_groupbox.layout().addWidget(self.model_dropdown)
+        button_layout.addWidget(model_option_groupbox)
+
+        run_segmentation_button = QPushButton("Run")
+        run_segmentation_button.setStyleSheet("background-color: rgb(196, 108, 57); color: white; font-size: 26px;")
         run_segmentation_button.clicked.connect(self.run_segmentation)
         run_segmentation_button.setStyleSheet(button_style)
         button_layout.addWidget(run_segmentation_button)
@@ -164,6 +179,7 @@ class SegmentationTab(QWidget):
         """
         # Add the self.splitter to the layout
         self.layout.addWidget(self.splitter, 0, 0)
+        self.cumframes, self.Ly, self.Lx, self.containers = [], [], [], None
 
     def add_video(self):
         # Show file dialog to select video files
@@ -176,6 +192,7 @@ class SegmentationTab(QWidget):
             self.video_filenames += file_dialog.selectedFiles()
             self.cumframes, self.Ly, self.Lx, self.containers = utils.get_frame_details([[self.video_filenames[-1]]])
             self.video_player.load_video(self.cumframes, self.Ly, self.Lx, self.containers)#.abrir(self.video_filenames[-1])
+            print(self.cumframes)
 
     def split_video(self):
         if self.video_filenames == []:
@@ -219,6 +236,18 @@ class SegmentationTab(QWidget):
             print("Model path set:", self.model_path)
 
     def run_segmentation(self):
+
+        if self.model_dropdown.currentText() == "FaceampNet":
+            self.run_faceampnet_segmentation()
+        elif self.model_dropdown.currentText() == "SAM2":
+            self.run_sam2_segmentation()
+
+    def run_sam2_segmentation(self):
+        print("Running SAM2 segmentation")
+        popup = Sam2Popup(self, self.cumframes, self.Ly, self.Lx, self.containers)
+        popup.exec_()
+
+    def run_faceampnet_segmentation(self):
         # Get the video view
         video_view = self.video_view_group.checkedButton().text()
         # Run the segmentation
