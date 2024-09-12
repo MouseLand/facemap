@@ -28,6 +28,7 @@ class ClickableLabel(QLabel):
             self.store_click_for_frame(x, y, label_type)
             print(f"Clicked position: x={x}, y={y}, label={label_type} (frame {self.current_frame_index})")
             self.update()  # Repaint to reflect new click
+            self.add_points_and_masks()
 
     def store_click_for_frame(self, x, y, label_type):
         """Store click position and label for the current frame, converting to image pixel coordinates."""
@@ -63,6 +64,45 @@ class ClickableLabel(QLabel):
         self.frame_click_data[self.current_frame_index]["labels"].append(label_type)
 
         print(f"Stored click at image coordinates: ({image_x}, {image_y}) with label: {label_type}")
+
+    def add_points_and_masks(self):
+        # Get the masks and points from the frame_click_data
+        for frame_idx, data in self.frame_click_data.items():
+            if len(data["positions"]) > 0:
+                points = np.array(data["positions"], dtype=np.float32)
+                labels = np.array(data["labels"], np.int32)
+                # pass the click positions, labels and frame idx to the SAM2 model. data is used as follows
+                ann_frame_idx = frame_idx
+                ann_obj_id = 1  # give a unique id to each object we interact with (it can be any integers)
+                _, out_obj_ids, out_mask_logits = self.parent().sam2.predictor.add_new_points_or_box(
+                    inference_state=self.parent().sam2.inference_state,
+                    frame_idx=ann_frame_idx,
+                    obj_id=ann_obj_id,
+                    points=points,
+                    labels=labels,
+                )
+                # show the mask on the current frame
+                mask = (out_mask_logits[0] > 0.0).cpu().numpy().astype(int).squeeze()
+                if frame_idx == self.current_frame_index:
+                    self.show_mask(mask, obj_id=ann_obj_id)
+                    # make a figure with image and mask overlay
+                    fig, ax = plt.subplots(1, 1, figsize=(5, 5))
+                    image_data = self.parent().get_frame(frame_idx)
+                    # convert to rgb format for imshow
+                    image_data = np.clip(image_data, 0, 1) 
+                    ax.imshow(image_data)
+                    # add points to the figure
+                    ax.scatter(points[:, 0], points[:, 1])
+                    cmap = plt.get_cmap("tab10")
+                    cmap_idx = 0 if ann_obj_id is None else ann_obj_id
+                    color = np.array([*cmap(cmap_idx)[:3], 0.6])
+                    h, w = mask.shape[-2:]
+                    mask_image = mask.reshape(h, w, 1) * color.reshape(1, 1, -1)
+                    ax.imshow(mask_image)
+                    # save the figure
+                    # print cwd
+                    plt.savefig(f"mask_{frame_idx}.png")
+                    plt.close(fig)
 
     def paintEvent(self, event):
         super().paintEvent(event)
@@ -108,7 +148,6 @@ class ClickableLabel(QLabel):
 
         # Convert the mask to a format that can be displayed
         h, w = mask.shape[-2:]
-        print("mask", mask.shape, np.unique(mask))
 
         # Calculate the scaling factors for mask dimensions
         label_width = self.pixmap().width() #self.width()
@@ -122,7 +161,6 @@ class ClickableLabel(QLabel):
 
         # Apply scaling to the mask (assuming mask is a binary mask for simplicity)
         mask_resized = resize(mask, (mask_scaled_height, mask_scaled_width), mode='constant', anti_aliasing=True)
-        print("mask_resized", mask_resized.shape, np.unique(mask_resized))
  
         # Load the base image and mask image
         base_image = self.pixmap()
@@ -136,16 +174,18 @@ class ClickableLabel(QLabel):
         painter = QPainter(final_image)
         painter.drawPixmap(0, 0, base_image)  # Draw the base image
 
-        # Prepare colors for mask overlay
-        color_0 = QColor(0, 0, 255, 128)  # Semi-transparent red for label 0
-        color_1 = QColor(0, 255, 0, 128)  # Semi-transparent red for label 1
+        # Prepare color for mask overlay
+        if obj_id == 1:
+            color = QColor(0, 255, 0, 128)
+        else:
+            color = QColor(0, 0, 255, 128)
 
         # Draw the mask overlay
         for x in range(mask_scaled_width):
             for y in range(mask_scaled_height):
                 pixel_value = mask_image[y, x]
                 if pixel_value > 0:
-                    painter.setPen(color_1)
+                    painter.setPen(color)
                 else:
                     continue
                 painter.drawPoint(x, y)
@@ -154,9 +194,6 @@ class ClickableLabel(QLabel):
 
         # Update the QLabel to show the new image with the mask
         self.setPixmap(final_image)
-        print("visual area size", self.size())
-        print("base_image size", base_image.size())
-
 
 class Sam2Popup(QDialog):
     def __init__(self, parent=None, cumframes=[], Ly=[], Lx=[], containers=None):
@@ -262,47 +299,6 @@ class Sam2Popup(QDialog):
         # Trigger button click to handle selection
         self.button_group.buttonClicked.emit(self.remove_button)
 
-    def add_points_and_masks(self):
-        # Get the masks and points from the frame_click_data
-        for frame_idx, data in self.visual_area.frame_click_data.items():
-            if len(data["positions"]) > 0:
-                points = np.array(data["positions"], dtype=np.float32)
-                labels = np.array(data["labels"], np.int32)
-                # pass the click positions, labels and frame idx to the SAM2 model. data is used as follows
-                ann_frame_idx = frame_idx
-                ann_obj_id = 1  # give a unique id to each object we interact with (it can be any integers)
-                _, out_obj_ids, out_mask_logits = self.sam2.predictor.add_new_points_or_box(
-                    inference_state=self.sam2.inference_state,
-                    frame_idx=ann_frame_idx,
-                    obj_id=ann_obj_id,
-                    points=points,
-                    labels=labels,
-                )
-                # show the mask on the current frame
-                mask = (out_mask_logits[0] > 0.0).cpu().numpy().astype(int).squeeze()
-                # show mask if current frame
-                print(f"Frame Index: {frame_idx}, Current Frame Index: {self.visual_area.current_frame_index}")
-                if frame_idx == self.visual_area.current_frame_index:
-                    self.visual_area.show_mask(mask, obj_id=ann_obj_id)
-                    # make a figure with image and mask overlay
-                    fig, ax = plt.subplots(1, 1, figsize=(5, 5))
-                    image_data = self.get_frame(frame_idx)
-                    # convert to rgb format for imshow
-                    image_data = np.clip(image_data, 0, 1) 
-                    ax.imshow(image_data)
-                    # add points to the figure
-                    ax.scatter(points[:, 0], points[:, 1])
-                    cmap = plt.get_cmap("tab10")
-                    cmap_idx = 0 if ann_obj_id is None else ann_obj_id
-                    color = np.array([*cmap(cmap_idx)[:3], 0.6])
-                    h, w = mask.shape[-2:]
-                    mask_image = mask.reshape(h, w, 1) * color.reshape(1, 1, -1)
-                    ax.imshow(mask_image)
-                    # save the figure
-                    # print cwd
-                    print(f"Current Directory: {os.getcwd()}")
-                    plt.savefig(f"mask_{frame_idx}.png")
-                    plt.close(fig)
 
     def track_objects(self):
         self.add_points_and_masks()
