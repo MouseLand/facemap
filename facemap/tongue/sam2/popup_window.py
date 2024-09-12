@@ -3,8 +3,10 @@ from PyQt5.QtCore import Qt, QPoint
 from PyQt5.QtGui import QPixmap, QImage, QMouseEvent, QPainter, QPainterPath, QColor
 import numpy as np
 from facemap import utils
+import os
 from ..sam2.sam2_model import SAM2Model
 import matplotlib.pyplot as plt
+from skimage.transform import resize
 
 class ClickableLabel(QLabel):
     def __init__(self, parent=None):
@@ -101,48 +103,59 @@ class ClickableLabel(QLabel):
 
         painter.drawPath(path)
     
-    def show_mask(self, mask, obj_id=None, random_color=False):
+    def show_mask(self, mask, obj_id=None):
         """Display a mask on the current frame, scaled to QLabel size."""
-        if random_color:
-            color = np.concatenate([np.random.random(3) * 255, np.array([0.6 * 255])], axis=0).astype(int)
-        else:
-            # Use a predefined color map (e.g., tab10) to select a color based on obj_id
-            cmap = plt.get_cmap("tab10")
-            cmap_idx = 0 if obj_id is None else obj_id  # Loop over available colors
-            color = np.array([*cmap(cmap_idx)[:3], 0.6]) * 255  # Convert to RGB (0-255) and set transparency
-
-        color = QColor(int(color[0]), int(color[1]), int(color[2]), int(color[3]))  # Set color with alpha
 
         # Convert the mask to a format that can be displayed
         h, w = mask.shape[-2:]
-        mask_image = np.zeros((h, w, 4), dtype=np.uint8)  # RGBA image
-        mask_image[:, :, 0:3] = mask.reshape(h, w, 1) * np.array([color.red(), color.green(), color.blue()])
-        mask_image[:, :, 3] = mask * color.alpha()  # Set alpha channel based on the mask and color's alpha
+        print("mask", mask.shape, np.unique(mask))
 
-        # Convert the NumPy array into QImage and QPixmap
-        qimage = QImage(mask_image.data, mask_image.shape[1], mask_image.shape[0], mask_image.strides[0], QImage.Format_RGBA8888)
-        mask_pixmap = QPixmap.fromImage(qimage)
+        # Calculate the scaling factors for mask dimensions
+        label_width = self.pixmap().width() #self.width()
+        label_height = self.pixmap().height() #self.height()
+        image_width = self.parent().Lx
+        image_height = self.parent().Ly
+        scale_x =  label_width / image_width
+        scale_y =  label_height / image_height
+        mask_scaled_width = int(w * scale_x)
+        mask_scaled_height = int(h * scale_y)
 
-        # Scale the mask to match the QLabel size
-        label_width = self.width()
-        label_height = self.height()
-        scaled_mask_pixmap = mask_pixmap.scaled(label_width, label_height, Qt.KeepAspectRatio, Qt.SmoothTransformation)
+        # Apply scaling to the mask (assuming mask is a binary mask for simplicity)
+        mask_resized = resize(mask, (mask_scaled_height, mask_scaled_width), mode='constant', anti_aliasing=True)
+        print("mask_resized", mask_resized.shape, np.unique(mask_resized))
+ 
+        # Load the base image and mask image
+        base_image = self.pixmap()
+        mask_image = mask_resized
 
-        # Create a new pixmap with the current image and draw the mask on it
-        if self.pixmap():
-            # Scale the original pixmap to match the QLabel size
-            original_pixmap = self.pixmap().scaled(label_width, label_height, Qt.KeepAspectRatio, Qt.SmoothTransformation)
-            
-            combined_pixmap = QPixmap(label_width, label_height)
-            combined_pixmap.fill(Qt.transparent)  # Start with a transparent background
+        # Create a QPixmap to draw on
+        final_image = QPixmap(base_image.size())
+        final_image.fill(Qt.transparent)  # Start with a transparent background
 
-            painter = QPainter(combined_pixmap)
-            painter.drawPixmap(0, 0, original_pixmap)  # Draw the scaled original image
-            painter.drawPixmap(0, 0, scaled_mask_pixmap)  # Overlay the scaled mask
-            painter.end()
+        # Create QPainter to draw on the final image
+        painter = QPainter(final_image)
+        painter.drawPixmap(0, 0, base_image)  # Draw the base image
 
-            # Update the QLabel to show the new image with the mask
-            self.setPixmap(combined_pixmap)
+        # Prepare colors for mask overlay
+        color_0 = QColor(0, 0, 255, 128)  # Semi-transparent red for label 0
+        color_1 = QColor(0, 255, 0, 128)  # Semi-transparent red for label 1
+
+        # Draw the mask overlay
+        for x in range(mask_scaled_width):
+            for y in range(mask_scaled_height):
+                pixel_value = mask_image[y, x]
+                if pixel_value > 0:
+                    painter.setPen(color_1)
+                else:
+                    continue
+                painter.drawPoint(x, y)
+
+        painter.end()
+
+        # Update the QLabel to show the new image with the mask
+        self.setPixmap(final_image)
+        print("visual area size", self.size())
+        print("base_image size", base_image.size())
 
 
 class Sam2Popup(QDialog):
@@ -266,38 +279,35 @@ class Sam2Popup(QDialog):
                     labels=labels,
                 )
                 # show the mask on the current frame
-                mask = out_mask_logits[0, 0].cpu().numpy()
-                self.visual_area.show_mask(mask, obj_id=ann_obj_id)
-
+                mask = (out_mask_logits[0] > 0.0).cpu().numpy().astype(int).squeeze()
+                # show mask if current frame
+                print(f"Frame Index: {frame_idx}, Current Frame Index: {self.visual_area.current_frame_index}")
+                if frame_idx == self.visual_area.current_frame_index:
+                    self.visual_area.show_mask(mask, obj_id=ann_obj_id)
+                    # make a figure with image and mask overlay
+                    fig, ax = plt.subplots(1, 1, figsize=(5, 5))
+                    image_data = self.get_frame(frame_idx)
+                    # convert to rgb format for imshow
+                    image_data = np.clip(image_data, 0, 1) 
+                    ax.imshow(image_data)
+                    # add points to the figure
+                    ax.scatter(points[:, 0], points[:, 1])
+                    cmap = plt.get_cmap("tab10")
+                    cmap_idx = 0 if ann_obj_id is None else ann_obj_id
+                    color = np.array([*cmap(cmap_idx)[:3], 0.6])
+                    h, w = mask.shape[-2:]
+                    mask_image = mask.reshape(h, w, 1) * color.reshape(1, 1, -1)
+                    ax.imshow(mask_image)
+                    # save the figure
+                    # print cwd
+                    print(f"Current Directory: {os.getcwd()}")
+                    plt.savefig(f"mask_{frame_idx}.png")
+                    plt.close(fig)
 
     def track_objects(self):
         self.add_points_and_masks()
         # Create a SAM2Model object and pass the video path
-        """
-        if self.sam2 is None:
-            video_path = self.parent.video_filenames[-1]
-            print(f"Video Path: {video_path}")
-            self.sam2 = SAM2Model(video_path)
-        # Perform object tracking using the SAM2 model
-            
-        # pass the click positions, labels and frame idx to the SAM2 model. data is used as follows
-        ann_frame_idx = 345  # the frame index we interact with
-        ann_obj_id = 1  # give a unique id to each object we interact with (it can be any integers)
-
-        # Let's add a positive click at (x, y) = (210, 350) to get started
-        points = np.array([[100, 200]], dtype=np.float32)
-        # for labels, `1` means positive click and `0` means negative click
-        labels = np.array([1], np.int32)
-        
-        _, out_obj_ids, out_mask_logits = self.predictor.add_new_points_or_box(
-            inference_state=self.inference_state,
-            frame_idx=ann_frame_idx,
-            obj_id=ann_obj_id,
-            points=points,
-            labels=labels,
-        )
-        self.sam2.track_objects() 
-        """
+        #self.sam2.track_objects() 
 
     def update_window_size(self, frac=0.5, aspect_ratio=1.0):
         # Set the size of the window to be a fraction of the screen size using the aspect ratio
