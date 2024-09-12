@@ -155,7 +155,7 @@ class SegmentationTab(QWidget):
         button_layout.addWidget(self.video_playback_groupbox)
 
         self.video_player = VideoPlayer(self.play_button)
-        self.video_player2 = VideoPlayer(self.play_button)
+        #self.video_player2 = VideoPlayer(self.play_button)
 
         # Add the panels to the self.splitter
         self.splitter.addWidget(button_panel)
@@ -191,8 +191,9 @@ class SegmentationTab(QWidget):
             # Add the selected files to the list of video filenames
             self.video_filenames += file_dialog.selectedFiles()
             self.cumframes, self.Ly, self.Lx, self.containers = utils.get_frame_details([[self.video_filenames[-1]]])
-            self.video_player.load_video(self.cumframes, self.Ly, self.Lx, self.containers)#.abrir(self.video_filenames[-1])
             print(self.cumframes)
+            print(self.video_filenames[-1])
+            self.video_player.load_video(self.cumframes, self.Ly, self.Lx, self.containers)#.abrir(self.video_filenames[-1])
 
     def split_video(self):
         if self.video_filenames == []:

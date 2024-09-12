@@ -3,6 +3,7 @@ from PyQt5.QtCore import Qt, QPoint
 from PyQt5.QtGui import QPixmap, QImage, QMouseEvent, QPainter, QPainterPath, QColor
 import numpy as np
 from facemap import utils
+from ..sam2.sam2_model import SAM2Model
 
 class ClickableLabel(QLabel):
     def __init__(self, parent=None):
@@ -62,7 +63,7 @@ class ClickableLabel(QLabel):
 class Sam2Popup(QDialog):
     def __init__(self, parent=None, cumframes=[], Ly=[], Lx=[], containers=None):
         super().__init__(parent)
-
+        self.parent = parent
         self.cumframes = cumframes
         self.Ly = Ly
         self.Lx = Lx
@@ -161,8 +162,13 @@ class Sam2Popup(QDialog):
         self.button_group.buttonClicked.emit(self.remove_button)
         
     def track_objects(self):
-        # Logic for tracking objects (to be implemented)
-        print("Tracking objects...")
+        # Create a SAM2Model object and pass the video path
+        video_path = self.parent.video_filenames[-1]
+        print(f"Video Path: {video_path}")
+        sam2 = SAM2Model(video_path)
+        # Perform object tracking using the SAM2 model
+        # sam2.track_objects()
+       
 
     def update_window_size(self, frac=0.5, aspect_ratio=1.0):
         # Set the size of the window to be a fraction of the screen size using the aspect ratio

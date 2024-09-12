@@ -73,9 +73,6 @@ class VideoPlayer(QWidget):
         self.next_frame(self.positionSlider.value())
 
     def next_frame(self, idx=None):
-        if self.cumframes == []:
-            # Cumframes is not yet initialized or is empty
-            return
         if idx is None:
             self.current_frame = self.current_frame + 1
             self.positionSlider.setValue(self.current_frame)
