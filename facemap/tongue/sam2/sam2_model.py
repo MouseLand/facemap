@@ -60,4 +60,9 @@ class SAM2Model:
 
         self.predictor = build_sam2_video_predictor(model_cfg, sam2_checkpoint, device=self.device)
 
-        
+    def track_objects(self):
+
+        return
+
+    def reset(self):
+        self.predictor.reset_state(self.inference_state)

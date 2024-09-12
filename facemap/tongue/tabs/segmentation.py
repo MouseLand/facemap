@@ -245,7 +245,7 @@ class SegmentationTab(QWidget):
 
     def run_sam2_segmentation(self):
         print("Running SAM2 segmentation")
-        popup = Sam2Popup(self, self.cumframes, self.Ly, self.Lx, self.containers)
+        popup = Sam2Popup(self, self.cumframes, self.Ly[0], self.Lx[0], self.containers)
         popup.exec_()
 
     def run_faceampnet_segmentation(self):

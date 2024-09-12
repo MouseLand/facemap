@@ -4,44 +4,85 @@ from PyQt5.QtGui import QPixmap, QImage, QMouseEvent, QPainter, QPainterPath, QC
 import numpy as np
 from facemap import utils
 from ..sam2.sam2_model import SAM2Model
+import matplotlib.pyplot as plt
 
 class ClickableLabel(QLabel):
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.click_positions = []  # List to store positions where clicks occurred
-        self.click_positions_mask = []  # List to store label type for each click
-    
+        # Dictionary to store click positions and labels for each frame
+        self.frame_click_data = {}  # Structure: {frame_index: {"positions": [(x, y)], "labels": [1, 0]}}
+        self.current_frame_index = 0  # Keep track of the current frame index
+
     def mousePressEvent(self, event: QMouseEvent):
         if event.button() == Qt.LeftButton:
             x = event.x()
             y = event.y()
-            self.click_positions.append((x, y))
-            print(f"Clicked position: x={x}, y={y}")
-            if self.parent().mask_type_selection == self.parent().add_button:
-                self.click_positions_mask.append(1)
-            else:
-                self.click_positions_mask.append(0)
-            self.update()  # Request a repaint to show the star
+            label_type = 1 if self.parent().mask_type_selection == self.parent().add_button else 0
+            
+            # Ensure there is an entry for the current frame before adding a click
+            if self.current_frame_index not in self.frame_click_data:
+                self.frame_click_data[self.current_frame_index] = {"positions": [], "labels": [], "pixmap_positions": []}
+
+            self.store_click_for_frame(x, y, label_type)
+            print(f"Clicked position: x={x}, y={y}, label={label_type} (frame {self.current_frame_index})")
+            self.update()  # Repaint to reflect new click
+
+    def store_click_for_frame(self, x, y, label_type):
+        """Store click position and label for the current frame, converting to image pixel coordinates."""
+        # Get the pixmap displayed in the QLabel
+        pixmap = self.pixmap()
+        if pixmap is None:
+            return  # No image loaded, nothing to store
+
+        # Get the actual size of the image in pixels
+        image_width = self.parent().Lx
+        image_height = self.parent().Ly
+        print(self.parent().Lx, self.parent().Ly)
+
+        # Get the size of the QLabel (display area)
+        label_width = self.width()
+        label_height = self.height()
+
+        # Compute the scaling factors between QLabel size and actual image size
+        scale_x = image_width / label_width
+        scale_y = image_height / label_height
+
+        # Convert the clicked position to image pixel coordinates
+        image_x = int(x * scale_x)
+        image_y = int(y * scale_y)
+
+        # Store the converted coordinates
+        if self.current_frame_index not in self.frame_click_data:
+            self.frame_click_data[self.current_frame_index] = {"positions": [], "labels": [], "pixmap_positions": []}
+
+        # Append the image pixel coordinates and the label type
+        self.frame_click_data[self.current_frame_index]["positions"].append([image_x, image_y])
+        self.frame_click_data[self.current_frame_index]["pixmap_positions"].append([x, y])
+        self.frame_click_data[self.current_frame_index]["labels"].append(label_type)
+
+        print(f"Stored click at image coordinates: ({image_x}, {image_y}) with label: {label_type}")
 
     def paintEvent(self, event):
         super().paintEvent(event)
-        
+
         if self.pixmap():
             painter = QPainter(self)
             painter.setRenderHint(QPainter.Antialiasing)
-            
-            for pos, mask in zip(self.click_positions, self.click_positions_mask):
+
+            frame_data = self.frame_click_data.get(self.current_frame_index, {"positions": [], "labels": [], "pixmap_positions": []})
+            for pos, mask in zip(frame_data["pixmap_positions"], frame_data["labels"]):
                 x, y = pos
                 size = 10  # Size of the star
-                
+
                 if mask == 1:
-                    painter.setPen(QColor(0, 255, 0))  # Green color for the star
-                    painter.setBrush(QColor(0, 255, 0))  # Fill color for the star
+                    painter.setPen(QColor(0, 255, 0))  # Green for positive clicks
+                    painter.setBrush(QColor(0, 255, 0))
                 else:
-                    painter.setPen(QColor(255, 0, 0))  # Red color for the star
-                    painter.setBrush(QColor(255, 0, 0))  # Fill color for the star
-                
+                    painter.setPen(QColor(255, 0, 0))  # Red for negative clicks
+                    painter.setBrush(QColor(255, 0, 0))
+
                 self.draw_star(painter, x, y, size)
+
 
     def draw_star(self, painter, x, y, size):
         # Draw a simple star shape
@@ -50,7 +91,7 @@ class ClickableLabel(QLabel):
             angle = i * 72
             x_offset = size * np.cos(np.radians(angle))
             y_offset = size * np.sin(np.radians(angle))
-            points.append(QPoint(x + x_offset, y - y_offset))
+            points.append(QPoint(int(x + x_offset), int(y - y_offset)))  # Convert to int
 
         path = QPainterPath()
         path.moveTo(points[0])
@@ -59,6 +100,50 @@ class ClickableLabel(QLabel):
         path.closeSubpath()
 
         painter.drawPath(path)
+    
+    def show_mask(self, mask, obj_id=None, random_color=False):
+        """Display a mask on the current frame, scaled to QLabel size."""
+        if random_color:
+            color = np.concatenate([np.random.random(3) * 255, np.array([0.6 * 255])], axis=0).astype(int)
+        else:
+            # Use a predefined color map (e.g., tab10) to select a color based on obj_id
+            cmap = plt.get_cmap("tab10")
+            cmap_idx = 0 if obj_id is None else obj_id  # Loop over available colors
+            color = np.array([*cmap(cmap_idx)[:3], 0.6]) * 255  # Convert to RGB (0-255) and set transparency
+
+        color = QColor(int(color[0]), int(color[1]), int(color[2]), int(color[3]))  # Set color with alpha
+
+        # Convert the mask to a format that can be displayed
+        h, w = mask.shape[-2:]
+        mask_image = np.zeros((h, w, 4), dtype=np.uint8)  # RGBA image
+        mask_image[:, :, 0:3] = mask.reshape(h, w, 1) * np.array([color.red(), color.green(), color.blue()])
+        mask_image[:, :, 3] = mask * color.alpha()  # Set alpha channel based on the mask and color's alpha
+
+        # Convert the NumPy array into QImage and QPixmap
+        qimage = QImage(mask_image.data, mask_image.shape[1], mask_image.shape[0], mask_image.strides[0], QImage.Format_RGBA8888)
+        mask_pixmap = QPixmap.fromImage(qimage)
+
+        # Scale the mask to match the QLabel size
+        label_width = self.width()
+        label_height = self.height()
+        scaled_mask_pixmap = mask_pixmap.scaled(label_width, label_height, Qt.KeepAspectRatio, Qt.SmoothTransformation)
+
+        # Create a new pixmap with the current image and draw the mask on it
+        if self.pixmap():
+            # Scale the original pixmap to match the QLabel size
+            original_pixmap = self.pixmap().scaled(label_width, label_height, Qt.KeepAspectRatio, Qt.SmoothTransformation)
+            
+            combined_pixmap = QPixmap(label_width, label_height)
+            combined_pixmap.fill(Qt.transparent)  # Start with a transparent background
+
+            painter = QPainter(combined_pixmap)
+            painter.drawPixmap(0, 0, original_pixmap)  # Draw the scaled original image
+            painter.drawPixmap(0, 0, scaled_mask_pixmap)  # Overlay the scaled mask
+            painter.end()
+
+            # Update the QLabel to show the new image with the mask
+            self.setPixmap(combined_pixmap)
+
 
 class Sam2Popup(QDialog):
     def __init__(self, parent=None, cumframes=[], Ly=[], Lx=[], containers=None):
@@ -69,6 +154,9 @@ class Sam2Popup(QDialog):
         self.Lx = Lx
         self.containers = containers
         self.current_frame_index = 0  # Index of the currently displayed frame
+        video_path = self.parent.video_filenames[-1]
+        print(f"Video Path: {video_path}")
+        self.sam2 = SAM2Model(video_path)
 
         # Set window title and size
         self.setWindowTitle("SAM2 Segmentation Options")
@@ -160,15 +248,56 @@ class Sam2Popup(QDialog):
     def remove_area(self):
         # Trigger button click to handle selection
         self.button_group.buttonClicked.emit(self.remove_button)
-        
+
+    def add_points_and_masks(self):
+        # Get the masks and points from the frame_click_data
+        for frame_idx, data in self.visual_area.frame_click_data.items():
+            if len(data["positions"]) > 0:
+                points = np.array(data["positions"], dtype=np.float32)
+                labels = np.array(data["labels"], np.int32)
+                # pass the click positions, labels and frame idx to the SAM2 model. data is used as follows
+                ann_frame_idx = frame_idx
+                ann_obj_id = 1  # give a unique id to each object we interact with (it can be any integers)
+                _, out_obj_ids, out_mask_logits = self.sam2.predictor.add_new_points_or_box(
+                    inference_state=self.sam2.inference_state,
+                    frame_idx=ann_frame_idx,
+                    obj_id=ann_obj_id,
+                    points=points,
+                    labels=labels,
+                )
+                # show the mask on the current frame
+                mask = out_mask_logits[0, 0].cpu().numpy()
+                self.visual_area.show_mask(mask, obj_id=ann_obj_id)
+
+
     def track_objects(self):
+        self.add_points_and_masks()
         # Create a SAM2Model object and pass the video path
-        video_path = self.parent.video_filenames[-1]
-        print(f"Video Path: {video_path}")
-        sam2 = SAM2Model(video_path)
+        """
+        if self.sam2 is None:
+            video_path = self.parent.video_filenames[-1]
+            print(f"Video Path: {video_path}")
+            self.sam2 = SAM2Model(video_path)
         # Perform object tracking using the SAM2 model
-        # sam2.track_objects()
-       
+            
+        # pass the click positions, labels and frame idx to the SAM2 model. data is used as follows
+        ann_frame_idx = 345  # the frame index we interact with
+        ann_obj_id = 1  # give a unique id to each object we interact with (it can be any integers)
+
+        # Let's add a positive click at (x, y) = (210, 350) to get started
+        points = np.array([[100, 200]], dtype=np.float32)
+        # for labels, `1` means positive click and `0` means negative click
+        labels = np.array([1], np.int32)
+        
+        _, out_obj_ids, out_mask_logits = self.predictor.add_new_points_or_box(
+            inference_state=self.inference_state,
+            frame_idx=ann_frame_idx,
+            obj_id=ann_obj_id,
+            points=points,
+            labels=labels,
+        )
+        self.sam2.track_objects() 
+        """
 
     def update_window_size(self, frac=0.5, aspect_ratio=1.0):
         # Set the size of the window to be a fraction of the screen size using the aspect ratio
@@ -224,11 +353,6 @@ class Sam2Popup(QDialog):
             self.current_frame_index += 1
             self.update_frame_display()
 
-    def slider_changed(self, value):
-        # Update frame index from slider and refresh display
-        self.current_frame_index = value
-        self.update_frame_display()
-
     def update_frame_display(self):
         # Fetch the frame based on current index and update QLabel
         frame = self.get_frame(self.current_frame_index)
@@ -237,7 +361,17 @@ class Sam2Popup(QDialog):
             qimage = QImage(frame.data, frame.shape[1], frame.shape[0], frame.strides[0], QImage.Format_RGB888)
             pixmap = QPixmap.fromImage(qimage)
             self.visual_area.setPixmap(pixmap.scaled(self.visual_area.size(), Qt.KeepAspectRatio))
+            
+            # Update the slider to match the current frame index
             self.frame_slider.setValue(self.current_frame_index)
+
+            # Instead of calling set_frame_index, just set the current frame index on the visual area
+            self.visual_area.current_frame_index = self.current_frame_index
+
+    def slider_changed(self, value):
+        # Update frame index from slider and refresh display
+        self.current_frame_index = value
+        self.update_frame_display()
 
     def get_frame(self, index):
         frame = utils.get_frame(index, self.cumframes[-1], self.cumframes, self.containers)[0].squeeze()
