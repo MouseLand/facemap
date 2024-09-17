@@ -16,6 +16,8 @@ class ClickableLabel(QLabel):
         self.current_frame_index = 0  # Keep track of the current frame index
 
     def mousePressEvent(self, event: QMouseEvent):
+        # update pixmap to current frame
+        self.update_frame(self.current_frame_index)
         if event.button() == Qt.LeftButton:
             x = event.x()
             y = event.y()
@@ -26,87 +28,53 @@ class ClickableLabel(QLabel):
                 self.frame_click_data[self.current_frame_index] = {"positions": [], "labels": [], "pixmap_positions": []}
 
             self.store_click_for_frame(x, y, label_type)
-            print(f"Clicked position: x={x}, y={y}, label={label_type} (frame {self.current_frame_index})")
             self.update()  # Repaint to reflect new click
             self.add_points_and_masks()
 
     def store_click_for_frame(self, x, y, label_type):
         """Store click position and label for the current frame, converting to image pixel coordinates."""
-        # Get the pixmap displayed in the QLabel
         pixmap = self.pixmap()
         if pixmap is None:
             return  # No image loaded, nothing to store
 
-        # Get the actual size of the image in pixels
         image_width = self.parent().Lx
         image_height = self.parent().Ly
-        print(self.parent().Lx, self.parent().Ly)
-
-        # Get the size of the QLabel (display area)
         label_width = self.width()
         label_height = self.height()
 
-        # Compute the scaling factors between QLabel size and actual image size
         scale_x = image_width / label_width
         scale_y = image_height / label_height
 
-        # Convert the clicked position to image pixel coordinates
         image_x = int(x * scale_x)
         image_y = int(y * scale_y)
 
-        # Store the converted coordinates
         if self.current_frame_index not in self.frame_click_data:
             self.frame_click_data[self.current_frame_index] = {"positions": [], "labels": [], "pixmap_positions": []}
 
-        # Append the image pixel coordinates and the label type
         self.frame_click_data[self.current_frame_index]["positions"].append([image_x, image_y])
         self.frame_click_data[self.current_frame_index]["pixmap_positions"].append([x, y])
         self.frame_click_data[self.current_frame_index]["labels"].append(label_type)
 
-        print(f"Stored click at image coordinates: ({image_x}, {image_y}) with label: {label_type}")
 
     def add_points_and_masks(self):
-        # Get the masks and points from the frame_click_data
         for frame_idx, data in self.frame_click_data.items():
-            if len(data["positions"]) > 0:
-                points = np.array(data["positions"], dtype=np.float32)
-                labels = np.array(data["labels"], np.int32)
-                # pass the click positions, labels and frame idx to the SAM2 model. data is used as follows
-                ann_frame_idx = frame_idx
-                ann_obj_id = 1  # give a unique id to each object we interact with (it can be any integers)
-                _, out_obj_ids, out_mask_logits = self.parent().sam2.predictor.add_new_points_or_box(
-                    inference_state=self.parent().sam2.inference_state,
-                    frame_idx=ann_frame_idx,
-                    obj_id=ann_obj_id,
-                    points=points,
-                    labels=labels,
-                )
-                # show the mask on the current frame
-                mask = (out_mask_logits[0] > 0.0).cpu().numpy().astype(int).squeeze()
-                if frame_idx == self.current_frame_index:
-                    self.show_mask(mask, obj_id=ann_obj_id)
-                    # make a figure with image and mask overlay
-                    fig, ax = plt.subplots(1, 1, figsize=(5, 5))
-                    image_data = self.parent().get_frame(frame_idx)
-                    # convert to rgb format for imshow
-                    image_data = np.clip(image_data, 0, 1) 
-                    ax.imshow(image_data)
-                    # add points to the figure
-                    ax.scatter(points[:, 0], points[:, 1])
-                    cmap = plt.get_cmap("tab10")
-                    cmap_idx = 0 if ann_obj_id is None else ann_obj_id
-                    color = np.array([*cmap(cmap_idx)[:3], 0.6])
-                    h, w = mask.shape[-2:]
-                    mask_image = mask.reshape(h, w, 1) * color.reshape(1, 1, -1)
-                    ax.imshow(mask_image)
-                    # save the figure
-                    # print cwd
-                    plt.savefig(f"mask_{frame_idx}.png")
-                    plt.close(fig)
+            points = np.array(data["positions"], dtype=np.float32)
+            labels = np.array(data["labels"], np.int32)
+            ann_frame_idx = frame_idx
+            ann_obj_id = 1  # unique id
+            _, out_obj_ids, out_mask_logits = self.parent().sam2.predictor.add_new_points_or_box(
+                inference_state=self.parent().sam2.inference_state,
+                frame_idx=ann_frame_idx,
+                obj_id=ann_obj_id,
+                points=points,
+                labels=labels,
+            )
+            mask = (out_mask_logits[0] > 0.0).cpu().numpy().astype(int).squeeze()
+            if frame_idx == self.current_frame_index:
+                self.show_mask(mask, obj_id=out_obj_ids[0])
 
     def paintEvent(self, event):
         super().paintEvent(event)
-
         if self.pixmap():
             painter = QPainter(self)
             painter.setRenderHint(QPainter.Antialiasing)
@@ -115,85 +83,70 @@ class ClickableLabel(QLabel):
             for pos, mask in zip(frame_data["pixmap_positions"], frame_data["labels"]):
                 x, y = pos
                 size = 10  # Size of the star
-
                 if mask == 1:
-                    painter.setPen(QColor(0, 255, 0))  # Green for positive clicks
+                    painter.setPen(QColor(0, 255, 0))
                     painter.setBrush(QColor(0, 255, 0))
                 else:
-                    painter.setPen(QColor(255, 0, 0))  # Red for negative clicks
-                    painter.setBrush(QColor(255, 0, 0))
-
+                    painter.setPen(QColor(0, 0, 255))
+                    painter.setBrush(QColor(0, 0, 255))
                 self.draw_star(painter, x, y, size)
 
-
     def draw_star(self, painter, x, y, size):
-        # Draw a simple star shape
         points = []
         for i in range(5):
             angle = i * 72
             x_offset = size * np.cos(np.radians(angle))
             y_offset = size * np.sin(np.radians(angle))
-            points.append(QPoint(int(x + x_offset), int(y - y_offset)))  # Convert to int
+            points.append(QPoint(int(x + x_offset), int(y - y_offset)))
 
         path = QPainterPath()
         path.moveTo(points[0])
         for point in points[1:]:
             path.lineTo(point)
         path.closeSubpath()
-
         painter.drawPath(path)
-    
+
     def show_mask(self, mask, obj_id=None):
-        """Display a mask on the current frame, scaled to QLabel size."""
-
-        # Convert the mask to a format that can be displayed
         h, w = mask.shape[-2:]
-
-        # Calculate the scaling factors for mask dimensions
-        label_width = self.pixmap().width() #self.width()
-        label_height = self.pixmap().height() #self.height()
+        label_width = self.pixmap().width()
+        label_height = self.pixmap().height()
         image_width = self.parent().Lx
         image_height = self.parent().Ly
         scale_x =  label_width / image_width
         scale_y =  label_height / image_height
         mask_scaled_width = int(w * scale_x)
         mask_scaled_height = int(h * scale_y)
-
-        # Apply scaling to the mask (assuming mask is a binary mask for simplicity)
         mask_resized = resize(mask, (mask_scaled_height, mask_scaled_width), mode='constant', anti_aliasing=True)
- 
-        # Load the base image and mask image
-        base_image = self.pixmap()
+
+        frame = self.parent().get_frame(self.current_frame_index)
+        # Convert frame data to QImage and then to QPixmap
+        qimage = QImage(frame.data, frame.shape[1], frame.shape[0], frame.strides[0], QImage.Format_RGB888)
+        base_image = QPixmap.fromImage(qimage).scaled(self.size(), Qt.KeepAspectRatio)
         mask_image = mask_resized
 
-        # Create a QPixmap to draw on
+        # Draw the mask
         final_image = QPixmap(base_image.size())
-        final_image.fill(Qt.transparent)  # Start with a transparent background
-
-        # Create QPainter to draw on the final image
+        final_image.fill(Qt.transparent)
         painter = QPainter(final_image)
-        painter.drawPixmap(0, 0, base_image)  # Draw the base image
+        painter.drawPixmap(0, 0, base_image)
 
-        # Prepare color for mask overlay
-        if obj_id == 1:
-            color = QColor(0, 255, 0, 128)
-        else:
-            color = QColor(0, 0, 255, 128)
+        color = QColor(0, 255, 0, 128) if obj_id == 1 else QColor(0, 0, 255, 128)
 
-        # Draw the mask overlay
         for x in range(mask_scaled_width):
             for y in range(mask_scaled_height):
                 pixel_value = mask_image[y, x]
                 if pixel_value > 0:
                     painter.setPen(color)
-                else:
-                    continue
-                painter.drawPoint(x, y)
+                    painter.drawPoint(x, y)
 
         painter.end()
-
-        # Update the QLabel to show the new image with the mask
         self.setPixmap(final_image)
+
+    def update_frame(self, new_frame_index):
+        """Update the current frame index and display the associated mask."""        
+        self.current_frame_index = new_frame_index
+        self.update()
+        self.add_points_and_masks()
 
 class Sam2Popup(QDialog):
     def __init__(self, parent=None, cumframes=[], Ly=[], Lx=[], containers=None):
@@ -353,11 +306,6 @@ class Sam2Popup(QDialog):
         # Load the first frame initially
         self.update_frame_display()
 
-    def load_next_frame(self):
-        # Increment frame index and update display
-        if self.current_frame_index < self.cumframes[-1]:
-            self.current_frame_index += 1
-            self.update_frame_display()
 
     def update_frame_display(self):
         # Fetch the frame based on current index and update QLabel
@@ -373,6 +321,7 @@ class Sam2Popup(QDialog):
 
             # Instead of calling set_frame_index, just set the current frame index on the visual area
             self.visual_area.current_frame_index = self.current_frame_index
+            self.visual_area.update_frame(self.current_frame_index)
 
     def slider_changed(self, value):
         # Update frame index from slider and refresh display
