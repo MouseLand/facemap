@@ -61,8 +61,13 @@ class SAM2Model:
         self.predictor = build_sam2_video_predictor(model_cfg, sam2_checkpoint, device=self.device)
 
     def track_objects(self):
-
-        return
+        video_segments = {}  # video_segments contains the per-frame segmentation results
+        for out_frame_idx, out_obj_ids, out_mask_logits in self.predictor.propagate_in_video(self.inference_state):
+            video_segments[out_frame_idx] = {
+                out_obj_id: (out_mask_logits[i] > 0.0).cpu().numpy().astype(int).squeeze()
+                for i, out_obj_id in enumerate(out_obj_ids)
+            }
+        return video_segments
 
     def reset(self):
         self.predictor.reset_state(self.inference_state)

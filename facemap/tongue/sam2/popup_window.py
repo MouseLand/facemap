@@ -25,7 +25,7 @@ class ClickableLabel(QLabel):
             
             # Ensure there is an entry for the current frame before adding a click
             if self.current_frame_index not in self.frame_click_data:
-                self.frame_click_data[self.current_frame_index] = {"positions": [], "labels": [], "pixmap_positions": []}
+                self.frame_click_data[self.current_frame_index] = {"positions": [], "labels": [], "pixmap_positions": [], "mask": None}
 
             self.store_click_for_frame(x, y, label_type)
             self.update()  # Repaint to reflect new click
@@ -48,16 +48,14 @@ class ClickableLabel(QLabel):
         image_x = int(x * scale_x)
         image_y = int(y * scale_y)
 
-        if self.current_frame_index not in self.frame_click_data:
-            self.frame_click_data[self.current_frame_index] = {"positions": [], "labels": [], "pixmap_positions": []}
-
         self.frame_click_data[self.current_frame_index]["positions"].append([image_x, image_y])
         self.frame_click_data[self.current_frame_index]["pixmap_positions"].append([x, y])
         self.frame_click_data[self.current_frame_index]["labels"].append(label_type)
 
-
     def add_points_and_masks(self):
         for frame_idx, data in self.frame_click_data.items():
+            if len(data["positions"]) == 0:
+                continue
             points = np.array(data["positions"], dtype=np.float32)
             labels = np.array(data["labels"], np.int32)
             ann_frame_idx = frame_idx
@@ -70,8 +68,9 @@ class ClickableLabel(QLabel):
                 labels=labels,
             )
             mask = (out_mask_logits[0] > 0.0).cpu().numpy().astype(int).squeeze()
+            self.frame_click_data[frame_idx]["mask"] = mask
             if frame_idx == self.current_frame_index:
-                self.show_mask(mask, obj_id=out_obj_ids[0])
+                self.show_mask(self.frame_click_data[frame_idx]["mask"], obj_id=out_obj_ids[0])
 
     def paintEvent(self, event):
         super().paintEvent(event)
@@ -87,8 +86,8 @@ class ClickableLabel(QLabel):
                     painter.setPen(QColor(0, 255, 0))
                     painter.setBrush(QColor(0, 255, 0))
                 else:
-                    painter.setPen(QColor(0, 0, 255))
-                    painter.setBrush(QColor(0, 0, 255))
+                    painter.setPen(QColor(255, 0, 0))
+                    painter.setBrush(QColor(255, 0, 0))
                 self.draw_star(painter, x, y, size)
 
     def draw_star(self, painter, x, y, size):
@@ -130,7 +129,7 @@ class ClickableLabel(QLabel):
         painter = QPainter(final_image)
         painter.drawPixmap(0, 0, base_image)
 
-        color = QColor(0, 255, 0, 128) if obj_id == 1 else QColor(0, 0, 255, 128)
+        color = QColor(0, 255, 0, 100) if obj_id == 1 else QColor(0, 0, 255, 100)
 
         for x in range(mask_scaled_width):
             for y in range(mask_scaled_height):
@@ -147,6 +146,10 @@ class ClickableLabel(QLabel):
         self.current_frame_index = new_frame_index
         self.update()
         self.add_points_and_masks()
+        # if frame_click_data is not empty, show the mask
+        if self.frame_click_data.get(new_frame_index) is not None and \
+            self.frame_click_data[new_frame_index]["mask"] is not None:
+                self.show_mask(self.frame_click_data[self.current_frame_index]["mask"], obj_id=1)
 
 class Sam2Popup(QDialog):
     def __init__(self, parent=None, cumframes=[], Ly=[], Lx=[], containers=None):
@@ -210,7 +213,7 @@ class Sam2Popup(QDialog):
         # Start over and Track buttons
         self.start_over_button = QPushButton("Start over")
         self.track_objects_button = QPushButton("Track objects")
-        self.track_objects_button.setStyleSheet("background-color: #6A00FF; color: white;")
+        self.track_objects_button.setStyleSheet("background-color: black; color: white;")
 
         left_layout.addWidget(self.start_over_button)
         left_layout.addWidget(self.track_objects_button)
@@ -252,11 +255,14 @@ class Sam2Popup(QDialog):
         # Trigger button click to handle selection
         self.button_group.buttonClicked.emit(self.remove_button)
 
-
     def track_objects(self):
-        self.add_points_and_masks()
-        # Create a SAM2Model object and pass the video path
-        #self.sam2.track_objects() 
+        video_segments = self.sam2.track_objects() 
+        # update the mask data
+        for frame_idx in video_segments.keys():
+            if frame_idx not in self.visual_area.frame_click_data:
+                self.visual_area.frame_click_data[frame_idx] = {"positions": [], "labels": [], "pixmap_positions": [], "mask": None}
+            for out_obj_id, out_mask in video_segments[frame_idx].items():
+                self.visual_area.frame_click_data[frame_idx]["mask"] = out_mask
 
     def update_window_size(self, frac=0.5, aspect_ratio=1.0):
         # Set the size of the window to be a fraction of the screen size using the aspect ratio
