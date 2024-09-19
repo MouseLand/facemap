@@ -7,6 +7,7 @@ import os
 from ..sam2.sam2_model import SAM2Model
 import matplotlib.pyplot as plt
 from skimage.transform import resize
+from matplotlib import animation
 
 class ClickableLabel(QLabel):
     def __init__(self, parent=None):
@@ -129,7 +130,7 @@ class ClickableLabel(QLabel):
         painter = QPainter(final_image)
         painter.drawPixmap(0, 0, base_image)
 
-        color = QColor(0, 255, 0, 100) if obj_id == 1 else QColor(0, 0, 255, 100)
+        color = QColor(0, 255, 0, 50) if obj_id == 1 else QColor(0, 0, 255, 50)
 
         for x in range(mask_scaled_width):
             for y in range(mask_scaled_height):
@@ -173,16 +174,6 @@ class Sam2Popup(QDialog):
 
         # Left section: Object list and controls
         left_layout = QVBoxLayout()
-        
-        self.object_label = QLabel("Object 1")
-        self.object_label.setStyleSheet("color: lightgrey;")
-        left_layout.addWidget(self.object_label)
-
-        # Object Thumbnail (Placeholder for now)
-        self.object_thumbnail = QLabel()
-        self.object_thumbnail.setFixedSize(100, 100)
-        self.object_thumbnail.setStyleSheet("background-color: #333333; border: 1px solid grey;")
-        left_layout.addWidget(self.object_thumbnail)
 
         # Add/Remove Buttons
         self.button_group = QButtonGroup()
@@ -203,20 +194,20 @@ class Sam2Popup(QDialog):
         self.mask_type_selection = self.add_button
         self.update_button_styles(self.mask_type_selection)
 
-        # Button to add more objects
-        self.add_object_button = QPushButton("Add another object")
-        left_layout.addWidget(self.add_object_button)
-
         # Spacer to fill up the space
         left_layout.addStretch(1)
 
         # Start over and Track buttons
         self.start_over_button = QPushButton("Start over")
+        self.start_over_button.setStyleSheet("background-color: black; color: red;")
         self.track_objects_button = QPushButton("Track objects")
         self.track_objects_button.setStyleSheet("background-color: black; color: white;")
+        self.save_button = QPushButton("Save")
+        self.save_button.setStyleSheet("background-color: black; color: white;")
 
         left_layout.addWidget(self.start_over_button)
         left_layout.addWidget(self.track_objects_button)
+        left_layout.addWidget(self.save_button)
 
         # Right section: Visual area (Placeholder for image/video frame)
         right_layout = QVBoxLayout()
@@ -230,13 +221,15 @@ class Sam2Popup(QDialog):
         self.add_button.clicked.connect(self.add_area)
         self.remove_button.clicked.connect(self.remove_area)
         self.track_objects_button.clicked.connect(self.track_objects)
+        self.start_over_button.clicked.connect(self.start_over)
+        self.save_button.clicked.connect(self.save_output)    
 
         self.update_window_size()
 
     def update_button_styles(self, button):
         # Reset styles for both buttons
-        self.add_button.setStyleSheet("background-color: #007BFF; color: white; border: 2px solid #0056b3;")
-        self.remove_button.setStyleSheet("background-color: #FF3333; color: white; border: 2px solid #cc0000;")
+        self.add_button.setStyleSheet("background-color: #007BFF; color: grey; border: 2px solid #0056b3;")
+        self.remove_button.setStyleSheet("background-color: #FF3333; color: grey; border: 2px solid #cc0000;")
 
         # Highlight the selected button
         if button == self.add_button:
@@ -254,6 +247,43 @@ class Sam2Popup(QDialog):
     def remove_area(self):
         # Trigger button click to handle selection
         self.button_group.buttonClicked.emit(self.remove_button)
+
+    def start_over(self):
+        self.sam2.reset()
+        self.visual_area.frame_click_data = {}
+        self.update_frame_display()
+
+    def save_output(self):
+        # Save the output data to a npy file
+        np.save("output_data.npy", self.visual_area.frame_click_data)
+
+        images = [self.get_frame(frame_idx) for frame_idx in self.cumframes]
+        masks = [self.visual_area.frame_click_data[frame_idx]["mask"] for frame_idx in self.cumframes]
+
+        # Create a figure and axis for plotting
+        fig, ax = plt.subplots()
+
+        # Display the initial frame (empty for now)
+        img_display = ax.imshow(images[0], cmap='gray', interpolation='none', vmin=0, vmax=1)
+        mask_display = ax.imshow(masks[0], cmap='Reds', interpolation='none', alpha=0.5)
+
+        # Update function for each frame in the animation
+        def update(frame):
+            img_display.set_array(images[frame])
+            mask_display.set_array(masks[frame])
+            return img_display, mask_display
+
+        # Create the animation object
+        ani = animation.FuncAnimation(fig, update, frames=self.cumframes, blit=True)
+
+        # Save the animation to a video file
+        output_filename = 'masked_animation.mp4'
+        ani.save(output_filename, writer='ffmpeg', fps=10)
+
+        plt.close(fig)  # Close the figure after saving
+
+        print(f"Animation saved as {output_filename}")
+
 
     def track_objects(self):
         video_segments = self.sam2.track_objects() 
