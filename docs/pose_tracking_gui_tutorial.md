@@ -11,7 +11,7 @@ The latest python version is integrated with Facemap network for tracking 14 dis
 
 ## Generate keypoints
 
-Follow the steps below to generate keypoints for your videos:
+Follow the steps below to generate keypoints for your videos or download sample video from [here](https://drive.google.com/file/d/124e5eRFe4KSJDTkxKlMICdslzyXf_lkw/view?usp=sharing):
 
 1. Load video 
     - Select `File` from the menu bar

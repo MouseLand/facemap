@@ -13,21 +13,27 @@ Facemap is a framework for predicting neural activity from mouse orofacial movem
 
 Please find the detailed documentation at **[facemap.readthedocs.io](https://facemap.readthedocs.io/en/latest/index.html)**.
 
-To learn about Facemap, read the [paper](https://www.biorxiv.org/content/10.1101/2022.11.03.515121v1) or check out the tweet [thread](https://twitter.com/Atika_Ibrahim/status/1588885329951367168?s=20&t=AhE3vBTnCvW36QiTyhu0qQ). For support, please open an [issue](https://github.com/MouseLand/facemap/issues).
+To learn about Facemap, read the [paper](https://www.nature.com/articles/s41593-023-01490-6) or check out the tweet [thread](https://twitter.com/Atika_Ibrahim/status/1588885329951367168?s=20&t=AhE3vBTnCvW36QiTyhu0qQ). For support, please open an [issue](https://github.com/MouseLand/facemap/issues).
 
 - For latest released version (from PyPI) including svd processing only, run `pip install facemap` for headless version or `pip install facemap[gui]` for using GUI. Note: `pip install facemap` not yet available for latest tracker and neural model, instead install with `pip install git+https://github.com/mouseland/facemap.git`
 
 ### CITATION
 
-**If you use Facemap, please cite the Facemap [paper](https://www.biorxiv.org/content/10.1101/2022.11.03.515121v1):**  
-Syeda, A., Zhong, L., Tung, R., Long, W., Pachitariu, M.\*, & Stringer, C.\* (2022). Facemap: a framework for modeling neural activity based on orofacial tracking. <em>bioRxiv</em>.
-[[bibtex](https://scholar.googleusercontent.com/scholar.bib?q=info:ckbIvC5D_FsJ:scholar.google.com/&output=citation&scisdr=CgXHFLYtEMb9qP1BWD0:AAGBfm0AAAAAY3JHQD2D6ewMN1lsoTB4rVT_uLVYr8DU&scisig=AAGBfm0AAAAAY3JHQOtGw17323ZXomLmlJoieZSXitl2&scisf=4&ct=citation&cd=-1&hl=en&scfhb=1)]
+**If you use Facemap, please cite the Facemap [paper](https://www.nature.com/articles/s41593-023-01490-6):**   
+Syeda, A., Zhong, L., Tung, R., Long, W., Pachitariu, M.\*, & Stringer, C.\* (2024). Facemap: a framework for modeling neural activity based on orofacial tracking. <em>Nature Neuroscience</em>, 27(1), 187-195.
+[[bibtex](https://scholar.googleusercontent.com/scholar.bib?q=info:ckbIvC5D_FsJ:scholar.google.com/&output=citation&scisdr=ClF-mOb-EMjM4mZZ21s:AFWwaeYAAAAAZcpfw1vc6bUrQR0LDQdzaTPXbO8&scisig=AFWwaeYAAAAAZcpfw5Aeocyxj1cWqLJIgPajziE&scisf=4&ct=citation&cd=-1&hl=en)]
 
 **If you use the SVD computation or pupil tracking components, please also cite our previous [paper](https://www.nature.com/articles/s41592-022-01663-4):**  
 Stringer, C.\*, Pachitariu, M.\*, Steinmetz, N., Reddy, C. B., Carandini, M., & Harris, K. D. (2019). Spontaneous behaviors drive multidimensional, brainwide activity. <em>Science, 364</em>(6437), eaav7893.
 [[bibtex](https://scholar.googleusercontent.com/scholar.bib?q=info:DNVOkEas4K8J:scholar.google.com/&output=citation&scisdr=CgXHFLYtEMb9qP1Bt0Q:AAGBfm0AAAAAY3JHr0TJourtY6W2vbjy7opKXX2jOX9Z&scisig=AAGBfm0AAAAAY3JHryiZnvgWM1ySwd_xQ9brvQxH71UM&scisf=4&ct=citation&cd=-1&hl=en&scfhb=1)]
 
 The MATLAB version of the GUI is no longer supported (see old [documentation](https://github.com/MouseLand/facemap/blob/main/docs/svd_matlab_tutorial.md)).
+
+### Logo
+Logo was designed by Atika Syeda and [Tzuhsuan Ma](https://github.com/tzhma).
+
+### Video tutorial 
+Please follow the [video tutorial](https://www.youtube.com/watch?v=aO_kXkOuadg) for instructions on how to use Facemap or read the instructions below. 
 
 ## Installation
 
@@ -112,7 +118,7 @@ Next you can extract information from the videos like track keypoints, compute m
 
 ## I. Pose tracking
 
-<img src="https://raw.githubusercontent.com/MouseLand/facemap/main/figs/facemap.gif" width="100%" height="500" title="Tracker" alt="tracker" algin="middle" vspace = "10">
+<img src="https://raw.githubusercontent.com/MouseLand/facemap/main/figs/facemap.gif" width="100%" height="470" title="Tracker" alt="tracker" algin="middle" vspace = "10">
 
 Facemap provides a trained network for tracking distinct keypoints on the mouse face from different camera views (some examples shown below). Check the `keypoints` box then click `process`. Next a bounding box will appear -- focus this on the face as shown below. Then the processed keypoints `*.h5` file will be saved in the output folder along with the corresponding metadata file `*.pkl`.
 
@@ -150,4 +156,3 @@ The encoding model used for prediction is described as follows:
 </p>
 
 Please see neural activity prediction [tutorial](https://github.com/MouseLand/facemap/blob/main/docs/neural_activity_prediction_tutorial.md) for more details.
-
