@@ -385,7 +385,10 @@ class MainW(QtWidgets.QMainWindow):
             url = event.mimeData().urls()[0]
             if url.isLocalFile() and url.toString().endswith(('.mp4', '.avi')):
                 video_path = url.toLocalFile()
-                io.open_file(self, (video_path, 'Movie files (*.h5 *.mj2 *.mp4 *.mkv *.avi *.mpeg *.mpg *.asf *m4v)'))
+                io.open_file(self, (video_path, 'Movie files (*.h5 *.mj2 *.mp4 *.mkv *.avi *.mpeg *.mpg *.asf *.m4v)'))
+            elif url.isLocalFile() and url.toString().endswith((".npy", ".mat")):
+                proc_path = url.toLocalFile()
+                io.open_proc(self, proc_path)
 
     def make_buttons(self):
         # ~~~~~~~~~~~~~~~~~~~~~~~~ SVD variables ~~~~~~~~~~~~~~~~~~~~~~~~
