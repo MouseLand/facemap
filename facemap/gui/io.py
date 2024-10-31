@@ -185,6 +185,7 @@ def open_proc(parent, file_name=None):
                         parent.sigma_box.setText(str(r["pupil_sigma"]))
                     else:
                         psig = None
+                    
                     parent.ROIs.append(
                         roi.sROI(
                             rind=r["rind"],
@@ -201,8 +202,6 @@ def open_proc(parent, file_name=None):
                             ivid=r["ivid"],
                         )
                     )
-                    parent.update_ROI_vis_comboBox()
-                    parent.ROIs[-1].position(parent)
 
                     if "reflector" in r:
                         for i, reflector_roi in enumerate(r["reflector"]):
@@ -214,8 +213,7 @@ def open_proc(parent, file_name=None):
                                 reflector_roi["xrange"][-1]
                                 - reflector_roi["xrange"][0],
                             ]
-                            parent.rROI[-1].append(
-                                roi.reflectROI(
+                            parent.rROI[-1].append(roi.reflectROI(
                                     iROI=r["iROI"],
                                     wROI=i,
                                     pos=pos,
@@ -223,8 +221,11 @@ def open_proc(parent, file_name=None):
                                     yrange=reflector_roi["yrange"],
                                     xrange=reflector_roi["xrange"],
                                     ellipse=reflector_roi["ellipse"],
-                                )
-                            )
+                                ))
+
+                    parent.update_ROI_vis_comboBox()
+                    parent.ROIs[-1].position(parent)
+
                     if parent.fullSVD:
                         parent.iROI = k - 1
                     else:
