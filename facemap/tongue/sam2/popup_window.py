@@ -257,8 +257,10 @@ class Sam2Popup(QDialog):
         # Save the output data to a npy file
         np.save("output_data.npy", self.visual_area.frame_click_data)
 
-        images = [self.get_frame(frame_idx) for frame_idx in self.cumframes]
-        masks = [self.visual_area.frame_click_data[frame_idx]["mask"] for frame_idx in self.cumframes]
+        print("self.cumframes: ", self.cumframes[-1])
+        images = [self.get_frame(frame_idx) for frame_idx in range(self.cumframes[-1])]
+        print(range(self.cumframes[-1]))
+        masks = [self.visual_area.frame_click_data[frame_idx]["mask"] for frame_idx in range(self.cumframes[-1])]
 
         # Create a figure and axis for plotting
         fig, ax = plt.subplots()

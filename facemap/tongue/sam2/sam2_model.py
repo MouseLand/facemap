@@ -62,7 +62,7 @@ class SAM2Model:
 
     def track_objects(self):
         video_segments = {}  # video_segments contains the per-frame segmentation results
-        for out_frame_idx, out_obj_ids, out_mask_logits in self.predictor.propagate_in_video(self.inference_state):
+        for out_frame_idx, out_obj_ids, out_mask_logits in self.predictor.propagate_in_video(self.inference_state, start_frame_idx=0):
             video_segments[out_frame_idx] = {
                 out_obj_id: (out_mask_logits[i] > 0.0).cpu().numpy().astype(int).squeeze()
                 for i, out_obj_id in enumerate(out_obj_ids)
