@@ -74,7 +74,7 @@ class MainW(QtWidgets.QMainWindow):
         QtCore.QCoreApplication.setApplicationName("Facemap")
 
         pg.setConfigOptions(imageAxisOrder="row-major")
-        self.setGeometry(15, 5, 1470, 800)#(55, 5, 1470, 800)
+        self.setGeometry(15, 5, 1700, 800)#(55, 5, 1470, 800)
         self.setWindowTitle("Facemap")
         self.setStyleSheet("QMainWindow {background: 'black';}")
         self.styleUnpressed = (
@@ -120,7 +120,7 @@ class MainW(QtWidgets.QMainWindow):
         self.central_widget.setLayout(self.scene_grid_layout)
         # --- cells image
         self.sizeObject = QtGui.QGuiApplication.primaryScreen().availableGeometry()
-        self.resize(self.sizeObject.width(), self.sizeObject.height())
+        #self.resize(self.sizeObject.width(), self.sizeObject.height())
 
         self.video_window = pg.GraphicsLayoutWidget()
         self.video_window.viewport().setAttribute(QtCore.Qt.WidgetAttribute.WA_AcceptTouchEvents, False)
@@ -385,7 +385,10 @@ class MainW(QtWidgets.QMainWindow):
             url = event.mimeData().urls()[0]
             if url.isLocalFile() and url.toString().endswith(('.mp4', '.avi')):
                 video_path = url.toLocalFile()
-                io.open_file(self, (video_path, 'Movie files (*.h5 *.mj2 *.mp4 *.mkv *.avi *.mpeg *.mpg *.asf *m4v)'))
+                io.open_file(self, (video_path, 'Movie files (*.h5 *.mj2 *.mp4 *.mkv *.avi *.mpeg *.mpg *.asf *.m4v)'))
+            elif url.isLocalFile() and url.toString().endswith((".npy", ".mat")):
+                proc_path = url.toLocalFile()
+                io.open_proc(self, proc_path)
 
     def make_buttons(self):
         # ~~~~~~~~~~~~~~~~~~~~~~~~ SVD variables ~~~~~~~~~~~~~~~~~~~~~~~~
@@ -1235,16 +1238,15 @@ class MainW(QtWidgets.QMainWindow):
         print(files)
         for file_idx, f in enumerate(files):
             proc = np.load(f, allow_pickle=True).item()
-            if proc["motSVD"] or proc["movSVD"]:
-                savename = process.run(
-                    proc["filenames"],
-                    motSVD=proc["motSVD"],
-                    movSVD=proc["movSVD"],
-                    GUIobject=QtWidgets,
-                    proc=proc,
-                    savepath=proc["save_path"],
-                )
-                self.update_status_bar("Processed " + savename)
+            savename = process.run(
+                proc["filenames"],
+                motSVD=proc["motSVD"],
+                movSVD=proc["movSVD"],
+                GUIobject=QtWidgets,
+                proc=proc,
+                savepath=proc["save_path"],
+            )
+            self.update_status_bar("Processed " + savename)
             if self.keypoints_checkbox.isChecked():
                 self.filenames = proc["filenames"]
                 self.bbox = proc["pose_settings"]["bbox"]

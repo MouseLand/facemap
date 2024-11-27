@@ -4,12 +4,12 @@ Copright © 2023 Howard Hughes Medical Institute, Authored by Carsen Stringer an
 import setuptools
 
 install_deps = [
-    "numpy>=1.16",
+    "numpy>=1.16,<2.0",
     "scipy",
     "natsort",
     "tqdm",
     "numba>=0.43.1",
-    "opencv-python-headless",
+    "opencv-python-headless<4.10",
     "torch>=1.9",
     "h5py",
     "scikit-learn",
