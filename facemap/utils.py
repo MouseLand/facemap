@@ -756,5 +756,5 @@ def svdecon(X, k=100):
     """
     U, Sv, V = PCA(
         n_components=k, svd_solver="randomized", random_state=np.random.RandomState(0)
-    )._fit(X)
+    )._fit(X)[:3]
     return U, Sv, V
