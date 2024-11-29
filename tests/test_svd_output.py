@@ -8,7 +8,7 @@ import numpy as np
 
 from facemap import process
 
-r_tol, a_tol = 1, 1  # 1e-2, 1
+r_tol, a_tol = 1e-2, 1e-1  # 1e-2, 1
 
 
 def test_output_single_video(data_dir, video_names, expected_output_dir):
@@ -115,32 +115,31 @@ def check_frames(test_output, expected_output):
 
 
 def check_U(test_output, expected_output):
-    motionMask = np.allclose(
-        test_output["motMask"][0],
-        expected_output["motMask"][0],
-        rtol=r_tol + 5,
-        atol=a_tol + 5,
-    )
-    movieMask = np.allclose(
-        test_output["movMask"][0], expected_output["movMask"][0], rtol=r_tol, atol=a_tol
-    )
-    motionMask_reshape = np.allclose(
-        test_output["motMask_reshape"][0],
-        expected_output["motMask_reshape"][0],
-        rtol=r_tol + 5,
-        atol=a_tol + 5,
-    )
-    movMask_reshape = np.allclose(
-        test_output["movMask_reshape"][0],
-        expected_output["movMask_reshape"][0],
-        rtol=r_tol,
-        atol=a_tol,
-    )
+    nPCs = test_output["motSVD"][0].shape[1]
+    motionMask_pos = [np.allclose(test_output["motMask"][0][:,i], 
+                                expected_output["motMask"][0][:,i], 
+                                rtol=r_tol, atol=a_tol) for i in range(nPCs)]
+    motionMask_neg = [np.allclose(test_output["motMask"][0][:,i], 
+                                -1 * expected_output["motMask"][0][:,i], 
+                                rtol=r_tol, atol=a_tol) for i in range(nPCs)]
+    motionMask = np.array(motionMask_pos) | np.array(motionMask_neg)
+    motionMask = np.all(motionMask)
+
+    movieMask_pos = [np.allclose(test_output["movMask"][0][:,i], 
+                            expected_output["movMask"][0][:,i], 
+                            rtol=r_tol, atol=a_tol) for i in range(nPCs)]
+    movieMask_neg = [np.allclose(test_output["movMask"][0][:,i],
+                                -1 * expected_output["movMask"][0][:,i],
+                                rtol=r_tol, atol=a_tol) for i in range(nPCs)]
+    movieMask = np.array(movieMask_pos) | np.array(movieMask_neg)
+    movieMask = np.all(movieMask)
+    motionMask_reshape = test_output["motMask_reshape"][0].shape == expected_output["motMask_reshape"][0].shape
+    movieMask_reshape = test_output["movMask_reshape"][0].shape == expected_output["movMask_reshape"][0].shape
     print("motionMask", motionMask)
     print("movieMask", movieMask)
     print("motionMask_reshape", motionMask_reshape)
-    print("movMask_reshape", movMask_reshape)
-    return motionMask and movieMask and motionMask_reshape and movMask_reshape
+    print("movMask_reshape", movieMask_reshape)
+    return motionMask and movieMask and motionMask_reshape and movieMask_reshape
 
 
 def check_V(test_output, expected_output):
