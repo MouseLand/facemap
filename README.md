@@ -29,6 +29,9 @@ Stringer, C.\*, Pachitariu, M.\*, Steinmetz, N., Reddy, C. B., Carandini, M., & 
 
 The MATLAB version of the GUI is no longer supported (see old [documentation](https://github.com/MouseLand/facemap/blob/main/docs/svd_matlab_tutorial.md)).
 
+### Disclaimer
+The outputs of Facemap have only been tested on macos-12 and earlier versions and newer versions may give different/incorrect output so it's advised to use macos-12 for Facemap until the issue is resolved.
+
 ### Logo
 Logo was designed by Atika Syeda and [Tzuhsuan Ma](https://github.com/tzhma).
 
