@@ -42,7 +42,7 @@ jobs:
             libxcb-image0 libxcb-keysyms1 libxcb-randr0 libxcb-render-util0 \
             libxcb-xinerama0 libxcb-xinput0 libxcb-xfixes0 pkg-config libhdf5-103 libhdf5-dev \
             libegl1 libgl1
-          sudo apt-get install '^libxcb.*-dev' libx11-xcb-dev libglu1-mesa-dev libxrender-dev libxi-dev libxkbcommon-dev libxkbcommon-x11-dev
+      #sudo apt-get install '^libxcb.*-dev' libx11-xcb-dev libglu1-mesa-dev libxrender-dev libxi-dev libxkbcommon-dev libxkbcommon-x11-dev
       # strategy borrowed from vispy for installing opengl libs on windows
       # - name: Install Windows OpenGL
       #   if: runner.os == 'Windows'
