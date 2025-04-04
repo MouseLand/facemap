@@ -11,8 +11,8 @@ import shutil
 from pathlib import Path
 from urllib.request import urlretrieve
 
-MODEL_PARAMS_URL = "https://www.facemappy.org/models/facemap_model_params.pth"
-MODEL_STATE_URL = "https://www.facemappy.org/models/facemap_model_state.pt"
+MODEL_PARAMS_URL = "https://osf.io/download/67f00beaba4331d9888b7f36/"
+MODEL_STATE_URL = "https://osf.io/download/67f00be8959068ade6cf70f1/"
 
 
 def get_data_dir():
@@ -158,3 +158,6 @@ def get_model_files():
     # Read the file
     filenames = file_readobject.read().splitlines()
     return filenames
+
+get_model_params_path()
+get_basemodel_state_path()

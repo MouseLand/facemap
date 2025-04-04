@@ -153,7 +153,7 @@ class Pose:
                 self.model_name = model_paths[model_names.index(model)]
                 break
         print("Loading model state from:", self.model_name)
-        self.net.load_state_dict(torch.load(self.model_name, map_location=self.device))
+        self.net.load_state_dict(torch.load(self.model_name, map_location=self.device, weights_only=False))
         self.net.to(self.device)
 
     def load_model(self):
@@ -168,7 +168,7 @@ class Pose:
             GUIobject=self.GUIobject,
             prompt="Loading model... {}".format(model_params_file),
         )
-        model_params = torch.load(model_params_file, map_location=self.device)
+        model_params = torch.load(model_params_file, map_location=self.device, weights_only=False)
         # self.bodyparts = model_params["params"]["bodyparts"]
         channels = model_params["params"]["channels"]
         kernel_size = 3
