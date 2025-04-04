@@ -13,9 +13,14 @@ from tqdm import tqdm
 
 from facemap import utils
 
-from . import datasets, facemap_network, model_loader, model_training
+from . import datasets, facemap_network, model_loader
 from . import pose_helper_functions as pose_utils
 from . import transforms
+
+try:
+    from . import model_training
+except:
+    train = False
 
 """
 Base class for generating pose estimates.
