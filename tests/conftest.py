@@ -8,6 +8,7 @@ import tempfile
 from glob import glob
 from pathlib import Path
 from urllib.request import urlopen
+import zipfile
 
 import pytest
 from tqdm import tqdm
@@ -41,47 +42,23 @@ def bodyparts():
     ]
     return BODYPARTS
 
+def extract_zip(cached_file, url, data_path):
+    download_url_to_file(url, cached_file)        
+    with zipfile.ZipFile(cached_file,"r") as zip_ref:
+        zip_ref.extractall(data_path)
 
 @pytest.fixture(scope="session")
 def data_dir(video_names):
     fm_dir = Path.home().joinpath(".facemap")
     fm_dir.mkdir(exist_ok=True)
+    extract_zip(fm_dir.joinpath("data.zip"), "https://osf.io/download/67f025b541d31bf67eb256dd/", fm_dir)
     data_dir = fm_dir.joinpath("data")
-    data_dir.mkdir(exist_ok=True)
-    data_dir_cam1 = data_dir.joinpath("cam1")
-    data_dir_cam1.mkdir(exist_ok=True)
-    data_dir_cam2 = data_dir.joinpath("cam2")
-    data_dir_cam2.mkdir(exist_ok=True)
-
-    for i, video_name in enumerate(video_names):
-        url = "https://www.facemappy.org/test_data/" + video_name
-        if "1" in video_name:
-            cached_file = str(data_dir_cam1.joinpath(video_name))
-        else:
-            cached_file = str(data_dir_cam2.joinpath(video_name))
-        if not os.path.exists(cached_file):
-            download_url_to_file(url, cached_file)
-
     return data_dir
 
 
 @pytest.fixture(scope="session")
 def expected_output_dir(data_dir):
     expected_output_dir = data_dir.joinpath("expected_output")
-    expected_output_dir.mkdir(exist_ok=True)
-    # Download expected output files
-    download_url_to_file(
-        "https://www.facemappy.org/test_data/single_video_proc.npy",
-        expected_output_dir.joinpath("single_video_proc.npy"),
-    )
-    download_url_to_file(
-        "https://www.facemappy.org/test_data/multi_video_proc.npy",
-        expected_output_dir.joinpath("multi_video_proc.npy"),
-    )
-    download_url_to_file(
-        "https://www.facemappy.org/test_data/cam1_test_FacemapPose.h5",
-        expected_output_dir.joinpath("cam1_test_FacemapPose.h5"),
-    )
     return expected_output_dir
 
 

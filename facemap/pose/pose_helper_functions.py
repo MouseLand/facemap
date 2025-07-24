@@ -10,10 +10,7 @@ import matplotlib.pyplot as plt
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Import packages ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 import numpy as np
-import pyqtgraph as pg
 import torch  # pytorch
-from qtpy import QtWidgets, QtCore
-from qtpy.QtWidgets import QDialog, QPushButton
 from scipy.ndimage import gaussian_filter
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~Global variables~~~~~~~~~~~~~~~~~~~~~~~~~~~~~`
@@ -237,33 +234,41 @@ def plot_imgs_landmarks(
 
 
 # Following used to check cropped sections of frames
-class test_popup(QDialog):
-    def __init__(self, frame, gui, title="Test Popup"):
-        super().__init__(gui)
-        self.gui = gui
-        self.frame = frame
+try:
+    from qtpy import QtWidgets, QtCore
+    from qtpy.QtWidgets import QDialog, QPushButton
+    import pyqtgraph as pg
 
-        self.setWindowTitle(title)
-        self.verticalLayout = QtWidgets.QVBoxLayout(self)
+    class test_popup(QDialog):
+        
+        def __init__(self, frame, gui, title="Test Popup"):
+            super().__init__(gui)
+            self.gui = gui
+            self.frame = frame
 
-        # Add image and ROI bbox
-        self.win = pg.GraphicsLayoutWidget()
-        self.win.viewport().setAttribute(QtCore.Qt.WidgetAttribute.WA_AcceptTouchEvents, False)
-        ROI_win = self.win.addViewBox(invertY=True)
-        self.img = pg.ImageItem(self.frame)
-        ROI_win.addItem(self.img)
-        self.win.show()
-        self.verticalLayout.addWidget(self.win)
+            self.setWindowTitle(title)
+            self.verticalLayout = QtWidgets.QVBoxLayout(self)
 
-        self.cancel_button = QPushButton("Cancel")
-        self.cancel_button.clicked.connect(self.close)
+            # Add image and ROI bbox
+            self.win = pg.GraphicsLayoutWidget()
+            self.win.viewport().setAttribute(QtCore.Qt.WidgetAttribute.WA_AcceptTouchEvents, False)
+            ROI_win = self.win.addViewBox(invertY=True)
+            self.img = pg.ImageItem(self.frame)
+            ROI_win.addItem(self.img)
+            self.win.show()
+            self.verticalLayout.addWidget(self.win)
 
-        # Position buttons
-        self.widget = QtWidgets.QWidget(self)
-        self.horizontalLayout = QtWidgets.QHBoxLayout(self.widget)
-        self.horizontalLayout.setContentsMargins(-1, -1, -1, 0)
-        self.horizontalLayout.setObjectName("horizontalLayout")
-        self.horizontalLayout.addWidget(self.cancel_button)
-        self.verticalLayout.addWidget(self.widget)
+            self.cancel_button = QPushButton("Cancel")
+            self.cancel_button.clicked.connect(self.close)
 
-        self.show()
+            # Position buttons
+            self.widget = QtWidgets.QWidget(self)
+            self.horizontalLayout = QtWidgets.QHBoxLayout(self.widget)
+            self.horizontalLayout.setContentsMargins(-1, -1, -1, 0)
+            self.horizontalLayout.setObjectName("horizontalLayout")
+            self.horizontalLayout.addWidget(self.cancel_button)
+            self.verticalLayout.addWidget(self.widget)
+
+            self.show()
+except ImportError:
+    print("pip install facemap[gui]")

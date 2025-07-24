@@ -105,7 +105,7 @@ For any issues or questions about Facemap, please [open an issue](https://github
 The models will be downloaded automatically from our website when you first run Facemap for processing keypoints. If download of pretrained models fails, please try the following:
 
 - to resolve certificate error try: ```pip install –upgrade certifi```, or
-- download the pretrained model files: [model state](https://www.facemappy.org/models/facemap_model_state.pt) and [model parameters](https://www.facemappy.org/models/facemap_model_params.pth) and place them in the `models` subfolder of the hidden `facemap` folder located in home directory. Path to the hidden folder is: `C:\Users\your_username\.facemap\models` on Windows and `/home/your_username/.facemap/models` on Linux and Mac. 
+- download the pretrained model files: [model_params](https://osf.io/download/67f00beaba4331d9888b7f36/), [model_state](https://osf.io/download/67f00be8959068ade6cf70f1/)  and place them in the `models` subfolder of the hidden `facemap` folder located in home directory. Path to the hidden folder is: `C:\Users\your_username\.facemap\models` on Windows and `/home/your_username/.facemap/models` on Linux and Mac. 
 
 # Running Facemap
 

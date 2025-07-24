@@ -13,9 +13,14 @@ from tqdm import tqdm
 
 from facemap import utils
 
-from . import datasets, facemap_network, model_loader, model_training
+from . import datasets, facemap_network, model_loader
 from . import pose_helper_functions as pose_utils
 from . import transforms
+
+try:
+    from . import model_training
+except:
+    train = False
 
 """
 Base class for generating pose estimates.
@@ -153,7 +158,7 @@ class Pose:
                 self.model_name = model_paths[model_names.index(model)]
                 break
         print("Loading model state from:", self.model_name)
-        self.net.load_state_dict(torch.load(self.model_name, map_location=self.device))
+        self.net.load_state_dict(torch.load(self.model_name, map_location=self.device, weights_only=False))
         self.net.to(self.device)
 
     def load_model(self):
@@ -168,7 +173,7 @@ class Pose:
             GUIobject=self.GUIobject,
             prompt="Loading model... {}".format(model_params_file),
         )
-        model_params = torch.load(model_params_file, map_location=self.device)
+        model_params = torch.load(model_params_file, map_location=self.device, weights_only=False)
         # self.bodyparts = model_params["params"]["bodyparts"]
         channels = model_params["params"]["channels"]
         kernel_size = 3
