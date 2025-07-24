@@ -42,6 +42,7 @@ from facemap.gui import (
     neural_activity_window,
 )
 from facemap.pose import model_loader, pose, pose_gui, refine_pose
+from scipy.io import savemat
 
 istr = ["pupil", "motSVD", "blink", "running", "movSVD"]
 
@@ -268,6 +269,8 @@ class MainW(QtWidgets.QMainWindow):
         self.traces1 = None
         self.traces2 = None
         self.saccade_data = None
+        self.saccade_data_file = None
+        self.enable_svd_plot_interaction()
 
         ## Pose plot
         self.pose_scatterplot = pg.ScatterPlotItem(hover=True)
@@ -943,6 +946,8 @@ class MainW(QtWidgets.QMainWindow):
         self.svd_plot_vtick = None
         self.neural_win = None
         self.saccade_data = None
+        self.saccade_data_file = None
+        self.enable_svd_plot_interaction()
 
     def pupil_sigma_change(self):
         self.pupil_sigma = float(self.sigma_box.text())
@@ -2056,10 +2061,8 @@ class MainW(QtWidgets.QMainWindow):
                         brush=pg.mkBrush(255, 255, 255, 50),  # Semi-transparent white
                         movable=False,  # Non-movable
                     )
-
                     # Add the region to the plot
                     self.svd_traces_plot.addItem(vspan)
-
                     # Keep track of added items for later removal
                     self.saccade_vspan_items.append(vspan)
 
@@ -2083,11 +2086,6 @@ class MainW(QtWidgets.QMainWindow):
             print("No saccade data to toggle display.")
 
     def enable_svd_plot_interaction(self):
-        """
-        Enable interaction with the SVD plot (includes left-click for vtick update
-        and right-click/drag for saccade region creation).
-        """
-        # Variables for interaction management
         self._is_dragging = False
         self._saccade_region_start = None
         self._current_drawn_region = None
@@ -2114,9 +2112,10 @@ class MainW(QtWidgets.QMainWindow):
                         self.saccade_data[start_idx:end_idx] = 0  # Delete saccade region (set to 0)
                     else:
                         self.saccade_data[start_idx:end_idx] = 1  # Add saccade region (set to 1)
-
                     self.update_saccade_plot()  # Refresh the plot
                     self._current_drawn_region = None
+                    # Save refined saccade data to a file
+                    self.save_saccades()
                 self._saccade_region_start = None
             else:
                 # Drag Start (Mouse Pressed)
@@ -2165,14 +2164,14 @@ class MainW(QtWidgets.QMainWindow):
         
         return index
     
+    def save_saccades(self):
+        # Save the refined saccade data to the same file. Convert to array for .mat file
+        self.eye_movement_data['Saccade'][0, 0] = np.expand_dims(self.saccade_data, axis=0)        
+        savemat(self.saccade_data_file, {
+            'eye_movement_data': self.eye_movement_data
+        })
+    
     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ end of saccade functions ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
-    """
-    def on_click_svd_plot(self, event):
-        #Update vtick position of svd plot when user clicks
-        if event.button() == QtCore.Qt.LeftButton:
-            mouse_point = self.svd_traces_plot.vb.mapSceneToView(event._scenePos)
-            self.update_svd_vtick(mouse_point.x())
-    """
 
     def update_svd_vtick(self, x_pos=None):
         """

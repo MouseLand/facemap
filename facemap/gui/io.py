@@ -357,7 +357,10 @@ def load_saccade(parent):
     # Check if path exists
     if path[0]:
         try:
-            saccade_data = scipy.io.loadmat(path[0])
+            # Check is the file is a .mat or .npy file
+            parent.saccade_data_file = path[0]
+            saccade_data = scipy.io.loadmat(parent.saccade_data_file)
+            parent.eye_movement_data = saccade_data['eye_movement_data']
             parent.saccade_data = saccade_data['eye_movement_data']['Saccade'][0, 0].squeeze()
             parent.update_status_bar("Saccade data loaded")
             parent.update_saccade_plot()
