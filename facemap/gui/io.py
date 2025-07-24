@@ -8,11 +8,9 @@ import pickle
 import numpy as np
 from natsort import natsorted
 from qtpy.QtWidgets import QFileDialog, QMessageBox
-
+import scipy.io
 from facemap import roi, utils
-
 from . import guiparts
-
 
 def open_file(parent, file_name=None):
     if file_name is None:
@@ -359,12 +357,10 @@ def load_saccade(parent):
     # Check if path exists
     if path[0]:
         try:
-            import scipy.io
-
             saccade_data = scipy.io.loadmat(path[0])
-            parent.saccade_data = saccade_data['eye_movement_data']
+            parent.saccade_data = saccade_data['eye_movement_data']['Saccade'][0, 0].squeeze()
             parent.update_status_bar("Saccade data loaded")
-            parent.plot_saccade_data()
+            parent.update_saccade_plot()
         except Exception as e:
             msg = QMessageBox(parent)
             msg.setIcon(QMessageBox.Icon.Warning)

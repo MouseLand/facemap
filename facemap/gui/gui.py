@@ -12,6 +12,7 @@ import pyqtgraph as pg
 import torch
 from matplotlib import cm
 from qtpy import QtCore, QtWidgets, QtGui
+from qtpy.QtCore import Qt
 from qtpy.QtGui import QFont, QIcon, QPainterPath
 from qtpy.QtWidgets import (
     QButtonGroup,
@@ -254,7 +255,8 @@ class MainW(QtWidgets.QMainWindow):
             name="svd_traces_plot", row=1, col=0, title="SVD traces"
         )
         self.svd_traces_plot.layout.setContentsMargins(0, 0, 0, 0)
-        self.svd_traces_plot.scene().sigMouseClicked.connect(self.on_click_svd_plot)
+        self.svd_traces_plot.scene().sigMouseClicked.connect(self.on_mouse_click) #on_click_svd_plot)
+        self.svd_traces_plot.scene().sigMouseMoved.connect(self.on_mouse_move)
         self.svd_traces_plot.setMouseEnabled(x=True, y=False)
         self.svd_traces_plot.setMenuEnabled(False)
         self.svd_traces_plot.hideAxis("left")
@@ -2014,17 +2016,19 @@ class MainW(QtWidgets.QMainWindow):
             )
             selected_plot.addItem(self.keypoints_vtick)
         if self.saccade_data is not None:
-            self.plot_saccade_data()
+            self.update_saccade_plot()
         selected_plot.setLimits(xMin=0, xMax=self.nframes)
         return tr
+    
+    #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ start of saccade functions ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
 
-    def plot_saccade_data(self):
+    def update_saccade_plot(self):
         """
         Plot saccade data on the SVD traces plot as a single toggleable item.
         """
         if self.saccade_data is not None:
             # Extract saccade data
-            saccade = self.saccade_data['Saccade'][0, 0].squeeze()
+            saccade = self.saccade_data
 
             # Check if saccade data matches the number of frames
             if saccade.shape[0] != self.nframes:
@@ -2058,21 +2062,103 @@ class MainW(QtWidgets.QMainWindow):
 
                     # Keep track of added items for later removal
                     self.saccade_vspan_items.append(vspan)
+
+            self.toggle_saccade.setChecked(True)  # Ensure toggle is checked to show saccades
+            self.enable_svd_plot_interaction()  # Enable interaction for saccade regions
         else:
             print("No saccade data available.")
 
-    def toggle_saccade_vspans(self, show):
-        # Toggles visibility of the saccade vspans group
-        if hasattr(self, 'saccade_vspan_group'):  # Check if the group exists
-            self.saccade_vspan_group.setVisible(show)
+    def toggle_saccade_display(self):
+        """
+        Toggles visibility of the saccade vspan items group.
+        """
+        # Check if the saccade vspan items exist
+        if hasattr(self, 'saccade_vspan_items') and self.saccade_vspan_items:
+            # Determine toggle state based on the button's state
+            is_checked = self.toggle_saccade.isChecked()
 
+            for item in self.saccade_vspan_items:
+                item.setVisible(is_checked)  # Show or hide each LinearRegionItem
+        else:
+            print("No saccade data to toggle display.")
+
+    def enable_svd_plot_interaction(self):
+        """
+        Enable interaction with the SVD plot (includes left-click for vtick update
+        and right-click/drag for saccade region creation).
+        """
+        # Variables for interaction management
+        self._is_dragging = False
+        self._saccade_region_start = None
+        self._current_drawn_region = None
+
+    def on_mouse_click(self, event):
+        """
+        Handle mouse click and release events (both left and right buttons).
+        """
+        if event.button() == Qt.MouseButton.LeftButton:  # Handle left-click for vtick update
+            mouse_point = self.svd_traces_plot.vb.mapSceneToView(event.scenePos())
+            self.update_svd_vtick(mouse_point.x())
+        elif event.button() == Qt.MouseButton.RightButton:  # Handle right-click
+            if self._is_dragging:
+                # End the drag (mouse release)
+                self._is_dragging = False
+                if self._current_drawn_region is not None:
+                    start_pos, end_pos = self._current_drawn_region.getRegion()
+                    self.saccade_data[start_pos:end_pos] = 1
+                    self.update_saccade_plot()  # Update the plot with the new region
+                    self._current_drawn_region = None
+                self._saccade_region_start = None
+            else:
+                # Start the drag (mouse press)
+                self._saccade_region_start = self.svd_traces_plot.vb.mapSceneToView(event.scenePos()).x()
+                self._is_dragging = True
+
+    def on_mouse_move(self, pos):
+        """
+        Handle mouse movement events to update drag regions dynamically.
+        """
+        # `pos` is a QPointF directly provided by PyQtGraph's sigMouseMoved signal
+        if self._is_dragging:  # Only handle movement during right-click drag
+            current_x = self.svd_traces_plot.vb.mapSceneToView(pos).x()
+            if self._current_drawn_region is None:
+                # Create a new draggable LinearRegionItem during the drag
+                self._current_drawn_region = pg.LinearRegionItem(
+                    values=(self._saccade_region_start, current_x),
+                    brush=pg.mkBrush(255, 255, 255, 50),  # Semi-transparent white
+                    movable=False
+                )
+                self.svd_traces_plot.addItem(self._current_drawn_region)
+                self.saccade_vspan_items.append(self._current_drawn_region)
+            else:
+                # Update the region dynamically as the mouse moves
+                current_x = self.position_to_index(current_x) # Convert position to index
+                self._saccade_region_start = self.position_to_index(self._saccade_region_start)
+                self._current_drawn_region.setRegion((self._saccade_region_start, current_x))
+
+    def position_to_index(self, position):
+        """
+        Convert a plot position (float X-coordinate) to index in the saccade data array.
+        
+        :param position: The X-coordinate position on the plot (float).
+        :return: Closest index in the saccade data as an integer.
+        """
+        # Round the position to the nearest integer
+        index = int(round(position))
+        
+        # Clamp the index to the valid bounds of the saccade data array
+        index = max(0, min(index, self.saccade_data.shape[0] - 1))
+        
+        return index
+    
+    #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ end of saccade functions ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
+    """
     def on_click_svd_plot(self, event):
-        """
-        Update vtick position of svd plot when user clicks
-        """
+        #Update vtick position of svd plot when user clicks
         if event.button() == QtCore.Qt.LeftButton:
             mouse_point = self.svd_traces_plot.vb.mapSceneToView(event._scenePos)
             self.update_svd_vtick(mouse_point.x())
+    """
 
     def update_svd_vtick(self, x_pos=None):
         """

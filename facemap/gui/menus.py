@@ -28,6 +28,12 @@ def mainmenu(parent):
     load_saccade.triggered.connect(lambda: io.load_saccade(parent))
     parent.addAction(load_saccade)
 
+    # Toggle saccade data using a checkable action
+    parent.toggle_saccade = QAction("Saccades", parent)
+    parent.toggle_saccade.setCheckable(True)
+    parent.toggle_saccade.setChecked(False)
+    parent.toggle_saccade.triggered.connect(lambda: parent.toggle_saccade_display())
+
     # Set output folder
     set_output_folder = QAction("Set output folder", parent)
     set_output_folder.setShortcut("Ctrl+S")
@@ -100,7 +106,6 @@ def mainmenu(parent):
     file_menu.addAction(open_file)
     file_menu.addAction(open_folder)
     file_menu.addAction(load_proc)
-    file_menu.addAction(load_saccade)
     file_menu.addAction(set_output_folder)
 
     pose_menu = main_menu.addMenu("Pose")
@@ -116,6 +121,10 @@ def mainmenu(parent):
     neural_activity_menu.addAction(run_neural_prediction)
     neural_activity_menu.addAction(toggle_test_data)
     """
+
+    eye_menu = main_menu.addMenu("Eye")
+    eye_menu.addAction(load_saccade)
+    eye_menu.addAction(parent.toggle_saccade)
 
     help_menu = main_menu.addMenu("&Help")
     help_menu.addAction(user_manual)
