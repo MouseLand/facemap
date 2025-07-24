@@ -2099,18 +2099,27 @@ class MainW(QtWidgets.QMainWindow):
         if event.button() == Qt.MouseButton.LeftButton:  # Handle left-click for vtick update
             mouse_point = self.svd_traces_plot.vb.mapSceneToView(event.scenePos())
             self.update_svd_vtick(mouse_point.x())
-        elif event.button() == Qt.MouseButton.RightButton:  # Handle right-click
+        elif event.button() == Qt.MouseButton.RightButton:
             if self._is_dragging:
-                # End the drag (mouse release)
+                # Drag End (Mouse Released)
                 self._is_dragging = False
                 if self._current_drawn_region is not None:
                     start_pos, end_pos = self._current_drawn_region.getRegion()
-                    self.saccade_data[start_pos:end_pos] = 1
-                    self.update_saccade_plot()  # Update the plot with the new region
+                    start_idx = self.position_to_index(start_pos)
+                    end_idx = self.position_to_index(end_pos)
+
+                    # Check if `Shift` is pressed for deletion
+                    modifiers = event.modifiers()
+                    if modifiers == Qt.KeyboardModifier.ShiftModifier:  # Shift held
+                        self.saccade_data[start_idx:end_idx] = 0  # Delete saccade region (set to 0)
+                    else:
+                        self.saccade_data[start_idx:end_idx] = 1  # Add saccade region (set to 1)
+
+                    self.update_saccade_plot()  # Refresh the plot
                     self._current_drawn_region = None
                 self._saccade_region_start = None
             else:
-                # Start the drag (mouse press)
+                # Drag Start (Mouse Pressed)
                 self._saccade_region_start = self.svd_traces_plot.vb.mapSceneToView(event.scenePos()).x()
                 self._is_dragging = True
 
@@ -2118,22 +2127,27 @@ class MainW(QtWidgets.QMainWindow):
         """
         Handle mouse movement events to update drag regions dynamically.
         """
-        # `pos` is a QPointF directly provided by PyQtGraph's sigMouseMoved signal
-        if self._is_dragging:  # Only handle movement during right-click drag
+        if self._is_dragging:
             current_x = self.svd_traces_plot.vb.mapSceneToView(pos).x()
             if self._current_drawn_region is None:
-                # Create a new draggable LinearRegionItem during the drag
+                # Create a new LinearRegionItem during the drag
+                modifiers = pg.QtGui.QGuiApplication.keyboardModifiers()
+
+                # Check if deleting (with Ctrl modifier) or adding
+                if modifiers == Qt.KeyboardModifier.ShiftModifier:  # Shift held
+                    brush = pg.mkBrush(255, 0, 0, 50)  # Semi-transparent red for deletion
+                else:
+                    brush = pg.mkBrush(255, 255, 255, 50)  # Semi-transparent white for addition
+
                 self._current_drawn_region = pg.LinearRegionItem(
                     values=(self._saccade_region_start, current_x),
-                    brush=pg.mkBrush(255, 255, 255, 50),  # Semi-transparent white
+                    brush=brush,
                     movable=False
                 )
                 self.svd_traces_plot.addItem(self._current_drawn_region)
                 self.saccade_vspan_items.append(self._current_drawn_region)
             else:
                 # Update the region dynamically as the mouse moves
-                current_x = self.position_to_index(current_x) # Convert position to index
-                self._saccade_region_start = self.position_to_index(self._saccade_region_start)
                 self._current_drawn_region.setRegion((self._saccade_region_start, current_x))
 
     def position_to_index(self, position):
