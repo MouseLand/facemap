@@ -121,7 +121,7 @@ Next you can extract information from the videos like track keypoints, compute m
 
 ## I. Pose tracking
 
-<img src="https://raw.githubusercontent.com/MouseLand/facemap/main/figs/facemap.gif" width="100%" height="470" title="Tracker" alt="tracker" algin="middle" vspace = "10">
+<img src="https://raw.githubusercontent.com/MouseLand/facemap/main/figs/facemap.gif" width="100%" height="470" title="Tracker" alt="tracker" align="middle" vspace = "10">
 
 Facemap provides a trained network for tracking distinct keypoints on the mouse face from different camera views (some examples shown below). Check the `keypoints` box then click `process`. Next a bounding box will appear -- focus this on the face as shown below. Then the processed keypoints `*.h5` file will be saved in the output folder along with the corresponding metadata file `*.pkl`.
 
@@ -131,7 +131,7 @@ For more details on using the tracker, please refer to the [GUI Instructions](ht
 
 <p float="middle">
 <img src="https://raw.githubusercontent.com/MouseLand/facemap/main/figs/mouse_face1_keypoints.png"  width="310" height="290" title="View 1" alt="view1" align="left" vspace = "10" hspace="30" style="border: 0.5px solid white"  />
-<img src="https://raw.githubusercontent.com/MouseLand/facemap/main/figs/mouse_face0_keypoints.png" width="310" height="290" title="View 2" alt="view2" algin="right" vspace = "10" style="border: 0.5px solid white">
+<img src="https://raw.githubusercontent.com/MouseLand/facemap/main/figs/mouse_face0_keypoints.png" width="310" height="290" title="View 2" alt="view2" align="right" vspace = "10" style="border: 0.5px solid white">
 </p>
 
 ### 📢 User contributions 📹 📷

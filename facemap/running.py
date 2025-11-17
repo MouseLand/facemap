@@ -1,5 +1,5 @@
 """
-Copright © 2023 Howard Hughes Medical Institute, Authored by Carsen Stringer and Atika Syeda.
+Copyright © 2023 Howard Hughes Medical Institute, Authored by Carsen Stringer and Atika Syeda.
 """
 # outputs the dx, dy offsets between frames by registering frame N to frame
 # N-1. If the movement is larger than half the frame size, outputs NaN.

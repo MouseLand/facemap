@@ -1,5 +1,5 @@
 """
-Copright © 2023 Howard Hughes Medical Institute, Authored by Carsen Stringer and Atika Syeda.
+Copyright © 2023 Howard Hughes Medical Institute, Authored by Carsen Stringer and Atika Syeda.
 """
 import os
 from glob import glob
@@ -254,7 +254,7 @@ class FacemapDataset(torch.utils.data.Dataset):
         if len(annotation_files) == 0:
             raise ValueError("No .h5 files found in the directory")
 
-        # Landmarks dataframe concatentation
+        # Landmarks dataframe concatenation
         landmarks = pd.DataFrame()
         for f in annotation_files:
             df = pd.read_hdf(f)

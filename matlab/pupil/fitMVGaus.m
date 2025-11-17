@@ -1,10 +1,10 @@
 % fit 2D gaussian to cell with lam pixel weights
 function params = fitMVGaus(iy, ix, lam0, thres)
 
-% normalize pixel weigths
+% normalize pixel weights
 lam = lam0;
 
-% iteratively fit the Guassian, excluding outliers
+% iteratively fit the Gaussian, excluding outliers
 for k = 1:5
     lam     = lam / sum(lam);    
     mu      = [sum(lam.*iy) sum(lam.*ix)];    

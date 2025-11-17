@@ -1,5 +1,5 @@
 """
-Copright © 2023 Howard Hughes Medical Institute, Authored by Carsen Stringer and Atika Syeda.
+Copyright © 2023 Howard Hughes Medical Institute, Authored by Carsen Stringer and Atika Syeda.
 """
 import os
 import time
@@ -710,7 +710,7 @@ def run(
     Lybin, Lxbin, iinds = binned_inds(Ly, Lx, sbin)
     LYbin, LXbin, sybin, sxbin = utils.video_placement(Lybin, Lxbin)
 
-    # number of mot/mov ROIs
+    # number of mot/mov ROIs  # codespell:ignore
     nroi = 0
     if rois is not None:
         for r in rois:

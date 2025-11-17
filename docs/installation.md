@@ -19,7 +19,7 @@ If you are on Yosemite Mac OS, PyQt doesn't work, and you won't be able to insta
 
 The software has been heavily tested on Ubuntu 18.04, and less well tested on Windows 10 and Mac OS. Please post an issue if you have installation problems.
 
-### Pyhton dependencies
+### Python dependencies
 
 Facemap python relies on these awesome packages:
 - [pyqtgraph](http://pyqtgraph.org/)
