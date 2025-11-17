@@ -82,7 +82,7 @@ def randomize_bbox_coordinates(bbox, im_shape, random_factor_range=(0.1, 0.3)):
     im_shape: tuple of size (2,)
         image shape in order Ly, Lx
     random_factor_range: tuple of size (2,)
-        range of random factor to use for expaning bounding box
+        range of random factor to use for expanding bounding box
     Returns
     -------
     bbox: tuple of size (4,)

@@ -38,7 +38,7 @@ Follow the steps below to generate keypoints for your videos:
    -  A dialog box for selecting a bounding box for the face will
       appear. Drag the red rectangle to select region of interest on the
       frame where the keypoints will be tracked. Please ensure that the
-      bouding box is focused on the face where all the keypoints will be
+      bounding box is focused on the face where all the keypoints will be
       visible. See example frames `here <https://github.com/MouseLand/facemap/blob/main/figs/mouse_views.png>`__. If a
       ‘Face (pose)’ ROI has already been added then this step will be
       skipped.

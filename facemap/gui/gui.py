@@ -836,7 +836,7 @@ class MainW(QtWidgets.QMainWindow):
             msg = QMessageBox()
             msg.setIcon(QMessageBox.Icon.Critical)
             msg.setText("Pose model not added. Error: " + str(e))
-            msg.setWindowTitle("Eror")
+            msg.setWindowTitle("Error")
             msg.setStandardButtons(QMessageBox.StandardButton.Ok)
             msg.exec_()
 
@@ -2250,7 +2250,7 @@ class MainW(QtWidgets.QMainWindow):
 
     def display_ROI(self):
         """
-        Plot selected ROI on visualizaiton window
+        Plot selected ROI on visualization window
         """
         self.roi_display_combobox.show()
         roi_request = self.roi_display_combobox.currentText()

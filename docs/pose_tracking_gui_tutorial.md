@@ -1,12 +1,12 @@
 # Pose tracking **(GUI)** :mouse:
 
-<img src="../figs/tracker.gif" width="100%" height="500" title="Tracker" alt="tracker" algin="middle" vspace = "10">
+<img src="../figs/tracker.gif" width="100%" height="500" title="Tracker" alt="tracker" align="middle" vspace = "10">
 
 The latest python version is integrated with Facemap network for tracking 14 distinct keypoints on mouse face and an additional point for tracking paw. The keypoints can be tracked from different camera views (some examples shown below). 
 
 <p float="middle">
 <img src="../figs/mouse_face1_keypoints.png"  width="310" height="290" title="View 1" alt="view1" align="left" vspace = "10" hspace="30" style="border: 0.5px solid white"  />
-<img src="../figs/mouse_face0_keypoints.png" width="310" height="290" title="View 2" alt="view2" algin="right" vspace = "10" style="border: 0.5px solid white">
+<img src="../figs/mouse_face0_keypoints.png" width="310" height="290" title="View 2" alt="view2" align="right" vspace = "10" style="border: 0.5px solid white">
 </p>
 
 ## Generate keypoints

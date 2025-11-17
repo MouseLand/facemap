@@ -97,7 +97,7 @@ You can draw areas to be included and excluded in the multivideo SVD (or single 
 
 The motion energy is then computed from these non-red pixels.
 
-### Proccessed output
+### Processed output
 
 The GUIs create one file for all videos (saved in current folder), the processed mat file has name "videofile_proc.mat".
 
