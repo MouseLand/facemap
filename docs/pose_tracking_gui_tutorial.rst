@@ -17,7 +17,7 @@ Follow the steps below to generate keypoints for your videos:
    -  For processing single video, select ``Load video``. Alternatively,
       for processing multiple videos, select ``Load multiple videos`` to
       select the folder containing the videos. (Note: Pose estimation
-      for multipl videos is only supported for videos recorded
+      for multiple videos is only supported for videos recorded
       simultaneously i.e. have the same time duration and frame rate).
 
    (Optional) Set output folder
