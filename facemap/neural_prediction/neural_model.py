@@ -56,7 +56,9 @@ class KeypointsNetwork(nn.Module):
         latents = self.core(x)
         if sample_inds is not None:
             latents = latents[sample_inds]
-        latents = latents.reshape(x.shape[0], -1, latents.shape[-1])
+        #print("latents shape:", latents.shape)
+        #print("x shape:", x.shape)
+        #latents = latents.reshape(x.shape[0], -1, latents.shape[-1])
         y_pred = self.readout(latents, animal_id=animal_id)
         return y_pred, latents
 

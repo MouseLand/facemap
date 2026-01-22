@@ -17,10 +17,13 @@ from torch.nn import functional as F
 
 from facemap import keypoints
 from facemap.neural_prediction import keypoints_utils, neural_model, prediction_utils
+import imp
+imp.reload(prediction_utils)
+imp.reload(neural_model)
 from facemap.utils import bin1d, compute_varexp, split_traintest
 
 sys.path.insert(0, "/github/rastermap/")
-from rastermap import clustering, mapping
+#from rastermap import clustering, mapping
 
 
 def model_complexity(data_path, dbs, n_layers_test=5, device=torch.device("cuda")):
@@ -275,6 +278,26 @@ def rrr_net_varexp(
         else:
             varexp, varexp_neurons, Y_pred_test, spks_pred_test = [], [], [], []
             for j, x in enumerate(X):
+                """
+                # trim x and Y to half the size of each
+                y = Y.copy()
+                tneural_copy = tneural.copy()
+                tcam_copy = tcam.copy()
+                x = x[: len(x) // 5]
+                tcam_copy = tcam_copy[: len(tcam_copy) // 5]
+                print("x shape", x.shape)
+                print("Y shape", Y.shape)
+                # Ensure tneural is within the range of tcam
+                inds = tneural_copy < tcam_copy[-1] 
+                y = y[inds]
+                tneural_copy = tneural_copy[inds]
+                inds = tneural_copy > tcam_copy[0]
+                tneural_copy = tneural_copy[inds]
+                y = y[inds]
+                print("after trim")
+                print("x shape", x.shape)
+                print("Y shape", y.shape)
+                """
                 vout = prediction_utils.get_keypoints_to_neural_varexp(
                     x, Y, tcam, tneural, U=U, spks=spks, delay=delay
                 )
@@ -357,7 +380,7 @@ def kpareas_varexp(kp_path0, mstr, Y, tcam, tneural, U, spks, delay=-1, save_pat
         inds[kpall==area] = False
         inds = np.tile(inds[:,np.newaxis], (1,2)).flatten()
         vout = prediction_utils.get_keypoints_to_neural_varexp(
-            x_kp[:, inds], Y, tcam, tneural, U=U, spks=spks, delay=delay
+            x_kp[:, inds], Y, tcam, tneural, U=U, spks=spks, delay=delay,
         )
         itest = vout[4]
         varexp.append(vout[0])
@@ -393,7 +416,8 @@ def kp_svd_analyses(
     delay = -1
     tic = time.time()
     for iexp, db in enumerate(dbs):
-        mname, datexp, blk, twocam = db["mname"], db["datexp"], db["blk"], db["2cam"]
+        #mname, datexp, blk, twocam = db["mname"], db["datexp"], db["blk"], db["2cam"]
+        mname, datexp, blk = db["mname"], db["datexp"], db["blk"]
         cid = 0
         kp_path0 = (
             f"{data_path}proc/keypoints/kpfilt_cam{cid}_{mname}_{datexp}_{blk}.npy"
@@ -410,6 +434,11 @@ def kp_svd_analyses(
         spks = dat["spks"]
         tcam = dat["tcam"]
         tneural = dat["tneural"]
+
+        # print tcam (sampling rate of camera) 
+        print("tcam", np.diff(tcam))
+        print(np.diff(tcam).mean() * (24.0 * 60.0 * 60.0 * 1000000.0))
+        continue
 
         # z-score neural activity
         spks -= spks.mean(axis=1)[:, np.newaxis]
